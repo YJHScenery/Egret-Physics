@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/main">
+        <file>main/MainWindow.qml</file>
+    </qresource>
+    <qresource prefix="/components">
+        <file>components/DeepBlueTheme.qml</file>
+        <file>components/GlassPanel.qml</file>
+        <file>components/LeftNavPanel.qml</file>
+        <file>components/MetricCard.qml</file>
+    </qresource>
+</RCC>
