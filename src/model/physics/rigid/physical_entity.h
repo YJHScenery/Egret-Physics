@@ -8,28 +8,19 @@
 
 #include "Eigen/Dense"
 #include <vector>
+#include "geometry.h"
+#include "shape_base.h"
+#include <memory>
 
 namespace egret
 {
-    struct Force
-    {
-        std::optional<Eigen::Vector3f> applyPosition;
-        Eigen::Vector3f force;
-    };
-
-    struct Axis
-    {
-        Eigen::Vector3f basePoint;
-        Eigen::Vector3f rotationAxis;
-    };
-
     class PhysicalEntity
     {
     public:
         PhysicalEntity() = default;
         explicit PhysicalEntity(double mass);
-        PhysicalEntity(Eigen::Vector3f position, Eigen::Vector3f speed, double mass);
-        PhysicalEntity(const Eigen::Vector3f& position, const Eigen::Vector3f& speed, double mass, std::vector<Force> forces);
+        PhysicalEntity(Eigen::Vector3d position, Eigen::Vector3d speed, double mass);
+        PhysicalEntity(const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass, std::vector<Force> forces);
 
         PhysicalEntity(const PhysicalEntity&) = default;
         PhysicalEntity(PhysicalEntity&&) = default;
@@ -38,21 +29,21 @@ namespace egret
 
         virtual ~PhysicalEntity() = default;
 
-        [[nodiscard]] Eigen::Vector3f getPosition() const { return m_position; }
+        [[nodiscard]] Eigen::Vector3d getPosition() const { return m_position; }
 
-        [[nodiscard]] const Eigen::Vector3f& getPositionCR() const { return m_position; }
+        [[nodiscard]] const Eigen::Vector3d& getPositionCR() const { return m_position; }
 
         [[nodiscard]] std::vector<Force> getForces() const { return m_forces; }
 
         [[nodiscard]] const std::vector<Force>& getForcesCR() const { return m_forces; }
 
-        [[nodiscard]] Eigen::Vector3f getSpeed() const { return m_speed; }
+        [[nodiscard]] Eigen::Vector3d getSpeed() const { return m_speed; }
 
-        [[nodiscard]] const Eigen::Vector3f& getSpeedCR() const { return m_speed; }
+        [[nodiscard]] const Eigen::Vector3d& getSpeedCR() const { return m_speed; }
 
         [[nodiscard]] double getMass() const { return m_mass; }
 
-        void setPosition(const Eigen::Vector3f& position) { m_position = position; }
+        void setPosition(const Eigen::Vector3d& position) { m_position = position; }
 
         void setMass(const double mass) { m_mass = mass; }
 
@@ -66,7 +57,9 @@ namespace egret
             }
         }
 
-        void setSpeed(const Eigen::Vector3f& speed) { m_speed = speed; }
+        void setSpeed(const Eigen::Vector3d& speed) { m_speed = speed; }
+
+        void setShape(const std::shared_ptr<ShapeBase>& shape) { m_shape = shape; }
 
         virtual void rotateMandatory(const Axis& axis, double radians) = 0;
 
@@ -77,25 +70,26 @@ namespace egret
         virtual void movePosition(double time) = 0; // 根据当前速度移动相应时间
 
         // 动量
-        virtual Eigen::Vector3f getMomentum() = 0;
+        virtual Eigen::Vector3d getMomentum() = 0;
 
         // 角动量
-        virtual Eigen::Vector3f getAngularMomentum(const Eigen::Vector3f& base) = 0;
+        virtual Eigen::Vector3d getAngularMomentum(const Eigen::Vector3d& base) = 0;
 
         // 转动惯量
         virtual double getRotationalInertia(const Axis& axis) = 0;
 
         // 力矩
-        virtual Eigen::Vector3f getTorque(const Eigen::Vector3f& base) = 0;
+        virtual Eigen::Vector3d getTorque(const Eigen::Vector3d& base) = 0;
 
         // 获取合力
         virtual Force getJoinForce() = 0;
 
     protected:
-        Eigen::Vector3f m_position; // 参考点位置
-        Eigen::Vector3f m_speed; // 参考点的速度
+        Eigen::Vector3d m_position; // 参考点位置
+        Eigen::Vector3d m_speed; // 参考点的速度
 
         std::vector<Force> m_forces; // 受力组/N
+        std::shared_ptr<ShapeBase> m_shape;
         double m_mass{}; // 质量/kg
     };
 }

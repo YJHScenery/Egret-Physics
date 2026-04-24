@@ -8,7 +8,9 @@
 namespace egret {
 
 class RigidBody: public PhysicalEntity {
+public:
 
+private:
 };
 
 } // egret
