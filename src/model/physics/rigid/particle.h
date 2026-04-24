@@ -18,13 +18,13 @@ public:
 
     double getRotationalInertia(const Axis& axis) override;
 
-    Eigen::Vector3f getTorque(const Eigen::Vector3f& base) override;
+    Eigen::Vector3d getTorque(const Eigen::Vector3d& base) override;
 
     Force getJoinForce() override;
 
-    Eigen::Vector3f getMomentum() override;
+    Eigen::Vector3d getMomentum() override;
 
-    Eigen::Vector3f getAngularMomentum(const Eigen::Vector3f& base) override;
+    Eigen::Vector3d getAngularMomentum(const Eigen::Vector3d& base) override;
 };
 
 } // egret

@@ -18,8 +18,8 @@ include_directories(
         src/model/physics/rigid
         src/model/physics/field
         src/model/physics/rigid/shape
-        src/model/qt
-        src/model/scene
+        src/view_model/qt
+        src/view_model/scene
         src/model/strategy
         src/model/strategy/implementations
         src/model/strategy/interfaces
@@ -45,8 +45,8 @@ set(CPP_FILES
         src/utils/constants.h
         src/utils/io/database_controller.cpp
         src/utils/io/database_controller.h
-        src/model/qt/scene_manager.cpp
-        src/model/qt/scene_manager.h
+        src/view_model/qt/scene_manager.cpp
+        src/view_model/qt/scene_manager.h
         src/model/physics/rigid/particle.cpp
         src/model/physics/rigid/particle.h
         src/utils/io/json_controller.cpp
@@ -57,11 +57,28 @@ set(CPP_FILES
         src/model/physics/rigid/physical_entity.h
         src/model/physics/rigid/rigid_body.cpp
         src/model/physics/rigid/rigid_body.h
+        src/model/physics/rigid/shape/shape_base.cpp
+        src/model/physics/rigid/shape/shape_base.h
+        src/utils/geometry.h
+        src/model/physics/rigid/shape/shape_sphere.cpp
+        src/model/physics/rigid/shape/shape_sphere.h
+        src/model/physics/rigid/shape/shape_spherical_shell.cpp
+        src/model/physics/rigid/shape/shape_spherical_shell.h
+        src/model/physics/rigid/shape/shape_cube.cpp
+        src/model/physics/rigid/shape/shape_cube.h
+        src/model/physics/rigid/shape/shape_cylinder.cpp
+        src/model/physics/rigid/shape/shape_cylinder.h
+        src/model/physics/rigid/shape/shape_ring.cpp
+        src/model/physics/rigid/shape/shape_ring.h
+        src/model/physics/rigid/shape/shape_cylindrical_shell.cpp
+        src/model/physics/rigid/shape/shape_cylindrical_shell.h
 )
 
 set(QRC_FILES
         resources/global.qrc
         src/qml/qml.qrc
+        src/model/physics/rigid/shape/shape_rod.cpp
+        src/model/physics/rigid/shape/shape_rod.h
 )
 
 add_executable(${PROJECT_NAME}

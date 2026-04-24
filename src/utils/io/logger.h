@@ -76,7 +76,7 @@ private:
     {
     public:
         WorkerThread(AsyncLogger* logger);
-        ~WorkerThread();
+        ~WorkerThread() override;
         void stop();
     protected:
         void run() override;
