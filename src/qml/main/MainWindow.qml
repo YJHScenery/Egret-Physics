@@ -153,6 +153,8 @@ Window {
                         onClicked: {
                             console.log("New Scene Button Clicked")
                             newSceneButton.isPressed = true
+                            // 新代码说明：按钮直接调用 ViewModel 的重置命令，驱动 Model 层重建世界。
+                            sceneController.reset()
                             colorTimer.restart()  // 使用 restart 确保每次点击都会重新计时
                         }
                     }
@@ -187,7 +189,7 @@ Window {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 80
                         metricName: "积分步长"
-                        metricValue: "0.5"
+                        metricValue: Number(sceneController.fixedStepMs).toFixed(2)
                         metricUnit: "ms"
                         metricColor: theme.accent
                     }
@@ -196,7 +198,7 @@ Window {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 80
                         metricName: "实时帧率"
-                        metricValue: "120"
+                        metricValue: Number(sceneController.fps).toFixed(1)
                         metricUnit: "FPS"
                         metricColor: theme.success
                     }
@@ -205,7 +207,7 @@ Window {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 80
                         metricName: "活动刚体"
-                        metricValue: "84"
+                        metricValue: sceneController.entityCount
                         metricUnit: "obj"
                         metricColor: theme.warning
                     }
@@ -265,6 +267,34 @@ Window {
                                 horizontalAlignment: Text.AlignHCenter
                                 color: theme.textSecondary
                                 font.pixelSize: 14
+                                visible: sceneController.entityCount === 0
+                            }
+
+                            // 新代码说明：直接从 ViewModel 暴露的实体模型渲染当前世界状态，
+                            // 让 QML 层只做展示，不直接触碰物理对象指针。
+                            Repeater {
+                                model: sceneController.bodyModel
+
+                                delegate: Rectangle {
+                                    x: bodyX
+                                    y: bodyY
+                                    width: bodyWidth
+                                    height: bodyHeight
+                                    radius: shapeKind === "sphere" ? bodyWidth * 0.5 : 8
+                                    color: bodyColor
+                                    border.width: 1
+                                    border.color: "#D9F0FF"
+                                    opacity: 0.92
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: bodyLabel
+                                        color: "#F3FAFF"
+                                        font.pixelSize: 11
+                                        font.bold: true
+                                        visible: bodyWidth >= 40 && bodyHeight >= 24
+                                    }
+                                }
                             }
                         }
                     }
@@ -288,12 +318,25 @@ Window {
                                 ]
 
                                 delegate: Rectangle {
+                                    id: repeatItem
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 42
+                                    property bool hovered: false
                                     radius: 9
-                                    color: "#12365D"
+                                    color: hovered ? "#122c5d" : "#12365D"
                                     border.width: 1
                                     border.color: "#2E5D89"
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        onEntered: {
+                                            repeatItem.hovered = true
+                                        }
+                                        onExited: {
+                                            repeatItem.hovered = false
+                                        }
+                                    }
 
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
@@ -310,14 +353,127 @@ Window {
                                 Layout.fillHeight: true
                             }
 
+                            // 新代码说明：这些按钮直接驱动 ViewModel 层，
+                            // 由 ViewModel 再去调用 Model 层世界管理器和求解器。
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 40
+                                spacing: 8
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 40
+                                    radius: 10
+                                    color: sceneController.running ? "#1E3A8A" : "#173B67"
+                                    border.width: 1
+                                    border.color: sceneController.running ? "#58B8FF" : "#2C5D88"
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: sceneController.running ? "暂停仿真" : "开始仿真"
+                                        color: "#EAF5FF"
+                                        font.pixelSize: 13
+                                        font.bold: true
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: sceneController.toggleRunning()
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 40
+                                    radius: 10
+                                    color: "#164A78"
+                                    border.width: 1
+                                    border.color: "#58B8FF"
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "单步求解"
+                                        color: "#EAF5FF"
+                                        font.pixelSize: 13
+                                        font.bold: true
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: sceneController.stepOnce()
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 40
+                                    radius: 10
+                                    color: "#0F3D62"
+                                    border.width: 1
+                                    border.color: "#90CFFF"
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "添加球体"
+                                        color: "#EAF5FF"
+                                        font.pixelSize: 13
+                                        font.bold: true
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: sceneController.spawnSphere()
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 40
+                                    radius: 10
+                                    color: "#0F3D62"
+                                    border.width: 1
+                                    border.color: "#90CFFF"
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "添加盒体"
+                                        color: "#EAF5FF"
+                                        font.pixelSize: 13
+                                        font.bold: true
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: sceneController.spawnBox()
+                                    }
+                                }
+                            }
+
                             Rectangle {
+                                id: computeBtnRect
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 46
+                                property bool hovered: false
                                 radius: 10
-                                color: "#1A4E83"
+                                color: hovered ? "#1a3b83" : "#1A4E83"
                                 border.width: 1
                                 border.color: "#58B8FF"
 
+                                // 原来这里仅打印日志；新代码改为驱动一次固定步长求解。
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onEntered: {
+                                        computeBtnRect.hovered = true
+                                    }
+                                    onExited: {
+                                        computeBtnRect.hovered = false
+                                    }
+                                    onClicked: {
+                                        sceneController.stepOnce()
+                                    }
+                                }
                                 Text {
                                     anchors.centerIn: parent
                                     text: "运行数值求解"
@@ -342,13 +498,25 @@ Window {
                         Repeater {
                             model: 5
                             Rectangle {
+                                id: valueChannel
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
+                                property bool hovered: false
                                 radius: 10
-                                color: "#112F52"
+                                color: hovered ? "#1a3b83FF" : "#112F52"
                                 border.width: 1
                                 border.color: "#2C5D88"
 
+                                MouseArea {
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onEntered: {
+                                        valueChannel.hovered = true
+                                    }
+                                    onExited: {
+                                        valueChannel.hovered = false
+                                    }
+                                }
                                 Text {
                                     anchors.centerIn: parent
                                     text: "数据通道 " + (index + 1)

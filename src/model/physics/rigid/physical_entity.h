@@ -4,11 +4,13 @@
 
 #ifndef EGRET_PHYSICS_RIGID_OBJECT_BASE_H
 #define EGRET_PHYSICS_RIGID_OBJECT_BASE_H
+#include <algorithm>
+#include <cstdint>
 #include <optional>
 
 #include "Eigen/Dense"
 #include <vector>
-#include "geometry.h"
+#include "basic_utils.h"
 #include "shape_base.h"
 #include <memory>
 
@@ -49,13 +51,13 @@ namespace egret
 
         void addForce(const Force& force) { m_forces.push_back(force); }
 
-        void removeForce(const long long index)
-        {
-            const auto iter {m_forces.begin() + index};
-            if (iter != m_forces.end()) {
-                m_forces.erase(iter);
-            }
-        }
+        void upsertForce(const Force& force);
+
+        bool removeForceById(const std::uint64_t id);
+
+        [[nodiscard]] bool hasForce(const std::uint64_t id) const;
+
+        void removeForce(const long long index);
 
         void setSpeed(const Eigen::Vector3d& speed) { m_speed = speed; }
 

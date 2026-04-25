@@ -11,9 +11,21 @@ Rectangle {
     property color metricColor: "#27B5FF"
 
     radius: 12
-    color: "#123660CC"
+    color: hovered ? "#013088CC" : "#123660CC"
     border.width: 1
+    property bool hovered: false
     border.color: "#356FA4"
+
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        onEntered: {
+            root.hovered = true
+        }
+        onExited: {
+            root.hovered = false
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent

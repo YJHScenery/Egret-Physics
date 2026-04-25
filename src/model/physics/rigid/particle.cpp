@@ -4,10 +4,14 @@
 
 #include "particle.h"
 
-#include <numeric>
+#include <cmath>
 
 namespace egret
 {
+    Particle::Particle(Eigen::Vector3d position, Eigen::Vector3d speed, double mass): PhysicalEntity(position, speed, mass)
+    {
+    }
+
     void Particle::applyForce(const double time)
     {
         const Eigen::Vector3d acceleration{getJoinForce().force / m_mass};
@@ -54,8 +58,14 @@ namespace egret
 
     double Particle::getRotationalInertia(const Axis& axis)
     {
-        const double distance{axis.basePoint.cross(axis.rotationAxis).norm() / axis.basePoint.norm()};
-        return pow(distance, 2) * m_mass;
+        // 原代码：
+        // const double distance{axis.basePoint.cross(axis.rotationAxis).norm() / axis.basePoint.norm()};
+        // return pow(distance, 2) * m_mass;
+        // 新代码说明：避免轴基点接近原点时发生除零，并保持点质点惯性模型的一致性。
+        const Eigen::Vector3d direction = axis.rotationAxis.normalized();
+        const Eigen::Vector3d relativePosition = m_position - axis.basePoint;
+        const double distance = relativePosition.cross(direction).norm();
+        return std::pow(distance, 2.0) * m_mass;
     }
 
     Eigen::Vector3d Particle::getTorque(const Eigen::Vector3d& base)
@@ -66,8 +76,13 @@ namespace egret
     Force Particle::getJoinForce()
     {
         Force joinForce{};
-        for (const auto& [_, force] : m_forces) {
-            joinForce.force += force;
+        // 原代码：
+        // for (const auto& [_, force] : m_forces) {
+        //     joinForce.force += force;
+        // }
+        // 新代码说明：Force 不是二元组，改为按成员遍历，确保可正确汇总所有外力。
+        for (const Force& force : m_forces) {
+            joinForce.force += force.force;
         }
         return joinForce;
     }

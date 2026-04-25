@@ -20,4 +20,39 @@ namespace egret
     {
         m_forces = std::move(forces);
     }
+
+    void PhysicalEntity::upsertForce(const Force& force)
+    {
+        std::erase_if(m_forces, [&force](const Force& item)
+        {
+            return item.id == force.id;
+        });
+        m_forces.push_back(force);
+    }
+
+    bool PhysicalEntity::removeForceById(const std::uint64_t id)
+    {
+        const auto beforeSize = m_forces.size();
+        std::erase_if(m_forces, [id](const Force& item)
+        {
+            return item.id == id;
+        });
+        return m_forces.size() != beforeSize;
+    }
+
+    bool PhysicalEntity::hasForce(const std::uint64_t id) const
+    {
+        return std::ranges::any_of(m_forces, [id](const Force& item)
+        {
+            return item.id == id;
+        });
+    }
+
+    void PhysicalEntity::removeForce(const long long index)
+    {
+        const auto iter {m_forces.begin() + index};
+        if (iter != m_forces.end()) {
+            m_forces.erase(iter);
+        }
+    }
 }

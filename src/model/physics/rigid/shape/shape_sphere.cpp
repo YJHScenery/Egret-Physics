@@ -20,7 +20,7 @@ namespace egret
 
     Eigen::Vector3d ShapeSphere::getCenterOfMass() const
     {
-        return Eigen::Vector3d(0, 0, 0);
+        return {0, 0, 0};
     }
 
     Eigen::Matrix3d ShapeSphere::getInertiaTensor(double mass) const
@@ -32,16 +32,22 @@ namespace egret
     bool ShapeSphere::collideWith(const ShapeBase* other, const Transform& thisTrans, const Transform& otherTrans,
         ContactManifold& manifold) const
     {
-        const ShapeSphere* shapeSphere = dynamic_cast<const ShapeSphere*>(other);
+        const auto* shapeSphere = dynamic_cast<const ShapeSphere*>(other);
         if (shapeSphere != nullptr) {
-            const Eigen::Vector3d& thisGeomCenter{thisTrans.translation};
-            const Eigen::Vector3d& otherGeomCenter{otherTrans.translation};
+            const Eigen::Vector3d& thisGeomCenter{thisTrans.getTranslation()};
+            const Eigen::Vector3d& otherGeomCenter{otherTrans.getTranslation()};
             const double distance {(thisGeomCenter - otherGeomCenter).norm()};
             const double sumRadius {m_radius + shapeSphere->getRadius()};
-            if (distance < sumRadius) {
+            if (distance >= sumRadius) {
                 return false;
             }
-            const Eigen::Vector3d normal{(thisGeomCenter - otherGeomCenter).normalized()};
+
+            Eigen::Vector3d normal = otherGeomCenter - thisGeomCenter;
+            if (normal.squaredNorm() < 1e-12) {
+                normal = Eigen::Vector3d::UnitX();
+            } else {
+                normal.normalize();
+            }
             const double penetration {sumRadius - distance};
 
             const Eigen::Vector3d contactPoint {thisGeomCenter + normal * (m_radius - penetration * 0.5)};
@@ -56,9 +62,11 @@ namespace egret
 
     AABB ShapeSphere::getAABB(const Transform& transform) const
     {
+        const Eigen::Vector3d extent = Eigen::Vector3d::Ones() * m_radius;
+        const Eigen::Vector3d& center = transform.getTranslation();
         return AABB{
-            .min = transform.translation - Eigen::Vector3d{}.setOnes() * m_radius,
-            .max = transform.translation + Eigen::Vector3d{}.setOnes() * m_radius,
+            .min = center - extent,
+            .max = center + extent,
         };
     }
 } // egret
