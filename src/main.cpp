@@ -8,6 +8,8 @@
 
 #include <QIcon>
 
+#include "view_model/qt/scene_manager.h"
+
 
 int main(int argc, char* argv[]) {
     const QGuiApplication app(argc, argv);
@@ -15,8 +17,13 @@ int main(int argc, char* argv[]) {
     // QGuiApplication::setWindowIcon(QIcon(":/icon/logo.png"));
 
 
+    // 原代码：
     // engine.rootContext()->setContextProperty("game2048", &game2048);
+    // 新代码说明：将场景控制器注入 QML，作为 ModelView 层的统一入口。
+    egret::SceneManagerViewModel sceneController;
+
     QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("sceneController", &sceneController);
     // engine.addImportPath(QCoreApplication::applicationDirPath() + "/qml");
     const QUrl url(QStringLiteral("qrc:/main/main/MainWindow.qml"));
     QObject::connect(

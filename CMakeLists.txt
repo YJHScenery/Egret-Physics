@@ -14,6 +14,8 @@ include_directories(
         dependency/include/eigen_5_0_0
         src
         src/model
+        src/model/solver
+        src/model/scene
         src/model/physics
         src/model/physics/rigid
         src/model/physics/field
@@ -59,19 +61,43 @@ set(CPP_FILES
         src/model/physics/rigid/rigid_body.h
         src/model/physics/rigid/shape/shape_base.cpp
         src/model/physics/rigid/shape/shape_base.h
-        src/utils/geometry.h
+        src/utils/basic_utils.h
         src/model/physics/rigid/shape/shape_sphere.cpp
         src/model/physics/rigid/shape/shape_sphere.h
         src/model/physics/rigid/shape/shape_spherical_shell.cpp
         src/model/physics/rigid/shape/shape_spherical_shell.h
-        src/model/physics/rigid/shape/shape_cube.cpp
-        src/model/physics/rigid/shape/shape_cube.h
+        src/model/physics/rigid/shape/shape_box.cpp
+        src/model/physics/rigid/shape/shape_box.h
         src/model/physics/rigid/shape/shape_cylinder.cpp
         src/model/physics/rigid/shape/shape_cylinder.h
         src/model/physics/rigid/shape/shape_ring.cpp
         src/model/physics/rigid/shape/shape_ring.h
         src/model/physics/rigid/shape/shape_cylindrical_shell.cpp
         src/model/physics/rigid/shape/shape_cylindrical_shell.h
+        src/utils/transform.h
+        src/utils/transform.cpp
+        src/model/physics/field/field_base.cpp
+        src/model/physics/field/field_base.h
+        src/model/physics/field/gravity_field.cpp
+        src/model/physics/field/gravity_field.h
+        src/model/physics/field/gravitational_field.cpp
+        src/model/physics/field/gravitational_field.h
+        src/model/solver/solver.h
+        # 新增：纯模型求解器实现与世界场景管理器。
+        src/model/solver/solver.cpp
+        src/model/solver/solver_scene_snapshot.h
+        src/model/solver/solver_types.h
+        src/model/scene/world_scene_manager.h
+        src/model/scene/world_scene_manager.cpp
+        src/model/strategy/interfaces/broad_phase_strategy.h
+        src/model/strategy/interfaces/contact_resolver_strategy.h
+        src/model/strategy/interfaces/integrator_strategy.h
+        src/model/strategy/implementations/brute_force_broad_phase.h
+        src/model/strategy/implementations/frictionless_contact_resolver.h
+        src/model/strategy/implementations/semi_implicit_euler_integrator.h
+        # 新增：Qt 侧实体列表模型，用于 QML 渲染。
+        src/view_model/qt/scene_body_model.h
+        src/view_model/qt/scene_body_model.cpp
 )
 
 set(QRC_FILES

@@ -34,8 +34,8 @@ namespace egret
     {
         const ShapeSphericalShell* shapeSphere = dynamic_cast<const ShapeSphericalShell*>(other);
         if (shapeSphere != nullptr) {
-            const Eigen::Vector3d& thisGeomCenter{thisTrans.translation};
-            const Eigen::Vector3d& otherGeomCenter{otherTrans.translation};
+            const Eigen::Vector3d& thisGeomCenter{thisTrans.getTranslation()};
+            const Eigen::Vector3d& otherGeomCenter{otherTrans.getTranslation()};
             const double distance {(thisGeomCenter - otherGeomCenter).norm()};
             const double sumRadius {m_radius + shapeSphere->getRadius()};
             if (distance < sumRadius) {
@@ -56,9 +56,11 @@ namespace egret
 
     AABB ShapeSphericalShell::getAABB(const Transform& transform) const
     {
+        const Eigen::Vector3d extent = Eigen::Vector3d::Ones() * m_radius;
+        const Eigen::Vector3d& center = transform.getTranslation();
         return AABB{
-            .min = transform.translation - Eigen::Vector3d{}.setOnes() * m_radius,
-            .max = transform.translation + Eigen::Vector3d{}.setOnes() * m_radius,
+            .min = center - extent,
+            .max = center + extent,
         };
     }
 } // egret
