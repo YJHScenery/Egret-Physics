@@ -76,11 +76,11 @@ namespace egret
         /** 默认析构。 */
         ~SceneBodyModel() override = default;
 
-        /** 行数。 */
-        [[nodiscard]] int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+        /** 行数。 */ //  = QModelIndex()
+        [[nodiscard]] int rowCount(const QModelIndex& parent) const override;
 
-        /** 模型数据。 */
-        [[nodiscard]] QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+        /** 模型数据。 */ //  = Qt::DisplayRole
+        [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
 
         /** 角色名称。 */
         [[nodiscard]] QHash<int, QByteArray> roleNames() const override;

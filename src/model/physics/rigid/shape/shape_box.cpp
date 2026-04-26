@@ -95,34 +95,13 @@ namespace egret
 
     AABB ShapeBox::getAABB(const Transform& transform) const
     {
-        // 局部顶点（中心在原点）
-        const double length{m_size.x()};
-        const double width{m_size.y()};
-        const double height{m_size.z()};
-        
-        const std::vector<Eigen::Vector3d> localVertices = {
-            {length / 2, width / 2, height / 2}, {length / 2, width / 2, -height / 2},
-            {length / 2, -width / 2, height / 2}, {length / 2, -width / 2, -height / 2},
-            {-length / 2, width / 2, height / 2}, {-length / 2, width / 2, -height / 2},
-            {-length / 2, -width / 2, height / 2}, {-length / 2, -width / 2, -height / 2}
-        };
-
-        Eigen::Vector3d min_pt = Eigen::Vector3d::Constant(std::numeric_limits<double>::max());
-        Eigen::Vector3d max_pt = Eigen::Vector3d::Constant(-std::numeric_limits<double>::max());
-
-        for (const auto& v_local : localVertices) {
-            // 使用 localToWorld 矩阵变换
-            Eigen::Vector4d v_local_homogeneous(v_local.x(), v_local.y(), v_local.z(), 1.0);
-            Eigen::Vector4d v_world_homogeneous = transform.getLocalToWorldMatrix() * v_local_homogeneous;
-            Eigen::Vector3d v_world = v_world_homogeneous.head<3>();
-
-            min_pt = min_pt.cwiseMin(v_world);
-            max_pt = max_pt.cwiseMax(v_world);
-        }
+        const Eigen::Matrix3d linear = transform.getLocalToWorldMatrix().topLeftCorner<3, 3>();
+        const Eigen::Vector3d center = transform.getTranslation();
+        const Eigen::Vector3d extent = linear.cwiseAbs() * getHalfSize();
 
         AABB result;
-        result.min = min_pt;
-        result.max = max_pt;
+        result.min = center - extent;
+        result.max = center + extent;
         return result;
     }
 

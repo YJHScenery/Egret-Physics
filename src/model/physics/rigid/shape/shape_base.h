@@ -6,6 +6,7 @@
 #define EGRET_PHYSICS_RIGID_SHAPE_BASE_H
 #include "Eigen/Dense"
 #include "basic_utils.h"
+#include "physics_utils.h"
 #include "transform.h"
 
 namespace egret {

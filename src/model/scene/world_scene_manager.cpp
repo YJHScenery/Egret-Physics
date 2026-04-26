@@ -185,25 +185,25 @@ namespace egret
 
     std::span<SolverBodyHandle> WorldSceneManager::getBodies()
     {
-        rebuildSolverCaches();
+        rebuildSolverBodyCache();
         return {m_solverBodies.data(), m_solverBodies.size()};
     }
 
     std::span<const SolverBodyHandle> WorldSceneManager::getBodies() const
     {
-        rebuildSolverCaches();
+        rebuildSolverBodyCache();
         return {m_solverBodies.data(), m_solverBodies.size()};
     }
 
     std::span<FieldBase*> WorldSceneManager::getFields()
     {
-        rebuildSolverCaches();
+        rebuildSolverFieldCache();
         return {m_solverFields.data(), m_solverFields.size()};
     }
 
     std::span<FieldBase* const> WorldSceneManager::getFields() const
     {
-        rebuildSolverCaches();
+        rebuildSolverFieldCache();
         return {m_solverFields.data(), m_solverFields.size()};
     }
 
@@ -221,6 +221,12 @@ namespace egret
 
     void WorldSceneManager::rebuildSolverCaches() const
     {
+        rebuildSolverBodyCache();
+        rebuildSolverFieldCache();
+    }
+
+    void WorldSceneManager::rebuildSolverBodyCache() const
+    {
         m_solverBodies.clear();
         m_solverBodies.reserve(m_bodies.size());
 
@@ -235,23 +241,15 @@ namespace egret
             handle.transform = const_cast<Transform*>(&body->transform);
             handle.shape = body->shape.get();
             handle.inverseMass = body->entity->getMass() > 0.0 ? 1.0 / body->entity->getMass() : 0.0;
-            handle.restitution = body->restitution;
+            handle.restitution = body->entity->getRestitution()/*(body->restitution)*/;
             handle.enableCollision = body->enableCollision;
             handle.enableIntegration = body->enableIntegration;
             m_solverBodies.push_back(handle);
         }
+    }
 
-        // 原实现（保留）：
-        // m_solverFields.clear();
-        // m_solverFields.reserve(m_fields.size());
-        // for (const auto& field : m_fields) {
-        //     if (field != nullptr && field->field != nullptr) {
-        //         m_solverFields.push_back(field->field.get());
-        //     }
-        // }
-
-        // 新实现解决的问题：彻底避免 reserve/push_back/resize 调用，
-        // 改为“先统计数量，再构造固定大小临时数组，最后整体赋值”。
+    void WorldSceneManager::rebuildSolverFieldCache() const
+    {
         std::size_t validFieldCount = 0;
         for (const auto& field : m_fields) {
             if (field != nullptr && field->field != nullptr) {

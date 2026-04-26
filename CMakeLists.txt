@@ -23,8 +23,6 @@ include_directories(
         src/view_model/qt
         src/view_model/scene
         src/model/strategy
-        src/model/strategy/implementations
-        src/model/strategy/interfaces
         src/view_model
         src/view
         src/utils
@@ -41,6 +39,11 @@ find_package(Qt6 COMPONENTS
 
 list(TRANSFORM QT_MODULES_LIST PREPEND "Qt::" OUTPUT_VARIABLE QT_MODULES_LIST_WITH_PREFIX)
 
+
+set(QRC_FILES
+        resources/global.qrc
+        src/qml/qml.qrc
+)
 
 set(CPP_FILES
         src/main.cpp
@@ -89,23 +92,33 @@ set(CPP_FILES
         src/model/solver/solver_types.h
         src/model/scene/world_scene_manager.h
         src/model/scene/world_scene_manager.cpp
-        src/model/strategy/interfaces/broad_phase_strategy.h
-        src/model/strategy/interfaces/contact_resolver_strategy.h
-        src/model/strategy/interfaces/integrator_strategy.h
-        src/model/strategy/implementations/brute_force_broad_phase.h
-        src/model/strategy/implementations/frictionless_contact_resolver.h
-        src/model/strategy/implementations/semi_implicit_euler_integrator.h
+        src/model/strategy/broad_phase_strategy/broad_phase_strategy.h
+        src/model/strategy/contact_strategy/contact_resolver_strategy.h
+        src/model/strategy/integrator_strategy/integrator_strategy.h
+        src/model/strategy/broad_phase_strategy/brute_force_broad_phase.h
+        src/model/strategy/contact_strategy/frictionless_contact_resolver.h
+        src/model/strategy/integrator_strategy/semi_implicit_euler_integrator.h
         # 新增：Qt 侧实体列表模型，用于 QML 渲染。
         src/view_model/qt/scene_body_model.h
         src/view_model/qt/scene_body_model.cpp
-)
-
-set(QRC_FILES
-        resources/global.qrc
-        src/qml/qml.qrc
+        src/model/physics/constraints/constraints_base.cpp
+        src/model/physics/constraints/constraints_base.h
+        src/model/physics/constraints/support_surface.cpp
+        src/model/physics/constraints/support_surface.h
+        src/model/physics/constraints/sliding_rail.cpp
+        src/model/physics/constraints/sliding_rail.h
+        src/model/physics/constraints/connecting_line.cpp
+        src/model/physics/constraints/connecting_line.h
+        src/model/physics/constraints/connecting_rod.cpp
+        src/model/physics/constraints/connecting_rod.h
+        src/model/physics/physics_utils.h
+        src/model/strategy/contact_strategy/implementation.cpp
+        src/model/strategy/broad_phase_strategy/implementation.cpp
         src/model/physics/rigid/shape/shape_rod.cpp
         src/model/physics/rigid/shape/shape_rod.h
+        src/model/strategy/integrator_strategy/implementation.cpp
 )
+
 
 add_executable(${PROJECT_NAME}
         ${CPP_FILES}

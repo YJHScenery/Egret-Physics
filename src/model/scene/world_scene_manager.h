@@ -238,7 +238,8 @@ namespace egret
             bool enableIntegration{true};
 
             /** 恢复系数。 */
-            double restitution{0.2};
+            // 更新说明：恢复系数在 PhysicalEntity 中被定义
+            // double restitution{0.2};
         };
 
         /**
@@ -260,6 +261,16 @@ namespace egret
          * @brief 重建求解器缓存，确保句柄指向当前记录地址。
          */
         void rebuildSolverCaches() const;
+
+        /**
+         * @brief 重建实体句柄缓存。
+         */
+        void rebuildSolverBodyCache() const;
+
+        /**
+         * @brief 重建场指针缓存。
+         */
+        void rebuildSolverFieldCache() const;
 
         /**
          * @brief 生成新的世界唯一 ID。

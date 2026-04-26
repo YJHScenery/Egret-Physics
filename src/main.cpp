@@ -14,7 +14,7 @@
 int main(int argc, char* argv[]) {
     const QGuiApplication app(argc, argv);
 
-    // QGuiApplication::setWindowIcon(QIcon(":/icon/logo.png"));
+    QGuiApplication::setWindowIcon(QIcon(":/app_icon/assets/favicon/favicon_bg_radius.png"));
 
 
     // 原代码：

@@ -68,7 +68,7 @@ namespace egret
          * @param broadPhase 广相位策略（AABB 候选对生成）。
          * @param contactResolver 接触解算策略（无摩擦法向冲量）。
          */
-        Solver(SolverConfig config,
+        Solver(const SolverConfig& config,
                std::unique_ptr<IntegratorStrategy> integrator,
                std::unique_ptr<BroadPhaseStrategy> broadPhase,
                std::unique_ptr<ContactResolverStrategy> contactResolver);
@@ -127,10 +127,10 @@ namespace egret
          * @param constraints 输出接触约束。
          * @param stats 可变步骤统计。
          */
-        void runNarrowPhase(const ISolverSceneSnapshot& scene,
+        static void runNarrowPhase(const ISolverSceneSnapshot& scene,
                             const std::vector<SolverBodyPair>& pairs,
                             std::vector<SolverContactConstraint>& constraints,
-                            SolverStats& stats) const;
+                            SolverStats& stats) ;
 
         /**
          * @brief 第 4 阶段：接触解算（法向冲量 + 位置修正）。
@@ -157,7 +157,7 @@ namespace egret
          * @param scene 场景快照。
          * @param stats 可变步骤统计。
          */
-        void updateEnergyStats(const ISolverSceneSnapshot& scene, SolverStats& stats) const;
+        static void updateEnergyStats(const ISolverSceneSnapshot& scene, SolverStats& stats) ;
 
         /** 所有阶段共用的运行时配置。 */
         SolverConfig m_config{};
