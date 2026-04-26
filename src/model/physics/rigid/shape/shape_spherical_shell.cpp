@@ -56,8 +56,9 @@ namespace egret
 
     AABB ShapeSphericalShell::getAABB(const Transform& transform) const
     {
-        const Eigen::Vector3d extent = Eigen::Vector3d::Ones() * m_radius;
-        const Eigen::Vector3d& center = transform.getTranslation();
+        const Eigen::Matrix3d linear = transform.getLocalToWorldMatrix().topLeftCorner<3, 3>();
+        const Eigen::Vector3d center = transform.getTranslation();
+        const Eigen::Vector3d extent = linear.rowwise().norm() * m_radius;
         return AABB{
             .min = center - extent,
             .max = center + extent,

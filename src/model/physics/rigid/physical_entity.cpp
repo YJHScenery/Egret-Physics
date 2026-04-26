@@ -30,6 +30,11 @@ namespace egret
         m_forces.push_back(force);
     }
 
+    void PhysicalEntity::setRestitution(const double restitution)
+    {
+        m_restitution = restitution;
+    }
+
     bool PhysicalEntity::removeForceById(const std::uint64_t id)
     {
         const auto beforeSize = m_forces.size();

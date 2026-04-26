@@ -14,6 +14,8 @@
 #include "shape_base.h"
 #include <memory>
 
+#include "physics_utils.h"
+
 namespace egret
 {
     class PhysicalEntity
@@ -45,6 +47,8 @@ namespace egret
 
         [[nodiscard]] double getMass() const { return m_mass; }
 
+        [[nodiscard]] double getRestitution() const { return m_restitution; }
+
         void setPosition(const Eigen::Vector3d& position) { m_position = position; }
 
         void setMass(const double mass) { m_mass = mass; }
@@ -53,11 +57,13 @@ namespace egret
 
         void upsertForce(const Force& force);
 
-        bool removeForceById(const std::uint64_t id);
+        void setRestitution(double restitution);
 
-        [[nodiscard]] bool hasForce(const std::uint64_t id) const;
+        bool removeForceById(std::uint64_t id);
 
-        void removeForce(const long long index);
+        [[nodiscard]] bool hasForce(std::uint64_t id) const;
+
+        void removeForce(long long index);
 
         void setSpeed(const Eigen::Vector3d& speed) { m_speed = speed; }
 
@@ -93,6 +99,7 @@ namespace egret
         std::vector<Force> m_forces; // 受力组/N
         std::shared_ptr<ShapeBase> m_shape;
         double m_mass{}; // 质量/kg
+        double m_restitution{1.0}; // 碰撞恢复系数
     };
 }
 

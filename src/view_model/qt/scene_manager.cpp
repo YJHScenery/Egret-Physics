@@ -20,9 +20,9 @@
 #include <algorithm>
 
 #include "world_scene_manager.h"
-#include "brute_force_broad_phase.h"
-#include "frictionless_contact_resolver.h"
-#include "semi_implicit_euler_integrator.h"
+#include "../../model/strategy/broad_phase_strategy/brute_force_broad_phase.h"
+#include "../../model/strategy/contact_strategy/frictionless_contact_resolver.h"
+#include "../../model/strategy/integrator_strategy/semi_implicit_euler_integrator.h"
 
 namespace egret
 {
@@ -167,7 +167,7 @@ namespace egret
 
     void SceneManagerViewModel::onFrameTick()
     {
-        const double realFrameSeconds = std::max(0.0, m_frameClock.restart() / 1000.0);
+        const double realFrameSeconds = std::max(0.0, static_cast<double>(m_frameClock.restart()) / 1000.0);
         m_accumulator += realFrameSeconds;
         updateFps(realFrameSeconds);
 
@@ -185,8 +185,11 @@ namespace egret
 
     void SceneManagerViewModel::rebuildDemoWorld()
     {
+        SolverConfig config{};
+        config.lockToXYPlane = true;
+
         auto solver = std::make_unique<Solver>(
-            SolverConfig{},
+            config,
             std::make_unique<SemiImplicitEulerIntegratorStrategy>(),
             std::make_unique<BruteForceBroadPhaseStrategy>(),
             std::make_unique<FrictionlessContactResolverStrategy>());
@@ -196,11 +199,11 @@ namespace egret
 
         m_world->addGravityField({0.0, 180.0, 0.0}, {0.0, 0.0, 0.0}, "重力场");
 
-        m_world->spawnBox("地面", {420.0, 430.0, 0.0}, {0.0, 0.0, 0.0}, {760.0, 28.0, 1.0}, 0.0);
-        m_world->spawnBox("障碍块", {570.0, 250.0, 0.0}, {0.0, 0.0, 0.0}, {180.0, 40.0, 1.0}, 0.0);
-        m_world->spawnSphere("小球 A", {220.0, 60.0, 0.0}, {40.0, 0.0, 0.0}, 28.0, 1.0);
-        m_world->spawnSphere("小球 B", {340.0, 20.0, 0.0}, {-25.0, 0.0, 0.0}, 22.0, 1.2);
-        m_world->spawnBox("动态盒", {470.0, 90.0, 0.0}, {0.0, 0.0, 0.0}, {54.0, 54.0, 1.0}, 1.8);
+        m_world->spawnBox("地面", {420.0, 400.0, 0.0}, {0.0, 0.0, 0.0}, {760.0, 28.0, 1.0}, 0.0);
+        // m_world->spawnBox("障碍块", {570.0, 250.0, 0.0}, {0.0, 0.0, 0.0}, {180.0, 40.0, 1.0}, 0.0);
+        m_world->spawnSphere("小球 A", {220.0, 60.0, 0.0}, {0.0, 0.0, 0.0}, 28.0, 10.0);
+        // m_world->spawnSphere("小球 B", {440.0, 60.0, 0.0}, {-125.0, 0.0, 0.0}, 28.0, 1.0);
+        // m_world->spawnBox("动态盒", {470.0, 90.0, 0.0}, {0.0, 0.0, 0.0}, {54.0, 54.0, 1.0}, 1.8);
 
         m_entityCount = static_cast<int>(m_world->getBodyCount());
     }
@@ -239,7 +242,7 @@ namespace egret
         }
 
         const SolverStepResult result = m_world->tick(m_fixedStepSeconds);
-        static_cast<void>(result);
+        std::ignore = result;
 
         m_simTime = m_world->getSimulationTime();
         m_stepCount = m_world->getStepCount();
@@ -276,12 +279,3 @@ namespace egret
         emit runningChanged();
     }
 }
-//
-// Created by jehor on 2026/4/23.
-//
-
-#include "scene_manager.h"
-
-namespace egret
-{
-} // egret

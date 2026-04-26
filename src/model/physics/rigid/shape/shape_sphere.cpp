@@ -5,6 +5,7 @@
 #include "shape_sphere.h"
 
 #include "constants.h"
+#include "shape_box.h"
 
 namespace egret
 {
@@ -57,13 +58,18 @@ namespace egret
             manifold.push_back(pointInfo);
             return true;
         }
+        const auto* shapeBox = dynamic_cast<const ShapeBox*>(other);
+        if (shapeBox != nullptr) {
+            return ShapeBox::collideBoxSphere(*shapeBox, otherTrans, *this, thisTrans, manifold);
+        }
         return false;
     }
 
     AABB ShapeSphere::getAABB(const Transform& transform) const
     {
-        const Eigen::Vector3d extent = Eigen::Vector3d::Ones() * m_radius;
-        const Eigen::Vector3d& center = transform.getTranslation();
+        const Eigen::Matrix3d linear = transform.getLocalToWorldMatrix().topLeftCorner<3, 3>();
+        const Eigen::Vector3d center = transform.getTranslation();
+        const Eigen::Vector3d extent = linear.rowwise().norm() * m_radius;
         return AABB{
             .min = center - extent,
             .max = center + extent,

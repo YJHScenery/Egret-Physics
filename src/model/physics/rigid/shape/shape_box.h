@@ -19,7 +19,7 @@ public:
 
     void setSize(double length, double width, double height);
 
-    Eigen::Vector3d getHalfSize() const;
+    [[nodiscard]] Eigen::Vector3d getHalfSize() const;
 
     [[nodiscard]] Eigen::Vector3d getSize() const;
 

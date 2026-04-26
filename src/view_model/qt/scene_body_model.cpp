@@ -20,7 +20,7 @@ namespace egret
 
     QVariant SceneBodyModel::data(const QModelIndex& index, const int role) const
     {
-        if (!index.isValid() || index.row() < 0 || index.row() >= rowCount()) {
+        if (!index.isValid() || index.row() < 0 || index.row() >= rowCount(QModelIndex())) {
             return {};
         }
 

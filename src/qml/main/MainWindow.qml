@@ -26,42 +26,6 @@ Window {
         }
     }
 
-    Rectangle {
-        id: haloA
-        width: 460
-        height: 460
-        radius: 230
-        x: window.width * 0.63
-        y: -190
-        color: "#2D8BFF"
-        opacity: 0.12
-    }
-
-    SequentialAnimation {
-        running: true
-        loops: Animation.Infinite
-        NumberAnimation { target: haloA; property: "opacity"; to: 0.2; duration: 2200; easing.type: Easing.InOutSine }
-        NumberAnimation { target: haloA; property: "opacity"; to: 0.08; duration: 2200; easing.type: Easing.InOutSine }
-    }
-
-    Rectangle {
-        id: haloB
-        width: 380
-        height: 380
-        radius: 190
-        x: -120
-        y: window.height - 240
-        color: "#26C8FF"
-        opacity: 0.10
-    }
-
-    SequentialAnimation {
-        running: true
-        loops: Animation.Infinite
-        NumberAnimation { target: haloB; property: "opacity"; to: 0.18; duration: 2600; easing.type: Easing.InOutSine }
-        NumberAnimation { target: haloB; property: "opacity"; to: 0.06; duration: 2600; easing.type: Easing.InOutSine }
-    }
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 18
@@ -80,6 +44,15 @@ Window {
                 anchors.leftMargin: 16
                 anchors.rightMargin: 16
                 spacing: 16
+
+                Image {
+                    id: image
+                    source: "qrc:/app_icon/assets/favicon/favicon_64.png"
+                    Layout.preferredWidth: 48
+                    Layout.preferredHeight: 48
+                    fillMode: Image.PreserveAspectFit  // 按比例缩放，完整显示
+
+                }
 
                 Label {
                     text: "EGRET PHYSICS"
@@ -251,24 +224,24 @@ Window {
                                 }
                             }
 
-                            Rectangle {
-                                width: 180
-                                height: 180
-                                radius: 90
-                                anchors.centerIn: parent
-                                color: "#1D6EB80F"
-                                border.width: 2
-                                border.color: "#3EC5FF"
-                            }
+                            // Rectangle {
+                            //     width: 180
+                            //     height: 180
+                            //     radius: 90
+                            //     anchors.centerIn: parent
+                            //     color: "#1D6EB80F"
+                            //     border.width: 2
+                            //     border.color: "#3EC5FF"
+                            // }
 
-                            Text {
-                                anchors.centerIn: parent
-                                text: "3D/2D 仿真视图占位\n可接入自研渲染器或 Qt Quick 3D"
-                                horizontalAlignment: Text.AlignHCenter
-                                color: theme.textSecondary
-                                font.pixelSize: 14
-                                visible: sceneController.entityCount === 0
-                            }
+                            // Text {
+                            //     anchors.centerIn: parent
+                            //     text: "3D/2D 仿真视图占位\n可接入自研渲染器或 Qt Quick 3D"
+                            //     horizontalAlignment: Text.AlignHCenter
+                            //     color: theme.textSecondary
+                            //     font.pixelSize: 14
+                            //     visible: sceneController.entityCount === 0
+                            // }
 
                             // 新代码说明：直接从 ViewModel 暴露的实体模型渲染当前世界状态，
                             // 让 QML 层只做展示，不直接触碰物理对象指针。

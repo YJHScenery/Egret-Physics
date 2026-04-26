@@ -5,6 +5,7 @@
 #ifndef EGRET_PHYSICS_RIGID_BODY_H
 #define EGRET_PHYSICS_RIGID_BODY_H
 #include "physical_entity.h"
+#include "physics_utils.h"
 
 namespace egret {
 
