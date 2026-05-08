@@ -8,11 +8,25 @@
 
 #include <QIcon>
 
+// #include "shape_rod.h"
+// #include "standard_collide_judge_group.h"
 #include "view_model/qt/scene_manager.h"
 
 
 int main(int argc, char* argv[]) {
     const QGuiApplication app(argc, argv);
+    // egret::ShapeRod rod(2.0);
+    // egret::ShapeSphere sphere(0.8);
+    //
+    // egret::Transform transRod;
+    // egret::Transform transSphere;
+    // transSphere.setTranslation(Eigen::Vector3d(0, 0, 0.6));
+    //
+    // {
+    //     egret::ContactManifold manifold;
+    //     bool result = collideRodSphere(rod, transRod, sphere, transSphere, manifold);
+    //     std::cout << result << std::endl;
+    // }
 
     QGuiApplication::setWindowIcon(QIcon(":/app_icon/assets/favicon/favicon_bg_radius.png"));
 

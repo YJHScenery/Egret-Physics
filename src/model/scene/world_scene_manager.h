@@ -14,8 +14,8 @@
 #include "field_base.h"
 #include "particle.h"
 #include "rigid_body.h"
-#include "shape_box.h"
-#include "shape_sphere.h"
+#include "../physics/rigid/shape/standard/shape_box.h"
+#include "../physics/rigid/shape/standard/shape_sphere.h"
 #include "solver.h"
 #include "transform.h"
 

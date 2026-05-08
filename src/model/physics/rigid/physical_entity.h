@@ -11,7 +11,7 @@
 #include "Eigen/Dense"
 #include <vector>
 #include "basic_utils.h"
-#include "shape_base.h"
+#include "shape/standard/shape_base.h"
 #include <memory>
 
 #include "physics_utils.h"
