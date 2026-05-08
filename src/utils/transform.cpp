@@ -4,6 +4,24 @@
 #include "transform.h"
 namespace egret
 {
+    Eigen::Matrix3d Transform::getRotationMatrix() const
+    {
+        const std::function<double(double)> squareD{[](const double x) { return x * x; }};
+
+        const double x{m_rotation.x()};
+        const double y{m_rotation.y()};
+        const double z{m_rotation.z()};
+        const double w{m_rotation.w()};
+
+        Eigen::Matrix3d rotationMat{};
+
+        rotationMat << 1.0 - 2.0 * (squareD(y) + squareD(z)), 2.0 * (x * y - w * z), 2.0 * (x * z + w * y),
+            2.0 * (x * y + w * z), 1.0 - 2.0 * (squareD(x) + squareD(z)), 2.0 * (y * z - w * x),
+            2.0 * (x * z - w * y), 2.0 * (y * z + w * x), 1.0 - 2.0 * (squareD(x) + squareD(y));
+
+        return rotationMat;
+    }
+
     void Transform::setTranslation(const Eigen::Vector3d& translation)
     {
         m_translation = translation;

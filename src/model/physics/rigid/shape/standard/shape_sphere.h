@@ -15,20 +15,22 @@ namespace egret
 
         void setRadius(double radius);
 
+        [[nodiscard]] const std::string& typeId() const override;
+
         [[nodiscard]] double getVolume() const override;
 
         [[nodiscard]] Eigen::Vector3d getCenterOfMass() const override;
 
         [[nodiscard]] Eigen::Matrix3d getInertiaTensor(double mass) const override;
 
-        [[nodiscard]] bool collideWith(const ShapeBase* other, const Transform& thisTrans, const Transform& otherTrans,
-                                       ContactManifold& manifold) const override;
+        // [[nodiscard]] bool collideWith(const ShapeBase* other, const Transform& thisTrans, const Transform& otherTrans,
+        //                                ContactManifold& manifold) const override;
 
         [[nodiscard]] AABB getAABB(const Transform& transform) const override;
 
-        [[nodiscard]] double getRadius() const {return m_radius;};
+        [[nodiscard]] double getRadius() const {return m_radius;}
 
-    private:
+    protected:
         double m_radius{};
     };
 } // egret

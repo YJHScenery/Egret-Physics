@@ -1,5 +1,5 @@
 #include "brute_force_broad_phase.h"
-#include "shape_base.h"
+#include "../../physics/rigid/shape/standard/shape_base.h"
 #include <cmath>
 //
 // Created by jehor on 2026/4/25.

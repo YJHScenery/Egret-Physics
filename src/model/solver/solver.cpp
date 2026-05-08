@@ -164,11 +164,12 @@ namespace egret
             }
 
             ContactManifold manifold;
-            bool collided = bodyA.shape->collideWith(bodyB.shape, *bodyA.transform, *bodyB.transform, manifold);
+            bool collided = bodyA.shape->collide(bodyB.shape, *bodyA.transform, *bodyB.transform, manifold);
+            // bool collided {bodyA.shape->collide(bo)}
 
             if (!collided) {
                 ContactManifold reversedManifold;
-                collided = bodyB.shape->collideWith(bodyA.shape, *bodyB.transform, *bodyA.transform, reversedManifold);
+                collided = bodyB.shape->collide(bodyA.shape, *bodyB.transform, *bodyA.transform, reversedManifold);
                 if (collided) {
                     manifold.reserve(reversedManifold.size());
                     for (ContactPoint contact : reversedManifold) {

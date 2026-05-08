@@ -5,6 +5,7 @@
 #ifndef EGRET_PHYSICS_TRANSFORM_H
 #define EGRET_PHYSICS_TRANSFORM_H
 #include <Eigen/Dense>
+#include <utility>
 
 namespace egret
 {
@@ -40,12 +41,12 @@ namespace egret
          * @param rotation 世界空间旋转（自动归一化）。
          * @param scale 各轴缩放。
          */
-        explicit Transform(const Eigen::Vector3d& translation,
+        explicit Transform(Eigen::Vector3d translation,
                            const Eigen::Quaterniond& rotation = Eigen::Quaterniond::Identity(),
-                           const Eigen::Vector3d& scale = Eigen::Vector3d::Ones())
-            : m_translation(translation),
+                           Eigen::Vector3d scale = Eigen::Vector3d::Ones())
+            : m_translation(std::move(translation)),
               m_rotation(rotation.normalized()),
-              m_scale(scale)
+              m_scale(std::move(scale))
         {
             updateMatrix();
         }
@@ -55,6 +56,8 @@ namespace egret
 
         /** @brief 获取旋转分量（单位四元数）。 */
         [[nodiscard]] const Eigen::Quaterniond& getRotation() const { return m_rotation; }
+
+        [[nodiscard]] Eigen::Matrix3d getRotationMatrix() const;
 
         /** @brief 获取缩放分量。 */
         [[nodiscard]] const Eigen::Vector3d& getScale() const { return m_scale; }
