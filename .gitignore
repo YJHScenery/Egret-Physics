@@ -6,5 +6,6 @@ cmake-build-release/
 
 build/
 
+src/temp/
 
 /.qtcreator/
