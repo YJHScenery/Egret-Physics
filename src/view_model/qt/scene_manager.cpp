@@ -23,6 +23,12 @@
 #include "broad_phase_strategy/brute_force_broad_phase.h"
 #include "contact_strategy/frictionless_contact_resolver.h"
 #include "integrator_strategy/semi_implicit_euler_integrator.h"
+#include "shape_cylinder.h"
+#include "shape_cylindrical_shell.h"
+#include "shape_disk.h"
+#include "shape_ring.h"
+#include "shape_rod.h"
+#include "shape_spherical_shell.h"
 
 namespace egret
 {
@@ -200,10 +206,8 @@ namespace egret
         m_world->addGravityField({0.0, 180.0, 0.0}, {0.0, 0.0, 0.0}, "重力场");
 
         m_world->spawnBox("地面", {420.0, 400.0, 0.0}, {0.0, 0.0, 0.0}, {760.0, 28.0, 1.0}, 0.0);
-        // m_world->spawnBox("障碍块", {570.0, 250.0, 0.0}, {0.0, 0.0, 0.0}, {180.0, 40.0, 1.0}, 0.0);
         m_world->spawnSphere("小球 A", {220.0, 60.0, 0.0}, {0.0, 0.0, 0.0}, 28.0, 10.0);
-        // m_world->spawnSphere("小球 B", {440.0, 60.0, 0.0}, {-125.0, 0.0, 0.0}, 28.0, 1.0);
-        // m_world->spawnBox("动态盒", {470.0, 90.0, 0.0}, {0.0, 0.0, 0.0}, {54.0, 54.0, 1.0}, 1.8);
+
 
         m_entityCount = static_cast<int>(m_world->getBodyCount());
     }
