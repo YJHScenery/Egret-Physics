@@ -93,8 +93,8 @@ namespace egret
         virtual Force getJoinForce() = 0;
 
     protected:
-        Eigen::Vector3d m_position; // 参考点位置
-        Eigen::Vector3d m_speed; // 参考点的速度
+        Eigen::Vector3d m_position{}; // 参考点位置
+        Eigen::Vector3d m_speed{}; // 参考点的速度
 
         std::vector<Force> m_forces; // 受力组/N
         std::shared_ptr<ShapeBase> m_shape;

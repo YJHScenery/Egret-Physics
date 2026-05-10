@@ -6,6 +6,7 @@
 #define EGRET_PHYSICS_WORLD_SCENE_MANAGER_H
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -14,14 +15,13 @@
 #include "field_base.h"
 #include "particle.h"
 #include "rigid_body.h"
-#include "../physics/rigid/shape/standard/shape_box.h"
-#include "../physics/rigid/shape/standard/shape_sphere.h"
+#include "shape_base.h"
 #include "solver.h"
 #include "transform.h"
 
 namespace egret
 {
-    class ISolver;
+    class SolverBase;
 
     /**
      * @brief 用于视图层渲染的轻量化数据快照。
@@ -65,17 +65,47 @@ namespace egret
      * 3. 作为求解器的场景快照适配器，向求解器提供只读/可写句柄。
      * 4. 为 ViewModel 层提供可渲染的轻量化数据快照。
      */
-    class WorldSceneManager final : public ISolverSceneSnapshot
+    class WorldSceneManager final : public SolverSceneSnapshotBase
     {
     public:
         /**
          * @brief 构造世界场景管理器。
          * @param solver 负责推进世界状态的求解器实例。
          */
-        explicit WorldSceneManager(std::unique_ptr<ISolver> solver);
+        explicit WorldSceneManager(std::unique_ptr<SolverBase> solver);
 
         /** 默认虚析构。 */
         ~WorldSceneManager() override = default;
+
+        /**
+         * @brief 创建任意形状实体（通用入口）。
+         * @param name 实体名称。
+         * @param position 初始位置。
+         * @param speed 初始速度。
+         * @param shape 形状所有权（可由内置类型或插件提供）。
+         * @param mass 质量，0 表示静态体。
+         * @return 新实体的 ID，创建失败返回 0。
+         */
+        std::uint64_t spawnBody(const std::string& name,
+                    const Eigen::Vector3d& position,
+                    const Eigen::Vector3d& speed,
+                    std::unique_ptr<ShapeBase> shape,
+                    double mass);
+
+        /**
+         * @brief 通过形状加载信息创建实体。
+         * @param name 实体名称。
+         * @param position 初始位置。
+         * @param speed 初始速度。
+         * @param shapeInfo 形状加载信息。
+         * @param mass 质量，0 表示静态体。
+         * @return 新实体的 ID，创建失败返回 0。
+         */
+        std::uint64_t spawnBodyFromLoadInfo(const std::string& name,
+                            const Eigen::Vector3d& position,
+                            const Eigen::Vector3d& speed,
+                            const ShapeLoadInfo& shapeInfo,
+                            double mass);
 
         /**
          * @brief 创建一个球体实体。
@@ -106,6 +136,13 @@ namespace egret
                                const Eigen::Vector3d& speed,
                                const Eigen::Vector3d& size,
                                double mass);
+
+        /**
+         * @brief 获取实体对应形状的加载信息（由 Shape 多态提供）。
+         * @param id 实体 ID。
+         * @return 找到则返回加载信息，否则返回空。
+         */
+        [[nodiscard]] std::optional<ShapeLoadInfo> getBodyShapeLoadInfo(std::uint64_t id) const;
 
         /**
          * @brief 添加一个重力场。
@@ -307,7 +344,7 @@ namespace egret
         const FieldRecord* findField(std::uint64_t id) const;
 
         /** 求解器所有权。 */
-        std::unique_ptr<ISolver> m_solver;
+        std::unique_ptr<SolverBase> m_solver;
 
         /** 世界实体记录。 */
         std::vector<std::unique_ptr<BodyRecord>> m_bodies;

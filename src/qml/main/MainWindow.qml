@@ -249,11 +249,18 @@ Window {
                                 model: sceneController.bodyModel
 
                                 delegate: Rectangle {
+                                    property bool isCircularShape: shapeKind === "sphere"
+                                                                   || shapeKind === "standard_sphere"
+                                                                   || shapeKind === "standard_disk"
+                                                                   || shapeKind === "standard_ring"
+                                                                   || shapeKind === "standard_cylinder"
+                                                                   || shapeKind === "standard_cylinder_shell"
+                                                                   || shapeKind === "standard_spherical_shell"
                                     x: bodyX
                                     y: bodyY
                                     width: bodyWidth
                                     height: bodyHeight
-                                    radius: shapeKind === "sphere" ? bodyWidth * 0.5 : 8
+                                    radius: isCircularShape ? bodyWidth * 0.5 : 8
                                     color: bodyColor
                                     border.width: 1
                                     border.color: "#D9F0FF"

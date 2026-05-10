@@ -5,6 +5,7 @@
 #include "shape_spherical_shell.h"
 
 #include "constants.h"
+#include "world_scene_manager.h"
 
 namespace egret
 {
@@ -18,6 +19,13 @@ namespace egret
     {
         const double inertia {2.0 / 3.0 * mass * pow(m_radius, 2)};
         return Eigen::Matrix3d::Identity() * inertia;
+    }
+
+    SceneRenderItem ShapeSphericalShell::getBasicRenderInfo(const Eigen::Vector3d& position) const
+    {
+        SceneRenderItem item = ShapeSphere::getBasicRenderInfo(position);
+        item.kind = this->typeId();
+        return item;
     }
 
 } // egret

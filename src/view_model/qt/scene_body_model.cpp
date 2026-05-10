@@ -6,7 +6,7 @@
 
 namespace egret
 {
-    SceneBodyModel::SceneBodyModel(QObject* parent): QAbstractListModel(parent)
+    SceneBodyModel::SceneBodyModel(QObject* parent) : QAbstractListModel(parent)
     {
     }
 
@@ -26,15 +26,24 @@ namespace egret
 
         const SceneBodyVisualItem& item = m_items[static_cast<std::size_t>(index.row())];
         switch (role) {
-        case IdRole: return QVariant::fromValue(item.id);
-        case KindRole: return item.kind;
-        case XRole: return item.x;
-        case YRole: return item.y;
-        case WidthRole: return item.width;
-        case HeightRole: return item.height;
-        case ColorRole: return item.color;
-        case LabelRole: return item.label;
-        default: return {};
+        case IdRole:
+            return QVariant::fromValue(item.id);
+        case KindRole:
+            return item.kind;
+        case XRole:
+            return item.x;
+        case YRole:
+            return item.y;
+        case WidthRole:
+            return item.width;
+        case HeightRole:
+            return item.height;
+        case ColorRole:
+            return item.color;
+        case LabelRole:
+            return item.label;
+        default:
+            return {};
         }
     }
 

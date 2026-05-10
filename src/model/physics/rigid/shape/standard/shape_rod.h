@@ -27,6 +27,8 @@ namespace egret
 
         [[nodiscard]] AABB getAABB(const Transform& transform) const override;
 
+        [[nodiscard]] SceneRenderItem getBasicRenderInfo(const Eigen::Vector3d& position) const override;
+
         void setLength(double length);
 
         std::pair<Eigen::Vector3d, Eigen::Vector3d> getStartEnd(const Transform& transform) const;

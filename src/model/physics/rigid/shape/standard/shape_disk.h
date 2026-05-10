@@ -24,6 +24,8 @@ public:
 
     [[nodiscard]] AABB getAABB(const Transform& transform) const override;
 
+    [[nodiscard]] SceneRenderItem getBasicRenderInfo(const Eigen::Vector3d& position) const override;
+
     void setRadius(double radius);
 private:
     double m_radius{};

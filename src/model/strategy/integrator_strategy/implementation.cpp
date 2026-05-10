@@ -5,7 +5,7 @@
 //
 namespace egret
 {
-    void SemiImplicitEulerIntegratorStrategy::integrate(ISolverSceneSnapshot& scene,
+    void SemiImplicitEulerIntegratorStrategy::integrate(SolverSceneSnapshotBase& scene,
                                                     const double dt,
                                                     const SolverConfig& config,
                                                     SolverStats& stats) const

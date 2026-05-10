@@ -24,6 +24,7 @@ public:
     [[nodiscard]] Eigen::Vector3d getCenterOfMass() const override;
     [[nodiscard]] Eigen::Matrix3d getInertiaTensor(double mass) const override;
     [[nodiscard]] AABB getAABB(const Transform& transform) const override;
+    [[nodiscard]] SceneRenderItem getBasicRenderInfo(const Eigen::Vector3d& position) const override;
 
     // [[nodiscard]] bool collideWith(const ShapeBase* other,
     //                                const Transform& thisTrans, const Transform& otherTrans,

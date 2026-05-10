@@ -4,6 +4,8 @@
 
 #include "shape_rod.h"
 
+#include "world_scene_manager.h"
+
 namespace egret
 {
     ShapeRod::ShapeRod(const double length): m_length(length)
@@ -37,6 +39,18 @@ namespace egret
         const Eigen::Vector3d halfExtent = a * rotationZ.cwiseAbs();  // 逐分量绝对值
         const Eigen::Vector3d center = transform.getTranslation();
         return {center - halfExtent, center + halfExtent};
+    }
+
+    SceneRenderItem ShapeRod::getBasicRenderInfo(const Eigen::Vector3d& position) const
+    {
+        SceneRenderItem item{};
+        constexpr double displaySize = 16.0;
+        item.kind = this->typeId();
+        item.width = displaySize;
+        item.height = displaySize;
+        item.x = position.x() - displaySize * 0.5;
+        item.y = position.y() - displaySize * 0.5;
+        return item;
     }
 
     void ShapeRod::setLength(const double length)

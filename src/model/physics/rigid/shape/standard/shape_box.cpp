@@ -5,6 +5,7 @@
 #include "shape_box.h"
 
 #include "shape_sphere.h"
+#include "world_scene_manager.h"
 #include "collide_judge/standard_collide_judge_group.h"
 
 namespace egret
@@ -106,10 +107,30 @@ namespace egret
         const Eigen::Vector3d center = transform.getTranslation();
         const Eigen::Vector3d extent = linear.cwiseAbs() * getHalfSize();
 
-        AABB result;
+        AABB result{};
         result.min = center - extent;
         result.max = center + extent;
         return result;
+    }
+
+    ShapeLoadInfo ShapeBox::getLoadInfo() const
+    {
+        ShapeLoadInfo info{};
+        info.typeId = typeId();
+        info.parameters["size"] = m_size;
+        return info;
+    }
+
+    SceneRenderItem ShapeBox::getBasicRenderInfo(const Eigen::Vector3d& position) const
+    {
+        SceneRenderItem item{};
+        const Eigen::Vector3d size {this->getSize()};
+        item.kind = this->typeId();
+        item.width = size.x();
+        item.height = size.y();
+        item.x = position.x() - size.x() * 0.5;
+        item.y = position.y() - size.y() * 0.5;
+        return item;
     }
 
     void ShapeBox::getLocalAxes(const Transform& trans, Eigen::Vector3d& axisX, Eigen::Vector3d& axisY,

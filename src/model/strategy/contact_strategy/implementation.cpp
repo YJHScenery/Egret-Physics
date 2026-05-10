@@ -6,7 +6,7 @@
 //
 namespace egret
 {
-    void FrictionlessContactResolverStrategy::resolveContacts(ISolverSceneSnapshot& scene,
+    void FrictionlessContactResolverStrategy::resolveContacts(SolverSceneSnapshotBase& scene,
                                                               const std::span<const SolverContactConstraint> constraints,
                                                               const double dt,
                                                               const SolverConfig& config,

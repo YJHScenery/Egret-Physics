@@ -32,7 +32,7 @@ namespace egret
          * @param outPairs 输出的候选对缓冲区，可追加或覆盖。
          * @param stats 可变的每步统计信息。
          */
-        virtual void buildCandidatePairs(const ISolverSceneSnapshot& scene,
+        virtual void buildCandidatePairs(const SolverSceneSnapshotBase& scene,
                                          const SolverConfig& config,
                                          std::vector<SolverBodyPair>& outPairs,
                                          SolverStats& stats) const = 0;

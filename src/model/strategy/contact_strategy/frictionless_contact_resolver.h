@@ -32,7 +32,7 @@ namespace egret
          * @param config 求解器配置。
          * @param stats 每步统计信息。
          */
-        void resolveContacts(ISolverSceneSnapshot& scene,
+        void resolveContacts(SolverSceneSnapshotBase& scene,
                              std::span<const SolverContactConstraint> constraints,
                              double dt,
                              const SolverConfig& config,

@@ -135,7 +135,7 @@ namespace egret
         const double cylHalfHeight = cylinder.getHalfHeight();
 
         // 获取盒子的局部轴（世界坐标系）
-        std::array<Eigen::Vector3d, 3> boxAxes;
+        std::array<Eigen::Vector3d, 3> boxAxes{};
         ShapeBox::getLocalAxes(transA, boxAxes[0], boxAxes[1], boxAxes[2]);
 
         // 获取圆柱的位置和轴向（世界坐标系）
@@ -249,7 +249,7 @@ namespace egret
         const double diskRadius = disk.getRadius();
 
         // 获取盒子的局部轴（世界坐标系）
-        std::array<Eigen::Vector3d, 3> boxAxes;
+        std::array<Eigen::Vector3d, 3> boxAxes{};
         ShapeBox::getLocalAxes(transA, boxAxes[0], boxAxes[1], boxAxes[2]);
 
         // 获取圆盘的位置和法向量（世界坐标系）
@@ -323,7 +323,7 @@ namespace egret
         const double rodHalfLength = rod.getLength() * 0.5;
 
         // 获取盒子的局部轴（世界坐标系）
-        std::array<Eigen::Vector3d, 3> boxAxes;
+        std::array<Eigen::Vector3d, 3> boxAxes{};
         ShapeBox::getLocalAxes(transA, boxAxes[0], boxAxes[1], boxAxes[2]);
 
         // 获取杆的位置和方向（世界坐标系）
@@ -361,7 +361,7 @@ namespace egret
         const Eigen::Vector3d v = rodEndB - rodEndA;
         const Eigen::Vector3d w = closestWorldPoint - rodEndA;
 
-        double c1 = w.dot(v);
+        const double c1 = w.dot(v);
         if (c1 <= 0) {
             // 最近点在端点 A
             if ((rodEndA - closestWorldPoint).squaredNorm() > 1e-9) {
@@ -1181,7 +1181,7 @@ namespace egret
                 // 将 t 限制到 [0,1] 区间（处理端点边界情况）
                 t = std::clamp(t, 0.0, 1.0);
                 outIntersection = startA + t * v;
-                ContactPoint contactPoint;
+                ContactPoint contactPoint{};
                 contactPoint.position = outIntersection;
                 contactPoint.normal = {cvw};
                 contactPoint.penetration = 0;
@@ -1205,7 +1205,7 @@ namespace egret
                 Eigen::Vector3d toStart = startA - startB;
                 if (toStart.cross(w).squaredNorm() <= eps * w_len_sq) {
                     outIntersection = startA;
-                    ContactPoint contactPoint;
+                    ContactPoint contactPoint{};
                     contactPoint.position = outIntersection;
                     contactPoint.normal = {cvw};
                     contactPoint.penetration = 0;
@@ -1223,7 +1223,7 @@ namespace egret
                 Eigen::Vector3d toStart = startB - startA;
                 if (toStart.cross(v).squaredNorm() <= eps * v_len_sq) {
                     outIntersection = startB;
-                    ContactPoint contactPoint;
+                    ContactPoint contactPoint{};
                     contactPoint.position = outIntersection;
                     contactPoint.normal = {cvw};
                     contactPoint.penetration = 0;
@@ -1248,7 +1248,7 @@ namespace egret
             // 存在重叠部分，取中点作为交点（代表点）
             double t_mid = (t_left + t_right) * 0.5;
             outIntersection = startA + t_mid * v;
-            ContactPoint contactPoint;
+            ContactPoint contactPoint{};
             contactPoint.position = outIntersection;
             contactPoint.normal = {cvw};
             contactPoint.penetration = 0;
@@ -1427,7 +1427,7 @@ namespace egret
         if (len < 1e-8) {
             const double dist = (start - center).norm();
             if (dist <= radius) {
-                ContactPoint point;
+                ContactPoint point{};
                 point.position = start;
                 point.normal = (start - center).normalized(); // 从球心指向接触点
                 point.penetration = radius - dist;

@@ -4,6 +4,11 @@
 
 #ifndef EGRET_PHYSICS_RIGID_SHAPE_BASE_H
 #define EGRET_PHYSICS_RIGID_SHAPE_BASE_H
+#include <cstdint>
+#include <string>
+#include <unordered_map>
+#include <variant>
+
 #include "Eigen/Dense"
 #include "basic_utils.h"
 #include "physics_utils.h"
@@ -11,6 +16,16 @@
 #include "shape_register.h"
 
 namespace egret {
+
+class SceneRenderItem;
+
+struct ShapeLoadInfo
+{
+    using ValueType = std::variant<double, std::int64_t, bool, std::string, Eigen::Vector3d>;
+
+    std::string typeId;
+    std::unordered_map<std::string, ValueType> parameters;
+};
 
 class ShapeBase {
 public:
@@ -33,6 +48,11 @@ public:
 
     [[nodiscard]] bool collide(const ShapeBase* other,
         const Transform& thisTrans, const Transform& otherTrans, ContactManifold& manifold) const;
+
+    // 形状自描述的加载信息，默认仅提供 typeId。
+    [[nodiscard]] virtual ShapeLoadInfo getLoadInfo() const;
+
+    [[nodiscard]] virtual SceneRenderItem getBasicRenderInfo(const Eigen::Vector3d& position) const = 0;
 };
 
 } // egret

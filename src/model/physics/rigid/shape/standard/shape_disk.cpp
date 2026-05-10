@@ -4,6 +4,8 @@
 
 #include "shape_disk.h"
 
+#include "world_scene_manager.h"
+
 namespace egret
 {
     ShapeDisk::ShapeDisk(const double radius): m_radius(radius)
@@ -42,6 +44,18 @@ namespace egret
             max[i] = transform.getTranslation()[i] + halfLen;
         }
         return AABB{min, max};
+    }
+
+    SceneRenderItem ShapeDisk::getBasicRenderInfo(const Eigen::Vector3d& position) const
+    {
+        SceneRenderItem item{};
+        const double diameter = m_radius * 2.0;
+        item.kind = this->typeId();
+        item.width = diameter;
+        item.height = diameter;
+        item.x = position.x() - m_radius;
+        item.y = position.y() - m_radius;
+        return item;
     }
 
     void ShapeDisk::setRadius(const double radius)

@@ -31,11 +31,17 @@ namespace egret
         Q_OBJECT
 
         Q_PROPERTY(bool running READ isRunning NOTIFY runningChanged)
+
         Q_PROPERTY(double simTime READ simTime NOTIFY simTimeChanged)
+
         Q_PROPERTY(quint64 stepCount READ stepCount NOTIFY stepCountChanged)
+
         Q_PROPERTY(int entityCount READ entityCount NOTIFY entityCountChanged)
+
         Q_PROPERTY(double fps READ fps NOTIFY fpsChanged)
+
         Q_PROPERTY(double fixedStepMs READ fixedStepMs NOTIFY fixedStepMsChanged)
+
         Q_PROPERTY(SceneBodyModel* bodyModel READ bodyModel CONSTANT)
 
     public:
@@ -192,19 +198,3 @@ namespace egret
 }
 
 #endif // EGRET_PHYSICS_SCENE_MANAGER_VIEWMODEL_H
-//
-// Created by jehor on 2026/4/23.
-//
-
-#ifndef EGRET_PHYSICS_SCENE_MANAGER_H
-#define EGRET_PHYSICS_SCENE_MANAGER_H
-
-namespace egret {
-
-class SceneManager {
-
-};
-
-} // egret
-
-#endif //EGRET_PHYSICS_SCENE_MANAGER_H

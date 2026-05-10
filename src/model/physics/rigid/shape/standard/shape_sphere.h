@@ -30,6 +30,10 @@ namespace egret
 
         [[nodiscard]] double getRadius() const {return m_radius;}
 
+        [[nodiscard]] ShapeLoadInfo getLoadInfo() const override;
+
+        [[nodiscard]] SceneRenderItem getBasicRenderInfo(const Eigen::Vector3d& position) const override;
+
     protected:
         double m_radius{};
     };

@@ -4,6 +4,7 @@
 
 #include "shape_cylinder.h"
 #include "constants.h"
+#include "world_scene_manager.h"
 
 namespace egret
 {
@@ -72,6 +73,18 @@ namespace egret
         const Eigen::Vector3d minVec{tVec.x() - bias[0], tVec.y() - bias[1], tVec.z() - bias[2]};
         const Eigen::Vector3d maxVec{tVec.x() + bias[0], tVec.y() + bias[1], tVec.z() + bias[2]};
         return AABB{minVec, maxVec};
+    }
+
+    SceneRenderItem ShapeCylinder::getBasicRenderInfo(const Eigen::Vector3d& position) const
+    {
+        SceneRenderItem item{};
+        const double diameter = m_radius * 2.0;
+        item.kind = this->typeId();
+        item.width = diameter;
+        item.height = diameter;
+        item.x = position.x() - m_radius;
+        item.y = position.y() - m_radius;
+        return item;
     }
 
     void ShapeCylinder::setRadius(const double radius)

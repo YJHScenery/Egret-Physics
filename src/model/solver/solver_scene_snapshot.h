@@ -17,11 +17,11 @@ namespace egret
      * 该接口将求解器与具体场景存储解耦。模型层的场景管理器可以通过
      * 暴露 body/field 缓冲区的临时 span 来实现它，供一次固定步长使用。
      */
-    class ISolverSceneSnapshot
+    class SolverSceneSnapshotBase
     {
     public:
         /** 多态接口的虚析构函数。 */
-        virtual ~ISolverSceneSnapshot() = default;
+        virtual ~SolverSceneSnapshotBase() = default;
 
         /**
          * @brief 返回当前步骤中实体句柄的可变连续视图。

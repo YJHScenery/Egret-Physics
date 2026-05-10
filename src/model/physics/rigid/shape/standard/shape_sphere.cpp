@@ -6,6 +6,7 @@
 
 #include "constants.h"
 #include "shape_box.h"
+#include "world_scene_manager.h"
 #include "collide_judge/standard_collide_judge_group.h"
 
 namespace egret
@@ -62,4 +63,23 @@ namespace egret
         };
     }
 
+    ShapeLoadInfo ShapeSphere::getLoadInfo() const
+    {
+        ShapeLoadInfo info{};
+        info.typeId = typeId();
+        info.parameters["radius"] = m_radius;
+        return info;
+    }
+
+    SceneRenderItem ShapeSphere::getBasicRenderInfo(const Eigen::Vector3d& position) const
+    {
+        SceneRenderItem item{};
+        const double diameter = m_radius * 2.0;
+        item.kind = this->typeId();
+        item.width = diameter;
+        item.height = diameter;
+        item.x = position.x() - m_radius;
+        item.y = position.y() - m_radius;
+        return item;
+    }
 } // egret

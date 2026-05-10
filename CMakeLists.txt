@@ -44,7 +44,6 @@ find_package(Qt6 COMPONENTS
 
 list(TRANSFORM QT_MODULES_LIST PREPEND "Qt::" OUTPUT_VARIABLE QT_MODULES_LIST_WITH_PREFIX)
 
-
 set(QRC_FILES
         resources/global.qrc
         src/qml/qml.qrc
@@ -52,24 +51,30 @@ set(QRC_FILES
 
 set(CPP_FILES
         src/main.cpp
+
         src/utils/constants.h
+        src/utils/basic_utils.h
+        src/utils/transform.h
+        src/utils/transform.cpp
+        src/utils/os/windows/windows_config.h
+        src/utils/os/windows/windows_config.cpp
         src/utils/io/database_controller.cpp
         src/utils/io/database_controller.h
-        src/view_model/qt/scene_manager.cpp
-        src/view_model/qt/scene_manager.h
-        src/model/physics/rigid/particle.cpp
-        src/model/physics/rigid/particle.h
         src/utils/io/json_controller.cpp
         src/utils/io/json_controller.h
         src/utils/io/logger.cpp
         src/utils/io/logger.h
+
+        src/model/physics/physics_utils.h
+        src/model/physics/rigid/particle.cpp
+        src/model/physics/rigid/particle.h
         src/model/physics/rigid/physical_entity.cpp
         src/model/physics/rigid/physical_entity.h
         src/model/physics/rigid/rigid_body.cpp
         src/model/physics/rigid/rigid_body.h
+
         src/model/physics/rigid/shape/standard/shape_base.cpp
         src/model/physics/rigid/shape/standard/shape_base.h
-        src/utils/basic_utils.h
         src/model/physics/rigid/shape/standard/shape_sphere.cpp
         src/model/physics/rigid/shape/standard/shape_sphere.h
         src/model/physics/rigid/shape/standard/shape_spherical_shell.cpp
@@ -84,30 +89,24 @@ set(CPP_FILES
         src/model/physics/rigid/shape/standard/shape_disk.cpp
         src/model/physics/rigid/shape/standard/shape_cylindrical_shell.cpp
         src/model/physics/rigid/shape/standard/shape_cylindrical_shell.h
-        src/utils/transform.h
-        src/utils/transform.cpp
+        src/model/physics/rigid/shape/standard/shape_rod.cpp
+        src/model/physics/rigid/shape/standard/shape_rod.h
+        src/model/physics/rigid/shape/register/shape_register.cpp
+        src/model/physics/rigid/shape/register/shape_register.h
+        src/model/physics/rigid/shape/register/shape_factory_registry.cpp
+        src/model/physics/rigid/shape/register/shape_factory_registry.h
+        src/model/physics/rigid/shape/register/standard_shape_factory_registration.cpp
+        src/model/physics/rigid/shape/register/standard_register_dummy.cpp
+        src/model/physics/rigid/shape/standard/collide_judge/standard_collide_judge_group.h
+        src/model/physics/rigid/shape/standard/collide_judge/standard_collide_judge_group.cpp
+
         src/model/physics/field/field_base.cpp
         src/model/physics/field/field_base.h
         src/model/physics/field/gravity_field.cpp
         src/model/physics/field/gravity_field.h
         src/model/physics/field/gravitational_field.cpp
         src/model/physics/field/gravitational_field.h
-        src/model/solver/solver.h
-        # 新增：纯模型求解器实现与世界场景管理器。
-        src/model/solver/solver.cpp
-        src/model/solver/solver_scene_snapshot.h
-        src/model/solver/solver_types.h
-        src/model/scene/world_scene_manager.h
-        src/model/scene/world_scene_manager.cpp
-        src/model/strategy/broad_phase_strategy/broad_phase_strategy.h
-        src/model/strategy/contact_strategy/contact_resolver_strategy.h
-        src/model/strategy/integrator_strategy/integrator_strategy.h
-        src/model/strategy/broad_phase_strategy/brute_force_broad_phase.h
-        src/model/strategy/contact_strategy/frictionless_contact_resolver.h
-        src/model/strategy/integrator_strategy/semi_implicit_euler_integrator.h
-        # 新增：Qt 侧实体列表模型，用于 QML 渲染。
-        src/view_model/qt/scene_body_model.h
-        src/view_model/qt/scene_body_model.cpp
+
         src/model/physics/constraints/constraints_base.cpp
         src/model/physics/constraints/constraints_base.h
         src/model/physics/constraints/support_surface.cpp
@@ -118,17 +117,31 @@ set(CPP_FILES
         src/model/physics/constraints/connecting_line.h
         src/model/physics/constraints/connecting_rod.cpp
         src/model/physics/constraints/connecting_rod.h
-        src/model/physics/physics_utils.h
-        src/model/strategy/contact_strategy/implementation.cpp
+
+        src/model/solver/solver.h
+        src/model/solver/solver.cpp
+        src/model/solver/solver_scene_snapshot.h
+        src/model/solver/solver_types.h
+        src/model/scene/world_scene_manager.h
+        src/model/scene/world_scene_manager.cpp
+
+        src/model/strategy/broad_phase_strategy/broad_phase_strategy.h
+        src/model/strategy/broad_phase_strategy/brute_force_broad_phase.h
         src/model/strategy/broad_phase_strategy/implementation.cpp
-        src/model/physics/rigid/shape/standard/shape_rod.cpp
-        src/model/physics/rigid/shape/standard/shape_rod.h
+
+        src/model/strategy/contact_strategy/contact_resolver_strategy.h
+        src/model/strategy/contact_strategy/frictionless_contact_resolver.h
+        src/model/strategy/contact_strategy/implementation.cpp
+
+        src/model/strategy/integrator_strategy/integrator_strategy.h
+        src/model/strategy/integrator_strategy/semi_implicit_euler_integrator.h
         src/model/strategy/integrator_strategy/implementation.cpp
-        src/model/physics/rigid/shape/register/shape_register.cpp
-        src/model/physics/rigid/shape/register/shape_register.h
-        src/model/physics/rigid/shape/register/standard_register_dummy.cpp
-        src/model/physics/rigid/shape/standard/collide_judge/standard_collide_judge_group.h
-        src/model/physics/rigid/shape/standard/collide_judge/standard_collide_judge_group.cpp
+
+        src/view_model/qt/scene_manager.cpp
+        src/view_model/qt/scene_manager.h
+        src/view_model/qt/scene_body_model.h
+        src/view_model/qt/scene_body_model.cpp
+
 )
 
 
@@ -195,12 +208,13 @@ if (BUILD_TESTS)
 
     add_executable(Egret_Physics_Tests
             ${TEST_SOURCES}
-            # 测试所需的源文件（不包含Qt相关）
             src/model/physics/rigid/physical_entity.cpp
             src/model/physics/rigid/rigid_body.cpp
             src/model/physics/rigid/particle.cpp
             src/model/physics/rigid/shape/standard/shape_base.cpp
             src/model/physics/rigid/shape/register/shape_register.cpp
+            src/model/physics/rigid/shape/register/shape_factory_registry.cpp
+            src/model/physics/rigid/shape/register/standard_shape_factory_registration.cpp
             src/model/physics/rigid/shape/standard/shape_sphere.cpp
             src/model/physics/rigid/shape/standard/shape_box.cpp
             src/model/physics/rigid/shape/standard/shape_cylinder.cpp
@@ -222,40 +236,3 @@ if (BUILD_TESTS)
 endif ()
 
 
-
-# 如果 Debug 模式下需要模拟 Release
-if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND DEBUG_SIMULATE_RELEASE)
-    message(STATUS "Debug build simulating Release behavior")
-
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-            NDEBUG                    # 禁用断言
-            SIMULATE_RELEASE_MODE     # 自定义宏
-    )
-
-    if(MSVC)
-        # 移除 Debug 默认选项
-        target_compile_options(${PROJECT_NAME} PRIVATE
-                $<$<CONFIG:Debug>:/O2>           # 替换 /Od
-                $<$<CONFIG:Debug>:/Ob2>          # 内联
-                $<$<CONFIG:Debug>:/GS->          # 关闭安全检查
-        )
-        # 移除运行时检查
-        string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
-    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-                $<$<CONFIG:Debug>:-O2>           # 优化级别
-                $<$<CONFIG:Debug>:-DNDEBUG>      # 禁用断言
-                $<$<CONFIG:Debug>:-fno-omit-frame-pointer>
-        )
-    endif()
-else()
-    # 正常的 Debug 配置
-    target_compile_definitions(${PROJECT_NAME} PRIVATE DEBUG_MODE)
-endif()
-
-# 可选：添加模拟未初始化内存的辅助函数
-if(DEBUG_SIMULATE_RELEASE)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-            SIMULATE_UNINIT=1
-    )
-endif()

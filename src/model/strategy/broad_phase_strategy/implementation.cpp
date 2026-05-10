@@ -7,7 +7,7 @@
 namespace egret
 {
 
-    void BruteForceBroadPhaseStrategy::buildCandidatePairs(const ISolverSceneSnapshot& scene,
+    void BruteForceBroadPhaseStrategy::buildCandidatePairs(const SolverSceneSnapshotBase& scene,
                                                            const SolverConfig& config,
                                                            std::vector<SolverBodyPair>& outPairs,
                                                            SolverStats& stats) const
