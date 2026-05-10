@@ -20,9 +20,9 @@
 #include <algorithm>
 
 #include "world_scene_manager.h"
-#include "../../model/strategy/broad_phase_strategy/brute_force_broad_phase.h"
-#include "../../model/strategy/contact_strategy/frictionless_contact_resolver.h"
-#include "../../model/strategy/integrator_strategy/semi_implicit_euler_integrator.h"
+#include "broad_phase_strategy/brute_force_broad_phase.h"
+#include "contact_strategy/frictionless_contact_resolver.h"
+#include "integrator_strategy/semi_implicit_euler_integrator.h"
 
 namespace egret
 {

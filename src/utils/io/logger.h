@@ -47,6 +47,8 @@ public:
     // 禁止拷贝和移动
     AsyncLogger(const AsyncLogger&) = delete;
     AsyncLogger& operator=(const AsyncLogger&) = delete;
+    AsyncLogger(AsyncLogger&&) = delete;
+    AsyncLogger& operator=(AsyncLogger&&) = delete;
 
     // 配置接口
     void setLogLevel(LogLevel level);                 // 设置全局最低日志级别
@@ -121,19 +123,19 @@ private:
 
 // ----- 便捷宏（自动捕获文件名、行号、函数名）-----
 #define LOG_DEBUG(msg) \
-AsyncLogger::instance().log(LogLevel::DEBUG, __FILE__, __LINE__, Q_FUNC_INFO, msg)
+::egret::AsyncLogger::instance().log(::egret::LogLevel::DEBUG, __FILE__, __LINE__, Q_FUNC_INFO, msg)
 
 #define LOG_INFO(msg) \
-AsyncLogger::instance().log(LogLevel::INFO, __FILE__, __LINE__, Q_FUNC_INFO, msg)
+::egret::AsyncLogger::instance().log(::egret::LogLevel::INFO, __FILE__, __LINE__, Q_FUNC_INFO, msg)
 
 #define LOG_WARN(msg) \
-AsyncLogger::instance().log(LogLevel::WARN, __FILE__, __LINE__, Q_FUNC_INFO, msg)
+::egret::AsyncLogger::instance().log(::egret::LogLevel::WARN, __FILE__, __LINE__, Q_FUNC_INFO, msg)
 
 #define LOG_ERROR(msg) \
-AsyncLogger::instance().log(LogLevel::ERROR, __FILE__, __LINE__, Q_FUNC_INFO, msg)
+::egret::AsyncLogger::instance().log(::egret::LogLevel::ERROR, __FILE__, __LINE__, Q_FUNC_INFO, msg)
 
 #define LOG_FATAL(msg) \
-AsyncLogger::instance().log(LogLevel::FATAL, __FILE__, __LINE__, Q_FUNC_INFO, msg)
+::egret::AsyncLogger::instance().log(::egret::LogLevel::FATAL, __FILE__, __LINE__, Q_FUNC_INFO, msg)
 
 // 支持 QString 拼接版本的宏（使用 QStringLiteral 避免构造临时变量）
 #define LOG_DEBUG_STR(str)   LOG_DEBUG(QString::fromUtf8(str))
@@ -142,5 +144,10 @@ AsyncLogger::instance().log(LogLevel::FATAL, __FILE__, __LINE__, Q_FUNC_INFO, ms
 #define LOG_ERROR_STR(str)   LOG_ERROR(QString::fromUtf8(str))
 #define LOG_FATAL_STR(str)   LOG_FATAL(QString::fromUtf8(str))
 
+#define LOG_DEBUG_LITERAL(str) LOG_DEBUG(QStringLiteral(str))
+#define LOG_INFO_LITERAL(str) LOG_INFO(QStringLiteral(str))
+#define LOG_WARN_LITERAL(str) LOG_WARN(QStringLiteral(str))
+#define LOG_ERROR_LITERAL(str) LOG_ERROR(QStringLiteral(str))
+#define LOG_FATAL_LITERAL(str) LOG_FATAL(QStringLiteral(str))
 
 #endif //EGRET_PHYSICS_LOGGER_H

@@ -11,9 +11,9 @@
 
 #include "field_base.h"
 #include "physical_entity.h"
-#include "../strategy/broad_phase_strategy/brute_force_broad_phase.h"
-#include "../strategy/contact_strategy/frictionless_contact_resolver.h"
-#include "../strategy/integrator_strategy/semi_implicit_euler_integrator.h"
+#include "broad_phase_strategy/brute_force_broad_phase.h"
+#include "contact_strategy/frictionless_contact_resolver.h"
+#include "integrator_strategy/semi_implicit_euler_integrator.h"
 
 namespace egret
 {
@@ -28,7 +28,7 @@ namespace egret
     {
     }
 
-    SolverStepResult Solver::step(ISolverSceneSnapshot& scene, const double dt)
+    SolverStepResult Solver::step(SolverSceneSnapshotBase& scene, const double dt)
     {
         SolverStepResult result{};
         result.dt = dt;
@@ -89,7 +89,7 @@ namespace egret
         m_contactResolver = std::move(contactResolver);
     }
 
-    void Solver::updateExternalForces(ISolverSceneSnapshot& scene) const
+    void Solver::updateExternalForces(SolverSceneSnapshotBase& scene) const
     {
         const auto bodies = scene.getBodies();
         const auto fields = scene.getFields();
@@ -118,7 +118,7 @@ namespace egret
         }
     }
 
-    void Solver::runBroadPhase(const ISolverSceneSnapshot& scene,
+    void Solver::runBroadPhase(const SolverSceneSnapshotBase& scene,
                                std::vector<SolverBodyPair>& pairs,
                                SolverStats& stats) const
     {
@@ -137,7 +137,7 @@ namespace egret
         }
     }
 
-    void Solver::runNarrowPhase(const ISolverSceneSnapshot& scene,
+    void Solver::runNarrowPhase(const SolverSceneSnapshotBase& scene,
                                 const std::vector<SolverBodyPair>& pairs,
                                 std::vector<SolverContactConstraint>& constraints,
                                 SolverStats& stats)
@@ -205,7 +205,7 @@ namespace egret
         stats.contactConstraintCount = constraints.size();
     }
 
-    void Solver::resolveContacts(ISolverSceneSnapshot& scene,
+    void Solver::resolveContacts(SolverSceneSnapshotBase& scene,
                                  const double dt,
                                  const std::vector<SolverContactConstraint>& constraints,
                                  SolverStats& stats) const
@@ -215,14 +215,14 @@ namespace egret
         }
     }
 
-    void Solver::integrate(ISolverSceneSnapshot& scene, const double dt, SolverStats& stats) const
+    void Solver::integrate(SolverSceneSnapshotBase& scene, const double dt, SolverStats& stats) const
     {
         if (m_integrator != nullptr) {
             m_integrator->integrate(scene, dt, m_config, stats);
         }
     }
 
-    void Solver::updateEnergyStats(const ISolverSceneSnapshot& scene, SolverStats& stats)
+    void Solver::updateEnergyStats(const SolverSceneSnapshotBase& scene, SolverStats& stats)
     {
         const auto bodies = scene.getBodies();
         stats.bodyCount = bodies.size();

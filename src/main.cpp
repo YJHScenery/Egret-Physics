@@ -8,31 +8,37 @@
 
 #include <QIcon>
 
-// #include "shape_rod.h"
-// #include "standard_collide_judge_group.h"
-#include "view_model/qt/scene_manager.h"
+#include "scene_manager.h"
+#include "basic_utils.h"
+#include "logger.h"
 
+void setWindowsTerminalUtf8();
 
 int main(int argc, char* argv[]) {
-    const QGuiApplication app(argc, argv);
-    // egret::ShapeRod rod(2.0);
-    // egret::ShapeSphere sphere(0.8);
-    //
-    // egret::Transform transRod;
-    // egret::Transform transSphere;
-    // transSphere.setTranslation(Eigen::Vector3d(0, 0, 0.6));
-    //
-    // {
-    //     egret::ContactManifold manifold;
-    //     bool result = collideRodSphere(rod, transRod, sphere, transSphere, manifold);
-    //     std::cout << result << std::endl;
-    // }
 
-    QGuiApplication::setWindowIcon(QIcon(":/app_icon/assets/favicon/favicon_bg_radius.png"));
+    // ReSharper disable once CppLocalVariableMayBeConst
+    QGuiApplication app(argc, argv);
 
+    QObject::connect(&app, &QGuiApplication::aboutToQuit, []() {
+           LOG_INFO_LITERAL("准备退出");
+           // 执行清理工作
+       });
 
-    // 原代码：
-    // engine.rootContext()->setContextProperty("game2048", &game2048);
+    setWindowsTerminalUtf8();
+
+    app.setApplicationName(EGRET_PHYSICS_APPLICATION_NAME);
+    app.setApplicationDisplayName(EGRET_PHYSICS_APPLICATION_DISPLAY_NAME);
+    app.setApplicationVersion(EGRET_PHYSICS_VERSION_STRING);
+    app.setWindowIcon(QIcon(":/app_icon/assets/favicon/favicon_bg_radius.png"));
+
+    egret::AsyncLogger& logger{egret::AsyncLogger::instance()};
+    logger.setLogFilePath("./logs/egret_physics_debug.log");
+    logger.setMaxFileSize(20 * 1024 * 1024);  // 20 MB
+    logger.setMaxBackupFiles(10);
+    logger.setOutputToConsole(true);
+    logger.setOutputToFile(true);
+
+    LOG_INFO_LITERAL("程序启动");
     // 新代码说明：将场景控制器注入 QML，作为 ModelView 层的统一入口。
     egret::SceneManagerViewModel sceneController;
 
@@ -40,22 +46,33 @@ int main(int argc, char* argv[]) {
     engine.rootContext()->setContextProperty("sceneController", &sceneController);
     // engine.addImportPath(QCoreApplication::applicationDirPath() + "/qml");
     const QUrl url(QStringLiteral("qrc:/main/main/MainWindow.qml"));
+    constexpr int QML_LOAD_FAILED{-1};
+
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreated,
         &app,
-        [url](QObject* obj, const QUrl& objUrl)
+        [url, &app](QObject* obj, const QUrl& objUrl)
         {
             if (!obj && url == objUrl) {
-                QCoreApplication::exit(-1);
+                LOG_FATAL(QStringLiteral("QML 脚本加载失败，错误代码:").arg(QString::number(QML_LOAD_FAILED)));
+                app.exit(QML_LOAD_FAILED);
             }
         },
         Qt::QueuedConnection);
 
     engine.load(url);
     if (engine.rootObjects().isEmpty()) {
-        return -1;
+        LOG_FATAL(QStringLiteral("QML 引擎根对象创建失败，错误代码:").arg(QString::number(QML_LOAD_FAILED)));
+        return QML_LOAD_FAILED;
     }
 
-    return QGuiApplication::exec();
+    const int exitCode = app.exec();
+
+    if (exitCode != 0) {
+        LOG_WARN_LITERAL("程序异常退出");
+    }else {
+        LOG_INFO_LITERAL("程序退出");
+    }
+    return exitCode;
 }

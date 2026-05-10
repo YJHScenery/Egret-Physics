@@ -8,7 +8,7 @@
 
 namespace egret
 {
-    class ShapeSphere;
+    // class ShapeSphere;
 
     class ShapeBox : public ShapeBase
     {
@@ -45,6 +45,10 @@ namespace egret
         //                                ContactManifold& manifold) const override;
 
         [[nodiscard]] AABB getAABB(const Transform& transform) const override;
+
+        [[nodiscard]] ShapeLoadInfo getLoadInfo() const override;
+
+        [[nodiscard]] SceneRenderItem getBasicRenderInfo(const Eigen::Vector3d& position) const override;
 
         static void getLocalAxes(const Transform& trans,
                                  Eigen::Vector3d& axisX,

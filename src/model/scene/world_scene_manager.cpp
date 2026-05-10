@@ -8,11 +8,45 @@
 
 #include "gravity_field.h"
 #include "field_base.h"
+#include "shape_factory_registry.h"
+#include "shape_box.h"
+#include "shape_sphere.h"
 
 namespace egret
 {
-    WorldSceneManager::WorldSceneManager(std::unique_ptr<ISolver> solver): m_solver(std::move(solver))
+    WorldSceneManager::WorldSceneManager(std::unique_ptr<SolverBase> solver): m_solver(std::move(solver))
     {
+    }
+
+    std::uint64_t WorldSceneManager::spawnBody(const std::string& name,
+                                               const Eigen::Vector3d& position,
+                                               const Eigen::Vector3d& speed,
+                                               std::unique_ptr<ShapeBase> shape,
+                                               const double mass)
+    {
+        if (shape == nullptr) {
+            return 0;
+        }
+
+        auto record = std::make_unique<BodyRecord>();
+        record->id = nextId();
+        record->name = name;
+        record->entity = std::make_unique<Particle>(position, speed, mass);
+        record->shape = std::move(shape);
+        record->transform.setTranslation(position);
+        m_bodies.push_back(std::move(record));
+        rebuildSolverCaches();
+        return m_bodies.back()->id;
+    }
+
+    std::uint64_t WorldSceneManager::spawnBodyFromLoadInfo(const std::string& name,
+                                                           const Eigen::Vector3d& position,
+                                                           const Eigen::Vector3d& speed,
+                                                           const ShapeLoadInfo& shapeInfo,
+                                                           const double mass)
+    {
+        std::unique_ptr<ShapeBase> shape = ShapeFactoryRegistry::instance().create(shapeInfo);
+        return spawnBody(name, position, speed, std::move(shape), mass);
     }
 
     std::uint64_t WorldSceneManager::spawnSphere(const std::string& name,
@@ -21,15 +55,7 @@ namespace egret
                                                  const double radius,
                                                  const double mass)
     {
-        auto record = std::make_unique<BodyRecord>();
-        record->id = nextId();
-        record->name = name;
-        record->entity = std::make_unique<Particle>(position, speed, mass);
-        record->shape = std::make_unique<ShapeSphere>(radius);
-        record->transform.setTranslation(position);
-        m_bodies.push_back(std::move(record));
-        rebuildSolverCaches();
-        return m_bodies.back()->id;
+        return spawnBody(name, position, speed, std::make_unique<ShapeSphere>(radius), mass);
     }
 
     std::uint64_t WorldSceneManager::spawnBox(const std::string& name,
@@ -38,15 +64,16 @@ namespace egret
                                               const Eigen::Vector3d& size,
                                               const double mass)
     {
-        auto record = std::make_unique<BodyRecord>();
-        record->id = nextId();
-        record->name = name;
-        record->entity = std::make_unique<Particle>(position, speed, mass);
-        record->shape = std::make_unique<ShapeBox>(size);
-        record->transform.setTranslation(position);
-        m_bodies.push_back(std::move(record));
-        rebuildSolverCaches();
-        return m_bodies.back()->id;
+        return spawnBody(name, position, speed, std::make_unique<ShapeBox>(size), mass);
+    }
+
+    std::optional<ShapeLoadInfo> WorldSceneManager::getBodyShapeLoadInfo(const std::uint64_t id) const
+    {
+        const BodyRecord* body = findBody(id);
+        if (body == nullptr || body->shape == nullptr) {
+            return std::nullopt;
+        }
+        return body->shape->getLoadInfo();
     }
 
     std::uint64_t WorldSceneManager::addGravityField(const Eigen::Vector3d& gravity,
@@ -123,34 +150,38 @@ namespace egret
                 continue;
             }
 
-            SceneRenderItem item{};
+
+            const Eigen::Vector3d position = body->entity->getPosition();
+
+            // const std::string& shapeTypeStr {body->shape->typeId()};
+
+            SceneRenderItem item{body->shape->getBasicRenderInfo(position)};
+
             item.id = body->id;
             item.label = body->name.empty() ? (std::string("Body ") + std::to_string(body->id)) : body->name;
             item.color = body->entity->getMass() <= 0.0 ? "#6C7A89" : "#3EC5FF";
 
-            const Eigen::Vector3d position = body->entity->getPosition();
-
-            if (const auto* sphere = dynamic_cast<const ShapeSphere*>(body->shape.get()); sphere != nullptr) {
-                const double diameter = sphere->getRadius() * 2.0;
-                item.kind = "sphere";
-                item.width = diameter;
-                item.height = diameter;
-                item.x = position.x() - sphere->getRadius();
-                item.y = position.y() - sphere->getRadius();
-            } else if (const auto* box = dynamic_cast<const ShapeBox*>(body->shape.get()); box != nullptr) {
-                const Eigen::Vector3d size = box->getSize();
-                item.kind = "box";
-                item.width = size.x();
-                item.height = size.y();
-                item.x = position.x() - size.x() * 0.5;
-                item.y = position.y() - size.y() * 0.5;
-            } else {
-                item.kind = "particle";
-                item.width = 16.0;
-                item.height = 16.0;
-                item.x = position.x() - 8.0;
-                item.y = position.y() - 8.0;
-            }
+            // if (const auto* sphere = dynamic_cast<const ShapeSphere*>(body->shape.get()); sphere != nullptr) {
+            //     const double diameter = sphere->getRadius() * 2.0;
+            //     item.kind = "sphere";
+            //     item.width = diameter;
+            //     item.height = diameter;
+            //     item.x = position.x() - sphere->getRadius();
+            //     item.y = position.y() - sphere->getRadius();
+            // } else if (const auto* box = dynamic_cast<const ShapeBox*>(body->shape.get()); box != nullptr) {
+            //     const Eigen::Vector3d size = box->getSize();
+            //     item.kind = "box";
+            //     item.width = size.x();
+            //     item.height = size.y();
+            //     item.x = position.x() - size.x() * 0.5;
+            //     item.y = position.y() - size.y() * 0.5;
+            // } else {
+            //     item.kind = "particle";
+            //     item.width = 16.0;
+            //     item.height = 16.0;
+            //     item.x = position.x() - 8.0;
+            //     item.y = position.y() - 8.0;
+            // }
 
             items.push_back(std::move(item));
         }

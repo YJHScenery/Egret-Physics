@@ -6,6 +6,13 @@
 
 namespace egret
 {
+    ShapeLoadInfo ShapeBase::getLoadInfo() const
+    {
+        ShapeLoadInfo info{};
+        info.typeId = typeId();
+        return info;
+    }
+
     bool ShapeBase::collide(const ShapeBase* other,
         const Transform& thisTrans, const Transform& otherTrans, ContactManifold& manifold) const
     {

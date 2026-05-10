@@ -23,13 +23,12 @@ namespace egret
      * 1. 接收一个场景快照和一个固定 dt。
      * 2. 通过非拥有式句柄原地修改场景状态。
      * 3. 返回本帧统计信息。
-     * 4. 绝不依赖 Qt 或 UI 对象。
      */
-    class ISolver
+    class SolverBase
     {
     public:
         /** 接口安全所需的虚析构函数。 */
-        virtual ~ISolver() = default;
+        virtual ~SolverBase() = default;
 
         /**
          * @brief 对当前世界快照执行一次固定步长求解。
@@ -37,7 +36,7 @@ namespace egret
          * @param dt 固定步长，单位为秒。
          * @return 每步统计与附加元信息。
          */
-        [[nodiscard]] virtual SolverStepResult step(ISolverSceneSnapshot& scene, double dt) = 0;
+        [[nodiscard]] virtual SolverStepResult step(SolverSceneSnapshotBase& scene, double dt) = 0;
 
         /**
          * @brief 替换运行时配置。
@@ -58,7 +57,7 @@ namespace egret
      * 该类先给出第一版实现所需的具体 API 形状。方法体可以放到 .cpp 文件中实现，
      * 而不改变对外契约。
      */
-    class Solver final : public ISolver
+    class Solver final : public SolverBase
     {
     public:
         /**
@@ -76,13 +75,13 @@ namespace egret
         /** 默认化的虚析构函数。 */
         ~Solver() override = default;
 
-        /** 见 ISolver::step。 */
-        [[nodiscard]] SolverStepResult step(ISolverSceneSnapshot& scene, double dt) override;
+        /** 见 SolverBase::step。 */
+        [[nodiscard]] SolverStepResult step(SolverSceneSnapshotBase& scene, double dt) override;
 
-        /** 见 ISolver::setConfig。 */
+        /** 见 SolverBase::setConfig。 */
         void setConfig(const SolverConfig& config) override;
 
-        /** 见 ISolver::getConfig。 */
+        /** 见 SolverBase::getConfig。 */
         [[nodiscard]] const SolverConfig& getConfig() const override;
 
         /**
@@ -108,7 +107,7 @@ namespace egret
          * @brief 第 1 阶段：维护外力累加器并应用场。
          * @param scene 可变场景快照。
          */
-        void updateExternalForces(ISolverSceneSnapshot& scene) const;
+        void updateExternalForces(SolverSceneSnapshotBase& scene) const;
 
         /**
          * @brief 第 2 阶段：生成广相位候选对。
@@ -116,7 +115,7 @@ namespace egret
          * @param pairs 输出候选对。
          * @param stats 可变步骤统计。
          */
-        void runBroadPhase(const ISolverSceneSnapshot& scene,
+        void runBroadPhase(const SolverSceneSnapshotBase& scene,
                            std::vector<SolverBodyPair>& pairs,
                            SolverStats& stats) const;
 
@@ -127,7 +126,7 @@ namespace egret
          * @param constraints 输出接触约束。
          * @param stats 可变步骤统计。
          */
-        static void runNarrowPhase(const ISolverSceneSnapshot& scene,
+        static void runNarrowPhase(const SolverSceneSnapshotBase& scene,
                             const std::vector<SolverBodyPair>& pairs,
                             std::vector<SolverContactConstraint>& constraints,
                             SolverStats& stats) ;
@@ -139,7 +138,7 @@ namespace egret
          * @param constraints 接触约束。
          * @param stats 可变步骤统计。
          */
-        void resolveContacts(ISolverSceneSnapshot& scene,
+        void resolveContacts(SolverSceneSnapshotBase& scene,
                              double dt,
                              const std::vector<SolverContactConstraint>& constraints,
                              SolverStats& stats) const;
@@ -150,14 +149,14 @@ namespace egret
          * @param dt 固定步长。
          * @param stats 可变步骤统计。
          */
-        void integrate(ISolverSceneSnapshot& scene, double dt, SolverStats& stats) const;
+        void integrate(SolverSceneSnapshotBase& scene, double dt, SolverStats& stats) const;
 
         /**
          * @brief 在积分后计算用于诊断的能量统计。
          * @param scene 场景快照。
          * @param stats 可变步骤统计。
          */
-        static void updateEnergyStats(const ISolverSceneSnapshot& scene, SolverStats& stats) ;
+        static void updateEnergyStats(const SolverSceneSnapshotBase& scene, SolverStats& stats) ;
 
         /** 所有阶段共用的运行时配置。 */
         SolverConfig m_config{};

@@ -32,7 +32,7 @@ namespace egret
          * @param config 求解器配置。
          * @param stats 每步统计信息。
          */
-        void integrate(ISolverSceneSnapshot& scene,
+        void integrate(SolverSceneSnapshotBase& scene,
                        double dt,
                        const SolverConfig& config,
                        SolverStats& stats) const override;

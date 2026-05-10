@@ -4,6 +4,8 @@
 
 #include "shape_cylindrical_shell.h"
 
+#include "world_scene_manager.h"
+
 namespace egret
 {
     ShapeCylindricalShell::ShapeCylindricalShell(const double radius, const double mass) : ShapeCylinder(radius, mass)
@@ -28,5 +30,12 @@ namespace egret
         inertiaTensor(1, 1) = i_yy;
         inertiaTensor(2, 2) = i_zz;
         return inertiaTensor;
+    }
+
+    SceneRenderItem ShapeCylindricalShell::getBasicRenderInfo(const Eigen::Vector3d& position) const
+    {
+        SceneRenderItem item = ShapeCylinder::getBasicRenderInfo(position);
+        item.kind = this->typeId();
+        return item;
     }
 } // egret
