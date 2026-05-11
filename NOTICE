@@ -12,7 +12,7 @@ Library Name:      Egret Physics
 Version:           1.0.0
 Copyright:         Copyright (C) 2026 Egret Physics Authors
 License:           GNU General Public License v3.0 (GPLv3)
-License File:      GPL_V3.0.md
+License File:      LICENSE
 Description:       A physics simulation engine with rigid body dynamics
 
 ---------------------------------------------------------------------------
