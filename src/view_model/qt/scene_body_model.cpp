@@ -38,6 +38,18 @@ namespace egret
             return item.width;
         case HeightRole:
             return item.height;
+        case CenterXRole:
+            return item.centerX;
+        case CenterYRole:
+            return item.centerY;
+        case CenterZRole:
+            return item.centerZ;
+        case SizeXRole:
+            return item.sizeX;
+        case SizeYRole:
+            return item.sizeY;
+        case SizeZRole:
+            return item.sizeZ;
         case ColorRole:
             return item.color;
         case LabelRole:
@@ -56,6 +68,12 @@ namespace egret
             {YRole, "bodyY"},
             {WidthRole, "bodyWidth"},
             {HeightRole, "bodyHeight"},
+            {CenterXRole, "bodyCenterX"},
+            {CenterYRole, "bodyCenterY"},
+            {CenterZRole, "bodyCenterZ"},
+            {SizeXRole, "bodySizeX"},
+            {SizeYRole, "bodySizeY"},
+            {SizeZRole, "bodySizeZ"},
             {ColorRole, "bodyColor"},
             {LabelRole, "bodyLabel"},
         };

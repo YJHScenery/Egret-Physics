@@ -26,10 +26,10 @@ int main(int argc, char* argv[]) {
 
     setWindowsTerminalUtf8();
 
-    app.setApplicationName(EGRET_PHYSICS_APPLICATION_NAME);
-    app.setApplicationDisplayName(EGRET_PHYSICS_APPLICATION_DISPLAY_NAME);
-    app.setApplicationVersion(EGRET_PHYSICS_VERSION_STRING);
-    app.setWindowIcon(QIcon(":/app_icon/assets/favicon/favicon_bg_radius.png"));
+    app.setApplicationName(EGRET_PHYSICS_APPLICATION_NAME); // NOLINT(*-static-accessed-through-instance)
+    app.setApplicationDisplayName(EGRET_PHYSICS_APPLICATION_DISPLAY_NAME); // NOLINT(*-static-accessed-through-instance)
+    app.setApplicationVersion(EGRET_PHYSICS_VERSION_STRING); // NOLINT(*-static-accessed-through-instance)
+    app.setWindowIcon(QIcon(":/app_icon/assets/favicon/favicon_bg_radius.png")); // NOLINT(*-static-accessed-through-instance)
 
     egret::AsyncLogger& logger{egret::AsyncLogger::instance()};
     logger.setLogFilePath("./logs/egret_physics_debug.log");
@@ -55,19 +55,19 @@ int main(int argc, char* argv[]) {
         [url, &app](QObject* obj, const QUrl& objUrl)
         {
             if (!obj && url == objUrl) {
-                LOG_FATAL(QStringLiteral("QML 脚本加载失败，错误代码:").arg(QString::number(QML_LOAD_FAILED)));
-                app.exit(QML_LOAD_FAILED);
+                LOG_FATAL_LITERAL("QML 脚本加载失败，错误代码:");
+                app.exit(QML_LOAD_FAILED); // NOLINT(*-static-accessed-through-instance)
             }
         },
         Qt::QueuedConnection);
 
     engine.load(url);
     if (engine.rootObjects().isEmpty()) {
-        LOG_FATAL(QStringLiteral("QML 引擎根对象创建失败，错误代码:").arg(QString::number(QML_LOAD_FAILED)));
+        LOG_FATAL_LITERAL("QML 引擎根对象创建失败，错误代码: -1");
         return QML_LOAD_FAILED;
     }
 
-    const int exitCode = app.exec();
+    const int exitCode = app.exec(); // NOLINT(*-static-accessed-through-instance)
 
     if (exitCode != 0) {
         LOG_WARN_LITERAL("程序异常退出");

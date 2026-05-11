@@ -18,6 +18,10 @@
 // 2. 该对象负责驱动模型层世界管理器、维护固定步长累积，并刷新 QML 渲染数据。
 
 #include <algorithm>
+#include <cmath>
+
+#include <QMatrix4x4>
+#include <QVector3D>
 
 #include "world_scene_manager.h"
 #include "broad_phase_strategy/brute_force_broad_phase.h"
@@ -32,6 +36,50 @@
 
 namespace egret
 {
+    namespace
+    {
+        struct CameraState
+        {
+            QVector3D position{0.0f, -800.0f, 400.0f};
+            QVector3D target{0.0f, 0.0f, 0.0f};
+            QVector3D up{0.0f, 0.0f, 1.0f};
+            double fovY{45.0};
+            double nearClip{1.0};
+            double farClip{50000.0};
+        };
+
+        [[nodiscard]] double readCameraScalar(const QVariantMap& cameraState,
+                                              const QString& key,
+                                              const double fallback)
+        {
+            const QVariant value = cameraState.value(key);
+            bool ok = false;
+            const double converted = value.toDouble(&ok);
+            return ok ? converted : fallback;
+        }
+
+        [[nodiscard]] CameraState parseCameraState(const QVariantMap& cameraState)
+        {
+            CameraState parsed{};
+            parsed.position.setX(static_cast<float>(readCameraScalar(cameraState, "positionX", parsed.position.x())));
+            parsed.position.setY(static_cast<float>(readCameraScalar(cameraState, "positionY", parsed.position.y())));
+            parsed.position.setZ(static_cast<float>(readCameraScalar(cameraState, "positionZ", parsed.position.z())));
+
+            parsed.target.setX(static_cast<float>(readCameraScalar(cameraState, "targetX", parsed.target.x())));
+            parsed.target.setY(static_cast<float>(readCameraScalar(cameraState, "targetY", parsed.target.y())));
+            parsed.target.setZ(static_cast<float>(readCameraScalar(cameraState, "targetZ", parsed.target.z())));
+
+            parsed.up.setX(static_cast<float>(readCameraScalar(cameraState, "upX", parsed.up.x())));
+            parsed.up.setY(static_cast<float>(readCameraScalar(cameraState, "upY", parsed.up.y())));
+            parsed.up.setZ(static_cast<float>(readCameraScalar(cameraState, "upZ", parsed.up.z())));
+
+            parsed.fovY = readCameraScalar(cameraState, "fovY", parsed.fovY);
+            parsed.nearClip = readCameraScalar(cameraState, "nearClip", parsed.nearClip);
+            parsed.farClip = readCameraScalar(cameraState, "farClip", parsed.farClip);
+            return parsed;
+        }
+    }
+
     SceneManagerViewModel::SceneManagerViewModel(QObject* parent): QObject(parent), m_bodyModel(this)
     {
         m_timer.setInterval(16);
@@ -71,6 +119,11 @@ namespace egret
     double SceneManagerViewModel::fixedStepMs() const
     {
         return m_fixedStepSeconds * 1000.0;
+    }
+
+    bool SceneManagerViewModel::isDragActive() const
+    {
+        return m_dragActive;
     }
 
     SceneBodyModel* SceneManagerViewModel::bodyModel()
@@ -116,6 +169,7 @@ namespace egret
     void SceneManagerViewModel::reset()
     {
         pause();
+        endBodyDrag();
         rebuildDemoWorld();
         refreshBodyModel();
 
@@ -139,7 +193,7 @@ namespace egret
 
         const std::uint64_t id = m_world->spawnSphere(
             "动态球体",
-            {180.0 + static_cast<double>(m_world->getBodyCount()) * 28.0, 120.0, 0.0},
+            {180.0 + static_cast<double>(m_world->getBodyCount()) * 28.0, 120.0, 180.0},
             {40.0, 0.0, 0.0},
             28.0,
             1.0);
@@ -159,9 +213,9 @@ namespace egret
 
         const std::uint64_t id = m_world->spawnBox(
             "动态盒体",
-            {420.0 + static_cast<double>(m_world->getBodyCount()) * 22.0, 90.0, 0.0},
+            {420.0 + static_cast<double>(m_world->getBodyCount()) * 22.0, 90.0, 220.0},
             {0.0, 0.0, 0.0},
-            {52.0, 52.0, 1.0},
+            {52.0, 52.0, 52.0},
             2.0);
 
         static_cast<void>(id);
@@ -169,6 +223,149 @@ namespace egret
         m_entityCount = static_cast<int>(m_world->getBodyCount());
         emit entityCountChanged();
         emit entityChanged();
+    }
+
+    QVariantMap SceneManagerViewModel::mapScreenToWorldOnPlane(const double screenX,
+                                                                const double screenY,
+                                                                const double viewportWidth,
+                                                                const double viewportHeight,
+                                                                const QVariantMap& cameraState,
+                                                                const double planeZ) const
+    {
+        QVariantMap result{};
+        Eigen::Vector3d rayOrigin{};
+        Eigen::Vector3d rayDirection{};
+        QString error{};
+        if (!buildPickRay(screenX,
+                          screenY,
+                          viewportWidth,
+                          viewportHeight,
+                          cameraState,
+                          &rayOrigin,
+                          &rayDirection,
+                          &error)) {
+            result.insert("ok", false);
+            result.insert("error", error);
+            return result;
+        }
+
+        Eigen::Vector3d hitPoint{};
+        if (!intersectRayWithPlaneZ(rayOrigin, rayDirection, planeZ, &hitPoint, &error)) {
+            result.insert("ok", false);
+            result.insert("error", error);
+            return result;
+        }
+
+        result.insert("ok", true);
+        result.insert("x", hitPoint.x());
+        result.insert("y", hitPoint.y());
+        result.insert("z", hitPoint.z());
+        return result;
+    }
+
+    bool SceneManagerViewModel::beginBodyDrag(const quint64 bodyId,
+                                              const double screenX,
+                                              const double screenY,
+                                              const double viewportWidth,
+                                              const double viewportHeight,
+                                              const QVariantMap& cameraState,
+                                              const QString& mode)
+    {
+        if (m_world == nullptr) {
+            return false;
+        }
+
+        const std::optional<Eigen::Vector3d> bodyPosition = m_world->getBodyPosition(bodyId);
+        if (!bodyPosition.has_value()) {
+            return false;
+        }
+
+        Eigen::Vector3d rayOrigin{};
+        Eigen::Vector3d rayDirection{};
+        if (!buildPickRay(screenX,
+                          screenY,
+                          viewportWidth,
+                          viewportHeight,
+                          cameraState,
+                          &rayOrigin,
+                          &rayDirection)) {
+            return false;
+        }
+
+        Eigen::Vector3d planePoint{};
+        if (!intersectRayWithPlaneZ(rayOrigin, rayDirection, bodyPosition->z(), &planePoint)) {
+            return false;
+        }
+
+        m_dragBodyId = bodyId;
+        m_dragMode = mode;
+        m_dragStartBodyPosition = *bodyPosition;
+        m_dragStartPlanePoint = planePoint;
+        setDragActive(true);
+        return true;
+    }
+
+    bool SceneManagerViewModel::updateBodyDrag(const double screenX,
+                                               const double screenY,
+                                               const double viewportWidth,
+                                               const double viewportHeight,
+                                               const QVariantMap& cameraState)
+    {
+        if (!m_dragActive || m_world == nullptr || m_dragBodyId == 0) {
+            return false;
+        }
+
+        Eigen::Vector3d rayOrigin{};
+        Eigen::Vector3d rayDirection{};
+        if (!buildPickRay(screenX,
+                          screenY,
+                          viewportWidth,
+                          viewportHeight,
+                          cameraState,
+                          &rayOrigin,
+                          &rayDirection)) {
+            return false;
+        }
+
+        Eigen::Vector3d currentPlanePoint{};
+        if (!intersectRayWithPlaneZ(rayOrigin, rayDirection, m_dragStartBodyPosition.z(), &currentPlanePoint)) {
+            return false;
+        }
+
+        const Eigen::Vector3d dragDelta = currentPlanePoint - m_dragStartPlanePoint;
+        Eigen::Vector3d nextPosition = m_dragStartBodyPosition;
+
+        if (m_dragMode == "axis_x") {
+            nextPosition.x() += dragDelta.x();
+        } else if (m_dragMode == "axis_y") {
+            nextPosition.y() += dragDelta.y();
+        } else if (m_dragMode == "axis_z") {
+            nextPosition.z() += dragDelta.z();
+        } else {
+            nextPosition.x() += dragDelta.x();
+            nextPosition.y() += dragDelta.y();
+        }
+
+        if (!m_world->setBodyPosition(m_dragBodyId, nextPosition)) {
+            return false;
+        }
+
+        refreshBodyModel();
+        emit entityChanged();
+        return true;
+    }
+
+    void SceneManagerViewModel::endBodyDrag()
+    {
+        if (!m_dragActive) {
+            return;
+        }
+
+        m_dragBodyId = 0;
+        m_dragMode = "xy_plane";
+        m_dragStartBodyPosition = Eigen::Vector3d::Zero();
+        m_dragStartPlanePoint = Eigen::Vector3d::Zero();
+        setDragActive(false);
     }
 
     void SceneManagerViewModel::onFrameTick()
@@ -192,7 +389,8 @@ namespace egret
     void SceneManagerViewModel::rebuildDemoWorld()
     {
         SolverConfig config{};
-        config.lockToXYPlane = true;
+        // 仅限制视角，不限制动力学
+        config.lockToXYPlane = false;
 
         auto solver = std::make_unique<Solver>(
             config,
@@ -203,10 +401,10 @@ namespace egret
         m_world = std::make_unique<WorldSceneManager>(std::move(solver));
         m_world->clear();
 
-        m_world->addGravityField({0.0, 180.0, 0.0}, {0.0, 0.0, 0.0}, "重力场");
+        m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
 
-        m_world->spawnBox("地面", {420.0, 400.0, 0.0}, {0.0, 0.0, 0.0}, {760.0, 28.0, 1.0}, 0.0);
-        m_world->spawnSphere("小球 A", {220.0, 60.0, 0.0}, {0.0, 0.0, 0.0}, 28.0, 10.0);
+        m_world->spawnBox("地面", {0.0, 0.0, -15.0}, {0.0, 0.0, 0.0}, {760.0, 520.0, 30.0}, 0.0);
+        m_world->spawnSphere("小球 A", {0.0, 0.0, 220.0}, {0.0, 0.0, 0.0}, 28.0, 10.0);
 
 
         m_entityCount = static_cast<int>(m_world->getBodyCount());
@@ -231,6 +429,12 @@ namespace egret
             item.y = renderItem.y;
             item.width = renderItem.width;
             item.height = renderItem.height;
+            item.centerX = renderItem.centerX;
+            item.centerY = renderItem.centerY;
+            item.centerZ = renderItem.centerZ;
+            item.sizeX = renderItem.sizeX;
+            item.sizeY = renderItem.sizeY;
+            item.sizeZ = renderItem.sizeZ;
             item.color = QColor(QString::fromStdString(renderItem.color));
             item.label = QString::fromStdString(renderItem.label);
             items.push_back(std::move(item));
@@ -281,5 +485,109 @@ namespace egret
 
         m_running = running;
         emit runningChanged();
+    }
+
+    bool SceneManagerViewModel::buildPickRay(const double screenX,
+                                             const double screenY,
+                                             const double viewportWidth,
+                                             const double viewportHeight,
+                                             const QVariantMap& cameraState,
+                                             Eigen::Vector3d* origin,
+                                             Eigen::Vector3d* direction,
+                                             QString* error) const
+    {
+        if (origin == nullptr || direction == nullptr) {
+            if (error != nullptr) {
+                *error = "invalid_output_pointer";
+            }
+            return false;
+        }
+
+        if (viewportWidth <= 1.0 || viewportHeight <= 1.0) {
+            if (error != nullptr) {
+                *error = "invalid_viewport";
+            }
+            return false;
+        }
+
+        const CameraState camera = parseCameraState(cameraState);
+        QVector3D up = camera.up.normalized();
+        if (up.lengthSquared() < 1e-6f) {
+            up = QVector3D(0.0f, 0.0f, 1.0f);
+        }
+
+        QMatrix4x4 view{};
+        view.lookAt(camera.position, camera.target, up);
+
+        QMatrix4x4 projection{};
+        projection.perspective(static_cast<float>(camera.fovY),
+                               static_cast<float>(viewportWidth / viewportHeight),
+                               static_cast<float>(std::max(0.001, camera.nearClip)),
+                               static_cast<float>(std::max(camera.nearClip + 0.001, camera.farClip)));
+
+        const QMatrix4x4 inverseViewProjection = (projection * view).inverted();
+
+        const auto ndcX = static_cast<float>((screenX / viewportWidth) * 2.0 - 1.0);
+        const auto ndcY = static_cast<float>(1.0 - (screenY / viewportHeight) * 2.0);
+
+        QVector4D nearPoint = inverseViewProjection * QVector4D(ndcX, ndcY, -1.0f, 1.0f);
+        QVector4D farPoint = inverseViewProjection * QVector4D(ndcX, ndcY, 1.0f, 1.0f);
+        if (std::abs(nearPoint.w()) < 1e-8f || std::abs(farPoint.w()) < 1e-8f) {
+            if (error != nullptr) {
+                *error = "non_invertible_view_projection";
+            }
+            return false;
+        }
+
+        nearPoint /= nearPoint.w();
+        farPoint /= farPoint.w();
+
+        const QVector3D rayOriginVec = nearPoint.toVector3D();
+        QVector3D rayDirectionVec = (farPoint - nearPoint).toVector3D();
+        if (rayDirectionVec.lengthSquared() < 1e-10f) {
+            if (error != nullptr) {
+                *error = "invalid_ray_direction";
+            }
+            return false;
+        }
+        rayDirectionVec.normalize();
+
+        *origin = Eigen::Vector3d(rayOriginVec.x(), rayOriginVec.y(), rayOriginVec.z());
+        *direction = Eigen::Vector3d(rayDirectionVec.x(), rayDirectionVec.y(), rayDirectionVec.z());
+        return true;
+    }
+
+    bool SceneManagerViewModel::intersectRayWithPlaneZ(const Eigen::Vector3d& rayOrigin,
+                                                        const Eigen::Vector3d& rayDirection,
+                                                        const double planeZ,
+                                                        Eigen::Vector3d* hitPoint,
+                                                        QString* error)
+    {
+        if (hitPoint == nullptr) {
+            if (error != nullptr) {
+                *error = "invalid_hit_pointer";
+            }
+            return false;
+        }
+
+        if (std::abs(rayDirection.z()) < 1e-9) {
+            if (error != nullptr) {
+                *error = "ray_parallel_to_plane";
+            }
+            return false;
+        }
+
+        const double t = (planeZ - rayOrigin.z()) / rayDirection.z();
+        *hitPoint = rayOrigin + rayDirection * t;
+        return true;
+    }
+
+    void SceneManagerViewModel::setDragActive(const bool active)
+    {
+        if (m_dragActive == active) {
+            return;
+        }
+        m_dragActive = active;
+        emit dragActiveChanged();
     }
 }
