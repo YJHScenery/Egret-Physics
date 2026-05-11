@@ -49,6 +49,24 @@ namespace egret
         /** 渲染高度。 */
         double height{0.0};
 
+        /** 世界中心 X。 */
+        double centerX{0.0};
+
+        /** 世界中心 Y。 */
+        double centerY{0.0};
+
+        /** 世界中心 Z（z-up）。 */
+        double centerZ{0.0};
+
+        /** 世界尺寸 X。 */
+        double sizeX{0.0};
+
+        /** 世界尺寸 Y。 */
+        double sizeY{0.0};
+
+        /** 世界尺寸 Z。 */
+        double sizeZ{0.0};
+
         /** 十六进制颜色字符串，供 QML 直接使用。 */
         std::string color;
 
@@ -143,6 +161,21 @@ namespace egret
          * @return 找到则返回加载信息，否则返回空。
          */
         [[nodiscard]] std::optional<ShapeLoadInfo> getBodyShapeLoadInfo(std::uint64_t id) const;
+
+        /**
+         * @brief 读取实体位置。
+         * @param id 实体 ID。
+         * @return 找到则返回位置，否则返回空。
+         */
+        [[nodiscard]] std::optional<Eigen::Vector3d> getBodyPosition(std::uint64_t id) const;
+
+        /**
+         * @brief 设置实体位置。
+         * @param id 实体 ID。
+         * @param position 新位置。
+         * @return 设置是否成功。
+         */
+        bool setBodyPosition(std::uint64_t id, const Eigen::Vector3d& position);
 
         /**
          * @brief 添加一个重力场。

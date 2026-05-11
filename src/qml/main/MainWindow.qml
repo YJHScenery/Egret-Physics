@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
+import QtQuick3D 6.9
 import "qrc:/components/components"
 
 
@@ -74,8 +75,8 @@ Window {
 
                 Rectangle {
                     id: newSceneButton
-                    implicitWidth: 190
-                    implicitHeight: 36
+                    Layout.preferredWidth: 190
+                    Layout.preferredHeight: 36
                     radius: 10
 
                     property bool hovered: false
@@ -84,9 +85,11 @@ Window {
 
                     Timer {
                         id: colorTimer
-                        interval: parent.highlightDuration
+                        interval: parent.highlightDuration;
+                        repeat: false;
+                        running: false;
                         onTriggered: {
-                            parent.isPressed = false  // 清除点击高亮标记
+                            parent.isPressed = false;  // 清除点击高亮标记
                             // 不需要手动设置颜色，让颜色绑定属性自动处理
                         }
                     }
@@ -118,17 +121,17 @@ Window {
                         anchors.fill: parent
                         hoverEnabled: true
                         onEntered: {
-                            newSceneButton.hovered = true
+                            newSceneButton.hovered = true;
                         }
                         onExited: {
-                            newSceneButton.hovered = false
+                            newSceneButton.hovered = false;
                         }
                         onClicked: {
-                            console.log("New Scene Button Clicked")
-                            newSceneButton.isPressed = true
+                            console.log("New Scene Button Clicked");
+                            newSceneButton.isPressed = true;
                             // 新代码说明：按钮直接调用 ViewModel 的重置命令，驱动 Model 层重建世界。
-                            sceneController.reset()
-                            colorTimer.restart()  // 使用 restart 确保每次点击都会重新计时
+                            sceneController.reset();
+                            colorTimer.restart();  // 使用 restart 确保每次点击都会重新计时
                         }
                     }
                 }
@@ -198,82 +201,235 @@ Window {
                         title: "场景视图 / Dynamics Canvas"
 
                         Item {
+                            id: canvas3d
                             anchors.fill: parent
+                            property real orbitYaw: 45
+                            property real orbitPitch: 55
+                            property real orbitDistance: 900
+                            property real orbitTargetX: 0
+                            property real orbitTargetY: 0
+                            property real orbitTargetZ: 0
+                            property real lineThickness: 0.45
+                            property int gridCount: 41
+                            property real gridSpacing: 50
+                            property int activeDragBodyId: -1
+                            property point lastMousePoint: Qt.point(0, 0)
 
-                            clip: true
-
-                            Repeater {
-                                model: 18
-                                Rectangle {
-                                    width: parent.width
-                                    height: 1
-                                    y: index * (parent.height / 18)
-                                    color: index % 3 === 0 ? "#234E78" : "#173756"
-                                    opacity: 0.5
-                                }
+                            function clamp(value, minValue, maxValue) {
+                                return Math.max(minValue, Math.min(maxValue, value));
                             }
 
-                            Repeater {
-                                model: 24
-                                Rectangle {
-                                    width: 1
-                                    height: parent.height
-                                    x: index * (parent.width / 24)
-                                    color: index % 4 === 0 ? "#285683" : "#193A5D"
-                                    opacity: 0.45
-                                }
+                            function cameraState() {
+                                const cam = cameraPhysicsPosition();
+                                return {
+                                    positionX: cam.x,
+                                    positionY: cam.y,
+                                    positionZ: cam.z,
+                                    targetX: orbitTargetX,
+                                    targetY: orbitTargetY,
+                                    targetZ: orbitTargetZ,
+                                    upX: 0,
+                                    upY: 0,
+                                    upZ: 1,
+                                    fovY: sceneCamera.fieldOfView,
+                                    nearClip: sceneCamera.clipNear,
+                                    farClip: sceneCamera.clipFar
+                                };
                             }
 
-                            // Rectangle {
-                            //     width: 180
-                            //     height: 180
-                            //     radius: 90
-                            //     anchors.centerIn: parent
-                            //     color: "#1D6EB80F"
-                            //     border.width: 2
-                            //     border.color: "#3EC5FF"
-                            // }
+                            function updateCameraPose() {
+                                const cam = cameraPhysicsPosition();
+                                const target = toRenderVector(orbitTargetX, orbitTargetY, orbitTargetZ);
+                                sceneCamera.position = toRenderVector(cam.x, cam.y, cam.z);
+                                sceneCamera.lookAt(target);
+                            }
 
-                            // Text {
-                            //     anchors.centerIn: parent
-                            //     text: "3D/2D 仿真视图占位\n可接入自研渲染器或 Qt Quick 3D"
-                            //     horizontalAlignment: Text.AlignHCenter
-                            //     color: theme.textSecondary
-                            //     font.pixelSize: 14
-                            //     visible: sceneController.entityCount === 0
-                            // }
+                            function cameraPhysicsPosition() {
+                                const yawRad = orbitYaw * Math.PI / 180.0;
+                                const pitchRad = orbitPitch * Math.PI / 180.0;
+                                const cp = Math.cos(pitchRad);
+                                const sp = Math.sin(pitchRad);
+                                const cy = Math.cos(yawRad);
+                                const sy = Math.sin(yawRad);
 
-                            // 新代码说明：直接从 ViewModel 暴露的实体模型渲染当前世界状态，
-                            // 让 QML 层只做展示，不直接触碰物理对象指针。
-                            Repeater {
-                                model: sceneController.bodyModel
+                                const px = orbitTargetX + orbitDistance * cp * cy;
+                                const py = orbitTargetY + orbitDistance * cp * sy;
+                                const pz = orbitTargetZ + orbitDistance * sp;
+                                return Qt.vector3d(px, py, pz);
+                            }
 
-                                delegate: Rectangle {
-                                    property bool isCircularShape: shapeKind === "sphere"
-                                                                   || shapeKind === "standard_sphere"
-                                                                   || shapeKind === "standard_disk"
-                                                                   || shapeKind === "standard_ring"
-                                                                   || shapeKind === "standard_cylinder"
-                                                                   || shapeKind === "standard_cylinder_shell"
-                                                                   || shapeKind === "standard_spherical_shell"
-                                    x: bodyX
-                                    y: bodyY
-                                    width: bodyWidth
-                                    height: bodyHeight
-                                    radius: isCircularShape ? bodyWidth * 0.5 : 8
-                                    color: bodyColor
-                                    border.width: 1
-                                    border.color: "#D9F0FF"
-                                    opacity: 0.92
+                            function toRenderVector(x, y, z) {
+                                return Qt.vector3d(x, z, y);
+                            }
 
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: bodyLabel
-                                        color: "#F3FAFF"
-                                        font.pixelSize: 11
-                                        font.bold: true
-                                        visible: bodyWidth >= 40 && bodyHeight >= 24
+                            function shapeSource(kind) {
+                                if (kind === "standard_sphere" || kind === "standard_spherical_shell"
+                                        || kind === "standard_disk" || kind === "standard_ring") {
+                                    return "#Sphere"
+                                }
+                                if (kind === "standard_cylinder" || kind === "standard_cylinder_shell"
+                                        || kind === "standard_rod") {
+                                    return "#Cylinder"
+                                }
+                                if (kind === "standard_box") {
+                                    return "#Cube"
+                                }
+                                return "#Cube"
+                            }
+
+                            function scaleForShape(kind, sx, sy, sz) {
+                                const unit = 100.0;
+                                const safeX = Math.max(1.0, sx);
+                                const safeY = Math.max(1.0, sy);
+                                const safeZ = Math.max(1.0, sz);
+                                if (kind === "standard_sphere" || kind === "standard_spherical_shell"
+                                        || kind === "standard_disk" || kind === "standard_ring") {
+                                    const uniform = Math.max(safeX, safeY, safeZ) / unit;
+                                    return Qt.vector3d(uniform, uniform, uniform);
+                                }
+                                if (kind === "standard_cylinder" || kind === "standard_cylinder_shell") {
+                                    return Qt.vector3d(safeX / unit, safeY / unit, safeZ / unit);
+                                }
+                                if (kind === "standard_rod") {
+                                    return Qt.vector3d(6 / unit, 6 / unit, safeZ / unit);
+                                }
+                                return Qt.vector3d(safeX / unit, safeY / unit, safeZ / unit);
+                            }
+
+                            Component.onCompleted: {
+                                updateCameraPose();
+                            }
+
+                            View3D {
+                                id: sceneView
+                                anchors.fill: parent
+                                camera: sceneCamera
+
+                                environment: SceneEnvironment {
+                                    backgroundMode: SceneEnvironment.Color
+                                    clearColor: "#0B213B"
+                                    antialiasingMode: SceneEnvironment.MSAA
+                                    antialiasingQuality: SceneEnvironment.VeryHigh
+                                }
+
+                                PerspectiveCamera {
+                                    id: sceneCamera
+                                    fieldOfView: 45
+                                    clipNear: 1
+                                    clipFar: 50000
+                                }
+
+                                DirectionalLight {
+                                    eulerRotation: Qt.vector3d(-35, 22, 20)
+                                    brightness: 1.8
+                                }
+
+                                DirectionalLight {
+                                    eulerRotation: Qt.vector3d(-120, -30, -70)
+                                    brightness: 0.7
+                                }
+
+                                Node {
+                                    id: worldRoot
+
+
+
+                                    Repeater3D {
+                                        model: sceneController.bodyModel
+
+                                        delegate: Model {
+                                            objectName: "body-" + bodyId;
+                                            source: canvas3d.shapeSource(shapeKind);
+                                            position: canvas3d.toRenderVector(bodyCenterX, bodyCenterY, bodyCenterZ);
+                                            scale: canvas3d.scaleForShape(shapeKind, bodySizeX, bodySizeZ, bodySizeY);
+
+                                            materials: PrincipledMaterial {
+                                                baseColor: bodyColor;
+                                                roughness: 0.18;
+                                                specularAmount: 0.7;
+                                            }
+                                        }
                                     }
+                                }
+                            }
+
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.leftMargin: 10
+                                anchors.topMargin: 8
+                                radius: 8
+                                color: "#0D274899"
+                                border.width: 1
+                                border.color: "#2B5E89"
+                                width: 300
+                                height: 66
+
+                                Text {
+                                    anchors.fill: parent
+                                    anchors.margins: 10
+                                    color: "#D4EAFB"
+                                    font.pixelSize: 12
+                                    text: "坐标系: World z-up, 右手系\n左键拖拽实体(投影到 XY 平面), 右键旋转, 滚轮缩放"
+                                }
+                            }
+
+                            MouseArea {
+                                id: mouseLayer
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                                preventStealing: true
+
+                                onPressed: function(mouse) {
+                                    canvas3d.lastMousePoint = Qt.point(mouse.x, mouse.y);
+                                    if (mouse.button === Qt.LeftButton) {
+                                        const pickResult = sceneView.pick(mouse.x, mouse.y);
+                                        if (pickResult && pickResult.objectHit && pickResult.objectHit.objectName.indexOf("body-") === 0) {
+                                            const idText = pickResult.objectHit.objectName.substring(5);
+                                            canvas3d.activeDragBodyId = Number(idText);
+                                            sceneController.beginBodyDrag(
+                                                        canvas3d.activeDragBodyId,
+                                                        mouse.x,
+                                                        mouse.y,
+                                                        width,
+                                                        height,
+                                                        canvas3d.cameraState(),
+                                                        "xy_plane");
+                                        }
+                                    }
+                                }
+
+                                onPositionChanged: function(mouse) {
+                                    const dx = mouse.x - canvas3d.lastMousePoint.x;
+                                    const dy = mouse.y - canvas3d.lastMousePoint.y;
+                                    canvas3d.lastMousePoint = Qt.point(mouse.x, mouse.y);
+
+                                    if ((mouse.buttons & Qt.RightButton) !== 0) {
+                                        canvas3d.orbitYaw -= dx * 0.22;
+                                        canvas3d.updateCameraPose();
+                                    }
+
+                                    if ((mouse.buttons & Qt.LeftButton) !== 0 && canvas3d.activeDragBodyId >= 0) {
+                                        sceneController.updateBodyDrag(mouse.x,
+                                                                       mouse.y,
+                                                                       width,
+                                                                       height,
+                                                                       canvas3d.cameraState());
+                                    }
+                                }
+
+                                onReleased: function(mouse) {
+                                    if (mouse.button === Qt.LeftButton) {
+                                        canvas3d.activeDragBodyId = -1;
+                                        sceneController.endBodyDrag();
+                                    }
+                                }
+
+                                onWheel: function(wheel) {
+                                    const factor = wheel.angleDelta.y > 0 ? 0.88 : 1.12;
+                                    canvas3d.orbitDistance = canvas3d.clamp(canvas3d.orbitDistance * factor, 120, 8000);
+                                    canvas3d.updateCameraPose();
                                 }
                             }
                         }

@@ -1,0 +1,115 @@
+===========================================================================
+NOTICE FILE
+===========================================================================
+
+This file contains notices about third-party libraries used in Egret Physics
+project, as well as the project's own copyright and license information.
+
+---------------------------------------------------------------------------
+1. EGRET PHYSICS PROJECT
+---------------------------------------------------------------------------
+Library Name:      Egret Physics
+Version:           1.0.0
+Copyright:         Copyright (C) 2026 Egret Physics Authors
+License:           GNU General Public License v3.0 (GPLv3)
+License File:      GPL_V3.0.md
+Description:       A physics simulation engine with rigid body dynamics
+
+---------------------------------------------------------------------------
+2. BOOST LIBRARY
+---------------------------------------------------------------------------
+Library Name:      Boost C++ Libraries
+Version:           1.90.0
+Copyright:         Copyright (C) 2003-2024 Boost.org and individual contributors
+License:           Boost Software License - Version 1.0
+License File:      dependency/include/boost_1_90_0/LICENSE_1_0.txt
+Path:              dependency/include/boost_1_90_0/
+
+Components Used:
+  - boost/asio
+  - boost/bind
+  - boost/beast
+  - boost/json
+  - boost/hana
+  - boost/fusion
+  - boost/mpl
+  - boost/uuid (implied)
+  - boost/container (implied)
+  - boost/utility (implied)
+
+---------------------------------------------------------------------------
+3. EIGEN LIBRARY
+---------------------------------------------------------------------------
+Library Name:      Eigen
+Version:           5.0.0
+Copyright:         Copyright (C) 2008-2024 Benoit Jacob, Gael Guennebaud,
+                   and other contributors
+License:           Mozilla Public License Version 2.0 (MPL-2.0)
+License File:      dependency/include/eigen_5_0_0/LICENSE
+Path:              dependency/include/eigen_5_0_0/
+
+Components Used:
+  - Eigen/Core
+  - Eigen/Geometry
+  - Eigen/Dense
+  - Eigen/Sparse
+  - Eigen/Eigenvalues
+
+---------------------------------------------------------------------------
+4. QT FRAMEWORK
+---------------------------------------------------------------------------
+Library Name:      Qt
+Version:           6.9.3
+Copyright:         Copyright (C) 2015-2024 The Qt Company Ltd.
+                   Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies)
+                   Copyright (C) 2002-2015 Digia Plc and/or its subsidiary(-ies)
+License:           GNU Lesser General Public License version 3 (LGPLv3)
+                   OR GNU General Public License version 2 (GPLv2)
+                   OR GNU General Public License version 3 (GPLv3)
+                   (depending on module and usage)
+Path:              D:/Qt/6.9.3/msvc2022_64/
+
+Modules Used:
+  - Qt6Core
+  - Qt6Gui
+  - Qt6Widgets
+  - Qt6Quick
+  - Qt6Qml
+  - Qt6Quick3D
+  - Qt6Sql
+
+---------------------------------------------------------------------------
+LICENSE COMPLIANCE NOTES
+---------------------------------------------------------------------------
+
+This project is licensed under the GNU General Public License v3.0 (GPLv3).
+Please see GPL_V3.0.md for the full license text.
+
+THIRD-PARTY LIBRARY LICENSE COMPATIBILITY:
+
+1. Boost (Boost Software License 1.0):
+   - Permissive license, compatible with GPLv3
+   - Redistribution permitted with proper copyright notices
+
+2. Eigen (MPL-2.0):
+   - MPL-2.0 is compatible with GPLv3
+   - Can be distributed under GPLv3 terms as part of this project
+
+3. Qt (LGPLv3/GPL):
+   - Qt Core, Gui, Widgets are available under LGPLv3
+   - Quick, Qml, Quick3D may require GPL compliance
+   - This project uses Qt under GPLv3 terms to ensure full compliance
+
+---------------------------------------------------------------------------
+ADDITIONAL INFORMATION
+---------------------------------------------------------------------------
+
+For more information about the licenses mentioned herein:
+- GPLv3: https://www.gnu.org/licenses/gpl-3.0.html
+- LGPLv3: https://www.gnu.org/licenses/lgpl-3.0.html
+- MPL-2.0: https://www.mozilla.org/en-US/MPL/2.0/
+- Boost License: https://www.boost.org/LICENSE_1_0.txt
+
+===========================================================================
+END OF NOTICE
+===========================================================================

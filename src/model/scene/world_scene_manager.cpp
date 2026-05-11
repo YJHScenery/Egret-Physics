@@ -5,7 +5,9 @@
 #include "world_scene_manager.h"
 
 #include <algorithm>
+#include <cmath>
 
+#include "constants.h"
 #include "gravity_field.h"
 #include "field_base.h"
 #include "shape_factory_registry.h"
@@ -14,6 +16,46 @@
 
 namespace egret
 {
+    namespace
+    {
+        [[nodiscard]] double readShapeParamAsDouble(const ShapeLoadInfo& info, const std::string& key, const double fallback)
+        {
+            const auto iter = info.parameters.find(key);
+            if (iter == info.parameters.end()) {
+                return fallback;
+            }
+
+            return std::visit(
+                [fallback](const auto& value) -> double
+                {
+                    using ValueType = std::decay_t<decltype(value)>;
+                    if constexpr (std::is_same_v<ValueType, double>) {
+                        return value;
+                    }
+                    if constexpr (std::is_same_v<ValueType, std::int64_t>) {
+                        return static_cast<double>(value);
+                    }
+                    return fallback;
+                },
+                iter->second);
+        }
+
+        [[nodiscard]] Eigen::Vector3d readShapeParamAsVector3(const ShapeLoadInfo& info,
+                                                               const std::string& key,
+                                                               const Eigen::Vector3d& fallback)
+        {
+            const auto iter = info.parameters.find(key);
+            if (iter == info.parameters.end()) {
+                return fallback;
+            }
+
+            if (const auto* vec = std::get_if<Eigen::Vector3d>(&iter->second); vec != nullptr) {
+                return *vec;
+            }
+            return fallback;
+        }
+    }
+
     WorldSceneManager::WorldSceneManager(std::unique_ptr<SolverBase> solver): m_solver(std::move(solver))
     {
     }
@@ -74,6 +116,27 @@ namespace egret
             return std::nullopt;
         }
         return body->shape->getLoadInfo();
+    }
+
+    std::optional<Eigen::Vector3d> WorldSceneManager::getBodyPosition(const std::uint64_t id) const
+    {
+        const BodyRecord* body = findBody(id);
+        if (body == nullptr || body->entity == nullptr) {
+            return std::nullopt;
+        }
+        return body->entity->getPosition();
+    }
+
+    bool WorldSceneManager::setBodyPosition(const std::uint64_t id, const Eigen::Vector3d& position)
+    {
+        BodyRecord* body = findBody(id);
+        if (body == nullptr || body->entity == nullptr) {
+            return false;
+        }
+
+        body->entity->setPosition(position);
+        body->transform.setTranslation(position);
+        return true;
     }
 
     std::uint64_t WorldSceneManager::addGravityField(const Eigen::Vector3d& gravity,
@@ -160,6 +223,42 @@ namespace egret
             item.id = body->id;
             item.label = body->name.empty() ? (std::string("Body ") + std::to_string(body->id)) : body->name;
             item.color = body->entity->getMass() <= 0.0 ? "#6C7A89" : "#3EC5FF";
+            item.centerX = position.x();
+            item.centerY = position.y();
+            item.centerZ = position.z();
+
+            const ShapeLoadInfo shapeInfo = body->shape->getLoadInfo();
+            item.sizeX = std::max(1.0, item.width);
+            item.sizeY = std::max(1.0, item.height);
+            item.sizeZ = std::max(1.0, std::min(item.sizeX, item.sizeY));
+
+            if (shapeInfo.typeId == TYPE_ID_STANDARD_SPHERE || shapeInfo.typeId == TYPE_ID_STANDARD_DISK
+                || shapeInfo.typeId == TYPE_ID_STANDARD_RING || shapeInfo.typeId == TYPE_ID_STANDARD_SPHERICAL_SHELL) {
+                const double radius = std::max(0.5, readShapeParamAsDouble(shapeInfo, "radius", item.sizeX * 0.5));
+                const double diameter = radius * 2.0;
+                item.sizeX = diameter;
+                item.sizeY = diameter;
+                item.sizeZ = diameter;
+            } else if (shapeInfo.typeId == TYPE_ID_STANDARD_CYLINDER || shapeInfo.typeId == TYPE_ID_STANDARD_CYLINDRICAL_SHELL) {
+                const double radius = std::max(0.5, readShapeParamAsDouble(shapeInfo, "radius", item.sizeX * 0.5));
+                const double height = std::max(1.0, readShapeParamAsDouble(shapeInfo, "height", item.sizeZ));
+                const double diameter = radius * 2.0;
+                item.sizeX = diameter;
+                item.sizeY = diameter;
+                item.sizeZ = height;
+            } else if (shapeInfo.typeId == TYPE_ID_STANDARD_BOX) {
+                const Eigen::Vector3d size = readShapeParamAsVector3(shapeInfo,
+                                                                      "size",
+                                                                      Eigen::Vector3d(item.sizeX, item.sizeY, item.sizeZ));
+                item.sizeX = std::max(1.0, std::abs(size.x()));
+                item.sizeY = std::max(1.0, std::abs(size.y()));
+                item.sizeZ = std::max(1.0, std::abs(size.z()));
+            } else if (shapeInfo.typeId == TYPE_ID_STANDARD_ROD) {
+                const double length = std::max(1.0, readShapeParamAsDouble(shapeInfo, "length", item.sizeZ));
+                item.sizeX = 6.0;
+                item.sizeY = 6.0;
+                item.sizeZ = length;
+            }
 
             // if (const auto* sphere = dynamic_cast<const ShapeSphere*>(body->shape.get()); sphere != nullptr) {
             //     const double diameter = sphere->getRadius() * 2.0;

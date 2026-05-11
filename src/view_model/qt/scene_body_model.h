@@ -40,6 +40,24 @@ namespace egret
         /** 高度。 */
         double height{0.0};
 
+        /** 世界坐标中心 X。 */
+        double centerX{0.0};
+
+        /** 世界坐标中心 Y。 */
+        double centerY{0.0};
+
+        /** 世界坐标中心 Z（z-up）。 */
+        double centerZ{0.0};
+
+        /** 世界尺寸 X。 */
+        double sizeX{0.0};
+
+        /** 世界尺寸 Y。 */
+        double sizeY{0.0};
+
+        /** 世界尺寸 Z。 */
+        double sizeZ{0.0};
+
         /** 颜色。 */
         QColor color;
 
@@ -66,6 +84,12 @@ namespace egret
             YRole,
             WidthRole,
             HeightRole,
+            CenterXRole,
+            CenterYRole,
+            CenterZRole,
+            SizeXRole,
+            SizeYRole,
+            SizeZRole,
             ColorRole,
             LabelRole,
         };
