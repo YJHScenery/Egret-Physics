@@ -428,26 +428,46 @@ namespace egret
 
         m_world = std::make_unique<WorldSceneManager>(std::move(solver));
         m_world->clear();
+        //
+        // m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
+        //
+        // m_world->spawnBox("地面", {0.0, 0.0, -15.0}, {0.0, 0.0, 0.0}, {760.0, 520.0, 30.0}, 0.0);
+        // m_world->spawnSphere("小球 A", {0.0, 0.0, 220.0}, {0.0, 0.0, 0.0}, 28.0, 10.0);
 
-        m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
-
-        m_world->spawnBox("地面", {0.0, 0.0, -15.0}, {0.0, 0.0, 0.0}, {760.0, 520.0, 30.0}, 0.0);
-        m_world->spawnSphere("小球 A", {0.0, 0.0, 220.0}, {0.0, 0.0, 0.0}, 28.0, 10.0);
-
-        auto gravitationalField = std::make_shared<GravitationalField>(
-            Eigen::Vector3d{0.0, 0.0, EARTH_MEAN_RADIUS / 10},
-            Eigen::Vector3d{0.0, 0.0, 0.0},
-            EARTH_MASS, G,
+        auto generateField {[&](const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass, double coupling = G)
+        {
+            auto gravitationalField = std::make_shared<GravitationalField>(
+            position,
+            speed,
+            mass, coupling,
             false);
 
-        // gravitationalField->setCouplingCoefficient(1.0);
-        auto gravFieldEntity = std::static_pointer_cast<PhysicalEntity>(gravitationalField);
-        auto gravFieldBase = std::static_pointer_cast<FieldBase>(gravitationalField);
-        m_world->registerBodyField("引力源",
-                                   "牛顿引力场",
-                                   gravFieldEntity,
-                                   gravFieldBase,
-                                   std::make_unique<ShapeSphere>(50.0));
+            // gravitationalField->setCouplingCoefficient(1.0);
+            auto gravFieldEntity = std::static_pointer_cast<PhysicalEntity>(gravitationalField);
+            auto gravFieldBase = std::static_pointer_cast<FieldBase>(gravitationalField);
+            static int i = 0;
+            i ++;
+            QString bodyName{"测试引力源"};
+            bodyName += QString::number(i);
+            QString fieldName{"引力场"};
+            fieldName += QString::number(i);
+
+
+            m_world->registerBodyField(bodyName.toStdString(),
+                                       fieldName.toStdString(),
+                                       gravFieldEntity,
+                                       gravFieldBase,
+                                       std::make_unique<ShapeSphere>(10.0));
+        }};
+
+        generateField({300, 0, 0}, {0, 75, 0}, 200, 50000);
+        generateField({-150, 259.8, 0}, {-120, -45, 0}, 100, 50000);
+        generateField({-150, -259.8, 0}, {-120, 45, 0}, 50, 50000);
+
+        // generateField({10, 0, 0}, {-0.1, 0, 0.1}, 1, 1000);
+        // generateField({-10, 0, 0}, {0, 0.1, -0.1}, 1, 1000);
+        // generateField({0, 0, 5}, {0.2, -0.1, 0}, 1, 1000);
+
 
         m_entityCount = static_cast<int>(m_world->getBodyCount());
     }

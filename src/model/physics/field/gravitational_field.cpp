@@ -35,7 +35,7 @@ namespace egret
         }
 
         const double distance = std::sqrt(distanceSquared);
-        const Eigen::Vector3d direction = displacement / distance;
+        const Eigen::Vector3d direction = -displacement / distance;
 
         const double fieldMagnitude = m_coupling * getMass() / distanceSquared;
 

@@ -10,7 +10,6 @@
 
 namespace egret
 {
-
     class GravitationalField : public FieldBase, public Particle
     {
     public:
@@ -22,11 +21,11 @@ namespace egret
                            double coupling = G,
                            bool fixed = false);
 
-        Eigen::Vector3d sample(const Eigen::Vector3d &position) override;
+        Eigen::Vector3d sample(const Eigen::Vector3d& position) override;
 
-        double potential(const Eigen::Vector3d &position) override;
+        double potential(const Eigen::Vector3d& position) override;
 
-        void applyToEntity(PhysicalEntity *entity) override;
+        void applyToEntity(PhysicalEntity* entity) override;
 
         void applyForce(double time) override;
 
@@ -45,7 +44,6 @@ namespace egret
 
         static constexpr double MIN_DISTANCE_SQUARED = 1e-6;
     };
-
 } // egret
 
 #endif // EGRET_PHYSICS_GRAVITATIONAL_FIELD_H
