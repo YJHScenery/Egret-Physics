@@ -30,7 +30,7 @@ namespace egret
         const Eigen::Vector3d displacement = position - getPosition();
         const double distanceSquared = displacement.squaredNorm();
 
-        if (distanceSquared < MIN_DISTANCE_SQUARED) {
+        if (distanceSquared < static_minDistanceSquared) {
             return Eigen::Vector3d::Zero();
         }
 
@@ -42,12 +42,22 @@ namespace egret
         return fieldMagnitude * direction;
     }
 
+    void GravitationalField::setMinDistanceSquared(double minDistance)
+    {
+        static_minDistanceSquared = minDistance;
+    }
+
+    double GravitationalField::getMinDistanceSquared()
+    {
+        return static_minDistanceSquared;
+    }
+
     double GravitationalField::potential(const Eigen::Vector3d& position)
     {
         const Eigen::Vector3d displacement = position - getPosition();
         const double distanceSquared = displacement.squaredNorm();
 
-        if (distanceSquared < MIN_DISTANCE_SQUARED) {
+        if (distanceSquared < static_minDistanceSquared) {
             return 0.0;
         }
 

@@ -23,6 +23,10 @@ namespace egret
 
         Eigen::Vector3d sample(const Eigen::Vector3d& position) override;
 
+        static void setMinDistanceSquared(double minDistance);
+
+        [[nodiscard]] static double getMinDistanceSquared();
+
         double potential(const Eigen::Vector3d& position) override;
 
         void applyToEntity(PhysicalEntity* entity) override;
@@ -42,7 +46,7 @@ namespace egret
 
         bool m_fixed{false};
 
-        static constexpr double MIN_DISTANCE_SQUARED = 1e-6;
+        static inline double static_minDistanceSquared = 1e-4;
     };
 } // egret
 
