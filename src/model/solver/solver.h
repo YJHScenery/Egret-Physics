@@ -151,6 +151,9 @@ namespace egret
          */
         void integrate(SolverSceneSnapshotBase& scene, double dt, SolverStats& stats) const;
 
+
+        void resolveConstraints(SolverSceneSnapshotBase& scene, double dt, SolverStats& stats) const;
+
         /**
          * @brief 在积分后计算用于诊断的能量统计。
          * @param scene 场景快照。
