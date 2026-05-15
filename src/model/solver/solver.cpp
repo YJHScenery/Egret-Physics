@@ -10,13 +10,69 @@
 #include <QString>
 
 #include "field_base.h"
+#include "constraints_base.h"
 #include "physical_entity.h"
-#include "broad_phase_strategy/brute_force_broad_phase.h"
-#include "contact_strategy/frictionless_contact_resolver.h"
-#include "integrator_strategy/semi_implicit_euler_integrator.h"
+#include "../strategy/broad_phase_strategy/brute_force_broad_phase.h"
+#include "../strategy/contact_strategy/frictionless_contact_resolver.h"
+#include "../strategy/integrator_strategy/semi_implicit_euler_integrator.h"
 
 namespace egret
 {
+    namespace
+    {
+        constexpr double kAabbFallbackTolerance = 1e-6;
+        constexpr double kAabbFallbackPenetration = 0.002;
+
+        bool buildAabbFallbackContact(const SolverBodyHandle& bodyA,
+                                      const SolverBodyHandle& bodyB,
+                                      ContactManifold& manifold)
+        {
+            if (bodyA.shape == nullptr || bodyB.shape == nullptr || bodyA.transform == nullptr || bodyB.transform == nullptr) {
+                return false;
+            }
+
+            const AABB aabbA = bodyA.shape->getAABB(*bodyA.transform);
+            const AABB aabbB = bodyB.shape->getAABB(*bodyB.transform);
+            const Eigen::Vector3d overlapMin = aabbA.min.cwiseMax(aabbB.min);
+            const Eigen::Vector3d overlapMax = aabbA.max.cwiseMin(aabbB.max);
+            const Eigen::Vector3d overlap = overlapMax - overlapMin;
+
+            if (overlap.x() < -kAabbFallbackTolerance || overlap.y() < -kAabbFallbackTolerance ||
+                overlap.z() < -kAabbFallbackTolerance)
+            {
+                return false;
+            }
+
+            const Eigen::Vector3d stableOverlap = overlap.cwiseMax(0.0);
+            int axisIndex = 0;
+            double minOverlap = stableOverlap.x();
+            for (int index = 1; index < 3; ++index) {
+                if (stableOverlap[index] < minOverlap) {
+                    minOverlap = stableOverlap[index];
+                    axisIndex = index;
+                }
+            }
+
+            Eigen::Vector3d normal = bodyB.transform->getTranslation() - bodyA.transform->getTranslation();
+            if (!normal.allFinite() || normal.squaredNorm() < 1e-12) {
+                normal = Eigen::Vector3d::UnitY();
+            } else {
+                normal.normalize();
+            }
+
+            if (normal[axisIndex] < 0.0) {
+                normal = -normal;
+            }
+
+            ContactPoint contact{};
+            contact.position = 0.5 * (overlapMin + overlapMax);
+            contact.normal = normal;
+            contact.penetration = std::max(minOverlap, kAabbFallbackPenetration);
+            manifold.push_back(contact);
+            return true;
+        }
+    }
+
     Solver::Solver(const SolverConfig& config,
                    std::unique_ptr<IntegratorStrategy> integrator,
                    std::unique_ptr<BroadPhaseStrategy> broadPhase,
@@ -28,7 +84,7 @@ namespace egret
     {
     }
 
-    SolverStepResult Solver::step(SolverSceneSnapshotBase& scene, const double dt)
+    SolverStepResult Solver::step(ISolverSceneSnapshot& scene, const double dt)
     {
         SolverStepResult result{};
         result.dt = dt;
@@ -49,11 +105,15 @@ namespace egret
         // pairs = {{0, 1}};
         if (m_config.enableNarrowPhase) {
             runNarrowPhase(scene, pairs, constraints, result.stats);
+            qDebug() << "narrow contacts:" << result.stats.contactConstraintCount;
         }
 
         if (m_config.enableContactResolution) {
             resolveContacts(scene, dt, constraints, result.stats);
+            qDebug() << "resolved contacts:" << result.stats.resolvedContactCount;
         }
+
+        resolveConstraints(scene, dt, result.stats);
 
         if (m_config.enableIntegration) {
             integrate(scene, dt, result.stats);
@@ -89,7 +149,7 @@ namespace egret
         m_contactResolver = std::move(contactResolver);
     }
 
-    void Solver::updateExternalForces(SolverSceneSnapshotBase& scene) const
+    void Solver::updateExternalForces(ISolverSceneSnapshot& scene) const
     {
         const auto bodies = scene.getBodies();
         const auto fields = scene.getFields();
@@ -118,7 +178,7 @@ namespace egret
         }
     }
 
-    void Solver::runBroadPhase(const SolverSceneSnapshotBase& scene,
+    void Solver::runBroadPhase(const ISolverSceneSnapshot& scene,
                                std::vector<SolverBodyPair>& pairs,
                                SolverStats& stats) const
     {
@@ -137,7 +197,7 @@ namespace egret
         }
     }
 
-    void Solver::runNarrowPhase(const SolverSceneSnapshotBase& scene,
+    void Solver::runNarrowPhase(const ISolverSceneSnapshot& scene,
                                 const std::vector<SolverBodyPair>& pairs,
                                 std::vector<SolverContactConstraint>& constraints,
                                 SolverStats& stats)
@@ -164,18 +224,24 @@ namespace egret
             }
 
             ContactManifold manifold;
-            bool collided = bodyA.shape->collide(bodyB.shape, *bodyA.transform, *bodyB.transform, manifold);
-            // bool collided {bodyA.shape->collide(bo)}
+            bool collided = bodyA.shape->collideWith(bodyB.shape, *bodyA.transform, *bodyB.transform, manifold);
 
             if (!collided) {
                 ContactManifold reversedManifold;
-                collided = bodyB.shape->collide(bodyA.shape, *bodyB.transform, *bodyA.transform, reversedManifold);
+                collided = bodyB.shape->collideWith(bodyA.shape, *bodyB.transform, *bodyA.transform, reversedManifold);
                 if (collided) {
                     manifold.reserve(reversedManifold.size());
                     for (ContactPoint contact : reversedManifold) {
                         contact.normal = -contact.normal;
                         manifold.push_back(contact);
                     }
+                }
+            }
+
+            if (!collided) {
+                collided = buildAabbFallbackContact(bodyA, bodyB, manifold);
+                if (collided) {
+                    qDebug() << "fallback aabb contact:" << pair.bodyAIndex << pair.bodyBIndex;
                 }
             }
 
@@ -205,7 +271,7 @@ namespace egret
         stats.contactConstraintCount = constraints.size();
     }
 
-    void Solver::resolveContacts(SolverSceneSnapshotBase& scene,
+    void Solver::resolveContacts(ISolverSceneSnapshot& scene,
                                  const double dt,
                                  const std::vector<SolverContactConstraint>& constraints,
                                  SolverStats& stats) const
@@ -215,14 +281,46 @@ namespace egret
         }
     }
 
-    void Solver::integrate(SolverSceneSnapshotBase& scene, const double dt, SolverStats& stats) const
+    void Solver::integrate(ISolverSceneSnapshot& scene, const double dt, SolverStats& stats) const
     {
         if (m_integrator != nullptr) {
             m_integrator->integrate(scene, dt, m_config, stats);
         }
     }
 
-    void Solver::updateEnergyStats(const SolverSceneSnapshotBase& scene, SolverStats& stats)
+    void Solver::resolveConstraints(ISolverSceneSnapshot& scene,
+                                    const double dt,
+                                    SolverStats& stats) const
+    {
+        const auto constraints = scene.getConstraints();
+        stats.constraintCount = constraints.size();
+
+        if (constraints.empty()) {
+            return;
+        }
+
+        auto bodies = scene.getBodies();
+
+        for (std::uint32_t velIter = 0; velIter < m_config.velocityIterations; ++velIter) {
+            for (ConstraintsBase* constraint : constraints) {
+                if (constraint == nullptr) {
+                    continue;
+                }
+                constraint->solveVelocity(bodies, dt, m_config, stats);
+            }
+        }
+
+        for (std::uint32_t posIter = 0; posIter < m_config.positionIterations; ++posIter) {
+            for (ConstraintsBase* constraint : constraints) {
+                if (constraint == nullptr) {
+                    continue;
+                }
+                constraint->solvePosition(bodies, dt, m_config, stats);
+            }
+        }
+    }
+
+    void Solver::updateEnergyStats(const ISolverSceneSnapshot& scene, SolverStats& stats)
     {
         const auto bodies = scene.getBodies();
         stats.bodyCount = bodies.size();

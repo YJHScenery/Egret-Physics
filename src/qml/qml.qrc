@@ -8,4 +8,7 @@
         <file>components/LeftNavPanel.qml</file>
         <file>components/MetricCard.qml</file>
     </qresource>
+    <qresource prefix="/scene">
+        <file>scene/Coordinate.qml</file>
+    </qresource>
 </RCC>

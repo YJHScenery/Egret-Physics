@@ -142,6 +142,9 @@ set(CPP_FILES
         src/view_model/qt/scene_body_model.h
         src/view_model/qt/scene_body_model.cpp
 
+        src/view/coordinate.cpp
+        src/view/coordinate.h
+
 )
 
 
