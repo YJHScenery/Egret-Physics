@@ -73,9 +73,28 @@ namespace egret
         auto record = std::make_unique<BodyRecord>();
         record->id = nextId();
         record->name = name;
-        record->entity = std::make_unique<Particle>(position, speed, mass);
+        record->entity = std::make_shared<Particle>(position, speed, mass);
         record->shape = std::move(shape);
         record->transform.setTranslation(position);
+        m_bodies.push_back(std::move(record));
+        rebuildSolverCaches();
+        return m_bodies.back()->id;
+    }
+
+    std::uint64_t WorldSceneManager::registerBody(const std::string& name,
+                                                  const std::shared_ptr<PhysicalEntity>& entity,
+                                                  std::unique_ptr<ShapeBase> shape)
+    {
+        if (entity == nullptr || shape == nullptr) {
+            return 0;
+        }
+
+        auto record = std::make_unique<BodyRecord>();
+        record->id = nextId();
+        record->name = name;
+        record->entity = entity;
+        record->shape = std::move(shape);
+        record->transform.setTranslation(entity->getPosition());
         m_bodies.push_back(std::move(record));
         rebuildSolverCaches();
         return m_bodies.back()->id;
@@ -146,10 +165,60 @@ namespace egret
         auto record = std::make_unique<FieldRecord>();
         record->id = nextId();
         record->name = name;
-        record->field = std::make_unique<GravityField>(gravity, referencePoint);
+        record->field = std::make_shared<GravityField>(gravity, referencePoint);
         m_fields.push_back(std::move(record));
         rebuildSolverCaches();
         return m_fields.back()->id;
+    }
+
+    std::uint64_t WorldSceneManager::registerField(const std::string& name,
+                                                   const std::shared_ptr<FieldBase>& field)
+    {
+        if (field == nullptr) {
+            return 0;
+        }
+
+        auto record = std::make_unique<FieldRecord>();
+        record->id = nextId();
+        record->name = name;
+        record->field = field;
+        m_fields.push_back(std::move(record));
+        rebuildSolverCaches();
+        return m_fields.back()->id;
+    }
+
+    std::uint64_t WorldSceneManager::registerBodyField(const std::string& bodyName,
+                                                       const std::string& fieldName,
+                                                       const std::shared_ptr<PhysicalEntity>& entity,
+                                                       const std::shared_ptr<FieldBase>& field,
+                                                       std::unique_ptr<ShapeBase> shape)
+    {
+        if (entity == nullptr || field == nullptr || shape == nullptr) {
+            return 0;
+        }
+
+        if (entity.owner_before(field) || field.owner_before(entity)) {
+            return 0;
+        }
+
+        const std::uint64_t id = nextId();
+
+        auto bodyRecord = std::make_unique<BodyRecord>();
+        bodyRecord->id = id;
+        bodyRecord->name = bodyName;
+        bodyRecord->entity = entity;
+        bodyRecord->shape = std::move(shape);
+        bodyRecord->transform.setTranslation(entity->getPosition());
+        m_bodies.push_back(std::move(bodyRecord));
+
+        auto fieldRecord = std::make_unique<FieldRecord>();
+        fieldRecord->id = id;
+        fieldRecord->name = fieldName;
+        fieldRecord->field = field;
+        m_fields.push_back(std::move(fieldRecord));
+
+        rebuildSolverCaches();
+        return id;
     }
 
     bool WorldSceneManager::removeBody(const std::uint64_t id)
@@ -180,12 +249,35 @@ namespace egret
         return removed;
     }
 
+    bool WorldSceneManager::removeBodyField(const std::uint64_t id)
+    {
+        const auto bodiesBefore = m_bodies.size();
+        std::erase_if(m_bodies, [id](const std::unique_ptr<BodyRecord>& item)
+        {
+            return item != nullptr && item->id == id;
+        });
+
+        const auto fieldsBefore = m_fields.size();
+        std::erase_if(m_fields, [id](const std::unique_ptr<FieldRecord>& item)
+        {
+            return item != nullptr && item->id == id;
+        });
+
+        const bool removed = m_bodies.size() != bodiesBefore || m_fields.size() != fieldsBefore;
+        if (removed) {
+            rebuildSolverCaches();
+        }
+        return removed;
+    }
+
     void WorldSceneManager::clear()
     {
         m_bodies.clear();
         m_fields.clear();
         m_solverBodies.clear();
+        m_solverBodyOwners.clear();
         m_solverFields.clear();
+        m_solverFieldOwners.clear();
         m_simulationTime = 0.0;
         m_stepCount = 0;
         m_nextId = 1;
@@ -359,11 +451,15 @@ namespace egret
     {
         m_solverBodies.clear();
         m_solverBodies.reserve(m_bodies.size());
+        m_solverBodyOwners.clear();
+        m_solverBodyOwners.reserve(m_bodies.size());
 
         for (const auto& body : m_bodies) {
             if (body == nullptr || body->entity == nullptr || body->shape == nullptr) {
                 continue;
             }
+
+            m_solverBodyOwners.push_back(body->entity);
 
             SolverBodyHandle handle{};
             handle.id = body->id;
@@ -388,10 +484,13 @@ namespace egret
         }
 
         std::vector<FieldBase*> rebuiltFields(validFieldCount, nullptr);
+        m_solverFieldOwners.clear();
+        m_solverFieldOwners.reserve(validFieldCount);
 
         std::size_t writeIndex = 0;
         for (const auto& field : m_fields) {
             if (field != nullptr && field->field != nullptr) {
+                m_solverFieldOwners.push_back(field->field);
                 rebuiltFields[writeIndex] = field->field.get();
                 ++writeIndex;
             }
