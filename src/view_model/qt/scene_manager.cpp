@@ -417,14 +417,15 @@ namespace egret
     void SceneManagerViewModel::rebuildDemoWorld()
     {
         SolverConfig config{};
-        // 仅限制视角，不限制动力学
-        config.lockToXYPlane = false;
+
+        config.enableNarrowPhase = false;
 
         auto solver = std::make_unique<Solver>(
             config,
             std::make_unique<SemiImplicitEulerIntegratorStrategy>(),
             std::make_unique<BruteForceBroadPhaseStrategy>(),
             std::make_unique<FrictionlessContactResolverStrategy>());
+
 
         m_world = std::make_unique<WorldSceneManager>(std::move(solver));
         m_world->clear();
@@ -434,13 +435,15 @@ namespace egret
         // m_world->spawnBox("地面", {0.0, 0.0, -15.0}, {0.0, 0.0, 0.0}, {760.0, 520.0, 30.0}, 0.0);
         // m_world->spawnSphere("小球 A", {0.0, 0.0, 220.0}, {0.0, 0.0, 0.0}, 28.0, 10.0);
 
-        auto generateField {[&](const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass, double coupling = G)
+        auto generateField {[&](const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass, double coupling_G = G)
         {
             auto gravitationalField = std::make_shared<GravitationalField>(
             position,
             speed,
-            mass, coupling,
+            mass, coupling_G,
             false);
+
+            GravitationalField::setMinDistanceSquared(1600);
 
             // gravitationalField->setCouplingCoefficient(1.0);
             auto gravFieldEntity = std::static_pointer_cast<PhysicalEntity>(gravitationalField);
@@ -463,6 +466,7 @@ namespace egret
         generateField({300, 0, 0}, {0, 75, 0}, 200, 50000);
         generateField({-150, 259.8, 0}, {-120, -45, 0}, 100, 50000);
         generateField({-150, -259.8, 0}, {-120, 45, 0}, 50, 50000);
+
 
         // generateField({10, 0, 0}, {-0.1, 0, 0.1}, 1, 1000);
         // generateField({-10, 0, 0}, {0, 0.1, -0.1}, 1, 1000);

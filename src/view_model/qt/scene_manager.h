@@ -111,7 +111,7 @@ namespace egret
          * @param planeZ 目标平面 z 值。
          * @return 包含 ok/x/y/z/error 的映射结果。
          */
-        Q_INVOKABLE QVariantMap mapScreenToWorldOnPlane(double screenX,
+        Q_INVOKABLE [[nodiscard]] QVariantMap mapScreenToWorldOnPlane(double screenX,
                                 double screenY,
                                 double viewportWidth,
                                 double viewportHeight,
