@@ -1,72 +1,27 @@
 import QtQuick 2.15
-import QtQuick.Window 2.15
-import QtQuick.Controls 2.15
 import QtQuick3D 6.5
 import CustomGeometry 1.0
 
-Window {
+Node {
     id: root
-    width: 1280
-    height: 720
-    visible: true
-    color: "#0A0F18"
-    title: "Smart 3D Coordinate System"
 
-    property vector3d initialCameraPosition: Qt.vector3d(10, 10, 10)
-    property vector3d initialCameraTarget: Qt.vector3d(0, 0, 0)
-    property real gridStep: 1.0
-
-    property real coordX: 0
-    property real coordY: 0
-    property real coordZ: 0
-
-    property real orbitYaw: 45
-    property real orbitPitch: 35
-    property real orbitDistance: 17
+    property real orbitDistance: 900
+    property real gridStep: 50
+    property real gridExtent: 1000
+    property int maxGridLines: 241
     property real minorLinePixels: 0.35
     property real majorLinePixels: 0.8
     property real axisLinePixels: 1.8
-    property real gridExtent: 60
-    property int maxGridLines: 241
-
-    function updateGridStep() {
-        var dx = camera.position.x
-        var dy = camera.position.y
-        var dz = camera.position.z
-        var distance = Math.sqrt(dx * dx + dy * dy + dz * dz)
-        var newStep = distance < 15 ? 0.1 : (distance < 30 ? 0.5 : 1.0)
-        if (Math.abs(newStep - gridStep) > 0.0001) {
-            gridStep = newStep
-        }
-    }
-
-    function resetView() {
-        orbitYaw = 45
-        orbitPitch = 35
-        orbitDistance = 17
-        updateCameraFromOrbit()
-    }
-
-    function updateCameraFromOrbit() {
-        var yawRad = orbitYaw * Math.PI / 180.0
-        var pitchRad = orbitPitch * Math.PI / 180.0
-        var cp = Math.cos(pitchRad)
-        var sp = Math.sin(pitchRad)
-        var cy = Math.cos(yawRad)
-        var sy = Math.sin(yawRad)
-
-        var x = orbitDistance * cp * cy + initialCameraTarget.x
-        var y = orbitDistance * sp + initialCameraTarget.y
-        var z = orbitDistance * cp * sy + initialCameraTarget.z
-
-        camera.position = Qt.vector3d(x, y, z)
-        camera.lookAt(initialCameraTarget)
-        updateGridStep()
-    }
+    property real axisLength: gridExtent
+    property real viewportHeight: 720
+    property real viewportWidth: 1280
+    property var camera: null
+    property bool autoExtent: true
+    readonly property real effectiveExtent: autoExtent ? gridExtentForView() : gridExtent
 
     function unitsPerPixel(distance) {
-        var h = view.height
-        if (h <= 0) {
+        var h = viewportHeight
+        if (h <= 0 || !camera) {
             return 0.001
         }
         var fovRad = camera.fieldOfView * Math.PI / 180.0
@@ -74,244 +29,40 @@ Window {
         return frustumHeight / h
     }
 
-    function addCube() {
-        var pos = zUpToScene(Qt.vector3d(2.5, 1.5, 2.5))
-        objectsModel.append({
-            kind: "cube",
-            x: pos.x,
-            y: pos.y,
-            z: pos.z,
-            size: 0.5
-        })
-    }
-
-    function addSphere() {
-        var pos = zUpToScene(Qt.vector3d(-2.5, 2.0, -2.5))
-        objectsModel.append({
-            kind: "sphere",
-            x: pos.x,
-            y: pos.y,
-            z: pos.z,
-            radius: 0.3
-        })
-    }
-
-    function sceneToZUp(pos) {
-        return Qt.vector3d(pos.x, pos.z, pos.y)
-    }
-
-    function zUpToScene(pos) {
-        return Qt.vector3d(pos.x, pos.z, pos.y)
-    }
-
-    Component.onCompleted: resetView()
-
-
-    View3D {
-        id: view
-        anchors.fill: parent
-        environment: SceneEnvironment {
-            clearColor: "#0A0F18"
-            backgroundMode: SceneEnvironment.Color
+    function gridExtentForView() {
+        if (!camera || viewportHeight <= 0 || viewportWidth <= 0) {
+            return gridExtent
         }
-        camera: camera
-
-        Node {
-            id: sceneRoot
-
-            Node {
-                id: pivot
-                position: root.initialCameraTarget
-            }
-
-            PerspectiveCamera {
-                id: camera
-                position: root.initialCameraPosition
-                clipNear: 0.1
-                clipFar: 1000
-                fieldOfView: 60
-                onPositionChanged: root.updateGridStep()
-            }
-
-
-            AxisHelper {
-                axisLength: 50
-                axisThickness: root.unitsPerPixel(root.orbitDistance) * root.axisLinePixels
-            }
-
-            GridPlane {
-                id: gridXZ
-                extent: root.gridExtent
-                step: root.gridStep
-                maxLines: root.maxGridLines
-            }
-
-            GridPlane {
-                extent: root.gridExtent
-                step: root.gridStep
-                maxLines: root.maxGridLines
-                eulerRotation.x: 90
-            }
-
-            GridPlane {
-                extent: root.gridExtent
-                step: root.gridStep
-                maxLines: root.maxGridLines
-                eulerRotation.z: 90
-            }
-
-            Repeater3D {
-                id: objectsRepeater
-                model: objectsModel
-                delegate: Node {
-                    property bool isCube: kind === "cube"
-                    property real cubeSize: (typeof size === "number") ? size : 0.5
-                    property real sphereRadius: (typeof radius === "number") ? radius : 0.3
-                    position: Qt.vector3d(x, y, z)
-
-                    Model {
-                        visible: isCube
-                        geometry: SimpleGeometry {
-                            shape: SimpleGeometry.Cube
-                            size: 1.0
-                        }
-                        scale: Qt.vector3d(cubeSize, cubeSize, cubeSize)
-                        materials: DefaultMaterial {
-                            diffuseColor: "#5b6f85"
-                            lighting: DefaultMaterial.NoLighting
-                            opacity: 0.9
-                        }
-                        pickable: true
-                    }
-
-                    Model {
-                        visible: !isCube
-                        geometry: SimpleGeometry {
-                            shape: SimpleGeometry.Sphere
-                            radius: 0.5
-                            rings: 16
-                            slices: 16
-                        }
-                        scale: Qt.vector3d(sphereRadius * 2, sphereRadius * 2, sphereRadius * 2)
-                        materials: DefaultMaterial {
-                            diffuseColor: "#5b6f85"
-                            lighting: DefaultMaterial.NoLighting
-                            opacity: 0.9
-                        }
-                        pickable: true
-                    }
-                }
-            }
-        }
+        var fovRad = camera.fieldOfView * Math.PI / 180.0
+        var halfHeight = orbitDistance * Math.tan(fovRad / 2.0)
+        var aspect = viewportWidth / viewportHeight
+        var halfWidth = halfHeight * aspect
+        return Math.max(halfWidth, halfHeight) * 1.1
     }
 
-    ListModel {
-        id: objectsModel
+    AxisHelper {
+        axisLength: root.effectiveExtent
+        axisThickness: root.unitsPerPixel(root.orbitDistance) * root.axisLinePixels
     }
 
-    Item {
-        id: inputLayer
-        anchors.fill: parent
-        focus: true
-
-        property bool dragging: false
-        property real lastX: 0
-        property real lastY: 0
-
-        Keys.onPressed: {
-            if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_R) {
-                resetView()
-                event.accepted = true
-            }
-        }
-
-        MouseArea {
-            anchors.fill: inputLayer
-            hoverEnabled: true
-            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-            onPressed: function(mouse) {
-                inputLayer.dragging = true
-                inputLayer.lastX = mouse.x
-                inputLayer.lastY = mouse.y
-                mouse.accepted = true
-            }
-            onReleased: function(mouse) {
-                inputLayer.dragging = false
-                mouse.accepted = true
-            }
-            onWheel: function(wheel) {
-                var delta = wheel.angleDelta.y / 120.0
-                orbitDistance = Math.max(2.0, Math.min(100.0, orbitDistance - delta))
-                updateCameraFromOrbit()
-                wheel.accepted = true
-            }
-            onPositionChanged: function(mouse) {
-                if (inputLayer.dragging) {
-                    var dx = mouse.x - inputLayer.lastX
-                    var dy = mouse.y - inputLayer.lastY
-                    inputLayer.lastX = mouse.x
-                    inputLayer.lastY = mouse.y
-
-                    orbitYaw -= dx * 0.3
-                    orbitPitch = Math.max(-80, Math.min(80, orbitPitch - dy * 0.3))
-                    updateCameraFromOrbit()
-                }
-                var hit = view.pick(mouse.x, mouse.y)
-                if (hit && hit.objectHit) {
-                    var zUp = root.sceneToZUp(hit.scenePosition)
-                    root.coordX = zUp.x
-                    root.coordY = zUp.y
-                    root.coordZ = zUp.z
-                }
-            }
-        }
+    GridPlane {
+        extent: root.effectiveExtent
+        step: root.gridStep
+        maxLines: root.maxGridLines
     }
 
-    Rectangle {
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.margins: 12
-        radius: 6
-        color: "#12121b"
-        border.color: "#2b2b3b"
-        border.width: 1
-        opacity: 0.9
-
-        Column {
-            padding: 10
-            spacing: 4
-            Text {
-                text: "X: " + root.coordX.toFixed(2)
-                color: "#c9c9d9"
-                font.pixelSize: 14
-            }
-            Text {
-                text: "Y: " + root.coordY.toFixed(2)
-                color: "#c9c9d9"
-                font.pixelSize: 14
-            }
-            Text {
-                text: "Z: " + root.coordZ.toFixed(2)
-                color: "#c9c9d9"
-                font.pixelSize: 14
-            }
-        }
+    GridPlane {
+        extent: root.effectiveExtent
+        step: root.gridStep
+        maxLines: root.maxGridLines
+        eulerRotation.x: 90
     }
 
-    Row {
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.margins: 12
-        spacing: 8
-
-        Button {
-            text: "Add Cube"
-            onClicked: root.addCube()
-        }
-        Button {
-            text: "Add Sphere"
-            onClicked: root.addSphere()
-        }
+    GridPlane {
+        extent: root.effectiveExtent
+        step: root.gridStep
+        maxLines: root.maxGridLines
+        eulerRotation.z: 90
     }
 
     component GridPlane: Node {
@@ -348,6 +99,7 @@ Window {
                     opacity: 0.8
                 }
                 castsShadows: false
+                pickable: false
             }
         }
 
@@ -368,6 +120,7 @@ Window {
                     opacity: 0.8
                 }
                 castsShadows: false
+                pickable: false
             }
         }
 
@@ -382,7 +135,7 @@ Window {
                 lighting: DefaultMaterial.NoLighting
                 opacity: 0.06
             }
-            pickable: true
+            pickable: false
             castsShadows: false
         }
     }
@@ -394,12 +147,12 @@ Window {
         property real arrowRadius: 0.22
 
         AxisLine { length: axisLength; thickness: axisThickness; color: "#E0E7FF"; axis: Qt.vector3d(1, 0, 0) }
-        AxisLine { length: axisLength; thickness: axisThickness; color: "#9CA3AF"; axis: Qt.vector3d(0, 0, 1) }
-        AxisLine { length: axisLength; thickness: axisThickness; color: "#4B5563"; axis: Qt.vector3d(0, 1, 0) }
+        AxisLine { length: axisLength; thickness: axisThickness; color: "#4B5563"; axis: Qt.vector3d(0, 0, 1) }
+        AxisLine { length: axisLength; thickness: axisThickness; color: "#9CA3AF"; axis: Qt.vector3d(0, 1, 0) }
 
         AxisLine { length: axisLength; thickness: axisThickness; color: "#E0E7FF"; axis: Qt.vector3d(-1, 0, 0) }
-        AxisLine { length: axisLength; thickness: axisThickness; color: "#9CA3AF"; axis: Qt.vector3d(0, 0, -1) }
-        AxisLine { length: axisLength; thickness: axisThickness; color: "#4B5563"; axis: Qt.vector3d(0, -1, 0) }
+        AxisLine { length: axisLength; thickness: axisThickness; color: "#4B5563"; axis: Qt.vector3d(0, 0, -1) }
+        AxisLine { length: axisLength; thickness: axisThickness; color: "#9CA3AF"; axis: Qt.vector3d(0, -1, 0) }
 
         AxisArrow {
             color: "#E0E7FF"
@@ -409,14 +162,14 @@ Window {
             radius: arrowRadius
         }
         AxisArrow {
-            color: "#9CA3AF"
+            color: "#4B5563"
             direction: Qt.vector3d(0, 0, 1)
             offset: Qt.vector3d(0, 0, axisLength)
             length: arrowLength
             radius: arrowRadius
         }
         AxisArrow {
-            color: "#4B5563"
+            color: "#9CA3AF"
             direction: Qt.vector3d(0, 1, 0)
             offset: Qt.vector3d(0, axisLength, 0)
             length: arrowLength
@@ -451,6 +204,7 @@ Window {
                 lighting: DefaultMaterial.NoLighting
             }
             castsShadows: false
+            pickable: false
         }
     }
 
@@ -494,6 +248,7 @@ Window {
                 lighting: DefaultMaterial.NoLighting
             }
             castsShadows: false
+            pickable: false
         }
     }
 }

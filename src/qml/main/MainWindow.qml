@@ -4,6 +4,7 @@ import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
 import QtQuick3D 6.9
 import "qrc:/components/components"
+import "qrc:/scene/scene"
 
 
 Window {
@@ -238,10 +239,38 @@ Window {
                             }
 
                             function updateCameraPose() {
+                                updateGridSpacing();
+                                updateGridLineCount();
                                 const cam = cameraPhysicsPosition();
                                 const target = toRenderVector(orbitTargetX, orbitTargetY, orbitTargetZ);
                                 sceneCamera.position = toRenderVector(cam.x, cam.y, cam.z);
                                 sceneCamera.lookAt(target);
+                            }
+
+                            function updateGridSpacing() {
+                                const distance = orbitDistance;
+                                const newSpacing = distance < 400 ? 20 : (distance < 1200 ? 50 : 100);
+                                if (Math.abs(newSpacing - gridSpacing) > 0.1) {
+                                    gridSpacing = newSpacing;
+                                }
+                            }
+
+                            function updateGridLineCount() {
+                                const h = sceneView.height;
+                                const w = sceneView.width;
+                                if (h <= 0 || w <= 0) {
+                                    return;
+                                }
+                                const fovRad = sceneCamera.fieldOfView * Math.PI / 180.0;
+                                const halfHeight = orbitDistance * Math.tan(fovRad / 2.0);
+                                const aspect = w / h;
+                                const halfWidth = halfHeight * aspect;
+                                const extent = Math.max(halfWidth, halfHeight) * 1.2;
+                                const desired = Math.floor(extent / Math.max(gridSpacing, 0.05)) * 2 + 1;
+                                const clamped = Math.max(41, Math.min(desired, 1201));
+                                if (gridCount !== clamped) {
+                                    gridCount = clamped;
+                                }
                             }
 
                             function cameraPhysicsPosition() {
@@ -307,7 +336,7 @@ Window {
 
                                 environment: SceneEnvironment {
                                     backgroundMode: SceneEnvironment.Color
-                                    clearColor: "#0B213B"
+                                    clearColor: "#061425"
                                     antialiasingMode: SceneEnvironment.MSAA
                                     antialiasingQuality: SceneEnvironment.VeryHigh
                                 }
@@ -331,8 +360,16 @@ Window {
 
                                 Node {
                                     id: worldRoot
-
-
+                                    Coordinate {
+                                        id: coordinateSystem
+                                        orbitDistance: canvas3d.orbitDistance
+                                        gridStep: canvas3d.gridSpacing
+                                        maxGridLines: canvas3d.gridCount
+                                        gridExtent: (canvas3d.gridCount - 1) * canvas3d.gridSpacing * 0.5
+                                        camera: sceneCamera
+                                        viewportWidth: sceneView.width
+                                        viewportHeight: sceneView.height
+                                    }
 
                                     Repeater3D {
                                         model: sceneController.bodyModel
