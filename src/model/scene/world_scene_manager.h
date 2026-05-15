@@ -111,6 +111,17 @@ namespace egret
                     double mass);
 
         /**
+         * @brief 注册已存在的物理实体作为世界中的 Body。
+         * @param name 实体名称。
+         * @param entity 物理实体共享所有权。
+         * @param shape 形状所有权。
+         * @return 新实体的 ID，失败返回 0。
+         */
+        std::uint64_t registerBody(const std::string& name,
+                       const std::shared_ptr<PhysicalEntity>& entity,
+                       std::unique_ptr<ShapeBase> shape);
+
+        /**
          * @brief 通过形状加载信息创建实体。
          * @param name 实体名称。
          * @param position 初始位置。
@@ -189,6 +200,30 @@ namespace egret
                                       const std::string& name = "Gravity");
 
         /**
+         * @brief 注册已存在的场实例。
+         * @param name 场名称。
+         * @param field 场共享所有权。
+         * @return 新场的 ID，失败返回 0。
+         */
+        std::uint64_t registerField(const std::string& name,
+                        const std::shared_ptr<FieldBase>& field);
+
+        /**
+         * @brief 将同一对象同时注册为实体与场。
+         * @param bodyName 实体名称。
+         * @param fieldName 场名称。
+         * @param entity 物理实体共享所有权。
+         * @param field 场共享所有权（应与 entity 共享同一控制块）。
+         * @param shape 形状所有权。
+         * @return 共享 ID，失败返回 0。
+         */
+        std::uint64_t registerBodyField(const std::string& bodyName,
+                        const std::string& fieldName,
+                        const std::shared_ptr<PhysicalEntity>& entity,
+                        const std::shared_ptr<FieldBase>& field,
+                        std::unique_ptr<ShapeBase> shape);
+
+        /**
          * @brief 按 ID 删除实体。
          * @param id 实体 ID。
          * @return 删除是否成功。
@@ -201,6 +236,13 @@ namespace egret
          * @return 删除是否成功。
          */
         bool removeField(std::uint64_t id);
+
+        /**
+         * @brief 同时按 ID 删除实体与场记录。
+         * @param id 实体/场共享的 ID。
+         * @return 是否删除了任一记录。
+         */
+        bool removeBodyField(std::uint64_t id);
 
         /**
          * @brief 清空整个场景，包括实体、场和时间状态。
@@ -293,7 +335,7 @@ namespace egret
             std::string name;
 
             /** 物理实体的所有权。 */
-            std::unique_ptr<PhysicalEntity> entity;
+            std::shared_ptr<PhysicalEntity> entity;
 
             /** 碰撞形状的所有权。 */
             std::unique_ptr<ShapeBase> shape;
@@ -324,7 +366,7 @@ namespace egret
             std::string name;
 
             /** 场的所有权。 */
-            std::unique_ptr<FieldBase> field;
+            std::shared_ptr<FieldBase> field;
         };
 
         /**
@@ -388,8 +430,14 @@ namespace egret
         /** 给求解器使用的实体句柄缓存。 */
         mutable std::vector<SolverBodyHandle> m_solverBodies;
 
+        /** 持有实体以保证求解期间生命周期稳定。 */
+        mutable std::vector<std::shared_ptr<PhysicalEntity>> m_solverBodyOwners;
+
         /** 给求解器使用的场指针缓存。 */
         mutable std::vector<FieldBase*> m_solverFields;
+
+        /** 持有场以保证求解期间生命周期稳定。 */
+        mutable std::vector<std::shared_ptr<FieldBase>> m_solverFieldOwners;
 
         /** 当前仿真时间。 */
         double m_simulationTime{0.0};

@@ -10,6 +10,7 @@ namespace egret {
 
 class Particle: public PhysicalEntity {
 public:
+    Particle() = default;
     Particle(Eigen::Vector3d position, Eigen::Vector3d speed, double mass);
     void applyForce(double time) override;
 

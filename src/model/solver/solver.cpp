@@ -11,6 +11,7 @@
 
 #include "field_base.h"
 #include "constraints_base.h"
+#include "particle.h"
 #include "physical_entity.h"
 #include "broad_phase_strategy/brute_force_broad_phase.h"
 #include "contact_strategy/frictionless_contact_resolver.h"
@@ -105,12 +106,12 @@ namespace egret
         // pairs = {{0, 1}};
         if (m_config.enableNarrowPhase) {
             runNarrowPhase(scene, pairs, constraints, result.stats);
-            qDebug() << "narrow contacts:" << result.stats.contactConstraintCount;
+            // qDebug() << "narrow contacts:" << result.stats.contactConstraintCount;
         }
 
         if (m_config.enableContactResolution) {
             resolveContacts(scene, dt, constraints, result.stats);
-            qDebug() << "resolved contacts:" << result.stats.resolvedContactCount;
+            // qDebug() << "resolved contacts:" << result.stats.resolvedContactCount;
         }
 
         resolveConstraints(scene, dt, result.stats);
@@ -173,6 +174,11 @@ namespace egret
             for (FieldBase* field : fields) {
                 if (field != nullptr) {
                     field->applyToEntity(body.entity);
+                }
+
+                if (auto fieldEntityPtr{dynamic_cast<Particle*>(field)}) {
+                    const Eigen::Vector3d& pos{fieldEntityPtr->getPositionCR()};
+                    qDebug() << "Position: " << pos.x() << pos.y() << pos.z();
                 }
             }
         }
