@@ -12,9 +12,9 @@
 #include "field_base.h"
 #include "constraints_base.h"
 #include "physical_entity.h"
-#include "../strategy/broad_phase_strategy/brute_force_broad_phase.h"
-#include "../strategy/contact_strategy/frictionless_contact_resolver.h"
-#include "../strategy/integrator_strategy/semi_implicit_euler_integrator.h"
+#include "broad_phase_strategy/brute_force_broad_phase.h"
+#include "contact_strategy/frictionless_contact_resolver.h"
+#include "integrator_strategy/semi_implicit_euler_integrator.h"
 
 namespace egret
 {
@@ -84,7 +84,7 @@ namespace egret
     {
     }
 
-    SolverStepResult Solver::step(ISolverSceneSnapshot& scene, const double dt)
+    SolverStepResult Solver::step(SolverSceneSnapshotBase& scene, const double dt)
     {
         SolverStepResult result{};
         result.dt = dt;
@@ -149,7 +149,7 @@ namespace egret
         m_contactResolver = std::move(contactResolver);
     }
 
-    void Solver::updateExternalForces(ISolverSceneSnapshot& scene) const
+    void Solver::updateExternalForces(SolverSceneSnapshotBase& scene) const
     {
         const auto bodies = scene.getBodies();
         const auto fields = scene.getFields();
@@ -178,7 +178,7 @@ namespace egret
         }
     }
 
-    void Solver::runBroadPhase(const ISolverSceneSnapshot& scene,
+    void Solver::runBroadPhase(const SolverSceneSnapshotBase& scene,
                                std::vector<SolverBodyPair>& pairs,
                                SolverStats& stats) const
     {
@@ -197,7 +197,7 @@ namespace egret
         }
     }
 
-    void Solver::runNarrowPhase(const ISolverSceneSnapshot& scene,
+    void Solver::runNarrowPhase(const SolverSceneSnapshotBase& scene,
                                 const std::vector<SolverBodyPair>& pairs,
                                 std::vector<SolverContactConstraint>& constraints,
                                 SolverStats& stats)
@@ -224,11 +224,11 @@ namespace egret
             }
 
             ContactManifold manifold;
-            bool collided = bodyA.shape->collideWith(bodyB.shape, *bodyA.transform, *bodyB.transform, manifold);
+            bool collided = bodyA.shape->collide(bodyB.shape, *bodyA.transform, *bodyB.transform, manifold);
 
             if (!collided) {
                 ContactManifold reversedManifold;
-                collided = bodyB.shape->collideWith(bodyA.shape, *bodyB.transform, *bodyA.transform, reversedManifold);
+                collided = bodyB.shape->collide(bodyA.shape, *bodyB.transform, *bodyA.transform, reversedManifold);
                 if (collided) {
                     manifold.reserve(reversedManifold.size());
                     for (ContactPoint contact : reversedManifold) {
@@ -271,7 +271,7 @@ namespace egret
         stats.contactConstraintCount = constraints.size();
     }
 
-    void Solver::resolveContacts(ISolverSceneSnapshot& scene,
+    void Solver::resolveContacts(SolverSceneSnapshotBase& scene,
                                  const double dt,
                                  const std::vector<SolverContactConstraint>& constraints,
                                  SolverStats& stats) const
@@ -281,46 +281,24 @@ namespace egret
         }
     }
 
-    void Solver::integrate(ISolverSceneSnapshot& scene, const double dt, SolverStats& stats) const
+    void Solver::integrate(SolverSceneSnapshotBase& scene, const double dt, SolverStats& stats) const
     {
         if (m_integrator != nullptr) {
             m_integrator->integrate(scene, dt, m_config, stats);
         }
     }
 
-    void Solver::resolveConstraints(ISolverSceneSnapshot& scene,
+    void Solver::resolveConstraints(SolverSceneSnapshotBase& scene,
                                     const double dt,
                                     SolverStats& stats) const
     {
-        const auto constraints = scene.getConstraints();
-        stats.constraintCount = constraints.size();
-
-        if (constraints.empty()) {
-            return;
-        }
-
-        auto bodies = scene.getBodies();
-
-        for (std::uint32_t velIter = 0; velIter < m_config.velocityIterations; ++velIter) {
-            for (ConstraintsBase* constraint : constraints) {
-                if (constraint == nullptr) {
-                    continue;
-                }
-                constraint->solveVelocity(bodies, dt, m_config, stats);
-            }
-        }
-
-        for (std::uint32_t posIter = 0; posIter < m_config.positionIterations; ++posIter) {
-            for (ConstraintsBase* constraint : constraints) {
-                if (constraint == nullptr) {
-                    continue;
-                }
-                constraint->solvePosition(bodies, dt, m_config, stats);
-            }
-        }
+        (void)scene;
+        (void)dt;
+        (void)stats;
+        // Constraints are not wired into the scene snapshot yet.
     }
 
-    void Solver::updateEnergyStats(const ISolverSceneSnapshot& scene, SolverStats& stats)
+    void Solver::updateEnergyStats(const SolverSceneSnapshotBase& scene, SolverStats& stats)
     {
         const auto bodies = scene.getBodies();
         stats.bodyCount = bodies.size();

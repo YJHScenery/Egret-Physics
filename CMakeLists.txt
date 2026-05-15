@@ -16,6 +16,7 @@ include_directories(
         dependency/include/eigen_5_0_0
         src
         src/model
+        src/model/physics/constraints
         src/model/solver
         src/model/scene
         src/model/physics
