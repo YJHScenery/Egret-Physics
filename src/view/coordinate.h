@@ -4,7 +4,8 @@
 #include <QVector2D>
 #include <QVector3D>
 
-class CoordinateGeometry : public QQuick3DGeometry {
+class CoordinateGeometry : public QQuick3DGeometry
+{
     Q_OBJECT
     Q_PROPERTY(Shape shape READ shape WRITE setShape NOTIFY shapeChanged)
     Q_PROPERTY(float size READ size WRITE setSize NOTIFY sizeChanged)
@@ -13,13 +14,16 @@ class CoordinateGeometry : public QQuick3DGeometry {
     Q_PROPERTY(int slices READ slices WRITE setSlices NOTIFY slicesChanged)
 
 public:
-    enum Shape {
+    enum Shape
+    {
         Cube,
         Sphere
     };
+
     Q_ENUM(Shape)
 
-    struct Vertex {
+    struct Vertex
+    {
         QVector3D position;
         QVector3D normal;
         QVector2D uv;

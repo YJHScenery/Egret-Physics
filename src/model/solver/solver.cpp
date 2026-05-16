@@ -176,10 +176,10 @@ namespace egret
                     field->applyToEntity(body.entity);
                 }
 
-                if (auto fieldEntityPtr{dynamic_cast<Particle*>(field)}) {
-                    const Eigen::Vector3d& pos{fieldEntityPtr->getPositionCR()};
-                    qDebug() << "Position: " << pos.x() << pos.y() << pos.z();
-                }
+                // if (auto fieldEntityPtr{dynamic_cast<Particle*>(field)}) {
+                //     const Eigen::Vector3d& pos{fieldEntityPtr->getPositionCR()};
+                //     qDebug() << "Position: " << pos.x() << pos.y() << pos.z();
+                // }
             }
         }
     }
@@ -192,14 +192,14 @@ namespace egret
             m_broadPhase->buildCandidatePairs(scene, m_config, pairs, stats);
             stats.broadPhasePairCount = pairs.size();
             // qDebug() << stats.broadPhasePairCount;
-            if (stats.broadPhasePairCount != 0) {
-                qDebug() << stats.broadPhasePairCount;
-                qDebug() << pairs.size();
-                qDebug() << "not 0" << __func__;
-                for (const auto& pair : pairs) {
-                    qDebug() << pair.bodyAIndex << " " << pair.bodyBIndex;
-                }
-            }
+            // if (stats.broadPhasePairCount != 0) {
+            //     qDebug() << stats.broadPhasePairCount;
+            //     qDebug() << pairs.size();
+            //     qDebug() << "not 0" << __func__;
+            //     for (const auto& pair : pairs) {
+            //         qDebug() << pair.bodyAIndex << " " << pair.bodyBIndex;
+            //     }
+            // }
         }
     }
 

@@ -68,27 +68,51 @@ ApplicationWindow {
 
             menus: [
                 {
-                    title: "&File",
+                    title: "文件(&F)",
                     items: [
                         {
-                            text: "&New Scene",
+                            text: "新建场景(&N)",
                             shortcut: "Ctrl+N",
                             onTriggered: function () {
                                 sceneController.reset();
                             }
                         },
                         {
-                            text: "&Open...",
+                            text: "打开...(&O)",
                             shortcut: "Ctrl+O",
                             onTriggered: function () {
                                 console.log("Open scene");
                             }
                         },
                         {
+                            text: "保存(&S)",
+                            shortcut: "Ctrl+S",
+                            onTriggered: function () {
+                                console.log("Save");
+                            }
+                        },
+                        {
+                            text: "另存为...(&A)",
+                            shortcut: "Ctrl+Shift+S",
+                            onTriggered: function () {
+                                console.log("Save as");
+                            }
+                        },
+                        {
                             separator: true
                         },
                         {
-                            text: "E&xit",
+                            text: "设置(&S)",
+                            shortcut: "Ctrl+Alt+S",
+                            onTriggered: function() {
+                                console.log("Settings");
+                            }
+                        },
+                        {
+                            separator: true
+                        },
+                        {
+                            text: "退出(&Q)",
                             shortcut: "Alt+F4",
                             onTriggered: function () {
                                 Qt.quit();
@@ -97,15 +121,15 @@ ApplicationWindow {
                     ]
                 },
                 {
-                    title: "&Edit",
+                    title: "编辑(&E)",
                     items: [
                         {
-                            text: "&Undo",
+                            text: "撤销(&U)",
                             shortcut: "Ctrl+Z",
                             enabled: false
                         },
                         {
-                            text: "&Redo",
+                            text: "恢复(&R)",
                             shortcut: "Ctrl+Y",
                             enabled: false
                         },
@@ -113,31 +137,31 @@ ApplicationWindow {
                             separator: true
                         },
                         {
-                            text: "Cu&t",
+                            text: "剪切(&T)",
                             shortcut: "Ctrl+X"
                         },
                         {
-                            text: "&Copy",
+                            text: "复制(C)",
                             shortcut: "Ctrl+C"
                         },
                         {
-                            text: "&Paste",
+                            text: "粘贴(P)",
                             shortcut: "Ctrl+V"
                         }
                     ]
                 },
                 {
-                    title: "&View",
+                    title: "视图(&V)",
                     items: [
                         {
-                            text: "Toggle &Grid",
+                            text: "网格(&G)",
                             shortcut: "Ctrl+G",
                             onTriggered: function () {
                                 console.log("Toggle grid");
                             }
                         },
                         {
-                            text: "Toggle &Axes",
+                            text: "坐标轴(&A)",
                             shortcut: "Ctrl+H",
                             onTriggered: function () {
                                 console.log("Toggle axes");
@@ -146,17 +170,17 @@ ApplicationWindow {
                     ]
                 },
                 {
-                    title: "&Help",
+                    title: "帮助(&H)",
                     items: [
                         {
-                            text: "&About",
+                            text: "关于(&A)",
                             shortcut: "F1",
                             onTriggered: function () {
                                 aboutDialog.open();
                             }
                         },
                         {
-                            text: "About &Qt",
+                            text: "关于Qt(&Q)",
                             onTriggered: function () {
                                 qtHelper.showAboutQt();
                             }

@@ -10,9 +10,89 @@ Dialog {
     modal: true
     standardButtons: Dialog.Ok
     width: 520
-    height: 480
+    height: 520
 
     anchors.centerIn: parent
+
+    opacity: 0
+    scale: 0.8
+
+    onOpened: {
+        opacityAnimator.start();
+        scaleAnimator.start();
+    }
+
+    NumberAnimation {
+        id: opacityAnimator
+        target: aboutDialog
+        property: "opacity"
+        from: 0
+        to: 1
+        duration: 300
+        easing.type: Easing.OutCubic
+    }
+
+    NumberAnimation {
+        id: scaleAnimator
+        target: aboutDialog
+        property: "scale"
+        from: 0.8
+        to: 1
+        duration: 300
+        easing.type: Easing.OutCubic
+    }
+
+    NumberAnimation {
+        id: closeOpacityAnimator
+        target: aboutDialog
+        property: "opacity"
+        from: 1
+        to: 0
+        duration: 200
+        easing.type: Easing.InCubic
+        onRunningChanged: {
+            if (!running && closeAnimationActive) {
+                closeAnimationActive = false;
+                aboutDialog.close();
+            }
+        }
+    }
+
+    NumberAnimation {
+        id: closeScaleAnimator
+        target: aboutDialog
+        property: "scale"
+        from: 1
+        to: 0.8
+        duration: 200
+        easing.type: Easing.InCubic
+    }
+
+    property bool closeAnimationActive: false
+
+    function closeWithAnimation() {
+        if (closeAnimationActive)
+            return;
+        closeAnimationActive = true;
+        closeOpacityAnimator.start();
+        closeScaleAnimator.start();
+    }
+
+    onAccepted: {
+        if (closeAnimationActive)
+            return;
+        closeAnimationActive = true;
+        closeOpacityAnimator.start();
+        closeScaleAnimator.start();
+    }
+
+    onRejected: {
+        if (closeAnimationActive)
+            return;
+        closeAnimationActive = true;
+        closeOpacityAnimator.start();
+        closeScaleAnimator.start();
+    }
 
     background: Rectangle {
         color: "#0A1738"
@@ -40,12 +120,12 @@ Dialog {
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: 20
-            spacing: 16
+            spacing: 14
 
             Image {
-                source: "qrc:/app_icon/assets/favicon/favicon_64.png"
-                Layout.preferredWidth: 80
-                Layout.preferredHeight: 80
+                source: "qrc:/app_icon/assets/favicon/favicon_256.png"
+                Layout.preferredWidth: 100
+                Layout.preferredHeight: 100
                 Layout.alignment: Qt.AlignHCenter
                 fillMode: Image.PreserveAspectFit
             }
@@ -66,7 +146,8 @@ Dialog {
             }
 
             Text {
-                text: "Version 0.0.1"
+                text: resourceHelper.getVersionString("Version", "")
+                // text: "Version 0.0.1"
                 color: "#8DB3D9"
                 font.pixelSize: 12
                 Layout.alignment: Qt.AlignHCenter
@@ -118,6 +199,30 @@ Dialog {
                 }
             }
 
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 8
+
+                Text {
+                    text: "Github:"
+                    color: "#8DB3D9"
+                    font.pixelSize: 12
+                }
+
+                Text {
+                    text: "Egret Physics Github Repo"
+                    color: "#27B5FF"
+                    font.pixelSize: 12
+                    font.underline: true
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Qt.openUrlExternally("https://github.com/YJHScenery/Egret-Physics")
+                    }
+                }
+            }
+
             Text {
                 text: "© 2024 Egret Physics Development Team"
                 color: "#5F84AD"
@@ -158,7 +263,7 @@ Dialog {
                 hoverEnabled: true
                 onEntered: parent.hovered = true
                 onExited: parent.hovered = false
-                onClicked: aboutDialog.close()
+                onClicked: aboutDialog.closeWithAnimation()
             }
         }
     }
