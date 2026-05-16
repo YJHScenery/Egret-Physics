@@ -3,11 +3,12 @@
         <file>main/MainWindow.qml</file>
     </qresource>
     <qresource prefix="/components">
-        <file>components/DeepBlueTheme.qml</file>
+        <file>components/theme/DeepBlueTheme.qml</file>
         <file>components/EgretMenuBar.qml</file>
         <file>components/GlassPanel.qml</file>
         <file>components/LeftNavPanel.qml</file>
         <file>components/MetricCard.qml</file>
         <file>components/Coordinate.qml</file>
+        <file>components/AboutDialog.qml</file>
     </qresource>
 </RCC>

@@ -4,17 +4,26 @@ import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
 import QtQuick3D 6.9
 import "qrc:/components/components"
+import "qrc:/components/components/theme"
 
 ApplicationWindow {
     id: window
 
-    width: 1600
-    height: 920
+    width: 1920
+    height: 1080
+    minimumWidth: 1920
+    minimumHeight: 1080
+
     visible: true
     title: "Egret Physics - Classical Mechanics Studio"
 
     DeepBlueTheme {
         id: theme
+    }
+
+    AboutDialog {
+        id: aboutDialog
+        parent: Overlay.overlay
     }
 
     Rectangle {
@@ -61,34 +70,97 @@ ApplicationWindow {
                 {
                     title: "&File",
                     items: [
-                        { text: "&New Scene", shortcut: "Ctrl+N", onTriggered: function () { sceneController.reset(); } },
-                        { text: "&Open...", shortcut: "Ctrl+O", onTriggered: function () { console.log("Open scene"); } },
-                        { separator: true },
-                        { text: "E&xit", shortcut: "Alt+F4", onTriggered: function () { Qt.quit(); } }
+                        {
+                            text: "&New Scene",
+                            shortcut: "Ctrl+N",
+                            onTriggered: function () {
+                                sceneController.reset();
+                            }
+                        },
+                        {
+                            text: "&Open...",
+                            shortcut: "Ctrl+O",
+                            onTriggered: function () {
+                                console.log("Open scene");
+                            }
+                        },
+                        {
+                            separator: true
+                        },
+                        {
+                            text: "E&xit",
+                            shortcut: "Alt+F4",
+                            onTriggered: function () {
+                                Qt.quit();
+                            }
+                        }
                     ]
                 },
                 {
                     title: "&Edit",
                     items: [
-                        { text: "&Undo", shortcut: "Ctrl+Z", enabled: false },
-                        { text: "&Redo", shortcut: "Ctrl+Y", enabled: false },
-                        { separator: true },
-                        { text: "Cu&t", shortcut: "Ctrl+X" },
-                        { text: "&Copy", shortcut: "Ctrl+C" },
-                        { text: "&Paste", shortcut: "Ctrl+V" }
+                        {
+                            text: "&Undo",
+                            shortcut: "Ctrl+Z",
+                            enabled: false
+                        },
+                        {
+                            text: "&Redo",
+                            shortcut: "Ctrl+Y",
+                            enabled: false
+                        },
+                        {
+                            separator: true
+                        },
+                        {
+                            text: "Cu&t",
+                            shortcut: "Ctrl+X"
+                        },
+                        {
+                            text: "&Copy",
+                            shortcut: "Ctrl+C"
+                        },
+                        {
+                            text: "&Paste",
+                            shortcut: "Ctrl+V"
+                        }
                     ]
                 },
                 {
                     title: "&View",
                     items: [
-                        { text: "Toggle &Grid", shortcut: "Ctrl+G", onTriggered: function () { console.log("Toggle grid"); } },
-                        { text: "Toggle &Axes", shortcut: "Ctrl+H", onTriggered: function () { console.log("Toggle axes"); } }
+                        {
+                            text: "Toggle &Grid",
+                            shortcut: "Ctrl+G",
+                            onTriggered: function () {
+                                console.log("Toggle grid");
+                            }
+                        },
+                        {
+                            text: "Toggle &Axes",
+                            shortcut: "Ctrl+H",
+                            onTriggered: function () {
+                                console.log("Toggle axes");
+                            }
+                        }
                     ]
                 },
                 {
                     title: "&Help",
                     items: [
-                        { text: "&About", shortcut: "F1", onTriggered: function () { console.log("About"); } }
+                        {
+                            text: "&About",
+                            shortcut: "F1",
+                            onTriggered: function () {
+                                aboutDialog.open();
+                            }
+                        },
+                        {
+                            text: "About &Qt",
+                            onTriggered: function () {
+                                qtHelper.showAboutQt();
+                            }
+                        }
                     ]
                 }
             ]

@@ -115,7 +115,11 @@ Rectangle {
             outputIndex++;
         }
 
-        return { display: display, mnemonic: mnemonic, index: index };
+        return {
+            display: display,
+            mnemonic: mnemonic,
+            index: index
+        };
     }
 
     function richTextWithUnderline(display, index) {
@@ -376,10 +380,10 @@ Rectangle {
                 }
                 if (event.text && event.text.length === 1) {
                     var keyText = event.text.toLowerCase();
-                    for (var i = 0; i < menuItems.length; i++) {
-                        var info = root.mnemonicInfo(menuItems[i].text || "");
+                    for (var i = 0; i < menuPopup.menuItems.length; i++) {
+                        var info = root.mnemonicInfo(menuPopup.menuItems[i].text || "");
                         if (info.mnemonic === keyText) {
-                            root.triggerMenuItem(menuIndex, i);
+                            root.triggerMenuItem(menuPopup.menuIndex, i);
                             event.accepted = true;
                             return;
                         }
@@ -398,64 +402,64 @@ Rectangle {
                 boundsBehavior: Flickable.StopAtBounds
 
                 delegate: Item {
-                id: menuItem
+                    id: menuItem
 
-                property var itemData: modelData
-                property bool isSeparator: itemData && itemData.separator === true
-                property bool isEnabled: itemData && itemData.enabled !== false
+                    property var itemData: modelData
+                    property bool isSeparator: itemData && itemData.separator === true
+                    property bool isEnabled: itemData && itemData.enabled !== false
 
-                implicitWidth: row.implicitWidth + 20
-                width: menuList.width
-                height: isSeparator ? 8 : root.menuItemHeight
+                    implicitWidth: row.implicitWidth + 20
+                    width: menuList.width
+                    height: isSeparator ? 8 : root.menuItemHeight
 
-                Rectangle {
-                    anchors.fill: parent
-                    visible: !isSeparator
-                    radius: 6
-                    color: menuPopup.highlightedIndex === index ? root.menuItemHoverBackground : "transparent"
-
-                    RowLayout {
-                        id: row
+                    Rectangle {
                         anchors.fill: parent
-                        anchors.leftMargin: 10
-                        anchors.rightMargin: 10
-                        spacing: 10
+                        visible: !isSeparator
+                        radius: 6
+                        color: menuPopup.highlightedIndex === index ? root.menuItemHoverBackground : "transparent"
 
-                        Text {
-                            text: root.richTextWithUnderline(root.mnemonicInfo(itemData.text || "").display, root.mnemonicInfo(itemData.text || "").index)
-                            textFormat: Text.RichText
-                            color: !menuItem.isEnabled ? root.textDisabledColor : (menuPopup.highlightedIndex === index ? root.menuItemHoverTextColor : root.menuItemTextColor)
-                            font.pixelSize: 13
+                        RowLayout {
+                            id: row
+                            anchors.fill: parent
+                            anchors.leftMargin: 10
+                            anchors.rightMargin: 10
+                            spacing: 10
+
+                            Text {
+                                text: root.richTextWithUnderline(root.mnemonicInfo(itemData.text || "").display, root.mnemonicInfo(itemData.text || "").index)
+                                textFormat: Text.RichText
+                                color: !menuItem.isEnabled ? root.textDisabledColor : (menuPopup.highlightedIndex === index ? root.menuItemHoverTextColor : root.menuItemTextColor)
+                                font.pixelSize: 13
+                            }
+
+                            Item {
+                                Layout.fillWidth: true
+                            }
+
+                            Text {
+                                text: itemData.shortcut || ""
+                                color: !menuItem.isEnabled ? root.textDisabledColor : root.menuItemTextColor
+                                font.pixelSize: 12
+                            }
                         }
 
-                        Item {
-                            Layout.fillWidth: true
-                        }
-
-                        Text {
-                            text: itemData.shortcut || ""
-                            color: !menuItem.isEnabled ? root.textDisabledColor : root.menuItemTextColor
-                            font.pixelSize: 12
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            enabled: menuItem.isEnabled
+                            onEntered: menuPopup.highlightedIndex = index
+                            onClicked: root.triggerMenuItem(menuPopup.menuIndex, index)
                         }
                     }
 
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        enabled: menuItem.isEnabled
-                        onEntered: menuPopup.highlightedIndex = index
-                        onClicked: root.triggerMenuItem(menuPopup.menuIndex, index)
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        height: 1
+                        visible: isSeparator
+                        color: root.menuSeparatorColor
                     }
-                }
-
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    height: 1
-                    visible: isSeparator
-                    color: root.menuSeparatorColor
-                }
                 }
             }
         }
