@@ -4,11 +4,10 @@
     </qresource>
     <qresource prefix="/components">
         <file>components/DeepBlueTheme.qml</file>
+        <file>components/EgretMenuBar.qml</file>
         <file>components/GlassPanel.qml</file>
         <file>components/LeftNavPanel.qml</file>
         <file>components/MetricCard.qml</file>
-    </qresource>
-    <qresource prefix="/scene">
-        <file>scene/Coordinate.qml</file>
+        <file>components/Coordinate.qml</file>
     </qresource>
 </RCC>
