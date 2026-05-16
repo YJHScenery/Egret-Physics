@@ -92,6 +92,7 @@ Dialog {
         closeAnimationActive = true;
         closeOpacityAnimator.start();
         closeScaleAnimator.start();
+
     }
 
     background: Rectangle {
