@@ -15,6 +15,7 @@ QtObject {
     readonly property color textPrimary: "#DCEAFF"
     readonly property color textSecondary: "#8DB3D9"
     readonly property color textDim: "#5F84AD"
+    readonly property color textUnenabled: "#C0C0C0"
 
     readonly property int radiusL: 18
     readonly property int radiusM: 12

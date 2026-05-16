@@ -24,7 +24,7 @@ namespace egret
         const Eigen::Vector3d halfB = boxB.getHalfSize();
 
         // 获取两个物体的局部轴（世界坐标系）
-        std::array<Eigen::Vector3d, 3> axesA, axesB;
+        std::array<Eigen::Vector3d, 3> axesA{}, axesB{};
         ShapeBox::getLocalAxes(transA, axesA[0], axesA[1], axesA[2]);
         ShapeBox::getLocalAxes(transB, axesB[0], axesB[1], axesB[2]);
 
@@ -1461,7 +1461,7 @@ namespace egret
         if (dist > radius) return false;
 
         // 有碰撞，填充接触点
-        ContactPoint point;
+        ContactPoint point{};
         point.position = closestPoint;
         point.normal = delta.normalized(); // 从球心指向接触点
         point.penetration = radius - dist;

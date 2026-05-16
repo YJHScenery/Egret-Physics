@@ -4,10 +4,8 @@ import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
 import QtQuick3D 6.9
 import "qrc:/components/components"
-import "qrc:/scene/scene"
 
-
-Window {
+ApplicationWindow {
     id: window
 
     width: 1600
@@ -22,9 +20,18 @@ Window {
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
-            GradientStop { position: 0.0; color: theme.bg0 }
-            GradientStop { position: 0.5; color: theme.bg1 }
-            GradientStop { position: 1.0; color: theme.bg2 }
+            GradientStop {
+                position: 0.0
+                color: theme.bg0
+            }
+            GradientStop {
+                position: 0.5
+                color: theme.bg1
+            }
+            GradientStop {
+                position: 1.0
+                color: theme.bg2
+            }
         }
     }
 
@@ -32,6 +39,60 @@ Window {
         anchors.fill: parent
         anchors.margins: 18
         spacing: 14
+
+        EgretMenuBar {
+            Layout.fillWidth: true
+            barHeight: 36
+            barBackground: theme.panelStrong
+            barBorderColor: theme.border
+            itemHoverBackground: theme.accentSoft
+            itemActiveBackground: "#1C3F6C"
+            textColor: theme.textSecondary
+            textHoverColor: theme.textPrimary
+            menuBackground: "#10294C"
+            menuBorderColor: theme.border
+            menuItemHoverBackground: "#1E4474"
+            menuItemPressedBackground: "#25507E"
+            menuItemTextColor: theme.textSecondary
+            menuItemHoverTextColor: theme.textPrimary
+            menuSeparatorColor: "#2C4E74"
+
+            menus: [
+                {
+                    title: "&File",
+                    items: [
+                        { text: "&New Scene", shortcut: "Ctrl+N", onTriggered: function () { sceneController.reset(); } },
+                        { text: "&Open...", shortcut: "Ctrl+O", onTriggered: function () { console.log("Open scene"); } },
+                        { separator: true },
+                        { text: "E&xit", shortcut: "Alt+F4", onTriggered: function () { Qt.quit(); } }
+                    ]
+                },
+                {
+                    title: "&Edit",
+                    items: [
+                        { text: "&Undo", shortcut: "Ctrl+Z", enabled: false },
+                        { text: "&Redo", shortcut: "Ctrl+Y", enabled: false },
+                        { separator: true },
+                        { text: "Cu&t", shortcut: "Ctrl+X" },
+                        { text: "&Copy", shortcut: "Ctrl+C" },
+                        { text: "&Paste", shortcut: "Ctrl+V" }
+                    ]
+                },
+                {
+                    title: "&View",
+                    items: [
+                        { text: "Toggle &Grid", shortcut: "Ctrl+G", onTriggered: function () { console.log("Toggle grid"); } },
+                        { text: "Toggle &Axes", shortcut: "Ctrl+H", onTriggered: function () { console.log("Toggle axes"); } }
+                    ]
+                },
+                {
+                    title: "&Help",
+                    items: [
+                        { text: "&About", shortcut: "F1", onTriggered: function () { console.log("About"); } }
+                    ]
+                }
+            ]
+        }
 
         Rectangle {
             Layout.fillWidth: true
@@ -86,9 +147,9 @@ Window {
 
                     Timer {
                         id: colorTimer
-                        interval: parent.highlightDuration;
-                        repeat: false;
-                        running: false;
+                        interval: parent.highlightDuration
+                        repeat: false
+                        running: false
                         onTriggered: {
                             parent.isPressed = false;  // 清除点击高亮标记
                             // 不需要手动设置颜色，让颜色绑定属性自动处理
@@ -97,16 +158,20 @@ Window {
 
                     // 根据状态动态计算颜色
                     color: {
-                        if (isPressed) return "#2986ef"      // 点击高亮颜色
-                        if (hovered) return "#1E3A8A"        // 悬停颜色
-                        return "#0A1A3A"                      // 默认颜色
+                        if (isPressed)
+                            return "#2986ef";      // 点击高亮颜色
+                        if (hovered)
+                            return "#1E3A8A";        // 悬停颜色
+                        return "#0A1A3A";                      // 默认颜色
                     }
 
                     border.width: 1
                     border.color: {
-                        if (isPressed) return "#2563EB"
-                        if (hovered) return "#3B82F6"
-                        return "#1E3A8A"
+                        if (isPressed)
+                            return "#2563EB";
+                        if (hovered)
+                            return "#3B82F6";
+                        return "#1E3A8A";
                     }
 
                     Text {
@@ -292,18 +357,16 @@ Window {
                             }
 
                             function shapeSource(kind) {
-                                if (kind === "standard_sphere" || kind === "standard_spherical_shell"
-                                        || kind === "standard_disk" || kind === "standard_ring") {
-                                    return "#Sphere"
+                                if (kind === "standard_sphere" || kind === "standard_spherical_shell" || kind === "standard_disk" || kind === "standard_ring") {
+                                    return "#Sphere";
                                 }
-                                if (kind === "standard_cylinder" || kind === "standard_cylinder_shell"
-                                        || kind === "standard_rod") {
-                                    return "#Cylinder"
+                                if (kind === "standard_cylinder" || kind === "standard_cylinder_shell" || kind === "standard_rod") {
+                                    return "#Cylinder";
                                 }
                                 if (kind === "standard_box") {
-                                    return "#Cube"
+                                    return "#Cube";
                                 }
-                                return "#Cube"
+                                return "#Cube";
                             }
 
                             function scaleForShape(kind, sx, sy, sz) {
@@ -311,8 +374,7 @@ Window {
                                 const safeX = Math.max(1.0, sx);
                                 const safeY = Math.max(1.0, sy);
                                 const safeZ = Math.max(1.0, sz);
-                                if (kind === "standard_sphere" || kind === "standard_spherical_shell"
-                                        || kind === "standard_disk" || kind === "standard_ring") {
+                                if (kind === "standard_sphere" || kind === "standard_spherical_shell" || kind === "standard_disk" || kind === "standard_ring") {
                                     const uniform = Math.max(safeX, safeY, safeZ) / unit;
                                     return Qt.vector3d(uniform, uniform, uniform);
                                 }
@@ -375,15 +437,15 @@ Window {
                                         model: sceneController.bodyModel
 
                                         delegate: Model {
-                                            objectName: "body-" + bodyId;
-                                            source: canvas3d.shapeSource(shapeKind);
-                                            position: canvas3d.toRenderVector(bodyCenterX, bodyCenterY, bodyCenterZ);
-                                            scale: canvas3d.scaleForShape(shapeKind, bodySizeX, bodySizeZ, bodySizeY);
+                                            objectName: "body-" + bodyId
+                                            source: canvas3d.shapeSource(shapeKind)
+                                            position: canvas3d.toRenderVector(bodyCenterX, bodyCenterY, bodyCenterZ)
+                                            scale: canvas3d.scaleForShape(shapeKind, bodySizeX, bodySizeZ, bodySizeY)
 
                                             materials: PrincipledMaterial {
-                                                baseColor: bodyColor;
-                                                roughness: 0.18;
-                                                specularAmount: 0.7;
+                                                baseColor: bodyColor
+                                                roughness: 0.18
+                                                specularAmount: 0.7
                                             }
                                         }
                                     }
@@ -418,26 +480,19 @@ Window {
                                 acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                                 preventStealing: true
 
-                                onPressed: function(mouse) {
+                                onPressed: function (mouse) {
                                     canvas3d.lastMousePoint = Qt.point(mouse.x, mouse.y);
                                     if (mouse.button === Qt.LeftButton) {
                                         const pickResult = sceneView.pick(mouse.x, mouse.y);
                                         if (pickResult && pickResult.objectHit && pickResult.objectHit.objectName.indexOf("body-") === 0) {
                                             const idText = pickResult.objectHit.objectName.substring(5);
                                             canvas3d.activeDragBodyId = Number(idText);
-                                            sceneController.beginBodyDrag(
-                                                        canvas3d.activeDragBodyId,
-                                                        mouse.x,
-                                                        mouse.y,
-                                                        width,
-                                                        height,
-                                                        canvas3d.cameraState(),
-                                                        "xy_plane");
+                                            sceneController.beginBodyDrag(canvas3d.activeDragBodyId, mouse.x, mouse.y, width, height, canvas3d.cameraState(), "xy_plane");
                                         }
                                     }
                                 }
 
-                                onPositionChanged: function(mouse) {
+                                onPositionChanged: function (mouse) {
                                     const dx = mouse.x - canvas3d.lastMousePoint.x;
                                     const dy = mouse.y - canvas3d.lastMousePoint.y;
                                     canvas3d.lastMousePoint = Qt.point(mouse.x, mouse.y);
@@ -448,22 +503,18 @@ Window {
                                     }
 
                                     if ((mouse.buttons & Qt.LeftButton) !== 0 && canvas3d.activeDragBodyId >= 0) {
-                                        sceneController.updateBodyDrag(mouse.x,
-                                                                       mouse.y,
-                                                                       width,
-                                                                       height,
-                                                                       canvas3d.cameraState());
+                                        sceneController.updateBodyDrag(mouse.x, mouse.y, width, height, canvas3d.cameraState());
                                     }
                                 }
 
-                                onReleased: function(mouse) {
+                                onReleased: function (mouse) {
                                     if (mouse.button === Qt.LeftButton) {
                                         canvas3d.activeDragBodyId = -1;
                                         sceneController.endBodyDrag();
                                     }
                                 }
 
-                                onWheel: function(wheel) {
+                                onWheel: function (wheel) {
                                     const factor = wheel.angleDelta.y > 0 ? 0.88 : 1.12;
                                     canvas3d.orbitDistance = canvas3d.clamp(canvas3d.orbitDistance * factor, 120, 8000);
                                     canvas3d.updateCameraPose();
@@ -482,13 +533,7 @@ Window {
                             spacing: 10
 
                             Repeater {
-                                model: [
-                                    "重力场 g = 9.80665 m/s^2",
-                                    "积分器: RK4 (Adaptive)",
-                                    "碰撞模型: Impulse + Friction",
-                                    "约束求解: Sequential Impulse",
-                                    "误差阈值: 1e-6"
-                                ]
+                                model: ["重力场 g = 9.80665 m/s^2", "积分器: RK4 (Adaptive)", "碰撞模型: Impulse + Friction", "约束求解: Sequential Impulse", "误差阈值: 1e-6"]
 
                                 delegate: Rectangle {
                                     id: repeatItem
@@ -504,10 +549,10 @@ Window {
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         onEntered: {
-                                            repeatItem.hovered = true
+                                            repeatItem.hovered = true;
                                         }
                                         onExited: {
-                                            repeatItem.hovered = false
+                                            repeatItem.hovered = false;
                                         }
                                     }
 
@@ -638,13 +683,13 @@ Window {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     onEntered: {
-                                        computeBtnRect.hovered = true
+                                        computeBtnRect.hovered = true;
                                     }
                                     onExited: {
-                                        computeBtnRect.hovered = false
+                                        computeBtnRect.hovered = false;
                                     }
                                     onClicked: {
-                                        sceneController.stepOnce()
+                                        sceneController.stepOnce();
                                     }
                                 }
                                 Text {
@@ -684,10 +729,10 @@ Window {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     onEntered: {
-                                        valueChannel.hovered = true
+                                        valueChannel.hovered = true;
                                     }
                                     onExited: {
-                                        valueChannel.hovered = false
+                                        valueChannel.hovered = false;
                                     }
                                 }
                                 Text {
