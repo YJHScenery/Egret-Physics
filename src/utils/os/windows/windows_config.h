@@ -5,8 +5,6 @@
 #ifndef EGRET_PHYSICS_WINDOWS_CONFIG_H
 #define EGRET_PHYSICS_WINDOWS_CONFIG_H
 
-#include <Windows.h>
-
 void setWindowsTerminalUtf8();
 
 

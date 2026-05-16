@@ -145,6 +145,11 @@ set(CPP_FILES
 
         src/view/coordinate.cpp
         src/view/coordinate.h
+        src/view/qt_component_helper.cpp
+        src/view/qt_component_helper.h
+        src/utils/language/cpp_property.cpp
+        src/view/resource_helper.cpp
+        src/view/resource_helper.h
 
 )
 
