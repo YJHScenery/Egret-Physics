@@ -1,1 +1,3 @@
 dependency/include/** linguist-vendored
+
+*.py linguist-vendored
