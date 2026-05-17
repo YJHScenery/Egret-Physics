@@ -12,6 +12,7 @@
 #include "field_base.h"
 #include "shape_factory_registry.h"
 #include "shape_box.h"
+#include "shape_cylinder.h"
 #include "shape_sphere.h"
 
 namespace egret
@@ -26,9 +27,9 @@ namespace egret
             }
 
             return std::visit(
-                [fallback](const auto& value) -> double
+                [fallback]<typename T>(const T& value) -> double
                 {
-                    using ValueType = std::decay_t<decltype(value)>;
+                    using ValueType = std::decay_t<T>;
                     if constexpr (std::is_same_v<ValueType, double>) {
                         return value;
                     }
@@ -126,6 +127,16 @@ namespace egret
                                               const double mass)
     {
         return spawnBody(name, position, speed, std::make_unique<ShapeBox>(size), mass);
+    }
+
+    std::uint64_t WorldSceneManager::spawnCylinder(const std::string& name,
+                                                    const Eigen::Vector3d& position,
+                                                    const Eigen::Vector3d& speed,
+                                                    const double radius,
+                                                    const double height,
+                                                    const double mass)
+    {
+        return spawnBody(name, position, speed, std::make_unique<ShapeCylinder>(radius, height), mass);
     }
 
     std::optional<ShapeLoadInfo> WorldSceneManager::getBodyShapeLoadInfo(const std::uint64_t id) const

@@ -8,6 +8,6 @@ build/
 
 src/temp/
 
-/.qtcreator/
+.qtcreator/
 
 count.py

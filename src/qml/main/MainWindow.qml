@@ -669,99 +669,55 @@ ApplicationWindow {
 
                             // 新代码说明：这些按钮直接驱动 ViewModel 层，
                             // 由 ViewModel 再去调用 Model 层世界管理器和求解器。
-                            RowLayout {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 40
-                                spacing: 8
-
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 40
-                                    radius: 10
-                                    color: sceneController.running ? "#1E3A8A" : "#173B67"
-                                    border.width: 1
-                                    border.color: sceneController.running ? "#58B8FF" : "#2C5D88"
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: sceneController.running ? "暂停仿真" : "开始仿真"
-                                        color: "#EAF5FF"
-                                        font.pixelSize: 13
-                                        font.bold: true
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        onClicked: sceneController.toggleRunning()
-                                    }
-                                }
-
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 40
-                                    radius: 10
-                                    color: "#164A78"
-                                    border.width: 1
-                                    border.color: "#58B8FF"
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "单步求解"
-                                        color: "#EAF5FF"
-                                        font.pixelSize: 13
-                                        font.bold: true
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        onClicked: sceneController.stepOnce()
-                                    }
-                                }
-
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 40
-                                    radius: 10
-                                    color: "#0F3D62"
-                                    border.width: 1
-                                    border.color: "#90CFFF"
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "添加球体"
-                                        color: "#EAF5FF"
-                                        font.pixelSize: 13
-                                        font.bold: true
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        onClicked: sceneController.spawnSphere()
-                                    }
-                                }
-
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 40
-                                    radius: 10
-                                    color: "#0F3D62"
-                                    border.width: 1
-                                    border.color: "#90CFFF"
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "添加盒体"
-                                        color: "#EAF5FF"
-                                        font.pixelSize: 13
-                                        font.bold: true
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        onClicked: sceneController.spawnBox()
-                                    }
-                                }
-                            }
+                            // RowLayout {
+                            //     Layout.fillWidth: true
+                            //     Layout.preferredHeight: 40
+                            //     spacing: 8
+                            //
+                            //     // Rectangle {
+                            //     //     Layout.fillWidth: true
+                            //     //     Layout.preferredHeight: 40
+                            //     //     radius: 10
+                            //     //     color: sceneController.running ? "#1E3A8A" : "#173B67"
+                            //     //     border.width: 1
+                            //     //     border.color: sceneController.running ? "#58B8FF" : "#2C5D88"
+                            //     //
+                            //     //     Text {
+                            //     //         anchors.centerIn: parent
+                            //     //         text: sceneController.running ? "暂停仿真" : "开始仿真"
+                            //     //         color: "#EAF5FF"
+                            //     //         font.pixelSize: 13
+                            //     //         font.bold: true
+                            //     //     }
+                            //     //
+                            //     //     MouseArea {
+                            //     //         anchors.fill: parent
+                            //     //         onClicked: sceneController.toggleRunning()
+                            //     //     }
+                            //     // }
+                            //
+                            //     // Rectangle {
+                            //     //     Layout.fillWidth: true
+                            //     //     Layout.preferredHeight: 40
+                            //     //     radius: 10
+                            //     //     color: "#164A78"
+                            //     //     border.width: 1
+                            //     //     border.color: "#58B8FF"
+                            //     //
+                            //     //     Text {
+                            //     //         anchors.centerIn: parent
+                            //     //         text: "单步求解"
+                            //     //         color: "#EAF5FF"
+                            //     //         font.pixelSize: 13
+                            //     //         font.bold: true
+                            //     //     }
+                            //     //
+                            //     //     MouseArea {
+                            //     //         anchors.fill: parent
+                            //     //         onClicked: sceneController.stepOnce()
+                            //     //     }
+                            //     // }
+                            // }
 
                             Rectangle {
                                 id: computeBtnRect
@@ -785,12 +741,12 @@ ApplicationWindow {
                                         computeBtnRect.hovered = false;
                                     }
                                     onClicked: {
-                                        sceneController.stepOnce();
+                                        sceneController.toggleRunning()
                                     }
                                 }
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "运行数值求解"
+                                    text: sceneController.running ? "暂停仿真" : "开始仿真"
                                     color: "#EAF5FF"
                                     font.pixelSize: 14
                                     font.bold: true

@@ -7,22 +7,24 @@
 #include "basic_utils.h"
 #include <QObject>
 
-namespace egret {
+namespace egret
+{
+    class ResourceHelper : public QObject
+    {
+        Q_OBJECT
 
-class ResourceHelper: public QObject {
-Q_OBJECT
-public:
-    explicit ResourceHelper(QObject *parent = nullptr) : QObject(parent) {};
+    public:
+        explicit ResourceHelper(QObject* parent = nullptr);
 
-    Q_INVOKABLE static QString getVersionString(const QString& prefix, const QString& suffix, const QString& sep = " ");
+        Q_INVOKABLE static QString getVersionString(const QString& prefix, const QString& suffix,
+                                                    const QString& sep = " ");
 
-    Q_INVOKABLE static  int getMajorVersion();
+        Q_INVOKABLE static int getMajorVersion();
 
-    Q_INVOKABLE static   int getMinorVersion();
+        Q_INVOKABLE static int getMinorVersion();
 
-    Q_INVOKABLE static  int getPatchVersion();
-};
-
+        Q_INVOKABLE static int getPatchVersion();
+    };
 } // egret
 
 #endif //EGRET_PHYSICS_RESOURCE_HELPER_H

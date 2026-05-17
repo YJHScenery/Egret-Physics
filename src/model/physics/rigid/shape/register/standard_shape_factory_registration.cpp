@@ -5,6 +5,7 @@
 #include "shape_factory_registry.h"
 
 #include "shape_box.h"
+#include "shape_cylinder.h"
 #include "shape_sphere.h"
 #include "world_scene_manager.h"
 
@@ -14,10 +15,10 @@ namespace egret
     {
         bool registerStandardShapeFactories()
         {
-            auto& registry = ShapeFactoryRegistry::instance();
+            auto &registry = ShapeFactoryRegistry::instance();
 
-            registry.registerFactory(TYPE_ID_STANDARD_SPHERE, [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
-            {
+            registry.registerFactory(TYPE_ID_STANDARD_SPHERE, [](const ShapeLoadInfo &info) -> std::unique_ptr<ShapeBase>
+                                     {
                 const auto it = info.parameters.find("radius");
                 if (it == info.parameters.end()) {
                     return nullptr;
@@ -28,11 +29,10 @@ namespace egret
                     return nullptr;
                 }
 
-                return std::make_unique<ShapeSphere>(*radius);
-            });
+                return std::make_unique<ShapeSphere>(*radius); });
 
-            registry.registerFactory(TYPE_ID_STANDARD_BOX, [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
-            {
+            registry.registerFactory(TYPE_ID_STANDARD_BOX, [](const ShapeLoadInfo &info) -> std::unique_ptr<ShapeBase>
+                                     {
                 const auto it = info.parameters.find("size");
                 if (it == info.parameters.end()) {
                     return nullptr;
@@ -43,8 +43,23 @@ namespace egret
                     return nullptr;
                 }
 
-                return std::make_unique<ShapeBox>(*size);
-            });
+                return std::make_unique<ShapeBox>(*size); });
+
+            registry.registerFactory(TYPE_ID_STANDARD_CYLINDER, [](const ShapeLoadInfo &info) -> std::unique_ptr<ShapeBase>
+                                     {
+                const auto radiusIt = info.parameters.find("radius");
+                const auto heightIt = info.parameters.find("height");
+                if (radiusIt == info.parameters.end() || heightIt == info.parameters.end()) {
+                    return nullptr;
+                }
+
+                const auto radius = std::get_if<double>(&radiusIt->second);
+                const auto height = std::get_if<double>(&heightIt->second);
+                if (radius == nullptr || height == nullptr) {
+                    return nullptr;
+                }
+
+                return std::make_unique<ShapeCylinder>(*radius, *height); });
 
             return true;
         }

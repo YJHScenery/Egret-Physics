@@ -28,7 +28,7 @@ namespace egret
         Eigen::Matrix3d inertiaTensor{};
         inertiaTensor.setIdentity();
         inertiaTensor(3, 3) = 2.0;
-        inertiaTensor *= 0.25 * mass * pow(m_radius, 2);
+        inertiaTensor *= 0.25 * mass * quickSquare(m_radius);
         return inertiaTensor;
     }
 
@@ -39,7 +39,7 @@ namespace egret
         for (int i = 0; i < 3; i++) {
             const double a{transform.getScale().x() * rotationMat(i, 0)};
             const double b{transform.getScale().y() * rotationMat(i, 1)};
-            const double halfLen{m_radius * sqrt(pow(a, 2) + pow(b, 2))};
+            const double halfLen{m_radius * sqrt(quickSquare(a) + quickSquare(b))};
             min[i] = transform.getTranslation()[i] - halfLen;
             max[i] = transform.getTranslation()[i] + halfLen;
         }

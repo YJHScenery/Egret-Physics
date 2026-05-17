@@ -167,6 +167,23 @@ namespace egret
                                double mass);
 
         /**
+         * @brief 创建一个圆柱体实体。
+         * @param name 实体名称。
+         * @param position 初始位置。
+         * @param speed 初始速度。
+         * @param radius 圆柱体半径。
+         * @param height 圆柱体高度。
+         * @param mass 质量，0 表示静态体。
+         * @return 新实体的 ID。
+         */
+        std::uint64_t spawnCylinder(const std::string& name,
+                                    const Eigen::Vector3d& position,
+                                    const Eigen::Vector3d& speed,
+                                    double radius,
+                                    double height,
+                                    double mass);
+
+        /**
          * @brief 获取实体对应形状的加载信息（由 Shape 多态提供）。
          * @param id 实体 ID。
          * @return 找到则返回加载信息，否则返回空。
