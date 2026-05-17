@@ -224,7 +224,6 @@ ApplicationWindow {
                     Layout.preferredWidth: 48
                     Layout.preferredHeight: 48
                     fillMode: Image.PreserveAspectFit  // 按比例缩放，完整显示
-
                 }
 
                 Label {

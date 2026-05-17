@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
     app.setApplicationName(EGRET_PHYSICS_APPLICATION_NAME); // NOLINT(*-static-accessed-through-instance)
     app.setApplicationDisplayName(EGRET_PHYSICS_APPLICATION_DISPLAY_NAME); // NOLINT(*-static-accessed-through-instance)
     app.setApplicationVersion(EGRET_PHYSICS_VERSION_STRING); // NOLINT(*-static-accessed-through-instance)
-    app.setWindowIcon(QIcon(":/app_icon/assets/favicon/favicon_bg_radius.png")); // NOLINT(*-static-accessed-through-instance)
+    app.setWindowIcon(QIcon(":/app_icon/assets/favicon/favicon_1024.png")); // NOLINT(*-static-accessed-through-instance)
 
     egret::AsyncLogger& logger{egret::AsyncLogger::instance()};
     logger.setLogFilePath("./logs/egret_physics_debug.log");
