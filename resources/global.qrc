@@ -13,4 +13,22 @@
         <file>assets/favicon/favicon_bg.png</file>
         <file>assets/favicon/favicon_bg_radius.png</file>
     </qresource>
+    <qresource prefix="/main_icons">
+        <file>assets/icons/copy.svg</file>
+        <file>assets/icons/delete.svg</file>
+        <file>assets/icons/edit.svg</file>
+        <file>assets/icons/flush.svg</file>
+        <file>assets/icons/help.svg</file>
+        <file>assets/icons/help_dark.svg</file>
+        <file>assets/icons/paste.svg</file>
+        <file>assets/icons/settings_dark.svg</file>
+        <file>assets/icons/undo.svg</file>
+        <file>assets/icons/view.svg</file>
+        <file>assets/icons/settings.svg</file>
+        <file>assets/icons/exit.svg</file>
+        <file>assets/icons/new_scene.svg</file>
+        <file>assets/icons/open.svg</file>
+        <file>assets/icons/save.svg</file>
+        <file>assets/icons/save_as.svg</file>
+    </qresource>
 </RCC>
