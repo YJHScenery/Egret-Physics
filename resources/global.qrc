@@ -1,8 +1,6 @@
 <RCC>
     <qresource prefix="/app_icon">
         <file>assets/egret_logo.png</file>
-        <file>assets/favicon/favicon.png</file>
-        <file>assets/favicon/favicon_16.png</file>
         <file>assets/favicon/favicon_32.png</file>
         <file>assets/favicon/favicon_48.png</file>
         <file>assets/favicon/favicon_64.png</file>
@@ -10,8 +8,8 @@
         <file>assets/favicon/favicon_256.png</file>
         <file>assets/favicon/favicon_512.png</file>
         <file>assets/favicon/favicon_1024.png</file>
-        <file>assets/favicon/favicon_bg.png</file>
-        <file>assets/favicon/favicon_bg_radius.png</file>
+        <file>assets/favicon/favicon_2048.png</file>
+
     </qresource>
     <qresource prefix="/main_icons">
         <file>assets/icons/copy.svg</file>

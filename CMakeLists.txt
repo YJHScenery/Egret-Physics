@@ -154,9 +154,10 @@ set(CPP_FILES
 )
 
 
-add_executable(${PROJECT_NAME}
+add_executable(${PROJECT_NAME} WIN32
         ${CPP_FILES}
         ${QRC_FILES}
+        resources/app.rc
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -205,7 +206,15 @@ if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     else ()
         message(WARNING "windeployqt not found under '${QT_INSTALL_PATH}/bin'. QML modules (QtQuick/Controls/Layouts) may fail to load at runtime.")
     endif ()
+
+    # 设置调试工作目录
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+            VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    
 endif ()
+
+
 
 option(BUILD_TESTS "Build unit tests" ON)
 
