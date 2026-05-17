@@ -2,11 +2,13 @@
 // Created by jehor on 2026/4/25.
 //
 #include "transform.h"
+#include "basic_utils.h"
+
 namespace egret
 {
     Eigen::Matrix3d Transform::getRotationMatrix() const
     {
-        const std::function<double(double)> squareD{[](const double x) { return x * x; }};
+        // const std::function<double(double)> squareD<double, int, 2>{[](const double x) { return x * x; }};
 
         const double x{m_rotation.x()};
         const double y{m_rotation.y()};
@@ -15,9 +17,9 @@ namespace egret
 
         Eigen::Matrix3d rotationMat{};
 
-        rotationMat << 1.0 - 2.0 * (squareD(y) + squareD(z)), 2.0 * (x * y - w * z), 2.0 * (x * z + w * y),
-            2.0 * (x * y + w * z), 1.0 - 2.0 * (squareD(x) + squareD(z)), 2.0 * (y * z - w * x),
-            2.0 * (x * z - w * y), 2.0 * (y * z + w * x), 1.0 - 2.0 * (squareD(x) + squareD(y));
+        rotationMat << 1.0 - 2.0 * (quickPower<double, int, 2>(y) + quickPower<double, int, 2>(z)), 2.0 * (x * y - w * z), 2.0 * (x * z + w * y),
+            2.0 * (x * y + w * z), 1.0 - 2.0 * (quickPower<double, int, 2>(x) + quickPower<double, int, 2>(z)), 2.0 * (y * z - w * x),
+            2.0 * (x * z - w * y), 2.0 * (y * z + w * x), 1.0 - 2.0 * (quickPower<double, int, 2>(x) + quickPower<double, int, 2>(y));
 
         return rotationMat;
     }

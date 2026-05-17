@@ -20,10 +20,10 @@ namespace egret
 
     Eigen::Matrix3d ShapeCylindricalShell::getInertiaTensor(double mass) const
     {
-        const double i_xx{(0.5 * pow(m_radius, 2) + 1.0 / 12.0 * pow(m_height, 2)) * mass};
+        const double i_xx{(0.5 * quickSquare(m_radius) + 1.0 / 12.0 * quickSquare(m_height)) * mass};
         const double i_yy{i_xx};
 
-        const double i_zz{pow(m_radius, 2) * mass};
+        const double i_zz{quickSquare(m_radius) * mass};
 
         Eigen::Matrix3d inertiaTensor;
         inertiaTensor(0, 0) = i_xx;

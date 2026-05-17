@@ -20,7 +20,7 @@ namespace egret
 
     double ShapeCylinder::getVolume() const
     {
-        return m_height * pow(m_radius, 2) * PI;
+        return m_height * quickSquare(m_radius) * PI;
     }
 
     Eigen::Vector3d ShapeCylinder::getCenterOfMass() const
@@ -30,10 +30,10 @@ namespace egret
 
     Eigen::Matrix3d ShapeCylinder::getInertiaTensor(double mass) const
     {
-        const double i_xx{1.0 / 12.0 * (3 * pow(m_radius, 2) + pow(m_height, 2)) * mass};
+        const double i_xx{1.0 / 12.0 * (3 * quickSquare(m_radius) + quickSquare(m_height)) * mass};
         const double i_yy{i_xx};
 
-        const double i_zz{0.5 * pow(m_radius, 2) * mass};
+        const double i_zz{0.5 * quickSquare(m_radius) * mass};
 
         Eigen::Matrix3d inertiaTensor;
         inertiaTensor(0, 0) = i_xx;

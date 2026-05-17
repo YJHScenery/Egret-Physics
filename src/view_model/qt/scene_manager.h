@@ -95,11 +95,11 @@ namespace egret
         /** 重置场景。 */
         Q_INVOKABLE void reset();
 
-        /** 生成一个默认球体。 */
-        Q_INVOKABLE void spawnSphere();
-
-        /** 生成一个默认盒体。 */
-        Q_INVOKABLE void spawnBox();
+        // /** 生成一个默认球体。 */
+        // Q_INVOKABLE void spawnSphere();
+        //
+        // /** 生成一个默认盒体。 */
+        // Q_INVOKABLE void spawnBox();
 
         /**
          * @brief 将屏幕坐标映射到世界 XY 平面（z 固定）上的点。

@@ -77,7 +77,7 @@ private:
     class WorkerThread : public QThread
     {
     public:
-        WorkerThread(AsyncLogger* logger);
+        explicit WorkerThread(AsyncLogger* logger);
         ~WorkerThread() override;
         void stop();
     protected:

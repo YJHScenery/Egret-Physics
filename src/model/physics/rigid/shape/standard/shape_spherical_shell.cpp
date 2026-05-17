@@ -17,7 +17,7 @@ namespace egret
 
     Eigen::Matrix3d ShapeSphericalShell::getInertiaTensor(double mass) const
     {
-        const double inertia {2.0 / 3.0 * mass * pow(m_radius, 2)};
+        const double inertia {2.0 / 3.0 * mass * quickSquare(m_radius)};
         return Eigen::Matrix3d::Identity() * inertia;
     }
 

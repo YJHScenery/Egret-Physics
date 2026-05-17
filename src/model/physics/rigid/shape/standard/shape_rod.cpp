@@ -28,7 +28,7 @@ namespace egret
         Eigen::Matrix3d inertiaTensor;
         inertiaTensor.setIdentity();
         inertiaTensor(2, 2) = 0;
-        inertiaTensor *= 1.0 / 12.0 * mass * pow(m_length, 2);
+        inertiaTensor *= 1.0 / 12.0 * mass * quickSquare(m_length);
         return inertiaTensor;
     }
 

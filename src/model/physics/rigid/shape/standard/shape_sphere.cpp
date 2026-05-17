@@ -24,7 +24,7 @@ namespace egret
 
     double ShapeSphere::getVolume() const
     {
-        return 4.0 / 3.0 * pow(m_radius, 3) * PI;
+        return 4.0 / 3.0 * quickPower<double, int, 3>(m_radius) * PI;
     }
 
     Eigen::Vector3d ShapeSphere::getCenterOfMass() const
@@ -34,7 +34,7 @@ namespace egret
 
     Eigen::Matrix3d ShapeSphere::getInertiaTensor(double mass) const
     {
-        const double inertia {0.4 * mass * pow(m_radius, 2)};
+        const double inertia {0.4 * mass * quickSquare(m_radius)};
         return Eigen::Matrix3d::Identity() * inertia;
     }
 

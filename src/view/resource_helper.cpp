@@ -7,6 +7,10 @@
 
 namespace egret
 {
+    ResourceHelper::ResourceHelper(QObject* parent) : QObject(parent)
+    {
+    }
+
     QString ResourceHelper::getVersionString(const QString& prefix, const QString& suffix, const QString& sep)
     {
         QString result{};

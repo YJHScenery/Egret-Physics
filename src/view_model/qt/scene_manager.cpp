@@ -191,47 +191,47 @@ namespace egret
         emit entityChanged();
     }
 
-    void SceneManagerViewModel::spawnSphere()
-    {
-        if (m_world == nullptr)
-        {
-            return;
-        }
-
-        const std::uint64_t id = m_world->spawnSphere(
-            "动态球体",
-            {180.0 + static_cast<double>(m_world->getBodyCount()) * 28.0, 120.0, 180.0},
-            {40.0, 0.0, 0.0},
-            28.0,
-            1.0);
-
-        static_cast<void>(id);
-        refreshBodyModel();
-        m_entityCount = static_cast<int>(m_world->getBodyCount());
-        emit entityCountChanged();
-        emit entityChanged();
-    }
-
-    void SceneManagerViewModel::spawnBox()
-    {
-        if (m_world == nullptr)
-        {
-            return;
-        }
-
-        const std::uint64_t id = m_world->spawnBox(
-            "动态盒体",
-            {420.0 + static_cast<double>(m_world->getBodyCount()) * 22.0, 90.0, 220.0},
-            {0.0, 0.0, 0.0},
-            {52.0, 52.0, 52.0},
-            2.0);
-
-        static_cast<void>(id);
-        refreshBodyModel();
-        m_entityCount = static_cast<int>(m_world->getBodyCount());
-        emit entityCountChanged();
-        emit entityChanged();
-    }
+    // void SceneManagerViewModel::spawnSphere()
+    // {
+    //     if (m_world == nullptr)
+    //     {
+    //         return;
+    //     }
+    //
+    //     const std::uint64_t id = m_world->spawnSphere(
+    //         "动态球体",
+    //         {180.0 + static_cast<double>(m_world->getBodyCount()) * 28.0, 120.0, 180.0},
+    //         {40.0, 0.0, 0.0},
+    //         28.0,
+    //         1.0);
+    //
+    //     static_cast<void>(id);
+    //     refreshBodyModel();
+    //     m_entityCount = static_cast<int>(m_world->getBodyCount());
+    //     emit entityCountChanged();
+    //     emit entityChanged();
+    // }
+    //
+    // void SceneManagerViewModel::spawnBox()
+    // {
+    //     if (m_world == nullptr)
+    //     {
+    //         return;
+    //     }
+    //
+    //     const std::uint64_t id = m_world->spawnBox(
+    //         "动态盒体",
+    //         {420.0 + static_cast<double>(m_world->getBodyCount()) * 22.0, 90.0, 220.0},
+    //         {0.0, 0.0, 0.0},
+    //         {52.0, 52.0, 52.0},
+    //         2.0);
+    //
+    //     static_cast<void>(id);
+    //     refreshBodyModel();
+    //     m_entityCount = static_cast<int>(m_world->getBodyCount());
+    //     emit entityCountChanged();
+    //     emit entityChanged();
+    // }
 
     QVariantMap SceneManagerViewModel::mapScreenToWorldOnPlane(const double screenX,
                                                                const double screenY,
@@ -467,6 +467,8 @@ namespace egret
         generateField({-150, 259.8, 0}, {-120, -45, 0}, 100, 50000);
         generateField({-150, -259.8, 0}, {-120, 45, 0}, 50, 50000);
 
+
+        m_world->spawnCylinder("cylinder", {}, {}, 4, 2, 4);
 
         // generateField({10, 0, 0}, {-0.1, 0, 0.1}, 1, 1000);
         // generateField({-10, 0, 0}, {0, 0.1, -0.1}, 1, 1000);

@@ -18,7 +18,7 @@
 
 using namespace egret;
 
-static bool registeStandardShape()
+static bool registerStandardShape()
 {
     auto& reg = ShapeRegister::instance();
     
@@ -607,4 +607,4 @@ static bool registeStandardShape()
 }
 
 
-bool dummy = registeStandardShape();
+bool dummy = registerStandardShape();

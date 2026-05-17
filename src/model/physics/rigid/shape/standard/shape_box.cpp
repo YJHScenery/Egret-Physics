@@ -72,9 +72,9 @@ namespace egret
     Eigen::Matrix3d ShapeBox::getInertiaTensor(double mass) const
     {
         constexpr double coefficient{1.0 / 12.0};
-        const double i_xx{coefficient * mass * (pow(m_size.y(), 2) + pow(m_size.z(), 2))};
-        const double i_yy{coefficient * mass * (pow(m_size.x(), 2) + pow(m_size.z(), 2))};
-        const double i_zz{coefficient * mass * (pow(m_size.x(), 2) + pow(m_size.y(), 2))};
+        const double i_xx{coefficient * mass * (quickSquare(m_size.y()) + quickSquare(m_size.z()))};
+        const double i_yy{coefficient * mass * (quickSquare(m_size.x()) + quickSquare(m_size.z()))};
+        const double i_zz{coefficient * mass * (quickSquare(m_size.x()) + quickSquare(m_size.y()))};
         Eigen::Matrix3d inertiaTensor;
         inertiaTensor(0, 0) = i_xx;
         inertiaTensor(1, 1) = i_yy;
