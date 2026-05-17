@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import QtQuick.Effects
 
 Rectangle {
     id: root
@@ -34,7 +35,19 @@ Rectangle {
     property color menuItemHoverTextColor: "#FFFFFF"
     property color menuSeparatorColor: "#2C4E74"
 
+    property color iconEffectColor: "#DDDDDD"
+    property double iconEffectColorization: 1.0
+    property double iconEffectBrightness: 0.75
+
+    property int iconSize: 16
+    property int iconSpacing: 8
+    property int checkMarkWidth: 20
+
+    property bool forceCheckMarkVisible: false
+    property bool forceIconVisible: false
+
     signal menuTriggered(int menuIndex, int itemIndex, string itemId)
+    signal checkedChanged(int menuIndex, int itemIndex, bool checked)
 
     property int openIndex: -1
     property bool mnemonicsVisible: false
@@ -209,6 +222,23 @@ Rectangle {
         if (!item || item.separator || item.enabled === false) {
             return;
         }
+
+        if (item.checkable === true) {
+            var newChecked = !item.checked;
+            item.checked = newChecked;
+
+            if (item.actionGroup) {
+                for (var j = 0; j < menu.items.length; j++) {
+                    var otherItem = menu.items[j];
+                    if (otherItem && otherItem !== item && otherItem.actionGroup === item.actionGroup) {
+                        otherItem.checked = false;
+                    }
+                }
+            }
+
+            checkedChanged(menuIndex, itemIndex, newChecked);
+        }
+
         if (item.onTriggered) {
             item.onTriggered();
         }
@@ -407,6 +437,9 @@ Rectangle {
                     property var itemData: modelData
                     property bool isSeparator: itemData && itemData.separator === true
                     property bool isEnabled: itemData && itemData.enabled !== false
+                    property bool isCheckable: itemData && itemData.checkable === true
+                    property bool isChecked: itemData && itemData.checked === true
+                    property string itemIcon: itemData && itemData.icon || ""
 
                     implicitWidth: row.implicitWidth + 20
                     width: menuList.width
@@ -423,7 +456,54 @@ Rectangle {
                             anchors.fill: parent
                             anchors.leftMargin: 10
                             anchors.rightMargin: 10
-                            spacing: 10
+                            spacing: root.iconSpacing
+
+                            Item {
+                                Layout.minimumWidth: isCheckable || root.forceCheckMarkVisible ? root.checkMarkWidth : 0
+                                Layout.preferredWidth: isCheckable || root.forceCheckMarkVisible ? root.checkMarkWidth : 0
+                                Layout.maximumWidth: isCheckable || root.forceCheckMarkVisible ? root.checkMarkWidth : 0
+                                visible: isCheckable || root.forceCheckMarkVisible
+
+                                Text {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 2
+                                    text: isChecked ? "✔" : ""
+                                    color: !menuItem.isEnabled ? root.textDisabledColor : (menuPopup.highlightedIndex === index ? root.menuItemHoverTextColor : root.menuItemTextColor)
+                                    font.pixelSize: 14
+                                    horizontalAlignment: Text.AlignLeft
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+
+                            Item {
+                                id: iconItem
+                                property bool hasIcon: itemIcon !== "" || root.forceIconVisible
+                                Layout.minimumWidth: hasIcon ? root.iconSize : 0
+                                Layout.preferredWidth: hasIcon ? root.iconSize : 0
+                                Layout.maximumWidth: hasIcon ? root.iconSize : 0
+                                Layout.minimumHeight: hasIcon ? root.iconSize : 0
+                                Layout.preferredHeight: hasIcon ? root.iconSize : 0
+                                Layout.maximumHeight: hasIcon ? root.iconSize : 0
+                                visible: hasIcon
+
+                                Image {
+                                    id: iconImage
+                                    anchors.fill: parent
+                                    visible: iconItem.hasIcon
+                                    source: itemIcon
+                                    fillMode: Image.PreserveAspectFit
+                                    opacity: !menuItem.isEnabled ? 0.5 : 1
+                                }
+
+                                MultiEffect {
+                                    anchors.fill: iconImage
+                                    source: iconImage
+                                    colorization: root.iconEffectColorization
+                                    colorizationColor: root.iconEffectColor
+                                    brightness: root.iconEffectBrightness
+                                    visible: iconItem.hasIcon && menuItem.isEnabled
+                                }
+                            }
 
                             Text {
                                 text: root.richTextWithUnderline(root.mnemonicInfo(itemData.text || "").display, root.mnemonicInfo(itemData.text || "").index)

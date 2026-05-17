@@ -71,32 +71,36 @@ ApplicationWindow {
                     title: "文件(&F)",
                     items: [
                         {
-                            text: "新建场景(&N)",
+                            text: "新建(&N)",
                             shortcut: "Ctrl+N",
                             onTriggered: function () {
                                 sceneController.reset();
-                            }
+                            },
+                            icon: "qrc:/main_icons/assets/icons/new_scene.svg"
                         },
                         {
                             text: "打开...(&O)",
                             shortcut: "Ctrl+O",
                             onTriggered: function () {
                                 console.log("Open scene");
-                            }
+                            },
+                            icon: "qrc:/main_icons/assets/icons/open.svg"
                         },
                         {
                             text: "保存(&S)",
                             shortcut: "Ctrl+S",
                             onTriggered: function () {
                                 console.log("Save");
-                            }
+                            },
+                            icon: "qrc:/main_icons/assets/icons/save.svg"
                         },
                         {
-                            text: "另存为...(&A)",
+                            text: "另存为(&A)",
                             shortcut: "Ctrl+Shift+S",
                             onTriggered: function () {
                                 console.log("Save as");
-                            }
+                            },
+                            icon: "qrc:/main_icons/assets/icons/save_as.svg"
                         },
                         {
                             separator: true
@@ -106,7 +110,9 @@ ApplicationWindow {
                             shortcut: "Ctrl+Alt+S",
                             onTriggered: function() {
                                 console.log("Settings");
-                            }
+                            },
+                            // icon: "qrc:/main_icons/assets/icons/settings.svg"
+                            icon: "qrc:/main_icons/assets/icons/settings.svg",
                         },
                         {
                             separator: true
@@ -116,7 +122,8 @@ ApplicationWindow {
                             shortcut: "Alt+F4",
                             onTriggered: function () {
                                 Qt.quit();
-                            }
+                            },
+                            icon: "qrc:/main_icons/assets/icons/exit.svg"
                         }
                     ]
                 },
@@ -156,15 +163,21 @@ ApplicationWindow {
                         {
                             text: "网格(&G)",
                             shortcut: "Ctrl+G",
+                            checkable: true,
+                            checked: true,
                             onTriggered: function () {
-                                console.log("Toggle grid");
+                                // console.log("Toggle grid");
+                                coordinateSystem.gridOn(this.checked)
                             }
                         },
                         {
                             text: "坐标轴(&A)",
                             shortcut: "Ctrl+H",
+                            checkable: true,
+                            checked: true,
                             onTriggered: function () {
-                                console.log("Toggle axes");
+                                // console.log("Toggle axes");
+                                coordinateSystem.axisOn(this.checked)
                             }
                         }
                     ]
@@ -181,6 +194,7 @@ ApplicationWindow {
                         },
                         {
                             text: "关于Qt(&Q)",
+                            shortcut: "Shift+Alt+Q",
                             onTriggered: function () {
                                 qtHelper.showAboutQt();
                             }
@@ -301,21 +315,26 @@ ApplicationWindow {
         }
 
         RowLayout {
+            id: mainRowLayout
             Layout.fillWidth: true
             Layout.fillHeight: true
+            property string currentRoute: "scene";
             spacing: 14
 
             LeftNavPanel {
+                id: leftNevPanel
                 Layout.preferredWidth: 250
                 Layout.fillHeight: true
-                onNavSelected: {
+                onNavSelected: function(route) {
                     console.log("Switch route:", route);
+                    mainRowLayout.currentRoute = route;
                 }
             }
 
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                visible: mainRowLayout.currentRoute === "scene"
                 spacing: 14
 
                 RowLayout {

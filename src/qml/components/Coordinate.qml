@@ -19,50 +19,67 @@ Node {
     property bool autoExtent: true
     readonly property real effectiveExtent: autoExtent ? gridExtentForView() : gridExtent
 
+    property bool axisVisible: true
+    property bool gridVisible: true
+
+    signal axisOn(bool on)
+    signal gridOn(bool on)
+
+    onAxisOn: function(on) { axisVisible = on; }
+    onGridOn: function(on) { gridVisible = on; }
+
     function unitsPerPixel(distance) {
-        var h = viewportHeight
+        var h = viewportHeight;
         if (h <= 0 || !camera) {
-            return 0.001
+            return 0.001;
         }
-        var fovRad = camera.fieldOfView * Math.PI / 180.0
-        var frustumHeight = 2.0 * distance * Math.tan(fovRad / 2.0)
-        return frustumHeight / h
+        var fovRad = camera.fieldOfView * Math.PI / 180.0;
+        var frustumHeight = 2.0 * distance * Math.tan(fovRad / 2.0);
+        return frustumHeight / h;
     }
 
     function gridExtentForView() {
         if (!camera || viewportHeight <= 0 || viewportWidth <= 0) {
-            return gridExtent
+            return gridExtent;
         }
-        var fovRad = camera.fieldOfView * Math.PI / 180.0
-        var halfHeight = orbitDistance * Math.tan(fovRad / 2.0)
-        var aspect = viewportWidth / viewportHeight
-        var halfWidth = halfHeight * aspect
-        return Math.max(halfWidth, halfHeight) * 1.1
+        var fovRad = camera.fieldOfView * Math.PI / 180.0;
+        var halfHeight = orbitDistance * Math.tan(fovRad / 2.0);
+        var aspect = viewportWidth / viewportHeight;
+        var halfWidth = halfHeight * aspect;
+        return Math.max(halfWidth, halfHeight) * 1.1;
     }
 
     AxisHelper {
+        id: axisHelper
         axisLength: root.effectiveExtent
         axisThickness: root.unitsPerPixel(root.orbitDistance) * root.axisLinePixels
+        visible: root.axisVisible
     }
 
     GridPlane {
+        id: gridPlaneX
         extent: root.effectiveExtent
         step: root.gridStep
         maxLines: root.maxGridLines
+        visible: root.gridVisible
     }
 
     GridPlane {
+        id: gridPlaneZ
         extent: root.effectiveExtent
         step: root.gridStep
         maxLines: root.maxGridLines
         eulerRotation.x: 90
+        visible: root.gridVisible
     }
 
     GridPlane {
+        id: gridPlaneY
         extent: root.effectiveExtent
         step: root.gridStep
         maxLines: root.maxGridLines
         eulerRotation.z: 90
+        visible: root.gridVisible
     }
 
     component GridPlane: Node {
@@ -79,7 +96,7 @@ Node {
         readonly property real majorEvery: Math.max(step * 5, 0.5)
 
         function isMajor(offset) {
-            return Math.abs(offset) % majorEvery < 0.001
+            return Math.abs(offset) % majorEvery < 0.001;
         }
 
         Repeater3D {
@@ -146,13 +163,43 @@ Node {
         property real arrowLength: 1.2
         property real arrowRadius: 0.22
 
-        AxisLine { length: axisLength; thickness: axisThickness; color: "#E0E7FF"; axis: Qt.vector3d(1, 0, 0) }
-        AxisLine { length: axisLength; thickness: axisThickness; color: "#4B5563"; axis: Qt.vector3d(0, 0, 1) }
-        AxisLine { length: axisLength; thickness: axisThickness; color: "#9CA3AF"; axis: Qt.vector3d(0, 1, 0) }
+        AxisLine {
+            length: axisLength
+            thickness: axisThickness
+            color: "#E0E7FF"
+            axis: Qt.vector3d(1, 0, 0)
+        }
+        AxisLine {
+            length: axisLength
+            thickness: axisThickness
+            color: "#4B5563"
+            axis: Qt.vector3d(0, 0, 1)
+        }
+        AxisLine {
+            length: axisLength
+            thickness: axisThickness
+            color: "#9CA3AF"
+            axis: Qt.vector3d(0, 1, 0)
+        }
 
-        AxisLine { length: axisLength; thickness: axisThickness; color: "#E0E7FF"; axis: Qt.vector3d(-1, 0, 0) }
-        AxisLine { length: axisLength; thickness: axisThickness; color: "#4B5563"; axis: Qt.vector3d(0, 0, -1) }
-        AxisLine { length: axisLength; thickness: axisThickness; color: "#9CA3AF"; axis: Qt.vector3d(0, -1, 0) }
+        AxisLine {
+            length: axisLength
+            thickness: axisThickness
+            color: "#E0E7FF"
+            axis: Qt.vector3d(-1, 0, 0)
+        }
+        AxisLine {
+            length: axisLength
+            thickness: axisThickness
+            color: "#4B5563"
+            axis: Qt.vector3d(0, 0, -1)
+        }
+        AxisLine {
+            length: axisLength
+            thickness: axisThickness
+            color: "#9CA3AF"
+            axis: Qt.vector3d(0, -1, 0)
+        }
 
         AxisArrow {
             color: "#E0E7FF"
@@ -189,16 +236,8 @@ Node {
                 shape: SimpleGeometry.Cube
                 size: 1.0
             }
-            scale: Qt.vector3d(
-                Math.abs(axis.x) > 0 ? length : thickness,
-                Math.abs(axis.y) > 0 ? length : thickness,
-                Math.abs(axis.z) > 0 ? length : thickness
-            )
-            position: Qt.vector3d(
-                axis.x * length / 2,
-                axis.y * length / 2,
-                axis.z * length / 2
-            )
+            scale: Qt.vector3d(Math.abs(axis.x) > 0 ? length : thickness, Math.abs(axis.y) > 0 ? length : thickness, Math.abs(axis.z) > 0 ? length : thickness)
+            position: Qt.vector3d(axis.x * length / 2, axis.y * length / 2, axis.z * length / 2)
             materials: DefaultMaterial {
                 diffuseColor: axisLineRoot.color
                 lighting: DefaultMaterial.NoLighting
@@ -218,21 +257,21 @@ Node {
 
         function rotationForDirection() {
             if (direction.x === 1) {
-                return Qt.vector3d(0, 0, -90)
+                return Qt.vector3d(0, 0, -90);
             }
             if (direction.x === -1) {
-                return Qt.vector3d(0, 0, 90)
+                return Qt.vector3d(0, 0, 90);
             }
             if (direction.z === 1) {
-                return Qt.vector3d(-90, 0, 0)
+                return Qt.vector3d(-90, 0, 0);
             }
             if (direction.z === -1) {
-                return Qt.vector3d(90, 0, 0)
+                return Qt.vector3d(90, 0, 0);
             }
             if (direction.y === -1) {
-                return Qt.vector3d(180, 0, 0)
+                return Qt.vector3d(180, 0, 0);
             }
-            return Qt.vector3d(0, 0, 0)
+            return Qt.vector3d(0, 0, 0);
         }
 
         Model {

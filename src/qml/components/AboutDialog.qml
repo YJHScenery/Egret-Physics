@@ -225,7 +225,7 @@ Dialog {
             }
 
             Text {
-                text: "© 2024 Egret Physics Development Team"
+                text: "© 2026 Egret Physics Development Team"
                 color: "#5F84AD"
                 font.pixelSize: 11
                 Layout.alignment: Qt.AlignHCenter
