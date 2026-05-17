@@ -125,6 +125,7 @@ ApplicationWindow {
                             },
                             icon: "qrc:/main_icons/assets/icons/exit.svg"
                         }
+
                     ]
                 },
                 {
@@ -133,27 +134,32 @@ ApplicationWindow {
                         {
                             text: "撤销(&U)",
                             shortcut: "Ctrl+Z",
-                            enabled: false
+                            enabled: false,
+                            icon: "qrc:/main_icons/assets/icons/undo.svg"
                         },
                         {
                             text: "恢复(&R)",
                             shortcut: "Ctrl+Y",
-                            enabled: false
+                            enabled: false,
+                            icon: "qrc:/main_icons/assets/icons/recover.svg"
                         },
                         {
                             separator: true
                         },
                         {
                             text: "剪切(&T)",
-                            shortcut: "Ctrl+X"
+                            shortcut: "Ctrl+X",
+                            icon: "qrc:/main_icons/assets/icons/cut.svg"
                         },
                         {
                             text: "复制(C)",
-                            shortcut: "Ctrl+C"
+                            shortcut: "Ctrl+C",
+                            icon: "qrc:/main_icons/assets/icons/copy.svg"
                         },
                         {
                             text: "粘贴(P)",
-                            shortcut: "Ctrl+V"
+                            shortcut: "Ctrl+V",
+                            icon: "qrc:/main_icons/assets/icons/paste.svg"
                         }
                     ]
                 },
@@ -161,25 +167,33 @@ ApplicationWindow {
                     title: "视图(&V)",
                     items: [
                         {
-                            text: "网格(&G)",
-                            shortcut: "Ctrl+G",
-                            checkable: true,
-                            checked: true,
-                            onTriggered: function () {
-                                // console.log("Toggle grid");
-                                coordinateSystem.gridOn(this.checked)
-                            }
+                            text: "场景",
+                            icon: "qrc:/main_icons/assets/icons/view.svg",
+                            submenu: [
+                                {
+                                    text: "网格(&G)",
+                                    shortcut: "Ctrl+G",
+                                    checkable: true,
+                                    checked: true,
+                                    onTriggered: function () {
+                                        console.log("Toggle grid");
+
+                                        coordinateSystem.gridOn(this.checked)
+                                    }
+                                },
+                                {
+                                    text: "坐标轴(&A)",
+                                    shortcut: "Ctrl+H",
+                                    checkable: true,
+                                    checked: true,
+                                    onTriggered: function () {
+                                        console.log("Toggle axes");
+                                        coordinateSystem.axisOn(this.checked)
+                                    }
+                                }
+                            ]
                         },
-                        {
-                            text: "坐标轴(&A)",
-                            shortcut: "Ctrl+H",
-                            checkable: true,
-                            checked: true,
-                            onTriggered: function () {
-                                // console.log("Toggle axes");
-                                coordinateSystem.axisOn(this.checked)
-                            }
-                        }
+
                     ]
                 },
                 {
@@ -190,14 +204,16 @@ ApplicationWindow {
                             shortcut: "F1",
                             onTriggered: function () {
                                 aboutDialog.open();
-                            }
+                            },
+                            icon: "qrc:/main_icons/assets/icons/about.svg"
                         },
                         {
                             text: "关于Qt(&Q)",
                             shortcut: "Shift+Alt+Q",
                             onTriggered: function () {
                                 qtHelper.showAboutQt();
-                            }
+                            },
+                            icon: "qrc:/main_icons/assets/icons/qt_logo.png"
                         }
                     ]
                 }

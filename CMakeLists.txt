@@ -154,7 +154,7 @@ set(CPP_FILES
 )
 
 
-add_executable(${PROJECT_NAME} WIN32
+add_executable(${PROJECT_NAME}
         ${CPP_FILES}
         ${QRC_FILES}
         resources/app.rc
