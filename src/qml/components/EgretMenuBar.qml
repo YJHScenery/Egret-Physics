@@ -82,6 +82,18 @@ Rectangle {
     property var activeSubMenuIndex: []
     property var closeTimers: []
 
+    TextMetrics {
+        id: menuLabelMetrics
+        font.pixelSize: 13
+        text: ""
+    }
+
+    TextMetrics {
+        id: menuShortcutMetrics
+        font.pixelSize: 12
+        text: ""
+    }
+
     height: barHeight
     color: barBackground
     border.width: 1
@@ -232,6 +244,7 @@ Rectangle {
         menuPopup.menuItems = menus[index].items || [];
         menuPopup.subMenuPath = [index];
         menuPopup.highlightedIndex = menuPopup.firstEnabledIndex();
+        menuPopup.popupWidth = Math.max(root.menuMinWidth, root.calculateSubMenuWidth(menuPopup.menuItems));
         menuPopup.open();
 
         var button = buttonRefs[index];
@@ -388,7 +401,7 @@ Rectangle {
             adjustedY = parentY + root.subMenuItemHeight - subMenuHeight;
         }
 
-        subMenuPopup.implicitWidth = subMenuWidth;
+        subMenuPopup.popupWidth = subMenuWidth;
         subMenuPopup.subMenuHeight = subMenuHeight;
 
         if (openRight) {
@@ -411,7 +424,50 @@ Rectangle {
     }
 
     function calculateSubMenuWidth(items) {
-        return 180;
+        var maxWidth = root.menuMinWidth;
+        var hasAny = false;
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            if (!item || item.separator) {
+                continue;
+            }
+            hasAny = true;
+            var labelInfo = root.mnemonicInfo(item.text || "");
+            menuLabelMetrics.text = labelInfo.display;
+            var labelWidth = menuLabelMetrics.width;
+
+            var shortcutWidth = 0;
+            if (item.shortcut) {
+                menuShortcutMetrics.text = item.shortcut;
+                shortcutWidth = menuShortcutMetrics.width + 18;
+            }
+
+            var checkWidth = (item.checkable === true || root.forceCheckMarkVisible) ? root.checkMarkWidth : 0;
+            var iconWidth = (item.icon || root.forceIconVisible) ? root.iconSize : 0;
+            var arrowWidth = (item.submenu && item.submenu.length > 0) ? root.subMenuArrowSize + 8 : 0;
+
+            var contentWidth = checkWidth + iconWidth + labelWidth + shortcutWidth + arrowWidth;
+            var spacingSlots = 0;
+            if (checkWidth > 0) {
+                spacingSlots += 1;
+            }
+            if (iconWidth > 0) {
+                spacingSlots += 1;
+            }
+            if (shortcutWidth > 0) {
+                spacingSlots += 1;
+            }
+            if (arrowWidth > 0) {
+                spacingSlots += 1;
+            }
+            contentWidth += spacingSlots * root.iconSpacing;
+
+            var totalWidth = contentWidth + root.subMenuPadding * 2 + 20;
+            if (totalWidth > maxWidth) {
+                maxWidth = totalWidth;
+            }
+        }
+        return hasAny ? maxWidth : root.menuMinWidth;
     }
 
     function closeSubMenu(popup) {
@@ -480,6 +536,7 @@ Rectangle {
             property var parentMenu: null
             property int parentItemIndex: -1
             property int subMenuHeight: 0
+            property int popupWidth: root.menuMinWidth
 
             modal: false
             focus: true
@@ -536,7 +593,7 @@ Rectangle {
 
             contentItem: Item {
                 id: subMenuRoot
-                implicitWidth: subMenuList.implicitWidth
+                implicitWidth: subMenuPopup.popupWidth
                 implicitHeight: Math.min(subMenuList.contentHeight, root.subMenuScrollHeight)
                 focus: true
 
@@ -612,8 +669,7 @@ Rectangle {
                 ListView {
                     id: subMenuList
                     anchors.fill: parent
-                    width: implicitWidth
-                    implicitWidth: Math.max(root.menuMinWidth, contentItem.childrenRect.width)
+                    width: subMenuRoot.implicitWidth
                     implicitHeight: Math.min(contentHeight, root.subMenuScrollHeight)
                     model: menuItems
                     interactive: contentHeight > root.subMenuScrollHeight
@@ -631,7 +687,7 @@ Rectangle {
                         property string itemIcon: itemData && itemData.icon || ""
                         property bool hasSubMenu: root.hasSubMenu(itemData)
 
-                        implicitWidth: row.implicitWidth + 20
+                        implicitWidth: subMenuList.width
                         width: subMenuList.width
                         height: isSeparator ? 8 : root.subMenuItemHeight
 
@@ -946,6 +1002,7 @@ Rectangle {
         property var menuItems: []
         property var subMenuPath: []
         property int highlightedIndex: -1
+        property int popupWidth: root.menuMinWidth
 
         modal: false
         focus: true
@@ -1004,7 +1061,7 @@ Rectangle {
 
         contentItem: Item {
             id: popupRoot
-            implicitWidth: menuList.implicitWidth
+            implicitWidth: menuPopup.popupWidth
             implicitHeight: Math.min(menuList.contentHeight, root.subMenuScrollHeight)
             focus: true
 
@@ -1085,8 +1142,7 @@ Rectangle {
             ListView {
                 id: menuList
                 anchors.fill: parent
-                width: implicitWidth
-                implicitWidth: Math.max(root.menuMinWidth, contentItem.childrenRect.width)
+                width: popupRoot.implicitWidth
                 implicitHeight: Math.min(contentHeight, root.subMenuScrollHeight)
                 model: menuPopup.menuItems
                 interactive: contentHeight > root.subMenuScrollHeight
@@ -1104,7 +1160,7 @@ Rectangle {
                     property string itemIcon: itemData && itemData.icon || ""
                     property bool hasSubMenu: root.hasSubMenu(itemData)
 
-                    implicitWidth: row.implicitWidth + 20
+                    implicitWidth: menuList.width
                     width: menuList.width
                     height: isSeparator ? 8 : root.menuItemHeight
 
