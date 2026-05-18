@@ -2,6 +2,8 @@
 
 A modern physics simulation engine with rigid body dynamics, collision detection, and constraint solving.
 
+![program_screenshot_v0.0.1](./README.assets/program_screenshot_v0.0.1.png)
+
 ## Features
 
 - **Rigid Body Dynamics**: Support for various rigid body shapes including spheres, boxes, cylinders, rings, disks, rods, and shells

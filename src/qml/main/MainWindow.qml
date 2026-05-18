@@ -95,7 +95,7 @@ ApplicationWindow {
                             icon: "qrc:/main_icons/assets/icons/save.svg"
                         },
                         {
-                            text: "另存为(&A)",
+                            text: "另存为...(&A)",
                             shortcut: "Ctrl+Shift+S",
                             onTriggered: function () {
                                 console.log("Save as");
@@ -167,28 +167,69 @@ ApplicationWindow {
                     title: "视图(&V)",
                     items: [
                         {
-                            text: "场景",
-                            icon: "qrc:/main_icons/assets/icons/view.svg",
+                            text: "工作台(&W)",
+                            shortcut: "Ctrl+W",
+                            checkable: true,
+                            checked: true,
+                            onTriggered: function () {
+                                mainRowLayout.workbenchVisible = this.checked === true
+                            },
+
+                        },
+                        {
+                            separator: true
+                        },
+                        {
+                            text: "仿真器",
+                            icon: "qrc:/main_icons/assets/icons/simulator.svg",
                             submenu: [
                                 {
-                                    text: "网格(&G)",
-                                    shortcut: "Ctrl+G",
+                                    text: "场景",
+                                    icon: "qrc:/main_icons/assets/icons/view.svg",
+                                    submenu: [
+                                        {
+                                            text: "网格(&G)",
+                                            shortcut: "Ctrl+G",
+                                            checkable: true,
+                                            checked: true,
+                                            onTriggered: function () {
+                                                console.log("Toggle grid");
+
+                                                coordinateSystem.gridOn(this.checked)
+                                            }
+                                        },
+                                        {
+                                            text: "坐标轴(&A)",
+                                            shortcut: "Ctrl+H",
+                                            checkable: true,
+                                            checked: true,
+                                            onTriggered: function () {
+                                                console.log("Toggle axes");
+                                                coordinateSystem.axisOn(this.checked)
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    separator: true
+                                },
+                                {
+                                    text: "数据流(&D)",
+                                    shortcut: "Ctrl+Alt+D",
                                     checkable: true,
                                     checked: true,
                                     onTriggered: function () {
-                                        console.log("Toggle grid");
-
-                                        coordinateSystem.gridOn(this.checked)
+                                        console.log("数据流");
+                                        sceneColumnLayout.dataStreamVisible = this.checked === true
                                     }
                                 },
                                 {
-                                    text: "坐标轴(&A)",
-                                    shortcut: "Ctrl+H",
+                                    text: "参数信息(&I)",
+                                    shortcut: "Ctrl+Alt+I",
                                     checkable: true,
                                     checked: true,
                                     onTriggered: function () {
-                                        console.log("Toggle axes");
-                                        coordinateSystem.axisOn(this.checked)
+                                        sceneColumnLayout.infoPanelVisible = this.checked === true
                                     }
                                 }
                             ]
@@ -334,12 +375,17 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             property string currentRoute: "scene";
+            property bool workbenchVisible: true
             spacing: 14
 
             LeftNavPanel {
                 id: leftNevPanel
-                Layout.preferredWidth: 250
+                Layout.preferredWidth: mainRowLayout.workbenchVisible ? 250 : 0
+                Layout.minimumWidth: mainRowLayout.workbenchVisible ? 250 : 0
+                Layout.maximumWidth: mainRowLayout.workbenchVisible ? 250 : 0
                 Layout.fillHeight: true
+                opacity: mainRowLayout.workbenchVisible ? 1 : 0
+                enabled: mainRowLayout.workbenchVisible
                 onNavSelected: function(route) {
                     console.log("Switch route:", route);
                     mainRowLayout.currentRoute = route;
@@ -347,43 +393,13 @@ ApplicationWindow {
             }
 
             ColumnLayout {
+                id: sceneColumnLayout
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 visible: mainRowLayout.currentRoute === "scene"
+                property bool dataStreamVisible: true
+                property bool infoPanelVisible: true
                 spacing: 14
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 112
-                    spacing: 12
-
-                    MetricCard {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 80
-                        metricName: "积分步长"
-                        metricValue: Number(sceneController.fixedStepMs).toFixed(2)
-                        metricUnit: "ms"
-                        metricColor: theme.accent
-                    }
-
-                    MetricCard {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 80
-                        metricName: "实时帧率"
-                        metricValue: Number(sceneController.fps).toFixed(1)
-                        metricUnit: "FPS"
-                        metricColor: theme.success
-                    }
-
-                    MetricCard {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 80
-                        metricName: "活动刚体"
-                        metricValue: sceneController.entityCount
-                        metricUnit: "obj"
-                        metricColor: theme.warning
-                    }
-                }
 
                 RowLayout {
                     Layout.fillWidth: true
@@ -653,137 +669,173 @@ ApplicationWindow {
                         }
                     }
 
-                    GlassPanel {
+                    ColumnLayout {
+                        id: rightInfoColumn
                         Layout.preferredWidth: 320
+                        Layout.minimumWidth: 320
+                        Layout.maximumWidth: 320
                         Layout.fillHeight: true
-                        title: "参数与检查器"
+                        spacing: 12
 
                         ColumnLayout {
-                            anchors.fill: parent
-                            spacing: 10
+                            Layout.fillWidth: true
+                            spacing: 8
 
-                            Repeater {
-                                model: ["重力场 g = 9.80665 m/s^2", "积分器: RK4 (Adaptive)", "碰撞模型: Impulse + Friction", "约束求解: Sequential Impulse", "误差阈值: 1e-6"]
+                            MetricCard {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 56
+                                metricName: "积分步长"
+                                metricValue: Number(sceneController.fixedStepMs).toFixed(2)
+                                metricUnit: "ms"
+                                metricColor: theme.accent
+                                nameFontSize: 10
+                                valueFontSize: 18
+                                unitFontSize: 10
+                                dotSize: 8
+                                contentPadding: 10
+                                contentSpacing: 6
+                            }
 
-                                delegate: Rectangle {
-                                    id: repeatItem
+                            MetricCard {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 56
+                                metricName: "实时帧率"
+                                metricValue: Number(sceneController.fps).toFixed(1)
+                                metricUnit: "FPS"
+                                metricColor: theme.success
+                                nameFontSize: 10
+                                valueFontSize: 18
+                                unitFontSize: 10
+                                dotSize: 8
+                                contentPadding: 10
+                                contentSpacing: 6
+                            }
+
+                            MetricCard {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 56
+                                metricName: "活动刚体"
+                                metricValue: sceneController.entityCount
+                                metricUnit: "obj"
+                                metricColor: theme.warning
+                                nameFontSize: 10
+                                valueFontSize: 18
+                                unitFontSize: 10
+                                dotSize: 8
+                                contentPadding: 10
+                                contentSpacing: 6
+                            }
+                        }
+
+                        GlassPanel {
+                            id: infoPanel
+                            Layout.preferredWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
+                            Layout.minimumWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
+                            Layout.maximumWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
+                            Layout.fillHeight: true
+                            visible: sceneColumnLayout.infoPanelVisible
+                            opacity: sceneColumnLayout.infoPanelVisible ? 1 : 0
+                            enabled: sceneColumnLayout.infoPanelVisible
+                            title: "参数信息"
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                spacing: 10
+
+                                Repeater {
+                                    model:
+                                        [
+                                        "重力场 g = " + resourceHelper.getStandardGravity() + "m/s^2",
+                                        "积分器: RK4 (Adaptive)",
+                                        "碰撞模型: Impulse + Friction",
+                                        "约束求解: Sequential Impulse",
+                                        "误差阈值: 1e-6"
+                                    ]
+
+                                    delegate: Rectangle {
+                                        id: repeatItem
+                                        Layout.fillWidth: true
+                                        Layout.preferredHeight: 42
+                                        property bool hovered: false
+                                        radius: 9
+                                        color: hovered ? "#122c5d" : "#12365D"
+                                        border.width: 1
+                                        border.color: "#2E5D89"
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            onEntered: {
+                                                repeatItem.hovered = true;
+                                            }
+                                            onExited: {
+                                                repeatItem.hovered = false;
+                                            }
+                                        }
+
+                                        Text {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            anchors.left: parent.left
+                                            anchors.leftMargin: 10
+                                            text: modelData
+                                            color: "#BDD8F3"
+                                            font.pixelSize: 13
+                                        }
+                                    }
+                                }
+
+                            Item {
+                                Layout.fillHeight: true
+                            }
+                            }
+                        }
+
+                        GlassPanel {
+                            id: controlPanel
+                            Layout.preferredWidth: 320
+                            Layout.minimumWidth: 320
+                            Layout.maximumWidth: 320
+                            Layout.preferredHeight: 120
+                            title: "仿真控制"
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                spacing: 10
+
+                                Rectangle {
+                                    id: computeBtnRect
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: 42
+                                    Layout.preferredHeight: 46
                                     property bool hovered: false
-                                    radius: 9
-                                    color: hovered ? "#122c5d" : "#12365D"
+                                    radius: 10
+                                    color: hovered ? "#1a3b83" : "#1A4E83"
                                     border.width: 1
-                                    border.color: "#2E5D89"
+                                    border.color: "#58B8FF"
 
                                     MouseArea {
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         onEntered: {
-                                            repeatItem.hovered = true;
+                                            computeBtnRect.hovered = true;
                                         }
                                         onExited: {
-                                            repeatItem.hovered = false;
+                                            computeBtnRect.hovered = false;
+                                        }
+                                        onClicked: {
+                                            sceneController.toggleRunning()
                                         }
                                     }
-
                                     Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        anchors.left: parent.left
-                                        anchors.leftMargin: 10
-                                        text: modelData
-                                        color: "#BDD8F3"
-                                        font.pixelSize: 13
+                                        anchors.centerIn: parent
+                                        text: sceneController.running ? "暂停仿真" : "开始仿真"
+                                        color: "#EAF5FF"
+                                        font.pixelSize: 14
+                                        font.bold: true
                                     }
                                 }
-                            }
 
-                            Item {
-                                Layout.fillHeight: true
-                            }
-
-                            // 新代码说明：这些按钮直接驱动 ViewModel 层，
-                            // 由 ViewModel 再去调用 Model 层世界管理器和求解器。
-                            // RowLayout {
-                            //     Layout.fillWidth: true
-                            //     Layout.preferredHeight: 40
-                            //     spacing: 8
-                            //
-                            //     // Rectangle {
-                            //     //     Layout.fillWidth: true
-                            //     //     Layout.preferredHeight: 40
-                            //     //     radius: 10
-                            //     //     color: sceneController.running ? "#1E3A8A" : "#173B67"
-                            //     //     border.width: 1
-                            //     //     border.color: sceneController.running ? "#58B8FF" : "#2C5D88"
-                            //     //
-                            //     //     Text {
-                            //     //         anchors.centerIn: parent
-                            //     //         text: sceneController.running ? "暂停仿真" : "开始仿真"
-                            //     //         color: "#EAF5FF"
-                            //     //         font.pixelSize: 13
-                            //     //         font.bold: true
-                            //     //     }
-                            //     //
-                            //     //     MouseArea {
-                            //     //         anchors.fill: parent
-                            //     //         onClicked: sceneController.toggleRunning()
-                            //     //     }
-                            //     // }
-                            //
-                            //     // Rectangle {
-                            //     //     Layout.fillWidth: true
-                            //     //     Layout.preferredHeight: 40
-                            //     //     radius: 10
-                            //     //     color: "#164A78"
-                            //     //     border.width: 1
-                            //     //     border.color: "#58B8FF"
-                            //     //
-                            //     //     Text {
-                            //     //         anchors.centerIn: parent
-                            //     //         text: "单步求解"
-                            //     //         color: "#EAF5FF"
-                            //     //         font.pixelSize: 13
-                            //     //         font.bold: true
-                            //     //     }
-                            //     //
-                            //     //     MouseArea {
-                            //     //         anchors.fill: parent
-                            //     //         onClicked: sceneController.stepOnce()
-                            //     //     }
-                            //     // }
-                            // }
-
-                            Rectangle {
-                                id: computeBtnRect
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 46
-                                property bool hovered: false
-                                radius: 10
-                                color: hovered ? "#1a3b83" : "#1A4E83"
-                                border.width: 1
-                                border.color: "#58B8FF"
-
-                                // 原来这里仅打印日志；新代码改为驱动一次固定步长求解。
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    onEntered: {
-                                        computeBtnRect.hovered = true;
-                                    }
-                                    onExited: {
-                                        computeBtnRect.hovered = false;
-                                    }
-                                    onClicked: {
-                                        sceneController.toggleRunning()
-                                    }
-                                }
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: sceneController.running ? "暂停仿真" : "开始仿真"
-                                    color: "#EAF5FF"
-                                    font.pixelSize: 14
-                                    font.bold: true
+                                Item {
+                                    Layout.fillHeight: true
                                 }
                             }
                         }
@@ -791,9 +843,15 @@ ApplicationWindow {
                 }
 
                 GlassPanel {
+                    id: dataStreamPanel
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 170
-                    title: "时间轴 / 数据流"
+                    Layout.preferredHeight: sceneColumnLayout.dataStreamVisible ? 170 : 0
+                    Layout.minimumHeight: sceneColumnLayout.dataStreamVisible ? 170 : 0
+                    Layout.maximumHeight: sceneColumnLayout.dataStreamVisible ? 170 : 0
+                    visible: sceneColumnLayout.dataStreamVisible
+                    opacity: sceneColumnLayout.dataStreamVisible ? 1 : 0
+                    enabled: sceneColumnLayout.dataStreamVisible
+                    title: "数据流"
 
                     RowLayout {
                         anchors.fill: parent

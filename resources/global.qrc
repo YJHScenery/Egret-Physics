@@ -31,6 +31,7 @@
         <file>assets/icons/save.svg</file>
         <file>assets/icons/cut.svg</file>
         <file>assets/icons/save_as.svg</file>
+        <file>assets/icons/simulator.svg</file>
         <file>assets/icons/qt_logo.png</file>
     </qresource>
 </RCC>
