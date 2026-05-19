@@ -11,4 +11,8 @@
         <file>components/Coordinate.qml</file>
         <file>components/AboutDialog.qml</file>
     </qresource>
+    <qresource prefix="/units">
+        <file>units/SimulatorUnit.qml</file>
+        <file>units/EditorUnit.qml</file>
+    </qresource>
 </RCC>

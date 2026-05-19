@@ -11,7 +11,9 @@ namespace egret {
 class Particle: public PhysicalEntity {
 public:
     Particle() = default;
-    Particle(Eigen::Vector3d position, Eigen::Vector3d speed, double mass);
+
+    Particle(const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass);
+
     void applyForce(double time) override;
 
     void movePosition(double time) override;
@@ -27,6 +29,7 @@ public:
     Eigen::Vector3d getMomentum() override;
 
     Eigen::Vector3d getAngularMomentum(const Eigen::Vector3d& base) override;
+    double m_mass{};
 };
 
 } // egret

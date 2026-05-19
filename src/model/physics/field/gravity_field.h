@@ -15,7 +15,7 @@ public:
 
     ~GravityField() override = default;
 
-    explicit GravityField(const Eigen::Vector3d& gravity, const Eigen::Vector3d& referencePoint);
+    explicit GravityField(Eigen::Vector3d  gravity, Eigen::Vector3d  referencePoint);
 
     explicit GravityField(double gravity, double referenceZ);
 
