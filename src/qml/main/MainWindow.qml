@@ -6,6 +6,7 @@ import QtQuick.Window 2.15
 import QtQuick3D 6.9
 import "qrc:/components/components"
 import "qrc:/components/components/theme"
+import "qrc:/units/units"
 
 ApplicationWindow {
     id: window
@@ -20,6 +21,24 @@ ApplicationWindow {
 
     DeepBlueTheme {
         id: theme
+    }
+
+    ListModel {
+        id: workspaceRouteModel
+        ListElement { label: "仿真器"; route: "scene" }
+        ListElement { label: "场景编辑器"; route: "solver" }
+        ListElement { label: "参数扫描"; route: "sweep" }
+        ListElement { label: "实验教学"; route: "teaching" }
+        ListElement { label: "数据分析"; route: "analysis" }
+    }
+
+    function routeIndexFor(route) {
+        for (let i = 0; i < workspaceRouteModel.count; i += 1) {
+            if (workspaceRouteModel.get(i).route === route) {
+                return i;
+            }
+        }
+        return 0;
     }
 
     AboutDialog {
@@ -107,10 +126,10 @@ ApplicationWindow {
                             separator: true
                         },
                         {
-                            text: "设置(&S)",
-                            shortcut: "Ctrl+Alt+S",
+                            text: "偏好设置(&P)",
+                            shortcut: "Ctrl+P",
                             onTriggered: function() {
-                                console.log("Settings");
+                                console.log("Preference");
                             },
                             // icon: "qrc:/main_icons/assets/icons/settings.svg"
                             icon: "qrc:/main_icons/assets/icons/settings.svg",
@@ -167,16 +186,16 @@ ApplicationWindow {
                 {
                     title: "视图(&V)",
                     items: [
-                        {
-                            text: "工作台(&W)",
-                            shortcut: "Ctrl+W",
-                            checkable: true,
-                            checked: true,
-                            onTriggered: function () {
-                                mainRowLayout.workbenchVisible = this.checked === true
-                            },
-
-                        },
+                        // {
+                        //     text: "工作台(&W)",
+                        //     shortcut: "Ctrl+W",
+                        //     checkable: true,
+                        //     checked: true,
+                        //     onTriggered: function () {
+                        //         mainRowLayout.workbenchVisible = this.checked === true
+                        //     },
+                        //
+                        // },
                         {
                             separator: true
                         },
@@ -195,8 +214,7 @@ ApplicationWindow {
                                             checked: true,
                                             onTriggered: function () {
                                                 console.log("Toggle grid");
-
-                                                coordinateSystem.gridOn(this.checked)
+                                                simulatorUnit.coordinateSystem.gridOn(this.checked)
                                             }
                                         },
                                         {
@@ -206,7 +224,7 @@ ApplicationWindow {
                                             checked: true,
                                             onTriggered: function () {
                                                 console.log("Toggle axes");
-                                                coordinateSystem.axisOn(this.checked)
+                                                simulatorUnit.coordinateSystem.axisOn(this.checked)
                                             }
                                         }
                                     ]
@@ -221,7 +239,7 @@ ApplicationWindow {
                                     checked: true,
                                     onTriggered: function () {
                                         console.log("数据流");
-                                        sceneColumnLayout.dataStreamVisible = this.checked === true
+                                        simulatorUnit.dataStreamVisible = this.checked === true
                                     }
                                 },
                                 {
@@ -230,7 +248,7 @@ ApplicationWindow {
                                     checkable: true,
                                     checked: true,
                                     onTriggered: function () {
-                                        sceneColumnLayout.infoPanelVisible = this.checked === true
+                                        simulatorUnit.infoPanelVisible = this.checked === true
                                     }
                                 }
                             ]
@@ -303,68 +321,106 @@ ApplicationWindow {
                 }
 
                 Rectangle {
-                    id: newSceneButton
-                    Layout.preferredWidth: 190
+                    id: workspaceComboShell
+                    Layout.preferredWidth: 210
                     Layout.preferredHeight: 36
                     radius: 10
-
-                    property bool hovered: false
-                    property bool isPressed: false  // 新增：标记是否处于点击高亮状态
-                    property int highlightDuration: 100
-
-                    Timer {
-                        id: colorTimer
-                        interval: parent.highlightDuration
-                        repeat: false
-                        running: false
-                        onTriggered: {
-                            parent.isPressed = false;  // 清除点击高亮标记
-                            // 不需要手动设置颜色，让颜色绑定属性自动处理
-                        }
-                    }
-
-                    // 根据状态动态计算颜色
-                    color: {
-                        if (isPressed)
-                            return "#2986ef";      // 点击高亮颜色
-                        if (hovered)
-                            return "#1E3A8A";        // 悬停颜色
-                        return "#0A1A3A";                      // 默认颜色
-                    }
-
+                    color: workspaceComboBox.pressed ? "#1E3A8A" : (workspaceComboBox.hovered ? "#153564" : "#0A1A3A")
                     border.width: 1
-                    border.color: {
-                        if (isPressed)
-                            return "#2563EB";
-                        if (hovered)
-                            return "#3B82F6";
-                        return "#1E3A8A";
-                    }
+                    border.color: workspaceComboBox.hovered ? "#3B82F6" : "#1E3A8A"
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: "+ 新建仿真场景"
-                        color: "#8bb5ea"
-                        font.pixelSize: 14
-                        font.bold: true
-                    }
-
-                    MouseArea {
-                        id: newSceneMouseArea
+                    Basic.ComboBox {
+                        id: workspaceComboBox
                         anchors.fill: parent
-                        hoverEnabled: true
-                        onEntered: {
-                            newSceneButton.hovered = true;
+                        model: workspaceRouteModel
+                        textRole: "label"
+                        leftPadding: 12
+                        rightPadding: 28
+                        currentIndex: routeIndexFor(mainRowLayout.currentRoute)
+
+                        onActivated: function (index) {
+                            mainRowLayout.currentRoute = workspaceRouteModel.get(index).route;
                         }
-                        onExited: {
-                            newSceneButton.hovered = false;
+
+                        contentItem: Text {
+                            text: workspaceComboBox.displayText
+                            color: theme.textPrimary
+                            font.pixelSize: 13
+                            elide: Text.ElideRight
+                            verticalAlignment: Text.AlignVCenter
                         }
-                        onClicked: {
-                            console.log("New Scene Button Clicked");
-                            newSceneButton.isPressed = true;
-                            // 新代码说明：按钮直接调用 ViewModel 的重置命令，驱动 Model 层重建世界。
-                            sceneController.reset();
-                            colorTimer.restart();  // 使用 restart 确保每次点击都会重新计时
+
+                        indicator: Canvas {
+                            width: 10
+                            height: 6
+                            anchors.right: parent.right
+                            anchors.rightMargin: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            contextType: "2d"
+
+                            onPaint: {
+                                context.reset();
+                                context.fillStyle = "#8BB5EA";
+                                context.beginPath();
+                                context.moveTo(0, 0);
+                                context.lineTo(width, 0);
+                                context.lineTo(width * 0.5, height);
+                                context.closePath();
+                                context.fill();
+                            }
+                        }
+
+                        background: Item { }
+
+                        popup: Basic.Popup {
+                            y: workspaceComboBox.height + 6
+                            width: workspaceComboBox.width
+                            padding: 6
+                            clip: false
+                            background: Rectangle {
+                                radius: 10
+                                color: "#10294C"
+                                border.width: 1
+                                border.color: theme.border
+                            }
+
+                            contentItem: Rectangle {
+                                radius: 8
+                                color: "transparent"
+                                clip: true
+                                implicitHeight: Math.min(listView.contentHeight + 4, 240)
+
+                                ListView {
+                                    id: listView
+                                    anchors.fill: parent
+                                    anchors.margins: 2
+                                    model: workspaceComboBox.popup.visible ? workspaceComboBox.delegateModel : null
+                                    clip: true
+
+                                    ScrollIndicator.vertical: ScrollIndicator { }
+                                }
+                            }
+                        }
+
+                        delegate: Basic.ItemDelegate {
+                            width: listView ? listView.width : workspaceComboBox.width
+                            height: 34
+                            text: model.label
+                            highlighted: workspaceComboBox.highlightedIndex === index
+                            contentItem: Text {
+                                text: model.label
+                                color: highlighted ? "#E7F2FF" : "#9ABFE3"
+                                font.pixelSize: 12
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                                leftPadding: 10
+                            }
+                            background: Rectangle {
+                                radius: 8
+                                color: highlighted ? "#1D4E87" : "#102A4A"
+                                border.width: 1
+                                border.color: highlighted ? "#56B6FF" : "#2F5F8D"
+                            }
                         }
                     }
                 }
@@ -376,562 +432,21 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             property string currentRoute: "scene";
-            property bool workbenchVisible: true
             spacing: 14
 
-            LeftNavPanel {
-                id: leftNevPanel
-                Layout.preferredWidth: mainRowLayout.workbenchVisible ? 250 : 0
-                Layout.minimumWidth: mainRowLayout.workbenchVisible ? 250 : 0
-                Layout.maximumWidth: mainRowLayout.workbenchVisible ? 250 : 0
-                Layout.fillHeight: true
-                opacity: mainRowLayout.workbenchVisible ? 1 : 0
-                enabled: mainRowLayout.workbenchVisible
-                onNavSelected: function(route) {
-                    console.log("Switch route:", route);
-                    mainRowLayout.currentRoute = route;
-                }
-            }
-
-            ColumnLayout {
-                id: sceneColumnLayout
+            SimulatorUnit {
+                id: simulatorUnit
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 visible: mainRowLayout.currentRoute === "scene"
-                property bool dataStreamVisible: true
-                property bool infoPanelVisible: true
-                spacing: 14
+                theme: theme
+            }
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    spacing: 12
-
-                    GlassPanel {
-
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        title: "场景视图 / Dynamics Canvas"
-
-                        Item {
-                            id: canvas3d
-                            anchors.fill: parent
-                            property real orbitYaw: 45
-                            property real orbitPitch: 55
-                            property real orbitDistance: 900
-                            property real orbitTargetX: 0
-                            property real orbitTargetY: 0
-                            property real orbitTargetZ: 0
-                            property real lineThickness: 0.45
-                            property int gridCount: 41
-                            property real gridSpacing: 50
-                            property int activeDragBodyId: -1
-                            property point lastMousePoint: Qt.point(0, 0)
-
-                            function clamp(value, minValue, maxValue) {
-                                return Math.max(minValue, Math.min(maxValue, value));
-                            }
-
-                            function cameraState() {
-                                const cam = cameraPhysicsPosition();
-                                return {
-                                    positionX: cam.x,
-                                    positionY: cam.y,
-                                    positionZ: cam.z,
-                                    targetX: orbitTargetX,
-                                    targetY: orbitTargetY,
-                                    targetZ: orbitTargetZ,
-                                    upX: 0,
-                                    upY: 0,
-                                    upZ: 1,
-                                    fovY: sceneCamera.fieldOfView,
-                                    nearClip: sceneCamera.clipNear,
-                                    farClip: sceneCamera.clipFar
-                                };
-                            }
-
-                            function updateCameraPose() {
-                                updateGridSpacing();
-                                updateGridLineCount();
-                                const cam = cameraPhysicsPosition();
-                                const target = toRenderVector(orbitTargetX, orbitTargetY, orbitTargetZ);
-                                sceneCamera.position = toRenderVector(cam.x, cam.y, cam.z);
-                                sceneCamera.lookAt(target);
-                            }
-
-                            function updateGridSpacing() {
-                                const distance = orbitDistance;
-                                const newSpacing = distance < 400 ? 20 : (distance < 1200 ? 50 : 100);
-                                if (Math.abs(newSpacing - gridSpacing) > 0.1) {
-                                    gridSpacing = newSpacing;
-                                }
-                            }
-
-                            function updateGridLineCount() {
-                                const h = sceneView.height;
-                                const w = sceneView.width;
-                                if (h <= 0 || w <= 0) {
-                                    return;
-                                }
-                                const fovRad = sceneCamera.fieldOfView * Math.PI / 180.0;
-                                const halfHeight = orbitDistance * Math.tan(fovRad / 2.0);
-                                const aspect = w / h;
-                                const halfWidth = halfHeight * aspect;
-                                const extent = Math.max(halfWidth, halfHeight) * 1.2;
-                                const desired = Math.floor(extent / Math.max(gridSpacing, 0.05)) * 2 + 1;
-                                const clamped = Math.max(41, Math.min(desired, 1201));
-                                if (gridCount !== clamped) {
-                                    gridCount = clamped;
-                                }
-                            }
-
-                            function cameraPhysicsPosition() {
-                                const yawRad = orbitYaw * Math.PI / 180.0;
-                                const pitchRad = orbitPitch * Math.PI / 180.0;
-                                const cp = Math.cos(pitchRad);
-                                const sp = Math.sin(pitchRad);
-                                const cy = Math.cos(yawRad);
-                                const sy = Math.sin(yawRad);
-
-                                const px = orbitTargetX + orbitDistance * cp * cy;
-                                const py = orbitTargetY + orbitDistance * cp * sy;
-                                const pz = orbitTargetZ + orbitDistance * sp;
-                                return Qt.vector3d(px, py, pz);
-                            }
-
-                            function toRenderVector(x, y, z) {
-                                return Qt.vector3d(x, z, y);
-                            }
-
-                            function shapeSource(kind) {
-                                if (kind === "standard_sphere" || kind === "standard_spherical_shell" || kind === "standard_disk" || kind === "standard_ring") {
-                                    return "#Sphere";
-                                }
-                                if (kind === "standard_cylinder" || kind === "standard_cylinder_shell" || kind === "standard_rod") {
-                                    return "#Cylinder";
-                                }
-                                if (kind === "standard_box") {
-                                    return "#Cube";
-                                }
-                                return "#Cube";
-                            }
-
-                            function scaleForShape(kind, sx, sy, sz) {
-                                const unit = 100.0;
-                                const safeX = Math.max(1.0, sx);
-                                const safeY = Math.max(1.0, sy);
-                                const safeZ = Math.max(1.0, sz);
-                                if (kind === "standard_sphere" || kind === "standard_spherical_shell" || kind === "standard_disk" || kind === "standard_ring") {
-                                    const uniform = Math.max(safeX, safeY, safeZ) / unit;
-                                    return Qt.vector3d(uniform, uniform, uniform);
-                                }
-                                if (kind === "standard_cylinder" || kind === "standard_cylinder_shell") {
-                                    return Qt.vector3d(safeX / unit, safeY / unit, safeZ / unit);
-                                }
-                                if (kind === "standard_rod") {
-                                    return Qt.vector3d(6 / unit, 6 / unit, safeZ / unit);
-                                }
-                                return Qt.vector3d(safeX / unit, safeY / unit, safeZ / unit);
-                            }
-
-                            Component.onCompleted: {
-                                updateCameraPose();
-                            }
-
-                            View3D {
-                                id: sceneView
-                                anchors.fill: parent
-                                camera: sceneCamera
-
-                                environment: SceneEnvironment {
-                                    backgroundMode: SceneEnvironment.Color
-                                    clearColor: "#061425"
-                                    antialiasingMode: SceneEnvironment.MSAA
-                                    antialiasingQuality: SceneEnvironment.VeryHigh
-                                }
-
-                                PerspectiveCamera {
-                                    id: sceneCamera
-                                    fieldOfView: 45
-                                    clipNear: 1
-                                    clipFar: 50000
-                                }
-
-                                DirectionalLight {
-                                    eulerRotation: Qt.vector3d(-35, 22, 20)
-                                    brightness: 1.8
-                                }
-
-                                DirectionalLight {
-                                    eulerRotation: Qt.vector3d(-120, -30, -70)
-                                    brightness: 0.7
-                                }
-
-                                Node {
-                                    id: worldRoot
-                                    Coordinate {
-                                        id: coordinateSystem
-                                        orbitDistance: canvas3d.orbitDistance
-                                        gridStep: canvas3d.gridSpacing
-                                        maxGridLines: canvas3d.gridCount
-                                        gridExtent: (canvas3d.gridCount - 1) * canvas3d.gridSpacing * 0.5
-                                        camera: sceneCamera
-                                        viewportWidth: sceneView.width
-                                        viewportHeight: sceneView.height
-                                    }
-
-                                    Repeater3D {
-                                        model: sceneController.bodyModel
-
-                                        delegate: Model {
-                                            objectName: "body-" + bodyId
-                                            source: canvas3d.shapeSource(shapeKind)
-                                            position: canvas3d.toRenderVector(bodyCenterX, bodyCenterY, bodyCenterZ)
-                                            scale: canvas3d.scaleForShape(shapeKind, bodySizeX, bodySizeZ, bodySizeY)
-
-                                            materials: PrincipledMaterial {
-                                                baseColor: bodyColor
-                                                roughness: 0.18
-                                                specularAmount: 0.7
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            Rectangle {
-                                anchors.left: parent.left
-                                anchors.top: parent.top
-                                anchors.leftMargin: 10
-                                anchors.topMargin: 8
-                                radius: 8
-                                color: "#0D274899"
-                                border.width: 1
-                                border.color: "#2B5E89"
-                                width: 300
-                                height: 66
-
-                                Text {
-                                    anchors.fill: parent
-                                    anchors.margins: 10
-                                    color: "#D4EAFB"
-                                    font.pixelSize: 12
-                                    text: "坐标系: World z-up, 右手系\n左键拖拽实体(投影到 XY 平面), 右键旋转, 滚轮缩放"
-                                }
-                            }
-
-                            MouseArea {
-                                id: mouseLayer
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-                                preventStealing: true
-
-                                onPressed: function (mouse) {
-                                    canvas3d.lastMousePoint = Qt.point(mouse.x, mouse.y);
-                                    if (mouse.button === Qt.LeftButton) {
-                                        const pickResult = sceneView.pick(mouse.x, mouse.y);
-                                        if (pickResult && pickResult.objectHit && pickResult.objectHit.objectName.indexOf("body-") === 0) {
-                                            const idText = pickResult.objectHit.objectName.substring(5);
-                                            canvas3d.activeDragBodyId = Number(idText);
-                                            sceneController.beginBodyDrag(canvas3d.activeDragBodyId, mouse.x, mouse.y, width, height, canvas3d.cameraState(), "xy_plane");
-                                        }
-                                    }
-                                }
-
-                                onPositionChanged: function (mouse) {
-                                    const dx = mouse.x - canvas3d.lastMousePoint.x;
-                                    const dy = mouse.y - canvas3d.lastMousePoint.y;
-                                    canvas3d.lastMousePoint = Qt.point(mouse.x, mouse.y);
-
-                                    if ((mouse.buttons & Qt.RightButton) !== 0) {
-                                        canvas3d.orbitYaw -= dx * 0.22;
-                                        canvas3d.updateCameraPose();
-                                    }
-
-                                    if ((mouse.buttons & Qt.LeftButton) !== 0 && canvas3d.activeDragBodyId >= 0) {
-                                        sceneController.updateBodyDrag(mouse.x, mouse.y, width, height, canvas3d.cameraState());
-                                    }
-                                }
-
-                                onReleased: function (mouse) {
-                                    if (mouse.button === Qt.LeftButton) {
-                                        canvas3d.activeDragBodyId = -1;
-                                        sceneController.endBodyDrag();
-                                    }
-                                }
-
-                                onWheel: function (wheel) {
-                                    const factor = wheel.angleDelta.y > 0 ? 0.88 : 1.12;
-                                    canvas3d.orbitDistance = canvas3d.clamp(canvas3d.orbitDistance * factor, 120, 8000);
-                                    canvas3d.updateCameraPose();
-                                }
-                            }
-                        }
-                    }
-
-                    ColumnLayout {
-                        id: rightInfoColumn
-                        Layout.preferredWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
-                        Layout.minimumWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
-                        Layout.maximumWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
-                        Layout.fillHeight: true
-                        visible: sceneColumnLayout.infoPanelVisible
-                        opacity: sceneColumnLayout.infoPanelVisible ? 1 : 0
-                        enabled: sceneColumnLayout.infoPanelVisible
-
-                        spacing: 12
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-
-                            MetricCard {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 56
-                                metricName: "积分步长"
-                                metricValue: Number(sceneController.fixedStepMs).toFixed(2)
-                                metricUnit: "ms"
-                                metricColor: theme.accent
-                                nameFontSize: 10
-                                valueFontSize: 18
-                                unitFontSize: 10
-                                dotSize: 8
-                                contentPadding: 10
-                                contentSpacing: 6
-                            }
-
-                            MetricCard {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 56
-                                metricName: "实时帧率"
-                                metricValue: Number(sceneController.fps).toFixed(1)
-                                metricUnit: "FPS"
-                                metricColor: theme.success
-                                nameFontSize: 10
-                                valueFontSize: 18
-                                unitFontSize: 10
-                                dotSize: 8
-                                contentPadding: 10
-                                contentSpacing: 6
-                            }
-
-                            MetricCard {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 56
-                                metricName: "活动刚体"
-                                metricValue: sceneController.entityCount
-                                metricUnit: "obj"
-                                metricColor: theme.warning
-                                nameFontSize: 10
-                                valueFontSize: 18
-                                unitFontSize: 10
-                                dotSize: 8
-                                contentPadding: 10
-                                contentSpacing: 6
-                            }
-                        }
-
-                        GlassPanel {
-                            id: infoPanel
-                            Layout.preferredWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
-                            Layout.minimumWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
-                            Layout.maximumWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
-                            Layout.fillHeight: true
-                            visible: sceneColumnLayout.infoPanelVisible
-                            opacity: sceneColumnLayout.infoPanelVisible ? 1 : 0
-                            enabled: sceneColumnLayout.infoPanelVisible
-                            title: "参数信息"
-
-                            ScrollView {
-                                id: infoScrollView
-                                anchors.fill: parent
-                                clip: true
-                                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                                rightPadding: infoScrollBar.visible ? (infoScrollBar.width ) : 0
-                                ScrollBar.vertical: Basic.ScrollBar {
-                                    id: infoScrollBar
-                                    width: 8
-                                    policy: ScrollBar.AsNeeded
-                                    visible: size < 1.0
-                                    anchors.right: parent.right
-                                    anchors.top: parent.top
-                                    anchors.bottom: parent.bottom
-
-                                    contentItem: Rectangle {
-                                        radius: 4
-                                        implicitWidth: 8
-                                        color: theme.accent
-                                        opacity: infoScrollBar.pressed ? 0.9 : 0.7
-                                    }
-
-                                    background: Rectangle {
-                                        radius: 4
-                                        implicitWidth: 8
-                                        color: "#0F2A4C"
-                                        border.width: 1
-                                        border.color: theme.border
-                                        opacity: 0.6
-                                    }
-                                }
-
-                                ColumnLayout {
-                                    width: Math.max(0, infoScrollView.availableWidth - infoScrollView.rightPadding)
-                                    spacing: 10
-
-                                    Repeater {
-                                        model:
-                                            [
-                                                "重力场 g = " + resourceHelper.getStandardGravity() + "m/s^2",
-                                                "积分器: RK4 (Adaptive)",
-                                                "碰撞模型: Impulse + Friction",
-                                                "约束求解: Sequential Impulse",
-                                                "误差阈值: 1e-6"
-                                            ]
-
-                                        delegate: Rectangle {
-                                            id: repeatItem
-                                            Layout.fillWidth: true
-                                            Layout.preferredHeight: 42
-                                            property bool hovered: false
-                                            radius: 9
-                                            color: hovered ? "#122c5d" : "#12365D"
-                                            border.width: 1
-                                            border.color: "#2E5D89"
-
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                hoverEnabled: true
-                                                onEntered: {
-                                                    repeatItem.hovered = true;
-                                                }
-                                                onExited: {
-                                                    repeatItem.hovered = false;
-                                                }
-                                            }
-
-                                            Text {
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                anchors.left: parent.left
-                                                anchors.leftMargin: 10
-                                                text: modelData
-                                                color: "#BDD8F3"
-                                                font.pixelSize: 13
-                                            }
-                                        }
-                                    }
-
-                                    Item {
-                                        Layout.fillHeight: true
-                                    }
-                                }
-                            }
-
-                        }
-
-                        GlassPanel {
-                            id: controlPanel
-                            Layout.preferredWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
-                            Layout.minimumWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
-                            Layout.maximumWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
-                            // Layout.fillHeight: true
-                            visible: sceneColumnLayout.infoPanelVisible
-                            opacity: sceneColumnLayout.infoPanelVisible ? 1 : 0
-                            enabled: sceneColumnLayout.infoPanelVisible
-                            Layout.preferredHeight: 220
-                            title: "仿真控制"
-
-                            ColumnLayout {
-                                anchors.fill: parent
-                                spacing: 10
-
-                                Rectangle {
-                                    id: computeBtnRect
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 46
-                                    property bool hovered: false
-                                    radius: 10
-                                    color: hovered ? "#1a3b83" : "#1A4E83"
-                                    border.width: 1
-                                    border.color: "#58B8FF"
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        onEntered: {
-                                            computeBtnRect.hovered = true;
-                                        }
-                                        onExited: {
-                                            computeBtnRect.hovered = false;
-                                        }
-                                        onClicked: {
-                                            sceneController.toggleRunning()
-                                        }
-                                    }
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: sceneController.running ? "暂停仿真" : "开始仿真"
-                                        color: "#EAF5FF"
-                                        font.pixelSize: 14
-                                        font.bold: true
-                                    }
-                                }
-
-                                Item {
-                                    Layout.fillHeight: true
-                                }
-                            }
-                        }
-                    }
-                }
-
-                GlassPanel {
-                    id: dataStreamPanel
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: sceneColumnLayout.dataStreamVisible ? 170 : 0
-                    Layout.minimumHeight: sceneColumnLayout.dataStreamVisible ? 170 : 0
-                    Layout.maximumHeight: sceneColumnLayout.dataStreamVisible ? 170 : 0
-                    visible: sceneColumnLayout.dataStreamVisible
-                    opacity: sceneColumnLayout.dataStreamVisible ? 1 : 0
-                    enabled: sceneColumnLayout.dataStreamVisible
-                    title: "数据流"
-
-                    RowLayout {
-                        anchors.fill: parent
-                        spacing: 10
-
-                        Repeater {
-                            model: 5
-                            Rectangle {
-                                id: valueChannel
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                property bool hovered: false
-                                radius: 10
-                                color: hovered ? "#1a3b83FF" : "#112F52"
-                                border.width: 1
-                                border.color: "#2C5D88"
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    onEntered: {
-                                        valueChannel.hovered = true;
-                                    }
-                                    onExited: {
-                                        valueChannel.hovered = false;
-                                    }
-                                }
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "数据通道 " + (index + 1)
-                                    color: "#8DB3D9"
-                                    font.pixelSize: 12
-                                }
-                            }
-                        }
-                    }
-                }
+            EditorUnit {
+                id: editorUnit
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                visible: mainRowLayout.currentRoute === "solver"
             }
         }
 

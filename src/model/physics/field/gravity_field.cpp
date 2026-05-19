@@ -3,6 +3,8 @@
 //
 
 #include "gravity_field.h"
+
+#include <utility>
 #include "physical_entity.h"
 
 namespace egret
@@ -11,9 +13,9 @@ namespace egret
     {
     }
 
-    GravityField::GravityField(const Eigen::Vector3d& gravity, const Eigen::Vector3d& referencePoint) :
+    GravityField::GravityField(Eigen::Vector3d  gravity, Eigen::Vector3d  referencePoint) :
         FieldBase(generateID(FieldType::Gravity)),
-        m_gravity(gravity), m_zeroReferencePoint(referencePoint)
+        m_gravity(std::move(gravity)), m_zeroReferencePoint(std::move(referencePoint))
     {
     }
 

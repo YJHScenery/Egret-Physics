@@ -6,4 +6,11 @@
 
 namespace egret
 {
+    ConnectingLine::ConnectingLine(): ConstraintsBase(generateID(ConstraintType::ConnectingLine))
+    {
+    }
+
+    ConnectingLine::ConnectingLine(double length, PhysicalEntity*, PhysicalEntity*)
+    {
+    }
 } // egret

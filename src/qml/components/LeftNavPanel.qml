@@ -63,7 +63,7 @@ Rectangle {
 
                 delegate: Rectangle {
                     width: scrollView.availableWidth
-                    height: 128
+                    height: 64
                     radius: 10
                     color: index === columnItem.currentIndex ? "#1D4E87" : (index === columnItem.hoveredIndex ? "#163C68" : "#102A4A")
                     border.width: 3
