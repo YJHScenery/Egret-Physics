@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import QtQuick.Controls.Basic 2.15 as Basic
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
 import QtQuick3D 6.9
@@ -224,7 +225,7 @@ ApplicationWindow {
                                     }
                                 },
                                 {
-                                    text: "参数信息(&I)",
+                                    text: "控制台(&I)",
                                     shortcut: "Ctrl+Alt+I",
                                     checkable: true,
                                     checked: true,
@@ -671,10 +672,14 @@ ApplicationWindow {
 
                     ColumnLayout {
                         id: rightInfoColumn
-                        Layout.preferredWidth: 320
-                        Layout.minimumWidth: 320
-                        Layout.maximumWidth: 320
+                        Layout.preferredWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
+                        Layout.minimumWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
+                        Layout.maximumWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
                         Layout.fillHeight: true
+                        visible: sceneColumnLayout.infoPanelVisible
+                        opacity: sceneColumnLayout.infoPanelVisible ? 1 : 0
+                        enabled: sceneColumnLayout.infoPanelVisible
+
                         spacing: 12
 
                         ColumnLayout {
@@ -738,64 +743,102 @@ ApplicationWindow {
                             enabled: sceneColumnLayout.infoPanelVisible
                             title: "参数信息"
 
-                            ColumnLayout {
+                            ScrollView {
+                                id: infoScrollView
                                 anchors.fill: parent
-                                spacing: 10
+                                clip: true
+                                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                                rightPadding: infoScrollBar.visible ? (infoScrollBar.width ) : 0
+                                ScrollBar.vertical: Basic.ScrollBar {
+                                    id: infoScrollBar
+                                    width: 8
+                                    policy: ScrollBar.AsNeeded
+                                    visible: size < 1.0
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
 
-                                Repeater {
-                                    model:
-                                        [
-                                        "重力场 g = " + resourceHelper.getStandardGravity() + "m/s^2",
-                                        "积分器: RK4 (Adaptive)",
-                                        "碰撞模型: Impulse + Friction",
-                                        "约束求解: Sequential Impulse",
-                                        "误差阈值: 1e-6"
-                                    ]
+                                    contentItem: Rectangle {
+                                        radius: 4
+                                        implicitWidth: 8
+                                        color: theme.accent
+                                        opacity: infoScrollBar.pressed ? 0.9 : 0.7
+                                    }
 
-                                    delegate: Rectangle {
-                                        id: repeatItem
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 42
-                                        property bool hovered: false
-                                        radius: 9
-                                        color: hovered ? "#122c5d" : "#12365D"
+                                    background: Rectangle {
+                                        radius: 4
+                                        implicitWidth: 8
+                                        color: "#0F2A4C"
                                         border.width: 1
-                                        border.color: "#2E5D89"
-
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            onEntered: {
-                                                repeatItem.hovered = true;
-                                            }
-                                            onExited: {
-                                                repeatItem.hovered = false;
-                                            }
-                                        }
-
-                                        Text {
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            anchors.left: parent.left
-                                            anchors.leftMargin: 10
-                                            text: modelData
-                                            color: "#BDD8F3"
-                                            font.pixelSize: 13
-                                        }
+                                        border.color: theme.border
+                                        opacity: 0.6
                                     }
                                 }
 
-                            Item {
-                                Layout.fillHeight: true
+                                ColumnLayout {
+                                    width: Math.max(0, infoScrollView.availableWidth - infoScrollView.rightPadding)
+                                    spacing: 10
+
+                                    Repeater {
+                                        model:
+                                            [
+                                                "重力场 g = " + resourceHelper.getStandardGravity() + "m/s^2",
+                                                "积分器: RK4 (Adaptive)",
+                                                "碰撞模型: Impulse + Friction",
+                                                "约束求解: Sequential Impulse",
+                                                "误差阈值: 1e-6"
+                                            ]
+
+                                        delegate: Rectangle {
+                                            id: repeatItem
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: 42
+                                            property bool hovered: false
+                                            radius: 9
+                                            color: hovered ? "#122c5d" : "#12365D"
+                                            border.width: 1
+                                            border.color: "#2E5D89"
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                onEntered: {
+                                                    repeatItem.hovered = true;
+                                                }
+                                                onExited: {
+                                                    repeatItem.hovered = false;
+                                                }
+                                            }
+
+                                            Text {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                anchors.left: parent.left
+                                                anchors.leftMargin: 10
+                                                text: modelData
+                                                color: "#BDD8F3"
+                                                font.pixelSize: 13
+                                            }
+                                        }
+                                    }
+
+                                    Item {
+                                        Layout.fillHeight: true
+                                    }
+                                }
                             }
-                            }
+
                         }
 
                         GlassPanel {
                             id: controlPanel
-                            Layout.preferredWidth: 320
-                            Layout.minimumWidth: 320
-                            Layout.maximumWidth: 320
-                            Layout.preferredHeight: 120
+                            Layout.preferredWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
+                            Layout.minimumWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
+                            Layout.maximumWidth: sceneColumnLayout.infoPanelVisible ? 320 : 0
+                            // Layout.fillHeight: true
+                            visible: sceneColumnLayout.infoPanelVisible
+                            opacity: sceneColumnLayout.infoPanelVisible ? 1 : 0
+                            enabled: sceneColumnLayout.infoPanelVisible
+                            Layout.preferredHeight: 220
                             title: "仿真控制"
 
                             ColumnLayout {
