@@ -318,6 +318,7 @@ namespace egret
 
 
             const Eigen::Vector3d position = body->entity->getPosition();
+            const Eigen::Vector3d speed = body->entity->getSpeed();
 
             // const std::string& shapeTypeStr {body->shape->typeId()};
 
@@ -329,6 +330,9 @@ namespace egret
             item.centerX = position.x();
             item.centerY = position.y();
             item.centerZ = position.z();
+            item.speedX = speed.x();
+            item.speedY = speed.y();
+            item.speedZ = speed.z();
 
             const ShapeLoadInfo shapeInfo = body->shape->getLoadInfo();
             item.sizeX = std::max(1.0, item.width);

@@ -44,6 +44,12 @@ namespace egret
             return item.centerY;
         case CenterZRole:
             return item.centerZ;
+        case SpeedXRole:
+            return item.speedX;
+        case SpeedYRole:
+            return item.speedY;
+        case SpeedZRole:
+            return item.speedZ;
         case SizeXRole:
             return item.sizeX;
         case SizeYRole:
@@ -71,6 +77,9 @@ namespace egret
             {CenterXRole, "bodyCenterX"},
             {CenterYRole, "bodyCenterY"},
             {CenterZRole, "bodyCenterZ"},
+            {SpeedXRole, "bodySpeedX"},
+            {SpeedYRole, "bodySpeedY"},
+            {SpeedZRole, "bodySpeedZ"},
             {SizeXRole, "bodySizeX"},
             {SizeYRole, "bodySizeY"},
             {SizeZRole, "bodySizeZ"},
@@ -81,6 +90,27 @@ namespace egret
 
     void SceneBodyModel::setItems(const std::vector<SceneBodyVisualItem>& items)
     {
+        const bool sameSize = m_items.size() == items.size();
+        bool sameIds = sameSize;
+        if (sameSize) {
+            for (std::size_t i = 0; i < items.size(); ++i) {
+                if (m_items[i].id != items[i].id) {
+                    sameIds = false;
+                    break;
+                }
+            }
+        }
+
+        if (sameSize && sameIds) {
+            m_items = items;
+            if (!m_items.empty()) {
+                const QModelIndex first = index(0, 0);
+                const QModelIndex last = index(static_cast<int>(m_items.size()) - 1, 0);
+                emit dataChanged(first, last);
+            }
+            return;
+        }
+
         beginResetModel();
         m_items = items;
         endResetModel();

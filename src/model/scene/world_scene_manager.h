@@ -58,6 +58,15 @@ namespace egret
         /** 世界中心 Z（z-up）。 */
         double centerZ{0.0};
 
+        /** 速度 X。 */
+        double speedX{0.0};
+
+        /** 速度 Y。 */
+        double speedY{0.0};
+
+        /** 速度 Z。 */
+        double speedZ{0.0};
+
         /** 世界尺寸 X。 */
         double sizeX{0.0};
 

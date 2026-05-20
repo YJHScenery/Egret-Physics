@@ -65,6 +65,7 @@ set(CPP_FILES
         src/utils/io/json_controller.h
         src/utils/io/logger.cpp
         src/utils/io/logger.h
+        src/utils/language/cpp_property.cpp
 
         src/model/physics/physics_utils.h
         src/model/physics/rigid/particle.cpp
@@ -147,7 +148,7 @@ set(CPP_FILES
         src/view/coordinate.h
         src/view/qt_component_helper.cpp
         src/view/qt_component_helper.h
-        src/utils/language/cpp_property.cpp
+
         src/view/resource_helper.cpp
         src/view/resource_helper.h
 
