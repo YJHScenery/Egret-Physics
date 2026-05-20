@@ -463,12 +463,12 @@ namespace egret
                                        std::make_unique<ShapeSphere>(10.0));
         }};
 
-        generateField({300, 0, 0}, {0, 75, 0}, 200, 50000);
-        generateField({-150, 259.8, 0}, {-120, -45, 0}, 100, 50000);
-        generateField({-150, -259.8, 0}, {-120, 45, 0}, 50, 50000);
+        generateField({300, 0, -1}, {0, 75, 100}, 200, 50000);
+        generateField({-150, 259.8, 100}, {-120, -45, 43}, 100, 50000);
+        generateField({-150, -259.8, -300}, {-120, 45, 23}, 50, 50000);
 
 
-        m_world->spawnCylinder("cylinder", {}, {}, 4, 2, 4);
+        // m_world->spawnCylinder("cylinder", {}, {}, 4, 2, 4);
 
         // generateField({10, 0, 0}, {-0.1, 0, 0.1}, 1, 1000);
         // generateField({-10, 0, 0}, {0, 0.1, -0.1}, 1, 1000);
@@ -502,6 +502,9 @@ namespace egret
             item.centerX = renderItem.centerX;
             item.centerY = renderItem.centerY;
             item.centerZ = renderItem.centerZ;
+            item.speedX = renderItem.speedX;
+            item.speedY = renderItem.speedY;
+            item.speedZ = renderItem.speedZ;
             item.sizeX = renderItem.sizeX;
             item.sizeY = renderItem.sizeY;
             item.sizeZ = renderItem.sizeZ;

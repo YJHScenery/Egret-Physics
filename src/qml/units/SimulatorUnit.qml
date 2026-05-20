@@ -15,6 +15,17 @@ ColumnLayout {
 
     spacing: 14
 
+    function formatVec(x, y, z) {
+        return "(" + x.toFixed(2) + ", " + y.toFixed(2) + ", " + z.toFixed(2) + ")";
+    }
+
+    property int extraDataBlocks: 0
+    property int dataBlockWidth: 230
+
+    function addDataBlock() {
+        extraDataBlocks += 1;
+    }
+
     RowLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
@@ -258,6 +269,7 @@ ColumnLayout {
 
                         if ((mouse.buttons & Qt.RightButton) !== 0) {
                             canvas3d.orbitYaw -= dx * 0.22;
+                            canvas3d.orbitPitch = canvas3d.clamp(canvas3d.orbitPitch - dy * 0.22, -90, 90);
                             canvas3d.updateCameraPose();
                         }
 
@@ -507,39 +519,146 @@ ColumnLayout {
         enabled: simulatorRoot.dataStreamVisible
         title: "数据流"
 
-        RowLayout {
-            anchors.fill: parent
-            spacing: 10
+        readonly property int scrollBarThickness: 8
+        readonly property int scrollBarGap: 6
 
-            Repeater {
-                model: 5
+        Flickable {
+            id: dataStreamFlick
+            anchors.fill: parent
+            anchors.margins: 6
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            contentWidth: dataStreamRow.implicitWidth
+            contentHeight: dataStreamRow.implicitHeight
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.NoButton
+                hoverEnabled: true
+
+                onWheel: function (wheel) {
+                    const step = Math.max(40, Math.abs(wheel.angleDelta.y));
+                    const delta = wheel.angleDelta.y > 0 ? -step : step;
+                    const maxX = Math.max(0, dataStreamFlick.contentWidth - dataStreamFlick.width);
+                    dataStreamFlick.contentX = Math.max(0, Math.min(dataStreamFlick.contentX + delta, maxX));
+                    wheel.accepted = true;
+                }
+            }
+
+            Row {
+                id: dataStreamRow
+                spacing: 10
+                height: dataStreamFlick.height
+
+                Repeater {
+                    model: sceneController.bodyModel
+
+                    delegate: Rectangle {
+                        width: simulatorRoot.dataBlockWidth
+                        height: dataStreamFlick.height
+                        radius: 10
+                        color: "#112F52"
+                        border.width: 1
+                        border.color: "#2C5D88"
+
+                        Column {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            spacing: 6
+
+                            Text {
+                                text: "实体 " + bodyId
+                                color: "#EAF5FF"
+                                font.pixelSize: 12
+                                font.bold: true
+                            }
+                            Text {
+                                text: "速度: " + simulatorRoot.formatVec(bodySpeedX, bodySpeedY, bodySpeedZ)
+                                color: "#9EC4EA"
+                                font.pixelSize: 11
+                            }
+                            Text {
+                                text: "位置: " + simulatorRoot.formatVec(bodyCenterX, bodyCenterY, bodyCenterZ)
+                                color: "#9EC4EA"
+                                font.pixelSize: 11
+                            }
+                        }
+                    }
+                }
+
+                Repeater {
+                    model: simulatorRoot.extraDataBlocks
+
+                    delegate: Rectangle {
+                        width: simulatorRoot.dataBlockWidth
+                        height: dataStreamFlick.height
+                        radius: 10
+                        color: "#0F2B4A"
+                        border.width: 1
+                        border.color: "#244A70"
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "空数据块"
+                            color: "#7FA6C8"
+                            font.pixelSize: 12
+                        }
+                    }
+                }
+
                 Rectangle {
-                    id: valueChannel
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    property bool hovered: false
+                    width: 90
+                    height: dataStreamFlick.height
                     radius: 10
-                    color: hovered ? "#1a3b83FF" : "#112F52"
+                    color: "#0D2748"
                     border.width: 1
                     border.color: "#2C5D88"
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "+"
+                        color: "#8DB3D9"
+                        font.pixelSize: 28
+                        font.bold: true
+                    }
 
                     MouseArea {
                         anchors.fill: parent
                         hoverEnabled: true
-                        onEntered: {
-                            valueChannel.hovered = true;
-                        }
-                        onExited: {
-                            valueChannel.hovered = false;
-                        }
-                    }
-                    Text {
-                        anchors.centerIn: parent
-                        text: "数据通道 " + (index + 1)
-                        color: "#8DB3D9"
-                        font.pixelSize: 12
+                        onClicked: simulatorRoot.addDataBlock()
                     }
                 }
+            }
+
+            ScrollBar.horizontal: dataStreamHScrollBar
+        }
+
+        Basic.ScrollBar {
+            id: dataStreamHScrollBar
+            height: dataStreamPanel.scrollBarThickness
+            policy: ScrollBar.AsNeeded
+            visible: size < 1.0
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: 6
+            anchors.rightMargin: 6
+            anchors.bottomMargin: -(dataStreamPanel.scrollBarThickness + dataStreamPanel.scrollBarGap - 5)
+
+            contentItem: Rectangle {
+                radius: 4
+                implicitHeight: dataStreamPanel.scrollBarThickness
+                color: theme.accent
+                opacity: dataStreamHScrollBar.pressed ? 0.9 : 0.7
+            }
+
+            background: Rectangle {
+                radius: 4
+                implicitHeight: dataStreamPanel.scrollBarThickness
+                color: "#0F2A4C"
+                border.width: 1
+                border.color: theme.border
+                opacity: 0.6
             }
         }
     }
