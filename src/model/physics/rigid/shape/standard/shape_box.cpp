@@ -7,6 +7,7 @@
 #include "shape_sphere.h"
 #include "world_scene_manager.h"
 #include "collide_judge/standard_collide_judge_group.h"
+#include <ranges>
 
 namespace egret
 {
@@ -131,6 +132,22 @@ namespace egret
         item.x = position.x() - size.x() * 0.5;
         item.y = position.y() - size.y() * 0.5;
         return item;
+    }
+
+    Eigen::Vector3d ShapeBox::support(const Eigen::Vector3d& direction, const Transform& transform) const
+    {
+        // 将方向转换到局部坐标系
+        Eigen::Vector3d localDir = transform.getRotation().conjugate() * direction;
+
+        // 局部坐标系下的支撑点：在每个轴上取符号对应的半长
+        const Eigen::Vector3d localSupport(
+            (localDir.x() > 0 ? 1 : -1) * (m_size.x() / 2.0),
+            (localDir.y() > 0 ? 1 : -1) * (m_size.y() / 2.0),
+            (localDir.z() > 0 ? 1 : -1) * (m_size.z() / 2.0)
+        );
+
+        // 变换回世界坐标系
+        return transform.localToWorld(localSupport);
     }
 
     void ShapeBox::getLocalAxes(const Transform& trans, Eigen::Vector3d& axisX, Eigen::Vector3d& axisY,

@@ -10,7 +10,8 @@ namespace egret
 {
 	void RigidBody::applyForce(const double time)
 	{
-		if (m_mass <= 0.0) {
+		if (m_mass <= 0.0)
+		{
 			movePosition(time);
 			return;
 		}
@@ -25,28 +26,41 @@ namespace egret
 		m_position += m_speed * time;
 	}
 
-	void RigidBody::rotateMandatory(const Axis& axis, double radians)
+	void RigidBody::applyTorque(const double time, Eigen::Matrix4d rotation)
 	{
-		Eigen::Vector3d u = axis.rotationAxis.normalized();
-		const Eigen::Vector3d p_rel = m_position - axis.basePoint;
-
-		const double cosTheta = std::cos(radians);
-		const double sinTheta = std::sin(radians);
-
-		Eigen::Matrix3d crossMatrix;
-		crossMatrix << 0, -u(2), u(1),
-			u(2), 0, -u(0),
-			-u(1), u(0), 0;
-
-		const Eigen::Matrix3d rotationMatrix = Eigen::Matrix3d::Identity()
-			+ sinTheta * crossMatrix
-			+ (1 - cosTheta) * (crossMatrix * crossMatrix);
-
-		const Eigen::Vector3d pRotated = rotationMatrix * p_rel;
-		m_position = pRotated + axis.basePoint;
+		// 刚体转动：α = τ / I，更新角速度
+		Eigen::Vector3d torque = getTorque();
+		if (torque.norm() < 1e-10)
+		{
+			return;
+		}
+		// 简化处理：使用总转动惯量的模来计算角加速度方向
+		Axis defaultAxis{{0, 0, 0}, {0, 0, 1}};
+		double I = getRotationalInertia(defaultAxis);
+		if (I > 1e-10)
+		{
+			Eigen::Vector3d angularAcceleration = torque / I;
+			m_angular += angularAcceleration * time;
+		}
 	}
 
-	double RigidBody::getRotationalInertia(const Axis& axis)
+	void RigidBody::rotate(const double time, Eigen::Matrix4d rotation)
+	{
+		// 刚体匀速转动：根据角速度更新姿态
+		// 使用旋转矩阵更新位置（绕参考点的旋转）
+		if (m_angular.norm() < 1e-10)
+		{
+			return;
+		}
+		Eigen::Vector3d angularDisplacement = m_angular * time;
+		Eigen::AngleAxisd rx(angularDisplacement[0], Eigen::Vector3d::UnitX());
+		Eigen::AngleAxisd ry(angularDisplacement[1], Eigen::Vector3d::UnitY());
+		Eigen::AngleAxisd rz(angularDisplacement[2], Eigen::Vector3d::UnitZ());
+		Eigen::Matrix3d rotationMatrix = (rz * ry * rx).toRotationMatrix();
+		m_position = rotationMatrix * m_position;
+	}
+
+	double RigidBody::getRotationalInertia(const Axis &axis)
 	{
 		const Eigen::Vector3d dir = axis.rotationAxis.normalized();
 		const Eigen::Vector3d rel = m_position - axis.basePoint;
@@ -54,15 +68,24 @@ namespace egret
 		return distance * distance * m_mass;
 	}
 
-	Eigen::Vector3d RigidBody::getTorque(const Eigen::Vector3d& base)
+	Eigen::Vector3d RigidBody::getTorque()
 	{
-		return (m_position - base).cross(getJoinForce().force);
+		// 力矩来源：直接存储的力矩 m_torques（力作用于零点）
+		Eigen::Vector3d totalTorque = Eigen::Vector3d::Zero();
+
+		for (const Torque &torque : m_torques)
+		{
+			totalTorque += torque.torque;
+		}
+
+		return totalTorque;
 	}
 
 	Force RigidBody::getJoinForce()
 	{
 		Force joinForce{};
-		for (const auto& [_1, force, _2] : m_forces) {
+		for (const auto &[force, _2] : m_forces)
+		{
 			joinForce.force += force;
 		}
 		return joinForce;
@@ -73,8 +96,9 @@ namespace egret
 		return m_mass * m_speed;
 	}
 
-	Eigen::Vector3d RigidBody::getAngularMomentum(const Eigen::Vector3d& base)
+	Eigen::Vector3d RigidBody::getAngularMomentum()
 	{
-		return (m_position - base).cross(getMomentum());
+		// 角动量 L = r × p = position × (mass * velocity)
+		return m_position.cross(m_mass * m_speed);
 	}
 } // egret

@@ -45,6 +45,10 @@ namespace egret
 
         [[nodiscard]] const Eigen::Vector3d& getSpeedCR() const { return m_speed; }
 
+        [[nodiscard]] Eigen::Vector3d getAngular() const { return m_angular; }
+
+        [[nodiscard]] const Eigen::Vector3d& getAngularCR() const { return m_angular; }
+
         [[nodiscard]] double getMass() const { return m_mass; }
 
         [[nodiscard]] double getRestitution() const { return m_restitution; }
@@ -67,9 +71,9 @@ namespace egret
 
         void setSpeed(const Eigen::Vector3d& speed) { m_speed = speed; }
 
-        void setShape(const std::shared_ptr<ShapeBase>& shape) { m_shape = shape; }
+        void setAngular(const Eigen::Vector3d& angular) { m_angular = angular; }
 
-        virtual void rotateMandatory(const Axis& axis, double radians) = 0;
+        void setShape(const std::shared_ptr<ShapeBase>& shape) { m_shape = shape; }
 
         // 匀加速直线运动
         virtual void applyForce(double time) = 0; // 应用所有的力，更新位置信息
@@ -77,17 +81,23 @@ namespace egret
         // 匀速直线运动
         virtual void movePosition(double time) = 0; // 根据当前速度移动相应时间
 
+        // 转动（需要提供初始姿态，这里需要传入 4x4 的旋转矩阵。）
+        virtual void applyTorque(double time, Eigen::Matrix4d rotation) = 0;
+
+        // 匀速转动
+        virtual void rotate(double time, Eigen::Matrix4d rotation) = 0;
+
         // 动量
         virtual Eigen::Vector3d getMomentum() = 0;
 
         // 角动量
-        virtual Eigen::Vector3d getAngularMomentum(const Eigen::Vector3d& base) = 0;
+        virtual Eigen::Vector3d getAngularMomentum() = 0;
 
         // 转动惯量
         virtual double getRotationalInertia(const Axis& axis) = 0;
 
         // 力矩
-        virtual Eigen::Vector3d getTorque(const Eigen::Vector3d& base) = 0;
+        virtual Eigen::Vector3d getTorque() = 0;
 
         // 获取合力
         virtual Force getJoinForce() = 0;
@@ -95,8 +105,13 @@ namespace egret
     protected:
         Eigen::Vector3d m_position{}; // 参考点位置
         Eigen::Vector3d m_speed{}; // 参考点的速度
+        Eigen::Vector3d m_angular{}; // 参考点的角速度
+
 
         std::vector<Force> m_forces; // 受力组/N
+
+        std::vector<Torque> m_torques; // 力矩组/Nm
+
         std::shared_ptr<ShapeBase> m_shape;
         double m_mass{}; // 质量/kg
         double m_restitution{1.0}; // 碰撞恢复系数

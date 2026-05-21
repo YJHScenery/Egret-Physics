@@ -197,5 +197,7 @@ namespace egret
                              const ShapeSphericalShell& shellB, const Transform& transB,
                              ContactManifold& manifold);
     }
+
+
 }
 #endif //EGRET_PHYSICS_STANDARD_COLLIDE_JUDGE_GROUP_H

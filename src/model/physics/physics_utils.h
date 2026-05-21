@@ -12,8 +12,13 @@ namespace egret
 {
     struct Force
     {
-        std::optional<Eigen::Vector3d> applyPosition;
         Eigen::Vector3d force;
+        std::uint64_t id;
+    };
+
+    struct Torque
+    {
+        Eigen::Vector3d torque;
         std::uint64_t id;
     };
 
@@ -39,5 +44,7 @@ namespace egret
         Eigen::Vector3d min;
         Eigen::Vector3d max;
     };
+
+
 }
 #endif //EGRET_PHYSICS_PHYSICS_UTILS_H

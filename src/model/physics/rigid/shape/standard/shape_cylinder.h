@@ -25,7 +25,7 @@ public:
     [[nodiscard]] Eigen::Matrix3d getInertiaTensor(double mass) const override;
     [[nodiscard]] AABB getAABB(const Transform& transform) const override;
     [[nodiscard]] SceneRenderItem getBasicRenderInfo(const Eigen::Vector3d& position) const override;
-
+    [[nodiscard]] Eigen::Vector3d support(const Eigen::Vector3d& direction, const Transform& transform) const override;
     // [[nodiscard]] bool collideWith(const ShapeBase* other,
     //                                const Transform& thisTrans, const Transform& otherTrans,
     //                                ContactManifold& manifold) const override;

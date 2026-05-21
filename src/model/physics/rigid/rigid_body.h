@@ -17,17 +17,19 @@ public:
 
 	void movePosition(double time) override;
 
-	void rotateMandatory(const Axis& axis, double radians) override;
+	void applyTorque(double time, Eigen::Matrix4d rotation) override;
+
+	void rotate(double time, Eigen::Matrix4d rotation) override;
 
 	double getRotationalInertia(const Axis& axis) override;
 
-	Eigen::Vector3d getTorque(const Eigen::Vector3d& base) override;
+	Eigen::Vector3d getTorque() override;
 
 	Force getJoinForce() override;
 
 	Eigen::Vector3d getMomentum() override;
 
-	Eigen::Vector3d getAngularMomentum(const Eigen::Vector3d& base) override;
+	Eigen::Vector3d getAngularMomentum() override;
 
 private:
 };

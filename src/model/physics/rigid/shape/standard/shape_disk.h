@@ -27,6 +27,8 @@ public:
     [[nodiscard]] SceneRenderItem getBasicRenderInfo(const Eigen::Vector3d& position) const override;
 
     void setRadius(double radius);
+
+    [[nodiscard]] Eigen::Vector3d support(const Eigen::Vector3d& direction, const Transform& transform) const override;
 private:
     double m_radius{};
 };

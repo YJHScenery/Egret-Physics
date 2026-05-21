@@ -20,6 +20,16 @@ namespace egret
 
     using CollideFunc = std::function<bool(const ShapeBase*, const Transform&, const ShapeBase*, const Transform&, ContactManifold& manifold)>;
 
+    using ContiCollideFunc = std::function<std::optional<double>(
+        const ShapeBase* shapeA, const Transform& initTransA,
+        const Eigen::Vector3d& linearVelA,
+        const Eigen::Vector3d& angularVelA,   // 角速度向量（方向为轴，大小为弧度/秒）
+        const ShapeBase* shapeB, const Transform& initTransB,
+        const Eigen::Vector3d& linearVelB,
+        const Eigen::Vector3d& angularVelB,
+        double dt,
+        ContactManifold& manifold)>;
+
     class ShapeRegister
     {
     public:
@@ -28,11 +38,18 @@ namespace egret
         // 注册判定函数（自动处理对称性，约定 id1 <= id2）
         void registerJudge(const std::string& id1, const std::string& id2, CollideFunc func);
 
+        void registerContinuousJudge(const std::string& id1, const std::string& id2, ContiCollideFunc func);
+
         // 查询判定函数
         CollideFunc* findJudge(const std::string& id1, const std::string& id2) ;
 
+        // 查询连续判定函数
+        ContiCollideFunc* findContinuousJudge(const std::string& id1, const std::string& id2);
+
     private:
-        std::map<std::pair<std::string, std::string>, CollideFunc> registry_;
+        std::map<std::pair<std::string, std::string>, CollideFunc> m_collideRegistry;
+
+        std::map<std::pair<std::string, std::string>, ContiCollideFunc> m_continuousJudge;
     };
 
 

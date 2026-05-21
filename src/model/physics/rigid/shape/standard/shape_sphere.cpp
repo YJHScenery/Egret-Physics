@@ -16,9 +16,9 @@ namespace egret
         m_radius = radius;
     }
 
-    const std::string& ShapeSphere::typeId() const
+    const std::string &ShapeSphere::typeId() const
     {
-        static std::string typeId {TYPE_ID_STANDARD_SPHERE};
+        static std::string typeId{TYPE_ID_STANDARD_SPHERE};
         return typeId;
     }
 
@@ -34,7 +34,7 @@ namespace egret
 
     Eigen::Matrix3d ShapeSphere::getInertiaTensor(double mass) const
     {
-        const double inertia {0.4 * mass * quickSquare(m_radius)};
+        const double inertia{0.4 * mass * quickSquare(m_radius)};
         return Eigen::Matrix3d::Identity() * inertia;
     }
 
@@ -52,7 +52,7 @@ namespace egret
     //     return false;
     // }
 
-    AABB ShapeSphere::getAABB(const Transform& transform) const
+    AABB ShapeSphere::getAABB(const Transform &transform) const
     {
         const Eigen::Matrix3d linear = transform.getLocalToWorldMatrix().topLeftCorner<3, 3>();
         const Eigen::Vector3d center = transform.getTranslation();
@@ -71,7 +71,7 @@ namespace egret
         return info;
     }
 
-    SceneRenderItem ShapeSphere::getBasicRenderInfo(const Eigen::Vector3d& position) const
+    SceneRenderItem ShapeSphere::getBasicRenderInfo(const Eigen::Vector3d &position) const
     {
         SceneRenderItem item{};
         const double diameter = m_radius * 2.0;
@@ -81,5 +81,28 @@ namespace egret
         item.x = position.x() - m_radius;
         item.y = position.y() - m_radius;
         return item;
+    }
+
+    Eigen::Vector3d ShapeSphere::support(const Eigen::Vector3d &direction, const Transform &transform) const
+    {
+        // 将方向转换到局部坐标系
+        Eigen::Vector3d localDir = transform.getRotation().conjugate() * direction;
+
+        // 归一化方向
+        const double len = localDir.norm();
+        if (len < 1e-12)
+        {
+            localDir = Eigen::Vector3d(1, 0, 0);
+        }
+        else
+        {
+            localDir /= len;
+        }
+
+        // 球体的支撑点：中心 + 方向 * 半径
+        Eigen::Vector3d localSupport = localDir * m_radius;
+
+        // 变换回世界坐标系
+        return transform.localToWorld(localSupport);
     }
 } // egret

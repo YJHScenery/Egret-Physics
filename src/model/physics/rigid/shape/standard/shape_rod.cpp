@@ -66,4 +66,21 @@ namespace egret
 
         return {position + rotationMatrix * factor, position + rotationMatrix * (-factor)};
     }
+
+    Eigen::Vector3d ShapeRod::support(const Eigen::Vector3d& direction, const Transform& transform) const
+    {
+        // 将方向转换到局部坐标系（细棒在局部坐标系中沿z轴）
+        Eigen::Vector3d localDir = transform.getRotation().conjugate() * direction;
+        
+        // 细棒的支撑点是两个端点之一
+        // 计算方向在细棒轴（z轴）上的投影
+        double halfLength = m_length * 0.5;
+        double zProjection = localDir.z();
+        
+        // 取能最大化投影的端点
+        Eigen::Vector3d localSupport(0, 0, zProjection >= 0 ? halfLength : -halfLength);
+        
+        // 变换回世界坐标系
+        return transform.localToWorld(localSupport);
+    }
 }
