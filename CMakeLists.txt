@@ -224,7 +224,8 @@ option(BUILD_TESTS "Build unit tests" ON)
 
 if (BUILD_TESTS)
     set(TEST_SOURCES
-            tests/test_collision.cpp
+            # tests/test_collision.cpp
+            tests/test_ccd.cpp
             tests/boost_test_dependency.h
     )
 
@@ -246,6 +247,10 @@ if (BUILD_TESTS)
             src/model/physics/rigid/shape/standard/shape_rod.cpp
             src/model/physics/rigid/shape/standard/shape_spherical_shell.cpp
             src/model/physics/rigid/shape/standard/collide_judge/standard_collide_judge_group.cpp
+            src/model/physics/rigid/shape/standard/collide_judge/ccd_collide_judge_group.cpp
+            src/model/physics/field/field_base.cpp
+            src/model/physics/field/gravity_field.cpp
+            src/model/scene/world_scene_manager.cpp
             src/utils/transform.cpp
     )
 

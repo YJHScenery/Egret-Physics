@@ -418,7 +418,7 @@ namespace egret
     {
         SolverConfig config{};
 
-        config.enableNarrowPhase = false;
+        // config.enableNarrowPhase = false;
 
         auto solver = std::make_unique<Solver>(
             config,
@@ -430,42 +430,42 @@ namespace egret
         m_world = std::make_unique<WorldSceneManager>(std::move(solver));
         m_world->clear();
         //
-        // m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
+        m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
         //
-        // m_world->spawnBox("地面", {0.0, 0.0, -15.0}, {0.0, 0.0, 0.0}, {760.0, 520.0, 30.0}, 0.0);
-        // m_world->spawnSphere("小球 A", {0.0, 0.0, 220.0}, {0.0, 0.0, 0.0}, 28.0, 10.0);
+        m_world->spawnBox("地面", {0.0, 0.0, -15.0}, {0.0, 0.0, 0.0}, {760.0, 520.0, 30.0}, 0.0);
+        m_world->spawnSphere("小球 A", {0.0, 0.0, 220.0}, {0.0, 0.0, 0.0}, 28.0, 10.0);
 
-        auto generateField {[&](const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass, double coupling_G = G)
-        {
-            auto gravitationalField = std::make_shared<GravitationalField>(
-            position,
-            speed,
-            mass, coupling_G,
-            false);
-
-            GravitationalField::setMinDistanceSquared(1600);
-
-            // gravitationalField->setCouplingCoefficient(1.0);
-            auto gravFieldEntity = std::static_pointer_cast<PhysicalEntity>(gravitationalField);
-            auto gravFieldBase = std::static_pointer_cast<FieldBase>(gravitationalField);
-            static int i = 0;
-            i ++;
-            QString bodyName{"测试引力源"};
-            bodyName += QString::number(i);
-            QString fieldName{"引力场"};
-            fieldName += QString::number(i);
-
-
-            m_world->registerBodyField(bodyName.toStdString(),
-                                       fieldName.toStdString(),
-                                       gravFieldEntity,
-                                       gravFieldBase,
-                                       std::make_unique<ShapeSphere>(10.0));
-        }};
-
-        generateField({300, 0, -1}, {0, 75, 100}, 200, 50000);
-        generateField({-150, 259.8, 100}, {-120, -45, 43}, 100, 50000);
-        generateField({-150, -259.8, -300}, {-120, 45, 23}, 50, 50000);
+        // auto generateField {[&](const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass, double coupling_G = G)
+        // {
+        //     auto gravitationalField = std::make_shared<GravitationalField>(
+        //     position,
+        //     speed,
+        //     mass, coupling_G,
+        //     false);
+        //
+        //     GravitationalField::setMinDistanceSquared(1600);
+        //
+        //     // gravitationalField->setCouplingCoefficient(1.0);
+        //     auto gravFieldEntity = std::static_pointer_cast<PhysicalEntity>(gravitationalField);
+        //     auto gravFieldBase = std::static_pointer_cast<FieldBase>(gravitationalField);
+        //     static int i = 0;
+        //     i ++;
+        //     QString bodyName{"测试引力源"};
+        //     bodyName += QString::number(i);
+        //     QString fieldName{"引力场"};
+        //     fieldName += QString::number(i);
+        //
+        //
+        //     m_world->registerBodyField(bodyName.toStdString(),
+        //                                fieldName.toStdString(),
+        //                                gravFieldEntity,
+        //                                gravFieldBase,
+        //                                std::make_unique<ShapeSphere>(10.0));
+        // }};
+        //
+        // generateField({300, 0, -1}, {0, 75, 100}, 200, 50000);
+        // generateField({-150, 259.8, 100}, {-120, -45, 43}, 100, 50000);
+        // generateField({-150, -259.8, -300}, {-120, 45, 23}, 50, 50000);
 
 
         // m_world->spawnCylinder("cylinder", {}, {}, 4, 2, 4);
