@@ -49,10 +49,24 @@ public:
     [[nodiscard]] bool collide(const ShapeBase* other,
         const Transform& thisTrans, const Transform& otherTrans, ContactManifold& manifold) const;
 
+    [[nodiscard]] std::optional<double> continuousCollide(const ShapeBase* other,
+        const Transform& initTransA,
+        const Transform& initTransB,
+        const Eigen::Vector3d& thisLinearVel,
+        const Eigen::Vector3d& thisAngularVel,   // 角速度向量（方向为轴，大小为弧度/秒）
+        const Eigen::Vector3d& otherLinearVel,
+        const Eigen::Vector3d& otherAngularVel,
+        double dt,
+        ContactManifold& manifold         // 输出碰撞信息（深度≈0）)
+    ) const ;
+
     // 形状自描述的加载信息，默认仅提供 typeId。
     [[nodiscard]] virtual ShapeLoadInfo getLoadInfo() const;
 
     [[nodiscard]] virtual SceneRenderItem getBasicRenderInfo(const Eigen::Vector3d& position) const = 0;
+
+    // GJK 算法支撑函数
+    [[nodiscard]] virtual Eigen::Vector3d support(const Eigen::Vector3d& direction, const Transform& transform) const = 0;
 };
 
 } // egret

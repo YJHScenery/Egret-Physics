@@ -120,8 +120,8 @@ namespace egret
         Eigen::Quaterniond m_rotation;
         Eigen::Vector3d m_scale;
         // 矩阵缓存
-        Eigen::Matrix4d m_localToWorld;
-        Eigen::Matrix4d m_worldToLocal;
+        Eigen::Matrix4d m_localToWorld{};
+        Eigen::Matrix4d m_worldToLocal{};
     };
 }
 #endif //EGRET_PHYSICS_TRANSFORM_H

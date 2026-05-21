@@ -50,6 +50,8 @@ namespace egret
 
         [[nodiscard]] SceneRenderItem getBasicRenderInfo(const Eigen::Vector3d& position) const override;
 
+        [[nodiscard]] Eigen::Vector3d support(const Eigen::Vector3d& direction, const Transform& transform) const override;
+
         static void getLocalAxes(const Transform& trans,
                                  Eigen::Vector3d& axisX,
                                  Eigen::Vector3d& axisY,

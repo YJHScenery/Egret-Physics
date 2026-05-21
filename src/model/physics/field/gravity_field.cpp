@@ -42,7 +42,7 @@ namespace egret
             return;
         }
 
-        const Force gravityForce{.applyPosition = std::nullopt, .force = entity->getMass() * m_gravity, .id = m_id};
+        const Force gravityForce{.force = entity->getMass() * m_gravity, .id = m_id};
         entity->upsertForce(gravityForce);
 
     }

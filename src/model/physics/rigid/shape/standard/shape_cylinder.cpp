@@ -87,6 +87,66 @@ namespace egret
         return item;
     }
 
+    Eigen::Vector3d ShapeCylinder::support(const Eigen::Vector3d& direction, const Transform& transform) const
+    {
+        // 将方向从世界坐标系变换到局部坐标系（注意：只考虑旋转部分，不考虑平移和缩放）
+        // 因为方向向量不需要平移，缩放会影响方向，通常需要逆缩放或归一化处理
+        Eigen::Vector3d localDir = transform.getRotation().conjugate() * direction;
+
+        // 归一化方向（避免数值问题）
+        const double len = localDir.norm();
+        if (len < 1e-12) {
+            localDir = Eigen::Vector3d(0, 0, 1);
+        } else {
+            localDir /= len;
+        }
+
+        // 在局部坐标系中计算圆柱体的支持点
+        // 圆柱体：中心在原点，半径 m_radius，高度 m_height（沿z轴从 -h/2 到 h/2）
+        Eigen::Vector3d localSupport;
+
+        double halfHeight = m_height * 0.5;
+
+        // 检查方向是否主要指向圆柱的端面还是侧面
+        double absZ = std::abs(localDir.z());
+
+        if (absZ > 1e-12) {
+            // 计算沿z轴方向的支持点（顶面或底面）
+            double zSign = localDir.z() > 0 ? 1.0 : -1.0;
+            double zCoord = zSign * halfHeight;
+
+            // 计算水平方向（x-y平面）的投影
+            Eigen::Vector2d xyDir(localDir.x(), localDir.y());
+            double xyLen = xyDir.norm();
+
+            if (xyLen > 1e-12) {
+                // 有水平分量，支持点在圆柱边缘（圆侧面与端面的交线）
+                xyDir /= xyLen;
+                localSupport = Eigen::Vector3d(xyDir.x() * m_radius, xyDir.y() * m_radius, zCoord);
+            } else {
+                // 纯垂直方向，支持点在端面中心
+                localSupport = Eigen::Vector3d(0, 0, zCoord);
+            }
+        } else {
+            // 方向几乎水平，支持点在圆柱侧面
+            Eigen::Vector2d xyDir(localDir.x(), localDir.y());
+            double xyLen = xyDir.norm();
+            if (xyLen > 1e-12) {
+                xyDir /= xyLen;
+                // 侧面支持点：z坐标需要取能最大化投影的值，即 ±h/2 取决于方向在z上的微小分量
+                // 由于 absZ 很小，取顶面或底面都可，但为保证凸包正确，取方向z符号对应的端面
+                double zCoord = (localDir.z() >= 0 ? halfHeight : -halfHeight);
+                localSupport = Eigen::Vector3d(xyDir.x() * m_radius, xyDir.y() * m_radius, zCoord);
+            } else {
+                // 退化情况
+                localSupport = Eigen::Vector3d(m_radius, 0, halfHeight);
+            }
+        }
+
+        // 将局部支持点变换到世界坐标（包含平移、旋转、缩放）
+        return transform.transformPointToWorld(localSupport);
+    }
+
     void ShapeCylinder::setRadius(const double radius)
     {
         m_radius = radius;

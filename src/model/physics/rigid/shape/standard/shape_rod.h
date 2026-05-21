@@ -31,7 +31,9 @@ namespace egret
 
         void setLength(double length);
 
-        std::pair<Eigen::Vector3d, Eigen::Vector3d> getStartEnd(const Transform& transform) const;
+        [[nodiscard]] std::pair<Eigen::Vector3d, Eigen::Vector3d> getStartEnd(const Transform& transform) const;
+
+        [[nodiscard]] Eigen::Vector3d support(const Eigen::Vector3d& direction, const Transform& transform) const override;
 
     private:
         double m_length{};

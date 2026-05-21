@@ -8,17 +8,20 @@
 
 namespace egret
 {
-    Particle::Particle(const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass): PhysicalEntity(position, speed, mass),
-        m_mass(mass)
+    Particle::Particle(const Eigen::Vector3d &position, const Eigen::Vector3d &speed, double mass) : PhysicalEntity(position, speed, mass),
+                                                                                                     m_mass(mass)
     {
     }
 
     void Particle::applyForce(const double time)
     {
         Eigen::Vector3d acceleration{};
-        if (m_mass != 0) {
-            acceleration =  getJoinForce().force / m_mass;
-        }else {
+        if (m_mass != 0)
+        {
+            acceleration = getJoinForce().force / m_mass;
+        }
+        else
+        {
             acceleration = {0, 0, 0};
         }
 
@@ -31,39 +34,17 @@ namespace egret
         m_position += m_speed * time;
     }
 
-    void Particle::rotateMandatory(const Axis& axis, double radians)
+    void Particle::applyTorque(const double time, Eigen::Matrix4d rotation)
     {
-        // 1. 将旋转轴方向归一化
-        Eigen::Vector3d u = axis.rotationAxis.normalized();
-
-        // 2. 将旋转平移到原点（将点相对于轴上的基点表示）
-        const Eigen::Vector3d p_rel = m_position - axis.basePoint;
-
-        // 3. 构建旋转矩阵（罗德里格斯旋转公式）
-        // R = I + sin(theta)*[u]_× + (1-cos(theta))*[u]_×^2
-
-        const double cos_theta = std::cos(radians);
-        const double sin_theta = std::sin(radians);
-
-        // 叉积矩阵 [u]_×
-        Eigen::Matrix3d cross_matrix;
-        cross_matrix << 0, -u(2), u(1),
-            u(2), 0, -u(0),
-            -u(1), u(0), 0;
-
-        // 旋转矩阵
-        const Eigen::Matrix3d rotation_matrix = Eigen::Matrix3d::Identity()
-            + sin_theta * cross_matrix
-            + (1 - cos_theta) * (cross_matrix * cross_matrix);
-
-        // 4. 应用旋转
-        const Eigen::Vector3d p_rotated = rotation_matrix * p_rel;
-
-        // 5. 平移回原位
-        m_position = p_rotated + axis.basePoint;
+        // 质点不存在转动，忽略力矩的作用
     }
 
-    double Particle::getRotationalInertia(const Axis& axis)
+    void Particle::rotate(const double time, Eigen::Matrix4d rotation)
+    {
+        // 质点不存在转动，忽略旋转
+    }
+
+    double Particle::getRotationalInertia(const Axis &axis)
     {
         // 原代码：
         // const double distance{axis.basePoint.cross(axis.rotationAxis).norm() / axis.basePoint.norm()};
@@ -75,9 +56,10 @@ namespace egret
         return std::pow(distance, 2.0) * m_mass;
     }
 
-    Eigen::Vector3d Particle::getTorque(const Eigen::Vector3d& base)
+    Eigen::Vector3d Particle::getTorque()
     {
-        return (m_position - base).cross(getJoinForce().force);
+        // 质点不存在转动，返回零向量
+        return Eigen::Vector3d::Zero();
     }
 
     Force Particle::getJoinForce()
@@ -88,7 +70,8 @@ namespace egret
         //     joinForce.force += force;
         // }
         // 新代码说明：Force 不是二元组，改为按成员遍历，确保可正确汇总所有外力。
-        for (const Force& force : m_forces) {
+        for (const Force &force : m_forces)
+        {
             joinForce.force += force.force;
         }
         return joinForce;
@@ -99,8 +82,9 @@ namespace egret
         return m_mass * m_speed;
     }
 
-    Eigen::Vector3d Particle::getAngularMomentum(const Eigen::Vector3d& base)
+    Eigen::Vector3d Particle::getAngularMomentum()
     {
-        return (m_position - base).cross(getMomentum());
+        // 质点不存在转动，返回零向量
+        return Eigen::Vector3d::Zero();
     }
 } // egret

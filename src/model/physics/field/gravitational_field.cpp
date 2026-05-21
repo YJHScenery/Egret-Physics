@@ -74,7 +74,6 @@ namespace egret
 
         const Eigen::Vector3d fieldVector = sample(entity->getPosition());
         const Force gravityForce{
-            .applyPosition = std::nullopt,
             .force = entity->getMass() * fieldVector,
             .id = m_id
         };

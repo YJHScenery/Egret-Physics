@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.30.1)
 project(Egret_Physics)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -75,6 +75,10 @@ set(CPP_FILES
         src/model/physics/rigid/rigid_body.cpp
         src/model/physics/rigid/rigid_body.h
 
+        src/model/physics/rigid/shape/standard/collide_judge/standard_collide_judge_group.h
+        src/model/physics/rigid/shape/standard/collide_judge/standard_collide_judge_group.cpp
+        src/model/physics/rigid/shape/standard/collide_judge/ccd_collide_judge_group.h
+        src/model/physics/rigid/shape/standard/collide_judge/ccd_collide_judge_group.cpp
         src/model/physics/rigid/shape/standard/shape_base.cpp
         src/model/physics/rigid/shape/standard/shape_base.h
         src/model/physics/rigid/shape/standard/shape_sphere.cpp
@@ -99,8 +103,8 @@ set(CPP_FILES
         src/model/physics/rigid/shape/register/shape_factory_registry.h
         src/model/physics/rigid/shape/register/standard_shape_factory_registration.cpp
         src/model/physics/rigid/shape/register/standard_register_dummy.cpp
-        src/model/physics/rigid/shape/standard/collide_judge/standard_collide_judge_group.h
-        src/model/physics/rigid/shape/standard/collide_judge/standard_collide_judge_group.cpp
+        src/model/physics/rigid/shape/register/ccd_register_dummy.cpp
+
 
         src/model/physics/field/field_base.cpp
         src/model/physics/field/field_base.h
@@ -151,7 +155,6 @@ set(CPP_FILES
 
         src/view/resource_helper.cpp
         src/view/resource_helper.h
-
 )
 
 
