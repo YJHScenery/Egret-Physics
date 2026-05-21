@@ -29,12 +29,22 @@ namespace egret
     };
 
 
+    enum class ContactFeature
+    {
+        Unknown = 0,
+        Vertex,
+        Edge,
+        Face
+    };
+
     struct ContactPoint
     {
         // 接触点
         Eigen::Vector3d position; // 碰撞点在世界坐标系中的位置
         Eigen::Vector3d normal; // 碰撞法线
         double penetration; // 穿透深度
+        ContactFeature featureA{ContactFeature::Unknown};
+        ContactFeature featureB{ContactFeature::Unknown};
     };
 
     using ContactManifold = std::vector<ContactPoint>;

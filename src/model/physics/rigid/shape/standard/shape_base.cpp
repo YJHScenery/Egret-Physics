@@ -35,8 +35,8 @@ namespace egret
         const auto& otherId = other->typeId();
         const auto func = ShapeRegister::instance().findContinuousJudge(myId, otherId);
         if (func) {
-            return (*func)(this, initTransA, other, initTransB,
-                           thisLinearVel, thisAngularVel,
+            return (*func)(this, initTransA,
+                           thisLinearVel, thisAngularVel, other, initTransB,
                            otherLinearVel, otherAngularVel,
                            dt, manifold);
         }

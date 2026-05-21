@@ -105,7 +105,8 @@ namespace egret
         }
         // pairs = {{0, 1}};
         if (m_config.enableNarrowPhase) {
-            runNarrowPhase(scene, pairs, constraints, result.stats);
+            // runNarrowPhase(scene, pairs, constraints, result.stats);
+            runNarrowPhaseCcd(scene, pairs, dt, constraints, result.stats);
             // qDebug() << "narrow contacts:" << result.stats.contactConstraintCount;
         }
 
@@ -259,6 +260,76 @@ namespace egret
                 if (!contact.position.allFinite() || !contact.normal.allFinite() ||
                     !std::isfinite(contact.penetration) || contact.penetration <= 0.0 ||
                     contact.normal.squaredNorm() < 1e-12) {
+                    continue;
+                }
+
+                const double restitution = std::isfinite(std::min(bodyA.restitution, bodyB.restitution))
+                                               ? std::clamp(std::min(bodyA.restitution, bodyB.restitution), 0.0, 1.0)
+                                               : 0.0;
+                constraints.push_back(SolverContactConstraint{
+                    .bodyAIndex = pair.bodyAIndex,
+                    .bodyBIndex = pair.bodyBIndex,
+                    .contact = contact,
+                    .restitution = restitution
+                });
+            }
+        }
+
+        stats.contactConstraintCount = constraints.size();
+    }
+
+    void Solver::runNarrowPhaseCcd(const SolverSceneSnapshotBase& scene,
+                                   const std::vector<SolverBodyPair>& pairs,
+                                   double dt,
+                                   std::vector<SolverContactConstraint>& constraints,
+                                   SolverStats& stats)
+    {
+        const auto bodies = scene.getBodies();
+        stats.narrowPhaseTestCount = pairs.size();
+
+        for (const SolverBodyPair& pair : pairs) {
+            if (pair.bodyAIndex >= bodies.size() || pair.bodyBIndex >= bodies.size()) {
+                continue;
+            }
+
+            const SolverBodyHandle& bodyA = bodies[pair.bodyAIndex];
+            const SolverBodyHandle& bodyB = bodies[pair.bodyBIndex];
+
+            if (bodyA.shape == nullptr || bodyB.shape == nullptr ||
+                bodyA.transform == nullptr || bodyB.transform == nullptr ||
+                bodyA.entity == nullptr || bodyB.entity == nullptr) {
+                continue;
+            }
+
+            const Eigen::Vector3d linearVelA = bodyA.entity->getSpeed();
+            const Eigen::Vector3d angularVelA = bodyA.entity->getAngular();
+            const Eigen::Vector3d linearVelB = bodyB.entity->getSpeed();
+            const Eigen::Vector3d angularVelB = bodyB.entity->getAngular();
+
+            ContactManifold manifold;
+            auto toiOpt = bodyA.shape->continuousCollide(
+                bodyB.shape,
+                *bodyA.transform,
+                *bodyB.transform,
+                linearVelA,
+                angularVelA,
+                linearVelB,
+                angularVelB,
+                dt,
+                manifold);
+
+            if (!toiOpt.has_value()) {
+                continue;
+            }
+
+            const double toi = toiOpt.value();
+            if (toi < 0.0 || toi > dt) {
+                continue;
+            }
+
+            for (const ContactPoint& contact : manifold) {
+                if (!contact.position.allFinite() || !contact.normal.allFinite() ||
+                    !std::isfinite(contact.penetration) || contact.normal.squaredNorm() < 1e-12) {
                     continue;
                 }
 
