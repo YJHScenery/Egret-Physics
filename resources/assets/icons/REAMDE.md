@@ -14,7 +14,7 @@
 
 如您认为本项目中展示的某一或某些图标资源侵犯了您的合法权益，请通过以下方式联系项目维护者，我们将在收到有效通知后的 **5 个工作日内**核实并移除相关资源：
 
-- 提交 GitHub Issue：[https://github.com/YJHScenery/Egret-Physics/issues/new]([https://github.com/YJHScenery/Egret-Physics/issues/new])
+- 提交 GitHub Issue：[https://github.com/YJHScenery/Egret-Physics/issues/new](https://github.com/YJHScenery/Egret-Physics/issues/new)
 - 联系邮箱：[jehorm19831@163.com](mailto:jehorm19831@163.com)
 
 > **注意**：本项目不主张对上述图标资源的任何所有权或专有使用权。使用者如需将图标用于商业目的，应自行联系版权方获取正式授权。
