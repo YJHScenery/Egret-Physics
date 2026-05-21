@@ -1,16 +1,17 @@
-cmake-build-debug/
+/cmake-build-debug/
 
-cmake-build-release/
+/cmake-build-release/
 
-.idea/
+/.idea/
 
-build/
+/build/
 
-src/temp/
+/src/temp/
 
-.qtcreator/
+/.qtcreator/
 
-prompt/
+/prompt/
 
 count.py
 
+/.old/
