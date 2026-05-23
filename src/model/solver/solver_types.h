@@ -148,6 +148,9 @@ namespace egret
         /** 在解算器中产生有效冲量的约束数量。 */
         std::size_t resolvedContactCount{0};
 
+        /** 约束数量。 */
+        std::size_t constraintCount{0};
+
         /** 积分后动态实体的平动动能总和。 */
         double totalKineticEnergy{0.0};
     };

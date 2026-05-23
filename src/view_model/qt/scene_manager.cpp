@@ -433,7 +433,19 @@ namespace egret
         m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
         //
         m_world->spawnBox("地面", {0.0, 0.0, -15.0}, {0.0, 0.0, 0.0}, {760.0, 520.0, 30.0}, 0.0);
-        m_world->spawnSphere("小球 A", {0.0, 0.0, 220.0}, {0.0, 0.0, 0.0}, 28.0, 10.0);
+
+
+        const auto id1 = m_world->spawnSphere("小球 A", {0.0, 0.0, 280.0}, {0.0, 0.0, 0.0}, 5.0, 50.0);
+        const auto id2 = m_world->spawnSphere("小球 B", {200.0, 0.0, 200.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
+        const auto id3 = m_world->spawnSphere("小球 C", {100.0, 0.0, 400.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
+
+        // const std::uint64_t body1Id = m_world->spawnSphere("sphere1",Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0), 1.0, 1.0);
+        // const std::uint64_t body2Id = m_world->spawnSphere("sphere2",Eigen::Vector3d(5, 0, 0), Eigen::Vector3d(0, 0, 0), 1.0, 1.0);
+
+        // 创建折线约束，限制长度为 3.0（两点之间距离为 5，超过限制）
+        m_world->createConnectingLine("connecting_line_test", sqrt(80 * 80 + 200 * 200), id1, id2);
+
+        m_world->createSimplePendulum("simple_pendulum_test", 100, {0, 0, 400}, id3);
 
         // auto generateField {[&](const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass, double coupling_G = G)
         // {

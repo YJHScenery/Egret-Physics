@@ -8,6 +8,7 @@
 #include <span>
 
 #include "solver_types.h"
+#include "constraints_base.h"
 
 namespace egret
 {
@@ -39,13 +40,13 @@ namespace egret
          * @brief 返回活动场的可变连续视图。
          * @return 非拥有式场指针的 span。
          */
-        [[nodiscard]] virtual std::span<FieldBase*> getFields() = 0;
+        [[nodiscard]] virtual std::span<FieldBase *> getFields() = 0;
 
         /**
          * @brief 返回活动场的只读连续视图。
          * @return 非拥有式场指针的 span。
          */
-        [[nodiscard]] virtual std::span<FieldBase* const> getFields() const = 0;
+        [[nodiscard]] virtual std::span<FieldBase *const> getFields() const = 0;
 
         /**
          * @brief 返回当前求解步骤开始前的仿真时间。
@@ -58,6 +59,18 @@ namespace egret
          * @param dt 固定步长，单位为秒。
          */
         virtual void advanceSimulationTime(double dt) = 0;
+
+        /**
+         * @brief 返回活动约束的可变连续视图。
+         * @return 约束指针的 span。
+         */
+        [[nodiscard]] virtual std::span<ConstraintsBase *> getConstraints() = 0;
+
+        /**
+         * @brief 返回活动约束的只读连续视图。
+         * @return 约束指针的 const span。
+         */
+        [[nodiscard]] virtual std::span<const ConstraintsBase *> getConstraints() const = 0;
     };
 }
 

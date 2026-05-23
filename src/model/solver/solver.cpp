@@ -369,10 +369,19 @@ namespace egret
                                     const double dt,
                                     SolverStats& stats) const
     {
-        (void)scene;
-        (void)dt;
-        (void)stats;
-        // Constraints are not wired into the scene snapshot yet.
+        const auto constraints = scene.getConstraints();
+        stats.constraintCount = constraints.size();
+
+        for (ConstraintsBase* constraint : constraints)
+        {
+            if (constraint == nullptr || !constraint->isEnabled())
+            {
+                continue;
+            }
+
+            constraint->applyVelocityConstraint(dt);
+            constraint->applyPositionConstraint(dt);
+        }
     }
 
     void Solver::updateEnergyStats(const SolverSceneSnapshotBase& scene, SolverStats& stats)

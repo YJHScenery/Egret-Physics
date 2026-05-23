@@ -55,6 +55,8 @@ namespace egret
 
         [[nodiscard]] double getMass() const { return m_mass; }
 
+        [[nodiscard]] bool isFixed() const { return m_mass <= 0; }
+
         [[nodiscard]] double getRestitution() const { return m_restitution; }
 
         void setPosition(const Eigen::Vector3d &position) { m_transform.setTranslation(position); }

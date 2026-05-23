@@ -14,6 +14,9 @@
 #include "shape_box.h"
 #include "shape_cylinder.h"
 #include "shape_sphere.h"
+#include "simple_pendulum.h"
+#include "constraints/connecting_line.h"
+#include "constraints/simple_pendulum.h"
 
 namespace egret
 {
@@ -289,10 +292,13 @@ namespace egret
     {
         m_bodies.clear();
         m_fields.clear();
+        m_constraints.clear();
         m_solverBodies.clear();
         m_solverBodyOwners.clear();
         m_solverFields.clear();
         m_solverFieldOwners.clear();
+        m_solverConstraints.clear();
+        m_solverConstraintOwners.clear();
         m_simulationTime = 0.0;
         m_stepCount = 0;
         m_nextId = 1;
@@ -474,6 +480,7 @@ namespace egret
     {
         rebuildSolverBodyCache();
         rebuildSolverFieldCache();
+        rebuildSolverConstraintCache();
     }
 
     void WorldSceneManager::rebuildSolverBodyCache() const
@@ -585,5 +592,227 @@ namespace egret
             }
         }
         return nullptr;
+    }
+
+    std::uint64_t WorldSceneManager::registerConstraint(const std::string &name,
+                                                        const std::shared_ptr<ConstraintsBase> &constraint)
+    {
+        if (constraint == nullptr)
+        {
+            return 0;
+        }
+
+        auto record = std::make_unique<ConstraintRecord>();
+        record->id = nextId();
+        record->name = name;
+        record->constraint = constraint;
+        record->enabled = true;
+        m_constraints.push_back(std::move(record));
+        return m_constraints.back()->id;
+    }
+
+    std::uint64_t WorldSceneManager::createConnectingLine(const std::string &name,
+                                                          const double length,
+                                                          const std::uint64_t entityStartId,
+                                                          const std::uint64_t entityEndId,
+                                                          const std::initializer_list<Eigen::Vector3d> &turningPositions)
+    {
+        BodyRecord *startBody = findBody(entityStartId);
+        BodyRecord *endBody = findBody(entityEndId);
+
+        if (startBody == nullptr || endBody == nullptr || startBody->entity == nullptr || endBody->entity == nullptr)
+        {
+            return 0;
+        }
+
+        auto constraint = std::make_shared<ConnectingLine>(
+            length, startBody->entity.get(), endBody->entity.get(), turningPositions);
+
+        return registerConstraint(name, constraint);
+    }
+
+    std::uint64_t WorldSceneManager::createSimplePendulum(const std::string& name, double length,
+        const Eigen::Vector3d& anchorPos, std::uint64_t entityId)
+    {
+        BodyRecord *body = findBody(entityId);
+        if (body == nullptr) {
+            return 0;
+        }
+
+        const auto simplePendulum{std::make_shared<SimplePendulum>(
+            length, anchorPos, body->entity.get()
+            )};
+
+        return registerConstraint(name, simplePendulum);
+    }
+
+    ConstraintsBase *WorldSceneManager::getConstraint(const std::uint64_t id)
+    {
+        ConstraintRecord *record = findConstraint(id);
+        if (record == nullptr)
+        {
+            return nullptr;
+        }
+        return record->constraint.get();
+    }
+
+    std::vector<ConstraintsBase *> WorldSceneManager::getAllConstraints() const
+    {
+        rebuildSolverConstraintCache();
+        std::vector<ConstraintsBase *> result;
+        result.reserve(m_constraints.size());
+        for (auto &record : m_constraints)
+        {
+            if (record != nullptr && record->enabled)
+            {
+                result.push_back(record->constraint.get());
+            }
+        }
+        return result;
+    }
+
+    bool WorldSceneManager::removeConstraint(const std::uint64_t id)
+    {
+        const auto beforeSize = m_constraints.size();
+        std::erase_if(m_constraints, [id](const std::unique_ptr<ConstraintRecord> &item)
+                      { return item != nullptr && item->id == id; });
+        const bool removed = m_constraints.size() != beforeSize;
+        if (removed)
+        {
+            rebuildSolverConstraintCache();
+        }
+        return removed;
+    }
+
+    bool WorldSceneManager::setConstraintEnabled(const std::uint64_t id, const bool enabled)
+    {
+        ConstraintRecord *record = findConstraint(id);
+        if (record == nullptr)
+        {
+            return false;
+        }
+        record->enabled = enabled;
+        return true;
+    }
+
+    double WorldSceneManager::getConstraintError(const std::uint64_t id) const
+    {
+        const ConstraintRecord *record = findConstraint(id);
+        if (record == nullptr || record->constraint == nullptr)
+        {
+            return 0.0;
+        }
+        return record->constraint->computeConstraintError();
+    }
+
+    bool WorldSceneManager::addTurningPoint(const std::uint64_t constraintId,
+                                            const size_t index,
+                                            const Eigen::Vector3d &pos)
+    {
+        ConstraintRecord *record = findConstraint(constraintId);
+        if (record == nullptr || record->constraint == nullptr)
+        {
+            return false;
+        }
+
+        if (record->constraint->getType() == ConstraintType::ConnectingLine)
+        {
+            auto *connectingLine = dynamic_cast<ConnectingLine *>(record->constraint.get());
+            connectingLine->addPathTurningPoint(index, pos);
+            return true;
+        }
+        return false;
+    }
+
+    bool WorldSceneManager::removeTurningPoint(const std::uint64_t constraintId, const size_t index)
+    {
+        ConstraintRecord *record = findConstraint(constraintId);
+        if (record == nullptr || record->constraint == nullptr)
+        {
+            return false;
+        }
+
+        if (record->constraint->getType() == ConstraintType::ConnectingLine)
+        {
+            auto *connectingLine = dynamic_cast<ConnectingLine *>(record->constraint.get());
+            connectingLine->removePathTurningPoint(index);
+            return true;
+        }
+        return false;
+    }
+
+    bool WorldSceneManager::changeTurningPoint(const std::uint64_t constraintId,
+                                               const size_t index,
+                                               const Eigen::Vector3d &newPos)
+    {
+        ConstraintRecord *record = findConstraint(constraintId);
+        if (record == nullptr || record->constraint == nullptr)
+        {
+            return false;
+        }
+
+        if (record->constraint->getType() == ConstraintType::ConnectingLine)
+        {
+            auto *connectingLine = dynamic_cast<ConnectingLine *>(record->constraint.get());
+            connectingLine->changePathTurningPoint(index, newPos);
+            return true;
+        }
+        return false;
+    }
+
+    std::span<ConstraintsBase *> WorldSceneManager::getConstraints()
+    {
+        rebuildSolverConstraintCache();
+        // Safe because the solver only reads through this interface
+        return {const_cast<ConstraintsBase **>(m_solverConstraints.data()), m_solverConstraints.size()};
+    }
+
+    std::span<const ConstraintsBase *> WorldSceneManager::getConstraints() const
+    {
+        rebuildSolverConstraintCache();
+        return {m_solverConstraints.data(), m_solverConstraints.size()};
+    }
+
+    WorldSceneManager::ConstraintRecord *WorldSceneManager::findConstraint(const std::uint64_t id)
+    {
+        for (auto &constraint : m_constraints)
+        {
+            if (constraint != nullptr && constraint->id == id)
+            {
+                return constraint.get();
+            }
+        }
+        return nullptr;
+    }
+
+    const WorldSceneManager::ConstraintRecord *WorldSceneManager::findConstraint(const std::uint64_t id) const
+    {
+        for (const auto &constraint : m_constraints)
+        {
+            if (constraint != nullptr && constraint->id == id)
+            {
+                return constraint.get();
+            }
+        }
+        return nullptr;
+    }
+
+    void WorldSceneManager::rebuildSolverConstraintCache() const
+    {
+        m_solverConstraints.clear();
+        m_solverConstraintOwners.clear();
+        m_solverConstraints.reserve(m_constraints.size());
+        m_solverConstraintOwners.reserve(m_constraints.size());
+
+        for (auto &record : m_constraints)
+        {
+            if (record == nullptr || record->constraint == nullptr || !record->enabled)
+            {
+                continue;
+            }
+
+            m_solverConstraintOwners.push_back(record->constraint);
+            m_solverConstraints.push_back(record->constraint.get());
+        }
     }
 }
