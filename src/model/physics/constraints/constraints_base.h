@@ -12,9 +12,10 @@ enum class ConstraintType : std::uint64_t
 {
     Base = 0xFFFFFFAA00000000,
     ConnectingLine = 0xFFFFFFAA00000001,
-    ConnectingRod = 0xFFFFFFAA00000002,
-    SlidingRail = 0xFFFFFFAA00000003,
-    SupportSurface = 0xFFFFFFAA00000004,
+    SimplePendulum = 0xFFFFFFAA00000002,
+    ConnectingRod = 0xFFFFFFAA00000003,
+    SlidingRail = 0xFFFFFFAA00000004,
+    SupportSurface = 0xFFFFFFAA00000005,
 };
 
 namespace egret {

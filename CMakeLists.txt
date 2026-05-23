@@ -155,6 +155,8 @@ set(CPP_FILES
 
         src/view/resource_helper.cpp
         src/view/resource_helper.h
+        src/model/physics/constraints/simple_pendulum.cpp
+        src/model/physics/constraints/simple_pendulum.h
 )
 
 
@@ -226,7 +228,8 @@ if (BUILD_TESTS)
     set(TEST_SOURCES
             # tests/test_collision.cpp
             tests/test_ccd.cpp
-            tests/boost_test_dependency.h
+            # tests/test_connecting_line_scene.cpp
+            # tests/boost_test_dependency.h
     )
 
     add_executable(Egret_Physics_Tests

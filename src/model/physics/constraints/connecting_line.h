@@ -39,8 +39,11 @@ public:
     void applyPositionConstraint(double dt) override;
 
     [[nodiscard]] double computeConstraintError() const override;
+protected:
 
-private:
+    ConnectingLine(std::uint64_t id);
+
+
     std::vector<PhysicalEntity*> m_physicalEntities{};
 
     // 始末会由 Physical Entity 的 Position 给出，此处不会储存此二者。
@@ -49,12 +52,7 @@ private:
     double m_length{};
 };
 
-    // 单摆：将第一个 Physical Entity 定义为质量为 0 的质点。这样它不会受到任何力的作用。
-    class SimplePendulum: public ConstraintsBase
-    {
-    public:
-        SimplePendulum();
-    };
+
 } // egret
 
 #endif //EGRET_PHYSICS_CONNECTING_LINE_H
