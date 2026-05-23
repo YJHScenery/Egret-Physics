@@ -17,13 +17,14 @@ namespace egret
 		}
 
 		const Eigen::Vector3d acceleration{getJoinForce().force / m_mass};
-		m_position += m_speed * time + 0.5 * acceleration * time * time;
+		Eigen::Vector3d newPosition = m_transform.getTranslation() + m_speed * time + 0.5 * acceleration * time * time;
+		m_transform.setTranslation(newPosition);
 		m_speed += acceleration * time;
 	}
 
 	void RigidBody::movePosition(const double time)
 	{
-		m_position += m_speed * time;
+		m_transform.setTranslation(m_transform.getTranslation() + m_speed * time);
 	}
 
 	void RigidBody::applyTorque(const double time, Eigen::Matrix4d rotation)
@@ -57,13 +58,13 @@ namespace egret
 		Eigen::AngleAxisd ry(angularDisplacement[1], Eigen::Vector3d::UnitY());
 		Eigen::AngleAxisd rz(angularDisplacement[2], Eigen::Vector3d::UnitZ());
 		Eigen::Matrix3d rotationMatrix = (rz * ry * rx).toRotationMatrix();
-		m_position = rotationMatrix * m_position;
+		m_transform.setTranslation(rotationMatrix * m_transform.getTranslation());
 	}
 
 	double RigidBody::getRotationalInertia(const Axis &axis)
 	{
 		const Eigen::Vector3d dir = axis.rotationAxis.normalized();
-		const Eigen::Vector3d rel = m_position - axis.basePoint;
+		const Eigen::Vector3d rel = m_transform.getTranslation() - axis.basePoint;
 		const double distance = rel.cross(dir).norm();
 		return distance * distance * m_mass;
 	}
@@ -99,6 +100,6 @@ namespace egret
 	Eigen::Vector3d RigidBody::getAngularMomentum()
 	{
 		// 角动量 L = r × p = position × (mass * velocity)
-		return m_position.cross(m_mass * m_speed);
+		return m_transform.getTranslation().cross(m_mass * m_speed);
 	}
 } // egret

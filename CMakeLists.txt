@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.30.1)
 project(Egret_Physics)
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)

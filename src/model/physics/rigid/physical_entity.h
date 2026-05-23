@@ -13,8 +13,8 @@
 #include "basic_utils.h"
 #include "shape/standard/shape_base.h"
 #include <memory>
-
 #include "physics_utils.h"
+#include "transform.h"
 
 namespace egret
 {
@@ -24,42 +24,46 @@ namespace egret
         PhysicalEntity() = default;
         explicit PhysicalEntity(double mass);
         PhysicalEntity(Eigen::Vector3d position, Eigen::Vector3d speed, double mass);
-        PhysicalEntity(const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass, std::vector<Force> forces);
+        PhysicalEntity(const Eigen::Vector3d &position, const Eigen::Vector3d &speed, double mass, std::vector<Force> forces);
 
-        PhysicalEntity(const PhysicalEntity&) = default;
-        PhysicalEntity(PhysicalEntity&&) = default;
-        PhysicalEntity& operator=(const PhysicalEntity&) = default;
-        PhysicalEntity& operator=(PhysicalEntity&&) = default;
+        PhysicalEntity(const PhysicalEntity &) = default;
+        PhysicalEntity(PhysicalEntity &&) = default;
+        PhysicalEntity &operator=(const PhysicalEntity &) = default;
+        PhysicalEntity &operator=(PhysicalEntity &&) = default;
 
         virtual ~PhysicalEntity() = default;
 
-        [[nodiscard]] Eigen::Vector3d getPosition() const { return m_position; }
+        [[nodiscard]] Eigen::Vector3d getPosition() const { return m_transform.getTranslation(); }
 
-        [[nodiscard]] const Eigen::Vector3d& getPositionCR() const { return m_position; }
+        [[nodiscard]] const Eigen::Vector3d& getPositionCR() const { return m_transform.getTranslation(); }
+
+        [[nodiscard]] Transform& getTransform() { return m_transform; }
+
+        [[nodiscard]] const Transform& getTransformCR() const { return m_transform; }
 
         [[nodiscard]] std::vector<Force> getForces() const { return m_forces; }
 
-        [[nodiscard]] const std::vector<Force>& getForcesCR() const { return m_forces; }
+        [[nodiscard]] const std::vector<Force> &getForcesCR() const { return m_forces; }
 
         [[nodiscard]] Eigen::Vector3d getSpeed() const { return m_speed; }
 
-        [[nodiscard]] const Eigen::Vector3d& getSpeedCR() const { return m_speed; }
+        [[nodiscard]] const Eigen::Vector3d &getSpeedCR() const { return m_speed; }
 
         [[nodiscard]] Eigen::Vector3d getAngular() const { return m_angular; }
 
-        [[nodiscard]] const Eigen::Vector3d& getAngularCR() const { return m_angular; }
+        [[nodiscard]] const Eigen::Vector3d &getAngularCR() const { return m_angular; }
 
         [[nodiscard]] double getMass() const { return m_mass; }
 
         [[nodiscard]] double getRestitution() const { return m_restitution; }
 
-        void setPosition(const Eigen::Vector3d& position) { m_position = position; }
+        void setPosition(const Eigen::Vector3d &position) { m_transform.setTranslation(position); }
 
         void setMass(const double mass) { m_mass = mass; }
 
-        void addForce(const Force& force) { m_forces.push_back(force); }
+        void addForce(const Force &force) { m_forces.push_back(force); }
 
-        void upsertForce(const Force& force);
+        void upsertForce(const Force &force);
 
         void setRestitution(double restitution);
 
@@ -69,11 +73,11 @@ namespace egret
 
         void removeForce(long long index);
 
-        void setSpeed(const Eigen::Vector3d& speed) { m_speed = speed; }
+        void setSpeed(const Eigen::Vector3d &speed) { m_speed = speed; }
 
-        void setAngular(const Eigen::Vector3d& angular) { m_angular = angular; }
+        void setAngular(const Eigen::Vector3d &angular) { m_angular = angular; }
 
-        void setShape(const std::shared_ptr<ShapeBase>& shape) { m_shape = shape; }
+        void setShape(const std::shared_ptr<ShapeBase> &shape) { m_shape = shape; }
 
         // 匀加速直线运动
         virtual void applyForce(double time) = 0; // 应用所有的力，更新位置信息
@@ -94,7 +98,7 @@ namespace egret
         virtual Eigen::Vector3d getAngularMomentum() = 0;
 
         // 转动惯量
-        virtual double getRotationalInertia(const Axis& axis) = 0;
+        virtual double getRotationalInertia(const Axis &axis) = 0;
 
         // 力矩
         virtual Eigen::Vector3d getTorque() = 0;
@@ -103,20 +107,18 @@ namespace egret
         virtual Force getJoinForce() = 0;
 
     protected:
-        Eigen::Vector3d m_position{}; // 参考点位置
-        Eigen::Vector3d m_speed{}; // 参考点的速度
+        Transform m_transform{};     // 世界变换（包含位置、旋转、缩放）
+        Eigen::Vector3d m_speed{};   // 参考点的速度
         Eigen::Vector3d m_angular{}; // 参考点的角速度
-
 
         std::vector<Force> m_forces; // 受力组/N
 
         std::vector<Torque> m_torques; // 力矩组/Nm
 
         std::shared_ptr<ShapeBase> m_shape;
-        double m_mass{}; // 质量/kg
+        double m_mass{};           // 质量/kg
         double m_restitution{1.0}; // 碰撞恢复系数
     };
 }
 
-
-#endif //EGRET_PHYSICS_RIGID_OBJECT_BASE_H
+#endif // EGRET_PHYSICS_RIGID_OBJECT_BASE_H

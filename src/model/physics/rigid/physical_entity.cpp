@@ -11,8 +11,9 @@ namespace egret
     }
 
     PhysicalEntity::PhysicalEntity(Eigen::Vector3d position, Eigen::Vector3d speed, const double mass):
-        m_position(std::move(position)), m_speed(std::move(speed)), m_mass(mass)
+        m_speed(std::move(speed)), m_mass(mass)
     {
+        m_transform.setTranslation(position);
     }
 
     PhysicalEntity::PhysicalEntity(const Eigen::Vector3d& position, const Eigen::Vector3d& speed, const double mass,

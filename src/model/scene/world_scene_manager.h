@@ -366,9 +366,6 @@ namespace egret
             /** 碰撞形状的所有权。 */
             std::unique_ptr<ShapeBase> shape;
 
-            /** 世界变换。 */
-            Transform transform;
-
             /** 是否参与碰撞。 */
             bool enableCollision{true};
 
