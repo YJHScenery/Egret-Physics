@@ -114,9 +114,9 @@ namespace egret
          * @param mass 质量，0 表示静态体。
          * @return 新实体的 ID，创建失败返回 0。
          */
-        std::uint64_t spawnBody(const std::string &name,
-                                const Eigen::Vector3d &position,
-                                const Eigen::Vector3d &speed,
+        std::uint64_t spawnBody(const std::string& name,
+                                const Eigen::Vector3d& position,
+                                const Eigen::Vector3d& speed,
                                 std::unique_ptr<ShapeBase> shape,
                                 double mass);
 
@@ -127,8 +127,8 @@ namespace egret
          * @param shape 形状所有权。
          * @return 新实体的 ID，失败返回 0。
          */
-        std::uint64_t registerBody(const std::string &name,
-                                   const std::shared_ptr<PhysicalEntity> &entity,
+        std::uint64_t registerBody(const std::string& name,
+                                   const std::shared_ptr<PhysicalEntity>& entity,
                                    std::unique_ptr<ShapeBase> shape);
 
         /**
@@ -140,10 +140,10 @@ namespace egret
          * @param mass 质量，0 表示静态体。
          * @return 新实体的 ID，创建失败返回 0。
          */
-        std::uint64_t spawnBodyFromLoadInfo(const std::string &name,
-                                            const Eigen::Vector3d &position,
-                                            const Eigen::Vector3d &speed,
-                                            const ShapeLoadInfo &shapeInfo,
+        std::uint64_t spawnBodyFromLoadInfo(const std::string& name,
+                                            const Eigen::Vector3d& position,
+                                            const Eigen::Vector3d& speed,
+                                            const ShapeLoadInfo& shapeInfo,
                                             double mass);
 
         /**
@@ -155,9 +155,9 @@ namespace egret
          * @param mass 质量，0 表示静态体。
          * @return 新实体的 ID。
          */
-        std::uint64_t spawnSphere(const std::string &name,
-                                  const Eigen::Vector3d &position,
-                                  const Eigen::Vector3d &speed,
+        std::uint64_t spawnSphere(const std::string& name,
+                                  const Eigen::Vector3d& position,
+                                  const Eigen::Vector3d& speed,
                                   double radius,
                                   double mass);
 
@@ -170,10 +170,10 @@ namespace egret
          * @param mass 质量，0 表示静态体。
          * @return 新实体的 ID。
          */
-        std::uint64_t spawnBox(const std::string &name,
-                               const Eigen::Vector3d &position,
-                               const Eigen::Vector3d &speed,
-                               const Eigen::Vector3d &size,
+        std::uint64_t spawnBox(const std::string& name,
+                               const Eigen::Vector3d& position,
+                               const Eigen::Vector3d& speed,
+                               const Eigen::Vector3d& size,
                                double mass);
 
         /**
@@ -186,9 +186,9 @@ namespace egret
          * @param mass 质量，0 表示静态体。
          * @return 新实体的 ID。
          */
-        std::uint64_t spawnCylinder(const std::string &name,
-                                    const Eigen::Vector3d &position,
-                                    const Eigen::Vector3d &speed,
+        std::uint64_t spawnCylinder(const std::string& name,
+                                    const Eigen::Vector3d& position,
+                                    const Eigen::Vector3d& speed,
                                     double radius,
                                     double height,
                                     double mass);
@@ -213,7 +213,7 @@ namespace egret
          * @param position 新位置。
          * @return 设置是否成功。
          */
-        bool setBodyPosition(std::uint64_t id, const Eigen::Vector3d &position);
+        bool setBodyPosition(std::uint64_t id, const Eigen::Vector3d& position);
 
         /**
          * @brief 添加一个重力场。
@@ -222,9 +222,9 @@ namespace egret
          * @param name 场名称。
          * @return 新场的 ID。
          */
-        std::uint64_t addGravityField(const Eigen::Vector3d &gravity,
-                                      const Eigen::Vector3d &referencePoint,
-                                      const std::string &name = "Gravity");
+        std::uint64_t addGravityField(const Eigen::Vector3d& gravity,
+                                      const Eigen::Vector3d& referencePoint,
+                                      const std::string& name = "Gravity");
 
         /**
          * @brief 注册已存在的场实例。
@@ -232,8 +232,8 @@ namespace egret
          * @param field 场共享所有权。
          * @return 新场的 ID，失败返回 0。
          */
-        std::uint64_t registerField(const std::string &name,
-                                    const std::shared_ptr<FieldBase> &field);
+        std::uint64_t registerField(const std::string& name,
+                                    const std::shared_ptr<FieldBase>& field);
 
         /**
          * @brief 将同一对象同时注册为实体与场。
@@ -244,10 +244,10 @@ namespace egret
          * @param shape 形状所有权。
          * @return 共享 ID，失败返回 0。
          */
-        std::uint64_t registerBodyField(const std::string &bodyName,
-                                        const std::string &fieldName,
-                                        const std::shared_ptr<PhysicalEntity> &entity,
-                                        const std::shared_ptr<FieldBase> &field,
+        std::uint64_t registerBodyField(const std::string& bodyName,
+                                        const std::string& fieldName,
+                                        const std::shared_ptr<PhysicalEntity>& entity,
+                                        const std::shared_ptr<FieldBase>& field,
                                         std::unique_ptr<ShapeBase> shape);
 
         /**
@@ -335,13 +335,13 @@ namespace egret
          * @brief 返回场指针的可变连续视图。
          * @return 场指针 span。
          */
-        [[nodiscard]] std::span<FieldBase *> getFields() override;
+        [[nodiscard]] std::span<FieldBase*> getFields() override;
 
         /**
          * @brief 返回场指针的只读连续视图。
          * @return 只读场指针 span。
          */
-        [[nodiscard]] std::span<FieldBase *const> getFields() const override;
+        [[nodiscard]] std::span<FieldBase*const> getFields() const override;
 
         /**
          * @brief 为 ViewModel 层提供当前活动实体的名称列表。
@@ -355,8 +355,8 @@ namespace egret
          * @param constraint 约束共享所有权。
          * @return 新约束的 ID，失败返回 0。
          */
-        std::uint64_t registerConstraint(const std::string &name,
-                                         const std::shared_ptr<ConstraintsBase> &constraint);
+        std::uint64_t registerConstraint(const std::string& name,
+                                         const std::shared_ptr<ConstraintsBase>& constraint);
 
         /**
          * @brief 创建并注册折线约束器。
@@ -367,11 +367,11 @@ namespace egret
          * @param turningPositions 路径点列表（可选）。
          * @return 新约束的 ID，失败返回 0。
          */
-        std::uint64_t createConnectingLine(const std::string &name,
+        std::uint64_t createConnectingLine(const std::string& name,
                                            double length,
                                            std::uint64_t entityStartId,
                                            std::uint64_t entityEndId,
-                                           const std::initializer_list<Eigen::Vector3d> &turningPositions = {});
+                                           const std::initializer_list<Eigen::Vector3d>& turningPositions = {});
 
         /**
          * @brief 创建并注册折线约束器。
@@ -381,21 +381,21 @@ namespace egret
          * @param entityId 实体 ID。
          * @return 新约束的 ID，失败返回 0。
          */
-        std::uint64_t createSimplePendulum(const std::string &name,
-                                           double length, const Eigen::Vector3d &anchorPos, std::uint64_t entityId);
+        std::uint64_t createSimplePendulum(const std::string& name,
+                                           double length, const Eigen::Vector3d& anchorPos, std::uint64_t entityId);
 
         /**
          * @brief 获取约束器。
          * @param id 约束 ID。
          * @return 找到则返回约束指针，否则返回 nullptr。
          */
-        [[nodiscard]] ConstraintsBase *getConstraint(std::uint64_t id);
+        [[nodiscard]] ConstraintsBase* getConstraint(std::uint64_t id);
 
         /**
          * @brief 获取所有约束。
          * @return 约束指针列表。
          */
-        [[nodiscard]] std::vector<ConstraintsBase *> getAllConstraints() const;
+        [[nodiscard]] std::vector<ConstraintsBase*> getAllConstraints() const;
 
         /**
          * @brief 移除约束器。
@@ -426,7 +426,7 @@ namespace egret
          * @param pos 路径点位置。
          * @return 操作是否成功。
          */
-        bool addTurningPoint(std::uint64_t constraintId, size_t index, const Eigen::Vector3d &pos);
+        bool addTurningPoint(std::uint64_t constraintId, size_t index, const Eigen::Vector3d& pos);
 
         /**
          * @brief 移除路径点。
@@ -443,19 +443,19 @@ namespace egret
          * @param newPos 新位置。
          * @return 操作是否成功。
          */
-        bool changeTurningPoint(std::uint64_t constraintId, size_t index, const Eigen::Vector3d &newPos);
+        bool changeTurningPoint(std::uint64_t constraintId, size_t index, const Eigen::Vector3d& newPos);
 
         /**
          * @brief 返回活动约束的可变连续视图。
          * @return 约束指针的 span。
          */
-        [[nodiscard]] std::span<ConstraintsBase *> getConstraints() override;
+        [[nodiscard]] std::span<ConstraintsBase*> getConstraints() override;
 
         /**
          * @brief 返回活动约束的只读连续视图。
          * @return 约束指针的 const span。
          */
-        [[nodiscard]] std::span<const ConstraintsBase *> getConstraints() const override;
+        [[nodiscard]] std::span<const ConstraintsBase*> getConstraints() const override;
 
     private:
         /**
@@ -550,42 +550,42 @@ namespace egret
          * @param id 实体 ID。
          * @return 找到则返回记录指针，否则返回空指针。
          */
-        BodyRecord *findBody(std::uint64_t id);
+        BodyRecord* findBody(std::uint64_t id);
 
         /**
          * @brief 查找场记录。
          * @param id 场 ID。
          * @return 找到则返回记录指针，否则返回空指针。
          */
-        FieldRecord *findField(std::uint64_t id);
+        FieldRecord* findField(std::uint64_t id);
 
         /**
          * @brief 查找实体记录的只读版本。
          * @param id 实体 ID。
          * @return 找到则返回记录指针，否则返回空指针。
          */
-        const BodyRecord *findBody(std::uint64_t id) const;
+        const BodyRecord* findBody(std::uint64_t id) const;
 
         /**
          * @brief 查找场记录的只读版本。
          * @param id 场 ID。
          * @return 找到则返回记录指针，否则返回空指针。
          */
-        const FieldRecord *findField(std::uint64_t id) const;
+        const FieldRecord* findField(std::uint64_t id) const;
 
         /**
          * @brief 查找约束记录。
          * @param id 约束 ID。
          * @return 找到则返回记录指针，否则返回空指针。
          */
-        ConstraintRecord *findConstraint(std::uint64_t id);
+        ConstraintRecord* findConstraint(std::uint64_t id);
 
         /**
          * @brief 查找约束记录的只读版本。
          * @param id 约束 ID。
          * @return 找到则返回记录指针，否则返回空指针。
          */
-        const ConstraintRecord *findConstraint(std::uint64_t id) const;
+        const ConstraintRecord* findConstraint(std::uint64_t id) const;
 
         /** 求解器所有权。 */
         std::unique_ptr<SolverBase> m_solver;
@@ -603,7 +603,7 @@ namespace egret
         mutable std::vector<std::shared_ptr<PhysicalEntity>> m_solverBodyOwners;
 
         /** 给求解器使用的场指针缓存。 */
-        mutable std::vector<FieldBase *> m_solverFields;
+        mutable std::vector<FieldBase*> m_solverFields;
 
         /** 持有场以保证求解期间生命周期稳定。 */
         mutable std::vector<std::shared_ptr<FieldBase>> m_solverFieldOwners;
@@ -612,7 +612,7 @@ namespace egret
         std::vector<std::unique_ptr<ConstraintRecord>> m_constraints;
 
         /** 给求解器使用的约束指针缓存。 */
-        mutable std::vector<const ConstraintsBase *> m_solverConstraints;
+        mutable std::vector<const ConstraintsBase*> m_solverConstraints;
 
         /** 持有约束以保证求解期间生命周期稳定。 */
         mutable std::vector<std::shared_ptr<ConstraintsBase>> m_solverConstraintOwners;

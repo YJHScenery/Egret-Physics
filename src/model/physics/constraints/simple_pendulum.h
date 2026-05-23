@@ -7,7 +7,8 @@
 #include "connecting_line.h"
 #include "particle.h"
 
-namespace egret {
+namespace egret
+{
     class Particle;
 
     /**
@@ -24,7 +25,7 @@ namespace egret {
      * - 绳子连接的场景
      * - 摆动过程中遇到阻碍物的情况
      */
-    class SimplePendulum: public ConnectingLine
+    class SimplePendulum : public ConnectingLine
     {
     public:
         SimplePendulum();
@@ -47,10 +48,9 @@ namespace egret {
         void applyPositionConstraint(double dt) override;
 
     private:
-        Particle m_anchor{};           // 锚点（固定点）
-        PhysicalEntity* m_entity{nullptr};  // 摆动物体
+        Particle m_anchor{}; // 锚点（固定点）
+        PhysicalEntity* m_entity{nullptr}; // 摆动物体
     };
-
 } // egret
 
 #endif //EGRET_PHYSICS_SIMPLE_PENDULUM_H
