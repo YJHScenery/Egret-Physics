@@ -30,13 +30,13 @@ namespace egret
         std::uint64_t id{0};
 
         /** 指向仿真实体状态的非拥有指针（质量、速度、外力等）。 */
-        PhysicalEntity* entity{nullptr};
+        PhysicalEntity *entity{nullptr};
 
         /** 指向世界变换的非拥有指针，用于形状碰撞与渲染桥接。 */
-        Transform* transform{nullptr};
+        Transform *transform{nullptr};
 
         /** 指向碰撞形状的非拥有指针，在窄相位中使用。 */
-        ShapeBase* shape{nullptr};
+        ShapeBase *shape{nullptr};
 
         /** 逆质量，用于快速冲量求解；静态体或无限质量体设为 0。 */
         double inverseMass{0.0};
@@ -81,6 +81,42 @@ namespace egret
 
         /** 该接触对的有效恢复系数（通常取两个物体的最小值或平均值）。 */
         double restitution{0.2};
+
+        /** 碰撞发生的时间（Time of Impact），范围 [0, dt]。 */
+        double toi{0.0};
+    };
+
+    /**
+     * @brief CCD碰撞事件，包含碰撞时间和接触信息。
+     *
+     * 用于TOI事件队列，支持时间步进处理多个碰撞。
+     */
+    struct CcdCollisionEvent
+    {
+        /** 碰撞发生的时间（Time of Impact），范围 [0, dt]。 */
+        double toi{0.0};
+
+        /** 物体 A 在求解器实体缓冲区中的索引。 */
+        std::size_t bodyAIndex{0};
+
+        /** 物体 B 在求解器实体缓冲区中的索引。 */
+        std::size_t bodyBIndex{0};
+
+        /** 接触流形，包含所有接触点。 */
+        ContactManifold manifold{};
+
+        /** 该接触对的有效恢复系数。 */
+        double restitution{0.2};
+
+        /**
+         * @brief 比较两个碰撞事件的TOI。
+         * @param other 另一个碰撞事件。
+         * @return 如果this的TOI小于other，返回true。
+         */
+        bool operator<(const CcdCollisionEvent &other) const
+        {
+            return toi < other.toi;
+        }
     };
 
     /**
@@ -123,6 +159,9 @@ namespace egret
 
         /** 若为真，则将动力学约束在 XY 平面（清零 z 方向位置与速度）。 */
         bool lockToXYPlane{false};
+
+        /** 若为真，则使用TOI事件队列进行时间步进的CCD碰撞检测。 */
+        bool enableToiQueue{true};
     };
 
     /**
