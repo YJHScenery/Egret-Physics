@@ -6,15 +6,14 @@
 
 namespace egret
 {
-    SimplePendulum::SimplePendulum(): ConnectingLine(generateID(ConstraintType::SimplePendulum))
+    SimplePendulum::SimplePendulum() : ConnectingLine(generateID(ConstraintType::SimplePendulum))
     {
-
     }
 
     SimplePendulum::SimplePendulum(double length, const Eigen::Vector3d& anchorPos, PhysicalEntity* entity)
         : ConnectingLine(generateID(ConstraintType::SimplePendulum))
-        , m_anchor(anchorPos, Eigen::Vector3d{0, 0, 0}, 0.0)  // 锚点质量为0（固定点）
-        , m_entity(entity)
+          , m_anchor(anchorPos, Eigen::Vector3d{0, 0, 0}, 0.0) // 锚点质量为0（固定点）
+          , m_entity(entity)
     {
         // 将锚点和摆动物体加入到约束实体列表
         m_physicalEntities.reserve(2);
@@ -27,8 +26,8 @@ namespace egret
     SimplePendulum::SimplePendulum(double length, const Eigen::Vector3d& anchorPos, PhysicalEntity* entity,
                                    const std::initializer_list<Eigen::Vector3d>& turningPositions)
         : ConnectingLine(generateID(ConstraintType::SimplePendulum))
-        , m_anchor(anchorPos, Eigen::Vector3d{0, 0, 0}, 0.0)  // 锚点质量为0（固定点）
-        , m_entity(entity)
+          , m_anchor(anchorPos, Eigen::Vector3d{0, 0, 0}, 0.0) // 锚点质量为0（固定点）
+          , m_entity(entity)
     {
         // 将锚点和摆动物体加入到约束实体列表
         m_physicalEntities.reserve(2);
@@ -52,8 +51,7 @@ namespace egret
 
     void SimplePendulum::applyVelocityConstraint(double dt)
     {
-        if (m_entity == nullptr)
-        {
+        if (m_entity == nullptr) {
             return;
         }
 
@@ -66,8 +64,7 @@ namespace egret
         double dist = dp.norm();
 
         // 如果绳子未被拉伸（距离 <= 长度），不激活约束
-        if (dist <= m_length || dist < 1e-10)
-        {
+        if (dist <= m_length || dist < 1e-10) {
             return;
         }
 
@@ -84,16 +81,14 @@ namespace egret
 
         // 如果相对速度是收缩方向（dv <= 0），不施加约束
         // 只有当摆动物体正在远离锚点时才施加约束
-        if (dv <= 0)
-        {
+        if (dv <= 0) {
             return;
         }
 
         // 获取摆动物体的质量（锚点质量为0，不参与修正）
         double mEntity = m_entity->getMass();
 
-        if (mEntity <= 0)
-        {
+        if (mEntity <= 0) {
             return; // 摆动物体是固定的，无法修正
         }
 
@@ -112,8 +107,7 @@ namespace egret
 
     void SimplePendulum::applyPositionConstraint(double dt)
     {
-        if (m_entity == nullptr)
-        {
+        if (m_entity == nullptr) {
             return;
         }
 
@@ -126,8 +120,7 @@ namespace egret
         double dist = dp.norm();
 
         // 如果绳子未被拉伸（距离 <= 长度），不激活约束
-        if (dist <= m_length || dist < 1e-10)
-        {
+        if (dist <= m_length || dist < 1e-10) {
             return;
         }
 

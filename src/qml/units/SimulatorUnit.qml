@@ -373,7 +373,8 @@ ColumnLayout {
                     clip: true
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                     rightPadding: infoScrollBar.visible ? (infoScrollBar.width) : 0
-                    ScrollBar.vertical: Basic.ScrollBar {
+                    ScrollBar.vertical: Basic.ScrollBar
+                    {
                         id: infoScrollBar
                         width: 8
                         policy: ScrollBar.AsNeeded

@@ -22,24 +22,22 @@ namespace egret
 {
     namespace
     {
-        [[nodiscard]] double readShapeParamAsDouble(const ShapeLoadInfo &info, const std::string &key, const double fallback)
+        [[nodiscard]] double readShapeParamAsDouble(const ShapeLoadInfo& info, const std::string& key,
+                                                    const double fallback)
         {
             const auto iter = info.parameters.find(key);
-            if (iter == info.parameters.end())
-            {
+            if (iter == info.parameters.end()) {
                 return fallback;
             }
 
             return std::visit(
-                [fallback]<typename T>(const T &value) -> double
+                [fallback]<typename T>(const T& value) -> double
                 {
                     using ValueType = std::decay_t<T>;
-                    if constexpr (std::is_same_v<ValueType, double>)
-                    {
+                    if constexpr (std::is_same_v<ValueType, double>) {
                         return value;
                     }
-                    if constexpr (std::is_same_v<ValueType, std::int64_t>)
-                    {
+                    if constexpr (std::is_same_v<ValueType, std::int64_t>) {
                         return static_cast<double>(value);
                     }
                     return fallback;
@@ -47,18 +45,16 @@ namespace egret
                 iter->second);
         }
 
-        [[nodiscard]] Eigen::Vector3d readShapeParamAsVector3(const ShapeLoadInfo &info,
-                                                              const std::string &key,
-                                                              const Eigen::Vector3d &fallback)
+        [[nodiscard]] Eigen::Vector3d readShapeParamAsVector3(const ShapeLoadInfo& info,
+                                                              const std::string& key,
+                                                              const Eigen::Vector3d& fallback)
         {
             const auto iter = info.parameters.find(key);
-            if (iter == info.parameters.end())
-            {
+            if (iter == info.parameters.end()) {
                 return fallback;
             }
 
-            if (const auto *vec = std::get_if<Eigen::Vector3d>(&iter->second); vec != nullptr)
-            {
+            if (const auto* vec = std::get_if<Eigen::Vector3d>(&iter->second); vec != nullptr) {
                 return *vec;
             }
             return fallback;
@@ -69,14 +65,13 @@ namespace egret
     {
     }
 
-    std::uint64_t WorldSceneManager::spawnBody(const std::string &name,
-                                               const Eigen::Vector3d &position,
-                                               const Eigen::Vector3d &speed,
+    std::uint64_t WorldSceneManager::spawnBody(const std::string& name,
+                                               const Eigen::Vector3d& position,
+                                               const Eigen::Vector3d& speed,
                                                std::unique_ptr<ShapeBase> shape,
                                                const double mass)
     {
-        if (shape == nullptr)
-        {
+        if (shape == nullptr) {
             return 0;
         }
 
@@ -90,12 +85,11 @@ namespace egret
         return m_bodies.back()->id;
     }
 
-    std::uint64_t WorldSceneManager::registerBody(const std::string &name,
-                                                  const std::shared_ptr<PhysicalEntity> &entity,
+    std::uint64_t WorldSceneManager::registerBody(const std::string& name,
+                                                  const std::shared_ptr<PhysicalEntity>& entity,
                                                   std::unique_ptr<ShapeBase> shape)
     {
-        if (entity == nullptr || shape == nullptr)
-        {
+        if (entity == nullptr || shape == nullptr) {
             return 0;
         }
 
@@ -109,37 +103,37 @@ namespace egret
         return m_bodies.back()->id;
     }
 
-    std::uint64_t WorldSceneManager::spawnBodyFromLoadInfo(const std::string &name,
-                                                           const Eigen::Vector3d &position,
-                                                           const Eigen::Vector3d &speed,
-                                                           const ShapeLoadInfo &shapeInfo,
+    std::uint64_t WorldSceneManager::spawnBodyFromLoadInfo(const std::string& name,
+                                                           const Eigen::Vector3d& position,
+                                                           const Eigen::Vector3d& speed,
+                                                           const ShapeLoadInfo& shapeInfo,
                                                            const double mass)
     {
         std::unique_ptr<ShapeBase> shape = ShapeFactoryRegistry::instance().create(shapeInfo);
         return spawnBody(name, position, speed, std::move(shape), mass);
     }
 
-    std::uint64_t WorldSceneManager::spawnSphere(const std::string &name,
-                                                 const Eigen::Vector3d &position,
-                                                 const Eigen::Vector3d &speed,
+    std::uint64_t WorldSceneManager::spawnSphere(const std::string& name,
+                                                 const Eigen::Vector3d& position,
+                                                 const Eigen::Vector3d& speed,
                                                  const double radius,
                                                  const double mass)
     {
         return spawnBody(name, position, speed, std::make_unique<ShapeSphere>(radius), mass);
     }
 
-    std::uint64_t WorldSceneManager::spawnBox(const std::string &name,
-                                              const Eigen::Vector3d &position,
-                                              const Eigen::Vector3d &speed,
-                                              const Eigen::Vector3d &size,
+    std::uint64_t WorldSceneManager::spawnBox(const std::string& name,
+                                              const Eigen::Vector3d& position,
+                                              const Eigen::Vector3d& speed,
+                                              const Eigen::Vector3d& size,
                                               const double mass)
     {
         return spawnBody(name, position, speed, std::make_unique<ShapeBox>(size), mass);
     }
 
-    std::uint64_t WorldSceneManager::spawnCylinder(const std::string &name,
-                                                   const Eigen::Vector3d &position,
-                                                   const Eigen::Vector3d &speed,
+    std::uint64_t WorldSceneManager::spawnCylinder(const std::string& name,
+                                                   const Eigen::Vector3d& position,
+                                                   const Eigen::Vector3d& speed,
                                                    const double radius,
                                                    const double height,
                                                    const double mass)
@@ -149,9 +143,8 @@ namespace egret
 
     std::optional<ShapeLoadInfo> WorldSceneManager::getBodyShapeLoadInfo(const std::uint64_t id) const
     {
-        const BodyRecord *body = findBody(id);
-        if (body == nullptr || body->shape == nullptr)
-        {
+        const BodyRecord* body = findBody(id);
+        if (body == nullptr || body->shape == nullptr) {
             return std::nullopt;
         }
         return body->shape->getLoadInfo();
@@ -159,19 +152,17 @@ namespace egret
 
     std::optional<Eigen::Vector3d> WorldSceneManager::getBodyPosition(const std::uint64_t id) const
     {
-        const BodyRecord *body = findBody(id);
-        if (body == nullptr || body->entity == nullptr)
-        {
+        const BodyRecord* body = findBody(id);
+        if (body == nullptr || body->entity == nullptr) {
             return std::nullopt;
         }
         return body->entity->getPosition();
     }
 
-    bool WorldSceneManager::setBodyPosition(const std::uint64_t id, const Eigen::Vector3d &position)
+    bool WorldSceneManager::setBodyPosition(const std::uint64_t id, const Eigen::Vector3d& position)
     {
-        BodyRecord *body = findBody(id);
-        if (body == nullptr || body->entity == nullptr)
-        {
+        BodyRecord* body = findBody(id);
+        if (body == nullptr || body->entity == nullptr) {
             return false;
         }
 
@@ -179,9 +170,9 @@ namespace egret
         return true;
     }
 
-    std::uint64_t WorldSceneManager::addGravityField(const Eigen::Vector3d &gravity,
-                                                     const Eigen::Vector3d &referencePoint,
-                                                     const std::string &name)
+    std::uint64_t WorldSceneManager::addGravityField(const Eigen::Vector3d& gravity,
+                                                     const Eigen::Vector3d& referencePoint,
+                                                     const std::string& name)
     {
         auto record = std::make_unique<FieldRecord>();
         record->id = nextId();
@@ -192,11 +183,10 @@ namespace egret
         return m_fields.back()->id;
     }
 
-    std::uint64_t WorldSceneManager::registerField(const std::string &name,
-                                                   const std::shared_ptr<FieldBase> &field)
+    std::uint64_t WorldSceneManager::registerField(const std::string& name,
+                                                   const std::shared_ptr<FieldBase>& field)
     {
-        if (field == nullptr)
-        {
+        if (field == nullptr) {
             return 0;
         }
 
@@ -209,19 +199,17 @@ namespace egret
         return m_fields.back()->id;
     }
 
-    std::uint64_t WorldSceneManager::registerBodyField(const std::string &bodyName,
-                                                       const std::string &fieldName,
-                                                       const std::shared_ptr<PhysicalEntity> &entity,
-                                                       const std::shared_ptr<FieldBase> &field,
+    std::uint64_t WorldSceneManager::registerBodyField(const std::string& bodyName,
+                                                       const std::string& fieldName,
+                                                       const std::shared_ptr<PhysicalEntity>& entity,
+                                                       const std::shared_ptr<FieldBase>& field,
                                                        std::unique_ptr<ShapeBase> shape)
     {
-        if (entity == nullptr || field == nullptr || shape == nullptr)
-        {
+        if (entity == nullptr || field == nullptr || shape == nullptr) {
             return 0;
         }
 
-        if (entity.owner_before(field) || field.owner_before(entity))
-        {
+        if (entity.owner_before(field) || field.owner_before(entity)) {
             return 0;
         }
 
@@ -247,11 +235,12 @@ namespace egret
     bool WorldSceneManager::removeBody(const std::uint64_t id)
     {
         const auto beforeSize = m_bodies.size();
-        std::erase_if(m_bodies, [id](const std::unique_ptr<BodyRecord> &item)
-                      { return item != nullptr && item->id == id; });
-        const bool removed = m_bodies.size() != beforeSize;
-        if (removed)
+        std::erase_if(m_bodies, [id](const std::unique_ptr<BodyRecord>& item)
         {
+            return item != nullptr && item->id == id;
+        });
+        const bool removed = m_bodies.size() != beforeSize;
+        if (removed) {
             rebuildSolverCaches();
         }
         return removed;
@@ -260,11 +249,12 @@ namespace egret
     bool WorldSceneManager::removeField(const std::uint64_t id)
     {
         const auto beforeSize = m_fields.size();
-        std::erase_if(m_fields, [id](const std::unique_ptr<FieldRecord> &item)
-                      { return item != nullptr && item->id == id; });
-        const bool removed = m_fields.size() != beforeSize;
-        if (removed)
+        std::erase_if(m_fields, [id](const std::unique_ptr<FieldRecord>& item)
         {
+            return item != nullptr && item->id == id;
+        });
+        const bool removed = m_fields.size() != beforeSize;
+        if (removed) {
             rebuildSolverCaches();
         }
         return removed;
@@ -273,16 +263,19 @@ namespace egret
     bool WorldSceneManager::removeBodyField(const std::uint64_t id)
     {
         const auto bodiesBefore = m_bodies.size();
-        std::erase_if(m_bodies, [id](const std::unique_ptr<BodyRecord> &item)
-                      { return item != nullptr && item->id == id; });
+        std::erase_if(m_bodies, [id](const std::unique_ptr<BodyRecord>& item)
+        {
+            return item != nullptr && item->id == id;
+        });
 
         const auto fieldsBefore = m_fields.size();
-        std::erase_if(m_fields, [id](const std::unique_ptr<FieldRecord> &item)
-                      { return item != nullptr && item->id == id; });
+        std::erase_if(m_fields, [id](const std::unique_ptr<FieldRecord>& item)
+        {
+            return item != nullptr && item->id == id;
+        });
 
         const bool removed = m_bodies.size() != bodiesBefore || m_fields.size() != fieldsBefore;
-        if (removed)
-        {
+        if (removed) {
             rebuildSolverCaches();
         }
         return removed;
@@ -306,8 +299,7 @@ namespace egret
 
     SolverStepResult WorldSceneManager::tick(const double dt)
     {
-        if (m_solver == nullptr)
-        {
+        if (m_solver == nullptr) {
             return {};
         }
 
@@ -322,10 +314,8 @@ namespace egret
         std::vector<SceneRenderItem> items;
         items.reserve(m_bodies.size());
 
-        for (const auto &body : m_bodies)
-        {
-            if (body == nullptr || body->entity == nullptr || body->shape == nullptr)
-            {
+        for (const auto& body : m_bodies) {
+            if (body == nullptr || body->entity == nullptr || body->shape == nullptr) {
                 continue;
             }
 
@@ -351,16 +341,16 @@ namespace egret
             item.sizeY = std::max(1.0, item.height);
             item.sizeZ = std::max(1.0, std::min(item.sizeX, item.sizeY));
 
-            if (shapeInfo.typeId == TYPE_ID_STANDARD_SPHERE || shapeInfo.typeId == TYPE_ID_STANDARD_DISK || shapeInfo.typeId == TYPE_ID_STANDARD_RING || shapeInfo.typeId == TYPE_ID_STANDARD_SPHERICAL_SHELL)
-            {
+            if (shapeInfo.typeId == TYPE_ID_STANDARD_SPHERE || shapeInfo.typeId == TYPE_ID_STANDARD_DISK || shapeInfo.
+                typeId == TYPE_ID_STANDARD_RING || shapeInfo.typeId == TYPE_ID_STANDARD_SPHERICAL_SHELL) {
                 const double radius = std::max(0.5, readShapeParamAsDouble(shapeInfo, "radius", item.sizeX * 0.5));
                 const double diameter = radius * 2.0;
                 item.sizeX = diameter;
                 item.sizeY = diameter;
                 item.sizeZ = diameter;
             }
-            else if (shapeInfo.typeId == TYPE_ID_STANDARD_CYLINDER || shapeInfo.typeId == TYPE_ID_STANDARD_CYLINDRICAL_SHELL)
-            {
+            else if (shapeInfo.typeId == TYPE_ID_STANDARD_CYLINDER || shapeInfo.typeId ==
+                TYPE_ID_STANDARD_CYLINDRICAL_SHELL) {
                 const double radius = std::max(0.5, readShapeParamAsDouble(shapeInfo, "radius", item.sizeX * 0.5));
                 const double height = std::max(1.0, readShapeParamAsDouble(shapeInfo, "height", item.sizeZ));
                 const double diameter = radius * 2.0;
@@ -368,17 +358,16 @@ namespace egret
                 item.sizeY = diameter;
                 item.sizeZ = height;
             }
-            else if (shapeInfo.typeId == TYPE_ID_STANDARD_BOX)
-            {
+            else if (shapeInfo.typeId == TYPE_ID_STANDARD_BOX) {
                 const Eigen::Vector3d size = readShapeParamAsVector3(shapeInfo,
                                                                      "size",
-                                                                     Eigen::Vector3d(item.sizeX, item.sizeY, item.sizeZ));
+                                                                     Eigen::Vector3d(
+                                                                         item.sizeX, item.sizeY, item.sizeZ));
                 item.sizeX = std::max(1.0, std::abs(size.x()));
                 item.sizeY = std::max(1.0, std::abs(size.y()));
                 item.sizeZ = std::max(1.0, std::abs(size.z()));
             }
-            else if (shapeInfo.typeId == TYPE_ID_STANDARD_ROD)
-            {
+            else if (shapeInfo.typeId == TYPE_ID_STANDARD_ROD) {
                 const double length = std::max(1.0, readShapeParamAsDouble(shapeInfo, "length", item.sizeZ));
                 item.sizeX = 6.0;
                 item.sizeY = 6.0;
@@ -450,13 +439,13 @@ namespace egret
         return {m_solverBodies.data(), m_solverBodies.size()};
     }
 
-    std::span<FieldBase *> WorldSceneManager::getFields()
+    std::span<FieldBase*> WorldSceneManager::getFields()
     {
         rebuildSolverFieldCache();
         return {m_solverFields.data(), m_solverFields.size()};
     }
 
-    std::span<FieldBase *const> WorldSceneManager::getFields() const
+    std::span<FieldBase*const> WorldSceneManager::getFields() const
     {
         rebuildSolverFieldCache();
         return {m_solverFields.data(), m_solverFields.size()};
@@ -466,10 +455,8 @@ namespace egret
     {
         std::vector<std::string> names;
         names.reserve(m_bodies.size());
-        for (const auto &body : m_bodies)
-        {
-            if (body != nullptr)
-            {
+        for (const auto& body : m_bodies) {
+            if (body != nullptr) {
                 names.push_back(body->name);
             }
         }
@@ -490,10 +477,8 @@ namespace egret
         m_solverBodyOwners.clear();
         m_solverBodyOwners.reserve(m_bodies.size());
 
-        for (const auto &body : m_bodies)
-        {
-            if (body == nullptr || body->entity == nullptr || body->shape == nullptr)
-            {
+        for (const auto& body : m_bodies) {
+            if (body == nullptr || body->entity == nullptr || body->shape == nullptr) {
                 continue;
             }
 
@@ -515,23 +500,19 @@ namespace egret
     void WorldSceneManager::rebuildSolverFieldCache() const
     {
         std::size_t validFieldCount = 0;
-        for (const auto &field : m_fields)
-        {
-            if (field != nullptr && field->field != nullptr)
-            {
+        for (const auto& field : m_fields) {
+            if (field != nullptr && field->field != nullptr) {
                 ++validFieldCount;
             }
         }
 
-        std::vector<FieldBase *> rebuiltFields(validFieldCount, nullptr);
+        std::vector<FieldBase*> rebuiltFields(validFieldCount, nullptr);
         m_solverFieldOwners.clear();
         m_solverFieldOwners.reserve(validFieldCount);
 
         std::size_t writeIndex = 0;
-        for (const auto &field : m_fields)
-        {
-            if (field != nullptr && field->field != nullptr)
-            {
+        for (const auto& field : m_fields) {
+            if (field != nullptr && field->field != nullptr) {
                 m_solverFieldOwners.push_back(field->field);
                 rebuiltFields[writeIndex] = field->field.get();
                 ++writeIndex;
@@ -546,59 +527,50 @@ namespace egret
         return m_nextId++;
     }
 
-    WorldSceneManager::BodyRecord *WorldSceneManager::findBody(const std::uint64_t id)
+    WorldSceneManager::BodyRecord* WorldSceneManager::findBody(const std::uint64_t id)
     {
-        for (auto &body : m_bodies)
-        {
-            if (body != nullptr && body->id == id)
-            {
+        for (auto& body : m_bodies) {
+            if (body != nullptr && body->id == id) {
                 return body.get();
             }
         }
         return nullptr;
     }
 
-    WorldSceneManager::FieldRecord *WorldSceneManager::findField(const std::uint64_t id)
+    WorldSceneManager::FieldRecord* WorldSceneManager::findField(const std::uint64_t id)
     {
-        for (auto &field : m_fields)
-        {
-            if (field != nullptr && field->id == id)
-            {
+        for (auto& field : m_fields) {
+            if (field != nullptr && field->id == id) {
                 return field.get();
             }
         }
         return nullptr;
     }
 
-    const WorldSceneManager::BodyRecord *WorldSceneManager::findBody(const std::uint64_t id) const
+    const WorldSceneManager::BodyRecord* WorldSceneManager::findBody(const std::uint64_t id) const
     {
-        for (const auto &body : m_bodies)
-        {
-            if (body != nullptr && body->id == id)
-            {
+        for (const auto& body : m_bodies) {
+            if (body != nullptr && body->id == id) {
                 return body.get();
             }
         }
         return nullptr;
     }
 
-    const WorldSceneManager::FieldRecord *WorldSceneManager::findField(const std::uint64_t id) const
+    const WorldSceneManager::FieldRecord* WorldSceneManager::findField(const std::uint64_t id) const
     {
-        for (const auto &field : m_fields)
-        {
-            if (field != nullptr && field->id == id)
-            {
+        for (const auto& field : m_fields) {
+            if (field != nullptr && field->id == id) {
                 return field.get();
             }
         }
         return nullptr;
     }
 
-    std::uint64_t WorldSceneManager::registerConstraint(const std::string &name,
-                                                        const std::shared_ptr<ConstraintsBase> &constraint)
+    std::uint64_t WorldSceneManager::registerConstraint(const std::string& name,
+                                                        const std::shared_ptr<ConstraintsBase>& constraint)
     {
-        if (constraint == nullptr)
-        {
+        if (constraint == nullptr) {
             return 0;
         }
 
@@ -611,17 +583,17 @@ namespace egret
         return m_constraints.back()->id;
     }
 
-    std::uint64_t WorldSceneManager::createConnectingLine(const std::string &name,
+    std::uint64_t WorldSceneManager::createConnectingLine(const std::string& name,
                                                           const double length,
                                                           const std::uint64_t entityStartId,
                                                           const std::uint64_t entityEndId,
-                                                          const std::initializer_list<Eigen::Vector3d> &turningPositions)
+                                                          const std::initializer_list<Eigen::Vector3d>&
+                                                          turningPositions)
     {
-        BodyRecord *startBody = findBody(entityStartId);
-        BodyRecord *endBody = findBody(entityEndId);
+        BodyRecord* startBody = findBody(entityStartId);
+        BodyRecord* endBody = findBody(entityEndId);
 
-        if (startBody == nullptr || endBody == nullptr || startBody->entity == nullptr || endBody->entity == nullptr)
-        {
+        if (startBody == nullptr || endBody == nullptr || startBody->entity == nullptr || endBody->entity == nullptr) {
             return 0;
         }
 
@@ -632,39 +604,38 @@ namespace egret
     }
 
     std::uint64_t WorldSceneManager::createSimplePendulum(const std::string& name, double length,
-        const Eigen::Vector3d& anchorPos, std::uint64_t entityId)
+                                                          const Eigen::Vector3d& anchorPos, std::uint64_t entityId)
     {
-        BodyRecord *body = findBody(entityId);
+        BodyRecord* body = findBody(entityId);
         if (body == nullptr) {
             return 0;
         }
 
-        const auto simplePendulum{std::make_shared<SimplePendulum>(
-            length, anchorPos, body->entity.get()
-            )};
+        const auto simplePendulum{
+            std::make_shared<SimplePendulum>(
+                length, anchorPos, body->entity.get()
+            )
+        };
 
         return registerConstraint(name, simplePendulum);
     }
 
-    ConstraintsBase *WorldSceneManager::getConstraint(const std::uint64_t id)
+    ConstraintsBase* WorldSceneManager::getConstraint(const std::uint64_t id)
     {
-        ConstraintRecord *record = findConstraint(id);
-        if (record == nullptr)
-        {
+        ConstraintRecord* record = findConstraint(id);
+        if (record == nullptr) {
             return nullptr;
         }
         return record->constraint.get();
     }
 
-    std::vector<ConstraintsBase *> WorldSceneManager::getAllConstraints() const
+    std::vector<ConstraintsBase*> WorldSceneManager::getAllConstraints() const
     {
         rebuildSolverConstraintCache();
-        std::vector<ConstraintsBase *> result;
+        std::vector<ConstraintsBase*> result;
         result.reserve(m_constraints.size());
-        for (auto &record : m_constraints)
-        {
-            if (record != nullptr && record->enabled)
-            {
+        for (auto& record : m_constraints) {
+            if (record != nullptr && record->enabled) {
                 result.push_back(record->constraint.get());
             }
         }
@@ -674,11 +645,12 @@ namespace egret
     bool WorldSceneManager::removeConstraint(const std::uint64_t id)
     {
         const auto beforeSize = m_constraints.size();
-        std::erase_if(m_constraints, [id](const std::unique_ptr<ConstraintRecord> &item)
-                      { return item != nullptr && item->id == id; });
-        const bool removed = m_constraints.size() != beforeSize;
-        if (removed)
+        std::erase_if(m_constraints, [id](const std::unique_ptr<ConstraintRecord>& item)
         {
+            return item != nullptr && item->id == id;
+        });
+        const bool removed = m_constraints.size() != beforeSize;
+        if (removed) {
             rebuildSolverConstraintCache();
         }
         return removed;
@@ -686,9 +658,8 @@ namespace egret
 
     bool WorldSceneManager::setConstraintEnabled(const std::uint64_t id, const bool enabled)
     {
-        ConstraintRecord *record = findConstraint(id);
-        if (record == nullptr)
-        {
+        ConstraintRecord* record = findConstraint(id);
+        if (record == nullptr) {
             return false;
         }
         record->enabled = enabled;
@@ -697,9 +668,8 @@ namespace egret
 
     double WorldSceneManager::getConstraintError(const std::uint64_t id) const
     {
-        const ConstraintRecord *record = findConstraint(id);
-        if (record == nullptr || record->constraint == nullptr)
-        {
+        const ConstraintRecord* record = findConstraint(id);
+        if (record == nullptr || record->constraint == nullptr) {
             return 0.0;
         }
         return record->constraint->computeConstraintError();
@@ -707,17 +677,15 @@ namespace egret
 
     bool WorldSceneManager::addTurningPoint(const std::uint64_t constraintId,
                                             const size_t index,
-                                            const Eigen::Vector3d &pos)
+                                            const Eigen::Vector3d& pos)
     {
-        ConstraintRecord *record = findConstraint(constraintId);
-        if (record == nullptr || record->constraint == nullptr)
-        {
+        ConstraintRecord* record = findConstraint(constraintId);
+        if (record == nullptr || record->constraint == nullptr) {
             return false;
         }
 
-        if (record->constraint->getType() == ConstraintType::ConnectingLine)
-        {
-            auto *connectingLine = dynamic_cast<ConnectingLine *>(record->constraint.get());
+        if (record->constraint->getType() == ConstraintType::ConnectingLine) {
+            auto* connectingLine = dynamic_cast<ConnectingLine*>(record->constraint.get());
             connectingLine->addPathTurningPoint(index, pos);
             return true;
         }
@@ -726,15 +694,13 @@ namespace egret
 
     bool WorldSceneManager::removeTurningPoint(const std::uint64_t constraintId, const size_t index)
     {
-        ConstraintRecord *record = findConstraint(constraintId);
-        if (record == nullptr || record->constraint == nullptr)
-        {
+        ConstraintRecord* record = findConstraint(constraintId);
+        if (record == nullptr || record->constraint == nullptr) {
             return false;
         }
 
-        if (record->constraint->getType() == ConstraintType::ConnectingLine)
-        {
-            auto *connectingLine = dynamic_cast<ConnectingLine *>(record->constraint.get());
+        if (record->constraint->getType() == ConstraintType::ConnectingLine) {
+            auto* connectingLine = dynamic_cast<ConnectingLine*>(record->constraint.get());
             connectingLine->removePathTurningPoint(index);
             return true;
         }
@@ -743,54 +709,48 @@ namespace egret
 
     bool WorldSceneManager::changeTurningPoint(const std::uint64_t constraintId,
                                                const size_t index,
-                                               const Eigen::Vector3d &newPos)
+                                               const Eigen::Vector3d& newPos)
     {
-        ConstraintRecord *record = findConstraint(constraintId);
-        if (record == nullptr || record->constraint == nullptr)
-        {
+        ConstraintRecord* record = findConstraint(constraintId);
+        if (record == nullptr || record->constraint == nullptr) {
             return false;
         }
 
-        if (record->constraint->getType() == ConstraintType::ConnectingLine)
-        {
-            auto *connectingLine = dynamic_cast<ConnectingLine *>(record->constraint.get());
+        if (record->constraint->getType() == ConstraintType::ConnectingLine) {
+            auto* connectingLine = dynamic_cast<ConnectingLine*>(record->constraint.get());
             connectingLine->changePathTurningPoint(index, newPos);
             return true;
         }
         return false;
     }
 
-    std::span<ConstraintsBase *> WorldSceneManager::getConstraints()
+    std::span<ConstraintsBase*> WorldSceneManager::getConstraints()
     {
         rebuildSolverConstraintCache();
         // Safe because the solver only reads through this interface
-        return {const_cast<ConstraintsBase **>(m_solverConstraints.data()), m_solverConstraints.size()};
+        return {const_cast<ConstraintsBase**>(m_solverConstraints.data()), m_solverConstraints.size()};
     }
 
-    std::span<const ConstraintsBase *> WorldSceneManager::getConstraints() const
+    std::span<const ConstraintsBase*> WorldSceneManager::getConstraints() const
     {
         rebuildSolverConstraintCache();
         return {m_solverConstraints.data(), m_solverConstraints.size()};
     }
 
-    WorldSceneManager::ConstraintRecord *WorldSceneManager::findConstraint(const std::uint64_t id)
+    WorldSceneManager::ConstraintRecord* WorldSceneManager::findConstraint(const std::uint64_t id)
     {
-        for (auto &constraint : m_constraints)
-        {
-            if (constraint != nullptr && constraint->id == id)
-            {
+        for (auto& constraint : m_constraints) {
+            if (constraint != nullptr && constraint->id == id) {
                 return constraint.get();
             }
         }
         return nullptr;
     }
 
-    const WorldSceneManager::ConstraintRecord *WorldSceneManager::findConstraint(const std::uint64_t id) const
+    const WorldSceneManager::ConstraintRecord* WorldSceneManager::findConstraint(const std::uint64_t id) const
     {
-        for (const auto &constraint : m_constraints)
-        {
-            if (constraint != nullptr && constraint->id == id)
-            {
+        for (const auto& constraint : m_constraints) {
+            if (constraint != nullptr && constraint->id == id) {
                 return constraint.get();
             }
         }
@@ -804,10 +764,8 @@ namespace egret
         m_solverConstraints.reserve(m_constraints.size());
         m_solverConstraintOwners.reserve(m_constraints.size());
 
-        for (auto &record : m_constraints)
-        {
-            if (record == nullptr || record->constraint == nullptr || !record->enabled)
-            {
+        for (auto& record : m_constraints) {
+            if (record == nullptr || record->constraint == nullptr || !record->enabled) {
                 continue;
             }
 

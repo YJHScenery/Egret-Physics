@@ -25,11 +25,21 @@ ApplicationWindow {
 
     ListModel {
         id: workspaceRouteModel
-        ListElement { label: "仿真器"; route: "scene" }
-        ListElement { label: "场景编辑器"; route: "solver" }
-        ListElement { label: "参数扫描"; route: "sweep" }
-        ListElement { label: "实验教学"; route: "teaching" }
-        ListElement { label: "数据分析"; route: "analysis" }
+        ListElement {
+            label: "仿真器"; route: "scene"
+        }
+        ListElement {
+            label: "场景编辑器"; route: "solver"
+        }
+        ListElement {
+            label: "参数扫描"; route: "sweep"
+        }
+        ListElement {
+            label: "实验教学"; route: "teaching"
+        }
+        ListElement {
+            label: "数据分析"; route: "analysis"
+        }
     }
 
     function routeIndexFor(route) {
@@ -128,7 +138,7 @@ ApplicationWindow {
                         {
                             text: "偏好设置(&P)",
                             shortcut: "Ctrl+P",
-                            onTriggered: function() {
+                            onTriggered: function () {
                                 console.log("Preference");
                             },
                             // icon: "qrc:/main_icons/assets/icons/settings.svg"
@@ -370,9 +380,11 @@ ApplicationWindow {
                             }
                         }
 
-                        background: Item { }
+                        background: Item {
+                        }
 
-                        popup: Basic.Popup {
+                        popup: Basic.Popup
+                        {
                             y: workspaceComboBox.height + 6
                             width: workspaceComboBox.width
                             padding: 6
@@ -397,12 +409,14 @@ ApplicationWindow {
                                     model: workspaceComboBox.popup.visible ? workspaceComboBox.delegateModel : null
                                     clip: true
 
-                                    ScrollIndicator.vertical: ScrollIndicator { }
+                                    ScrollIndicator.vertical: ScrollIndicator {
+                                    }
                                 }
                             }
                         }
 
-                        delegate: Basic.ItemDelegate {
+                        delegate: Basic.ItemDelegate
+                        {
                             width: listView ? listView.width : workspaceComboBox.width
                             height: 34
                             text: model.label
