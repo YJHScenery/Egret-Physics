@@ -25,13 +25,14 @@ namespace egret
             acceleration = {0, 0, 0};
         }
 
-        m_position += m_speed * time + 0.5 * acceleration * time * time;
+        Eigen::Vector3d newPosition = m_transform.getTranslation() + m_speed * time + 0.5 * acceleration * time * time;
+        m_transform.setTranslation(newPosition);
         m_speed += acceleration * time;
     }
 
     void Particle::movePosition(const double time)
     {
-        m_position += m_speed * time;
+        m_transform.setTranslation(m_transform.getTranslation() + m_speed * time);
     }
 
     void Particle::applyTorque(const double time, Eigen::Matrix4d rotation)
@@ -51,7 +52,7 @@ namespace egret
         // return pow(distance, 2) * m_mass;
         // 新代码说明：避免轴基点接近原点时发生除零，并保持点质点惯性模型的一致性。
         const Eigen::Vector3d direction = axis.rotationAxis.normalized();
-        const Eigen::Vector3d relativePosition = m_position - axis.basePoint;
+        const Eigen::Vector3d relativePosition = m_transform.getTranslation() - axis.basePoint;
         const double distance = relativePosition.cross(direction).norm();
         return std::pow(distance, 2.0) * m_mass;
     }

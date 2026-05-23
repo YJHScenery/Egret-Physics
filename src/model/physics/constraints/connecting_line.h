@@ -14,9 +14,9 @@ class ConnectingLine: public ConstraintsBase {
 public:
     ConnectingLine();
 
-    ConnectingLine(double length, PhysicalEntity*, PhysicalEntity*);
+    ConnectingLine(double length, PhysicalEntity* entityStart, PhysicalEntity* entityEnd);
 
-    ConnectingLine(double length, PhysicalEntity*, PhysicalEntity*, const std::initializer_list<Eigen::Vector3d>& turningPositions);
+    ConnectingLine(double length, PhysicalEntity* entityStart, PhysicalEntity* entityEnd, const std::initializer_list<Eigen::Vector3d>& turningPositions);
 
     ~ConnectingLine() override = default;
 
@@ -26,10 +26,22 @@ public:
 
     void changePathTurningPoint(size_t index, const Eigen::Vector3d& newPos);
 
-    size_t getPathPosSize();
+    [[nodiscard]] size_t getPathPosSize() const;
+
+    [[nodiscard]] ConstraintType getType() const override;
+
+    [[nodiscard]] std::vector<PhysicalEntity*> getConstrainedEntities() override;
+
+    [[nodiscard]] const std::vector<PhysicalEntity*>& getConstrainedEntities() const override;
+
+    void applyVelocityConstraint(double dt) override;
+
+    void applyPositionConstraint(double dt) override;
+
+    [[nodiscard]] double computeConstraintError() const override;
 
 private:
-    std::array<PhysicalEntity*, 2> m_physicalEntities{};
+    std::vector<PhysicalEntity*> m_physicalEntities{};
 
     // 始末会由 Physical Entity 的 Position 给出，此处不会储存此二者。
     std::vector<Eigen::Vector3d> m_pathPositions;
