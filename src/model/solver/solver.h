@@ -146,6 +146,32 @@ namespace egret
                                       SolverStats &stats);
 
         /**
+         * @brief 第 3 阶段（TOI事件队列版本）：收集所有CCD碰撞事件。
+         * @param scene 场景快照。
+         * @param pairs 广相位生成的候选对。
+         * @param dt 固定步长。
+         * @param events 输出碰撞事件列表（按TOI排序）。
+         * @param stats 可变步骤统计。
+         */
+        static void runNarrowPhaseCcdEvents(const SolverSceneSnapshotBase &scene,
+                                            const std::vector<SolverBodyPair> &pairs,
+                                            double dt,
+                                            std::vector<CcdCollisionEvent> &events,
+                                            SolverStats &stats);
+
+        /**
+         * @brief 使用TOI事件队列执行时间步进求解。
+         * @param scene 可变场景快照。
+         * @param dt 固定步长。
+         * @param events 碰撞事件列表。
+         * @param stats 可变步骤统计。
+         */
+        void stepWithToiQueue(SolverSceneSnapshotBase &scene,
+                              double dt,
+                              std::vector<CcdCollisionEvent> &events,
+                              SolverStats &stats) const;
+
+        /**
          * @brief 第 4 阶段：接触解算（法向冲量 + 位置修正）。
          * @param scene 可变场景快照。
          * @param dt 固定步长。

@@ -411,13 +411,27 @@ namespace egret
         //
         m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
         //
-        m_world->spawnBox("地面", {0.0, 0.0, -15.0}, {0.0, 0.0, 0.0}, {760.0, 520.0, 30.0}, 0.0);
+        m_world->spawnBox("地面", {0.0, 0.0, -15.0}, {0.0, 0.0, 0.0}, {800.0, 600.0, 30.0}, 0.0);
+        m_world->spawnBox("地面", {0, -300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
+        m_world->spawnBox("地面", {0, 300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
+        m_world->spawnBox("地面", {400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
+        m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
 
 
         const auto id1 = m_world->spawnSphere("小球 A", {0.0, 0.0, 280.0}, {0.0, 0.0, 0.0}, 5.0, 50.0);
         const auto id2 = m_world->spawnSphere("小球 B", {200.0, 0.0, 200.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
         const auto id3 = m_world->spawnSphere("小球 C", {100.0, 0.0, 400.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
+        m_world->spawnSphere("小球 D", {100.0, 100.0, 400.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
+        m_world->spawnSphere("小球 E", {100.0, 120.0, 400.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
+        m_world->spawnSphere("小球 F", {100.0, 123.0, 450.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
+        m_world->spawnSphere("小球 G", {100.0, 104.0, 430.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
+        m_world->spawnSphere("小球 H", {100.0, 123.0, 430.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
 
+        for (int i = 0; i <= 10; ++i) {
+            for (int j = 0; j <= 10; ++j) {
+                m_world->spawnSphere("小球 H", {11.0 * i, 8.0 * j, 130.0 + 10 * j}, {0.0, 0.0, 0.0}, 5.0, 10.0);
+            }
+        }
         // const std::uint64_t body1Id = m_world->spawnSphere("sphere1",Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0), 1.0, 1.0);
         // const std::uint64_t body2Id = m_world->spawnSphere("sphere2",Eigen::Vector3d(5, 0, 0), Eigen::Vector3d(0, 0, 0), 1.0, 1.0);
 
