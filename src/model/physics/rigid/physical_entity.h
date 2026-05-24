@@ -103,6 +103,8 @@ namespace egret
 
         std::shared_ptr<ShapeBase> getShape() { return m_shape; }
 
+        std::shared_ptr<ShapeBase> getShape() const { return m_shape; }
+
         // 匀加速直线运动
         virtual void applyForce(double time) = 0; // 应用所有的力，更新位置信息
 
@@ -132,7 +134,9 @@ namespace egret
 
     protected:
         Transform m_transform{};     // 世界变换（包含位置、旋转、缩放）
+
         Eigen::Vector3d m_speed{};   // 参考点的速度
+
         Eigen::Vector3d m_angular{}; // 参考点的角速度
 
         std::vector<Force> m_forces; // 受力组/N
@@ -140,7 +144,9 @@ namespace egret
         std::vector<Torque> m_torques; // 力矩组/Nm
 
         std::shared_ptr<ShapeBase> m_shape;
+
         double m_mass{};           // 质量/kg
+
         double m_restitution{1.0}; // 碰撞恢复系数
     };
 }

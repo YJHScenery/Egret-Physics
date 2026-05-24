@@ -115,8 +115,6 @@ set(CPP_FILES
 
         src/model/physics/constraints/constraints_base.cpp
         src/model/physics/constraints/constraints_base.h
-        src/model/physics/constraints/support_surface.cpp
-        src/model/physics/constraints/support_surface.h
         src/model/physics/constraints/sliding_rail.cpp
         src/model/physics/constraints/sliding_rail.h
         src/model/physics/constraints/connecting_line.cpp

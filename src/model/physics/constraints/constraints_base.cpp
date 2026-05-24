@@ -21,6 +21,16 @@ namespace egret
         return ConstraintType::ConnectingLine;
     }
 
+    std::vector<PhysicalEntity*> ConstraintsBase::getConstrainedEntities()
+    {
+        return m_physicalEntities;
+    }
+
+    const std::vector<PhysicalEntity*>& ConstraintsBase::getConstrainedEntities() const
+    {
+        return m_physicalEntities;
+    }
+
     void ConstraintsBase::setEnabled(bool enabled)
     {
         m_enabled = enabled;
