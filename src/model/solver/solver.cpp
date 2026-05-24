@@ -182,53 +182,24 @@ namespace egret
         auto bodies = scene.getBodies();
         for (SolverBodyHandle &body : bodies)
         {
-            qDebug() << "=== updateBodyInertiaCache ===";
-            qDebug() << "body id:" << body.id << "entity:" << body.entity << "transform:" << body.transform << "inverseMass:" << body.inverseMass;
-
             if (body.entity == nullptr || body.transform == nullptr || body.inverseMass <= 0.0)
             {
-                qDebug() << "Early return: entity/transfrom null or inverseMass <= 0";
                 body.inverseInertiaTensor.setZero();
                 continue;
             }
 
             auto shape = body.entity->getShape();
-            qDebug() << "shape:" << shape.get();
             if (!shape)
             {
-                qDebug() << "Early return: shape is null";
                 body.inverseInertiaTensor.setZero();
                 continue;
             }
 
-            std::function<QMatrix3x3(Eigen::Matrix3d const &)> getQMat{
-                [](Eigen::Matrix3d const &mat) -> QMatrix3x3
-                {
-                    QMatrix3x3 result;
-                    for (int i = 0; i < 3; ++i)
-                    {
-                        for (int j = 0; j < 3; ++j)
-                        {
-                            result(i, j) = static_cast<float>(mat(i, j));
-                        }
-                    }
-                    return result;
-                }};
             const double mass = 1.0 / body.inverseMass;
-            qDebug() << "mass:" << mass;
             const Eigen::Matrix3d I_local = shape->getInertiaTensor(mass);
-            qDebug() << "I_local:\n"
-                     << getQMat(I_local);
             const Eigen::Matrix3d R = body.transform->getRotationMatrix();
             const Eigen::Matrix3d I_world = R * I_local * R.transpose();
-            qDebug() << "I_world:\n"
-                     << getQMat(I_world);
-
             body.inverseInertiaTensor = I_world.inverse();
-
-            qDebug() << "inverseInertiaTensor:\n"
-                     << getQMat(body.inverseInertiaTensor);
-            qDebug() << "=== End updateBodyInertiaCache ===";
         }
     }
 
@@ -338,32 +309,12 @@ namespace egret
             if (!collided)
             {
                 collided = buildAabbFallbackContact(bodyA, bodyB, manifold);
-                if (collided)
-                {
-                    qDebug() << "fallback aabb contact:" << pair.bodyAIndex << pair.bodyBIndex;
-                }
             }
             if (!collided)
             {
                 continue;
             }
 
-            qDebug() << "Creating constraint: bodyAIndex=" << pair.bodyAIndex
-                     << "bodyBIndex=" << pair.bodyBIndex
-                     << "bodyA id=" << bodies[pair.bodyAIndex].id
-                     << "bodyB id=" << bodies[pair.bodyBIndex].id;
-
-            if (stats.narrowPhaseTestCount != 0)
-            {
-                qDebug() << "not 0" << __func__;
-                for (auto &pair : pairs)
-                {
-                    qDebug() << pair.bodyAIndex << " " << pair.bodyBIndex;
-                }// 在 constraints.push_back 之前添加：
-                qDebug() << "Creating constraint: pair.bodyAIndex=" << pair.bodyAIndex
-                         << "pair.bodyBIndex=" << pair.bodyBIndex
-                         << "-> bodyA id=" << bodyA.id << "bodyB id=" << bodyB.id;
-            }
             for (const ContactPoint &contact : manifold)
             {
                 if (!contact.position.allFinite() || !contact.normal.allFinite() ||
@@ -372,10 +323,6 @@ namespace egret
                 {
                     continue;
                 }
-// 在 constraints.push_back 之前添加：
-qDebug() << "Creating constraint: pair.bodyAIndex=" << pair.bodyAIndex
-         << "pair.bodyBIndex=" << pair.bodyBIndex
-         << "-> bodyA id=" << bodyA.id << "bodyB id=" << bodyB.id;
                 const double restitution = std::isfinite(std::min(bodyA.restitution, bodyB.restitution))
                                                ? std::clamp(std::min(bodyA.restitution, bodyB.restitution), 0.0, 1.0)
                                                : 0.0;

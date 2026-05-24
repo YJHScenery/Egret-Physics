@@ -4,7 +4,6 @@
 //
 // Created by jehor on 2026/4/25.
 //
-#include "logger.h"
 
 namespace egret
 {
@@ -78,8 +77,6 @@ namespace egret
 
                 if (relativeNormalVelocity < 0.0)
                 {
-
-                    LOG_DEBUG("111");
                     const double impulseMagnitude = -(1.0 + constraint.restitution) * relativeNormalVelocity / effectiveMass;
                     if (!std::isfinite(impulseMagnitude))
                     {
@@ -100,7 +97,6 @@ namespace egret
                         if (nextAngular.allFinite())
                         {
                             bodyA.entity->setAngular(nextAngular);
-                            LOG_DEBUG("222");
                         }
                     }
 
@@ -116,34 +112,9 @@ namespace egret
                         Eigen::Vector3d nextAngular = angularB + bodyB.inverseInertiaTensor * angularImpulse;
                         if (nextAngular.allFinite())
                         {
-                            // LOG_DEBUG("333");
-                            LOG_DEBUG(QString::number(nextAngular.x()) + ", " + QString::number(nextAngular.y()) + ", " + QString::number(nextAngular.z()));
-                            LOG_DEBUG(QString::number(rB.norm()));
-                            LOG_DEBUG(QString::number(rB.cross(impulse).x()) + ", " + QString::number(rB.cross(impulse).y()) + ", " + QString::number(rB.cross(impulse).z()));
-                            LOG_DEBUG(bodyB.inverseInertiaTensor.isZero() ? "1" : "0");
-                            // 调试：打印完整的惯性张量
-                            Eigen::Matrix3d invI = bodyB.inverseInertiaTensor;
-                            LOG_DEBUG("inverseInertiaTensor: " +
-                                      QString::number(invI(0, 0)) + ", " + QString::number(invI(0, 1)) + ", " + QString::number(invI(0, 2)) + "; " +
-                                      QString::number(invI(1, 0)) + ", " + QString::number(invI(1, 1)) + ", " + QString::number(invI(1, 2)) + "; " +
-                                      QString::number(invI(2, 0)) + ", " + QString::number(invI(2, 1)) + ", " + QString::number(invI(2, 2)));
-                            LOG_DEBUG("angularImpulse: " +
-                                      QString::number(angularImpulse.x()) + ", " + QString::number(angularImpulse.y()) + ", " + QString::number(angularImpulse.z()));
-                            LOG_DEBUG("invI * angularImpulse: " +
-                                      QString::number((invI * angularImpulse).x()) + ", " +
-                                      QString::number((invI * angularImpulse).y()) + ", " +
-                                      QString::number((invI * angularImpulse).z()));
                             bodyB.entity->setAngular(nextAngular);
                         }
                     }
-
-                    // if (bodyA.inverseMass > 0.0) {
-                    //
-                    // }
-
-                    // if (bodyB.inverseMass > 0.0) {
-                    //
-                    // }
                 }
             }
         }
