@@ -59,12 +59,13 @@ namespace egret
 		Eigen::Quaterniond currentRot = m_transform.getRotation();
 		Eigen::Quaterniond omegaQuat(0, m_angular.x(), m_angular.y(), m_angular.z());
 
+		// 四元数微分：d(q)/dt = 0.5 * ω_q * q
 		Eigen::Quaterniond deltaQ = omegaQuat * currentRot;
-		Eigen::Quaterniond newRot = currentRot;
-		newRot.coeffs() += 0.5 * deltaQ.coeffs() * time;
-		newRot.normalize();
+		deltaQ.coeffs() *= 0.5;
+		currentRot.coeffs() += deltaQ.coeffs() * time;
+		currentRot.normalize();
 
-		m_transform.setRotation(newRot);
+		m_transform.setRotation(currentRot);
 	}
 
 	double RigidBody::getRotationalInertia(const Axis &axis)

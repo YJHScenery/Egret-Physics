@@ -432,22 +432,51 @@ namespace egret
         m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
         //
         m_world->spawnBox("地面", {0.0, 0.0, -15.0}, {0.0, 0.0, 0.0}, {800.0, 600.0, 30.0}, 0.0);
-        m_world->spawnBox("地面", {0, -300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
-        m_world->spawnBox("地面", {0, 300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
-        m_world->spawnBox("地面", {400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
+       //  m_world->spawnBox("地面", {0, -300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
+        // m_world->spawnBox("地面", {0, 300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
+        // m_world->spawnBox("地面", {400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
         // m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
 
         std::uint64_t idBox = m_world->spawnBox("测试", {0, 0, 300}, {0, 0, 0}, {100, 30, 100}, 10.0);
-        Eigen::Matrix3d R;
-        double angle = M_PI / 4.0; // 45 degrees
-        double c = std::cos(angle);
-        double s = std::sin(angle);
+        std::uint64_t idBox2 = m_world->spawnBox("测试", {0, 0, 430}, {0, 0, 0}, {100, 30, 100}, 10.0);
+        // Eigen::Matrix3d R;
+        double angle_z = M_PI / 5.0;   // 36 degrees
+        double angle_x = 40.0 * M_PI / 180.0;  // 40 degrees
 
-        R << 1, 0, 0,
-            0, c, -s,
-            0, s, c;
+        double cz = std::cos(angle_z);
+        double sz = std::sin(angle_z);
+        double cx = std::cos(angle_x);
+        double sx = std::sin(angle_x);
+
+        // 绕Z轴旋转矩阵
+        Eigen::Matrix3d R_z;
+        R_z << cz, -sz, 0,
+               sz,  cz, 0,
+                0,   0, 1;
+
+        // 绕X轴旋转矩阵
+        Eigen::Matrix3d R_x;
+        R_x << 1,   0,    0,
+               0,  cx,  -sx,
+               0,  sx,   cx;
+
+        // 先绕Z转，再绕X转（注意乘法顺序：右边先应用）
+        Eigen::Matrix3d R = R_x * R_z;
+
+        double angle2 = M_PI / 6.0; // 45 degrees
+        double c2 = std::cos(angle2);
+        double s2 = std::sin(angle2);
+
+        Eigen::Matrix3d R2{}; // 显式行优先
+        R2 << c2, -s2, 0,
+            s2, c2, 0,
+            0, 0, 1;
+
         m_world->setBodyRotation(idBox, R);
-        m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
+        m_world->setBodyRotation(idBox2, R2);
+
+        // m_world->setBodyPosition(idBox, {0, 100, 100});
+        // m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
 
         // const auto id1 = m_world->spawnSphere("小球 A", {0.0, 0.0, 280.0}, {0.0, 0.0, 0.0}, 5.0, 50.0);
         // const auto id2 = m_world->spawnSphere("小球 B", {200.0, 0.0, 200.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
@@ -544,7 +573,10 @@ namespace egret
             item.sizeZ = renderItem.sizeZ;
             item.color = QColor(QString::fromStdString(renderItem.color));
             item.label = QString::fromStdString(renderItem.label);
-            std::copy(std::begin(renderItem.rotation), std::end(renderItem.rotation), std::begin(item.rotation));
+            for (int i = 0; i < 9; ++i)
+            {
+                item.rotation[i] = renderItem.rotation[i];
+            }
             items.push_back(std::move(item));
         }
 

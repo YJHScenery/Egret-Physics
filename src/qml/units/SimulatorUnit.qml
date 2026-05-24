@@ -207,10 +207,19 @@ ColumnLayout {
                             model: sceneController.bodyModel
 
                             delegate: Model {
+                                id: modelXX
                                 objectName: "body-" + bodyId
                                 source: canvas3d.shapeSource(shapeKind)
                                 position: canvas3d.toRenderVector(bodyCenterX, bodyCenterY, bodyCenterZ)
                                 scale: canvas3d.scaleForShape(shapeKind, bodySizeX, bodySizeZ, bodySizeY)
+                                property var rotMatrix: bodyRotation
+                                property real angle: Math.acos(Math.min(1.0, (rotMatrix[0] + rotMatrix[4] + rotMatrix[8] - 1) * 0.5))
+                                property real qx: angle > 0.001 ? (rotMatrix[5] - rotMatrix[7]) / (4 * Math.sin(angle)) : 0
+                                property real qy: angle > 0.001 ? (rotMatrix[6] - rotMatrix[2]) / (4 * Math.sin(angle)) : 0
+                                property real qz: angle > 0.001 ? (rotMatrix[1] - rotMatrix[3]) / (4 * Math.sin(angle)) : 0
+                                property real qw: Math.cos(angle * 0.5)
+                                property variant quaternion: Qt.quaternion(qw, qx, qy, qz)
+                                rotation: quaternion
 
                                 materials: PrincipledMaterial {
                                     baseColor: bodyColor
@@ -373,8 +382,7 @@ ColumnLayout {
                     clip: true
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                     rightPadding: infoScrollBar.visible ? (infoScrollBar.width) : 0
-                    ScrollBar.vertical: Basic.ScrollBar
-                    {
+                    ScrollBar.vertical: Basic.ScrollBar {
                         id: infoScrollBar
                         width: 8
                         policy: ScrollBar.AsNeeded
@@ -405,14 +413,7 @@ ColumnLayout {
                         spacing: 10
 
                         Repeater {
-                            model:
-                                [
-                                    "重力场 g = " + resourceHelper.getStandardGravity() + "m/s^2",
-                                    "积分器: RK4 (Adaptive)",
-                                    "碰撞模型: Impulse + Friction",
-                                    "约束求解: Sequential Impulse",
-                                    "误差阈值: 1e-6"
-                                ]
+                            model: ["重力场 g = " + resourceHelper.getStandardGravity() + "m/s^2", "积分器: RK4 (Adaptive)", "碰撞模型: Impulse + Friction", "约束求解: Sequential Impulse", "误差阈值: 1e-6"]
 
                             delegate: Rectangle {
                                 id: repeatItem
@@ -451,7 +452,6 @@ ColumnLayout {
                         }
                     }
                 }
-
             }
 
             GlassPanel {
@@ -489,7 +489,7 @@ ColumnLayout {
                                 computeBtnRect.hovered = false;
                             }
                             onClicked: {
-                                sceneController.toggleRunning()
+                                sceneController.toggleRunning();
                             }
                         }
                         Text {
