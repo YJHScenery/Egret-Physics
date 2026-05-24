@@ -82,6 +82,9 @@ namespace egret
 
         /** 标签文本，用于调试或悬浮提示。 */
         std::string label;
+
+        /** 旋转矩阵元素 (row-major)：m11, m12, m13, m21, m22, m23, m31, m32, m33。 */
+        double rotation[9]{1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
     };
 
     /**

@@ -6,26 +6,29 @@
 
 namespace egret
 {
-    SceneBodyModel::SceneBodyModel(QObject* parent) : QAbstractListModel(parent)
+    SceneBodyModel::SceneBodyModel(QObject *parent) : QAbstractListModel(parent)
     {
     }
 
-    int SceneBodyModel::rowCount(const QModelIndex& parent) const
+    int SceneBodyModel::rowCount(const QModelIndex &parent) const
     {
-        if (parent.isValid()) {
+        if (parent.isValid())
+        {
             return 0;
         }
         return static_cast<int>(m_items.size());
     }
 
-    QVariant SceneBodyModel::data(const QModelIndex& index, const int role) const
+    QVariant SceneBodyModel::data(const QModelIndex &index, const int role) const
     {
-        if (!index.isValid() || index.row() < 0 || index.row() >= rowCount(QModelIndex())) {
+        if (!index.isValid() || index.row() < 0 || index.row() >= rowCount(QModelIndex()))
+        {
             return {};
         }
 
-        const SceneBodyVisualItem& item = m_items[static_cast<std::size_t>(index.row())];
-        switch (role) {
+        const SceneBodyVisualItem &item = m_items[static_cast<std::size_t>(index.row())];
+        switch (role)
+        {
         case IdRole:
             return QVariant::fromValue(item.id);
         case KindRole:
@@ -60,6 +63,15 @@ namespace egret
             return item.color;
         case LabelRole:
             return item.label;
+        case RotationRole:
+        {
+            QVariantList list;
+            for (int i = 0; i < 9; ++i)
+            {
+                list.append(item.rotation[i]);
+            }
+            return list;
+        }
         default:
             return {};
         }
@@ -85,25 +97,31 @@ namespace egret
             {SizeZRole, "bodySizeZ"},
             {ColorRole, "bodyColor"},
             {LabelRole, "bodyLabel"},
+            {RotationRole, "bodyRotation"},
         };
     }
 
-    void SceneBodyModel::setItems(const std::vector<SceneBodyVisualItem>& items)
+    void SceneBodyModel::setItems(const std::vector<SceneBodyVisualItem> &items)
     {
         const bool sameSize = m_items.size() == items.size();
         bool sameIds = sameSize;
-        if (sameSize) {
-            for (std::size_t i = 0; i < items.size(); ++i) {
-                if (m_items[i].id != items[i].id) {
+        if (sameSize)
+        {
+            for (std::size_t i = 0; i < items.size(); ++i)
+            {
+                if (m_items[i].id != items[i].id)
+                {
                     sameIds = false;
                     break;
                 }
             }
         }
 
-        if (sameSize && sameIds) {
+        if (sameSize && sameIds)
+        {
             m_items = items;
-            if (!m_items.empty()) {
+            if (!m_items.empty())
+            {
                 const QModelIndex first = index(0, 0);
                 const QModelIndex last = index(static_cast<int>(m_items.size()) - 1, 0);
                 emit dataChanged(first, last);
