@@ -1,9 +1,13 @@
 #include "brute_force_broad_phase.h"
-#include "../../physics/rigid/shape/standard/shape_base.h"
+#include "standard/shape_base.h"
+#include "physical_entity.h"
+
 #include <cmath>
 //
 // Created by jehor on 2026/4/25.
 //
+
+
 namespace egret
 {
 
@@ -18,28 +22,28 @@ namespace egret
 
         for (std::size_t i = 0; i < bodies.size(); ++i) {
             const SolverBodyHandle& bodyA = bodies[i];
-            if (!bodyA.enableCollision || bodyA.shape == nullptr || bodyA.transform == nullptr) {
+            if (!bodyA.enableCollision || bodyA.entity->getShape() == nullptr || bodyA.transform == nullptr) {
                 continue;
             }
             if (!bodyA.transform->getTranslation().allFinite()) {
                 continue;
             }
 
-            const AABB aabbA = bodyA.shape->getAABB(*bodyA.transform);
+            const AABB aabbA = bodyA.entity->getShape()->getAABB(*bodyA.transform);
             if (!aabbA.min.allFinite() || !aabbA.max.allFinite()) {
                 continue;
             }
 
             for (std::size_t j = i + 1; j < bodies.size(); ++j) {
                 const SolverBodyHandle& bodyB = bodies[j];
-                if (!bodyB.enableCollision || bodyB.shape == nullptr || bodyB.transform == nullptr) {
+                if (!bodyB.enableCollision || bodyB.entity->getShape() == nullptr || bodyB.transform == nullptr) {
                     continue;
                 }
                 if (!bodyB.transform->getTranslation().allFinite()) {
                     continue;
                 }
 
-                const AABB aabbB = bodyB.shape->getAABB(*bodyB.transform);
+                const AABB aabbB = bodyB.entity->getShape()->getAABB(*bodyB.transform);
                 if (!aabbB.min.allFinite() || !aabbB.max.allFinite()) {
                     continue;
                 }

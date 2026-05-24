@@ -79,7 +79,9 @@ namespace egret
         record->id = nextId();
         record->name = name;
         record->entity = std::make_shared<Particle>(position, speed, mass);
-        record->shape = std::move(shape);
+
+        record->entity->setShape(std::move(shape));
+        // record->shape = std::move(shape);
         m_bodies.push_back(std::move(record));
         rebuildSolverCaches();
         return m_bodies.back()->id;
@@ -97,7 +99,7 @@ namespace egret
         record->id = nextId();
         record->name = name;
         record->entity = entity;
-        record->shape = std::move(shape);
+        record->entity->setShape(std::move(shape));
         m_bodies.push_back(std::move(record));
         rebuildSolverCaches();
         return m_bodies.back()->id;
@@ -144,10 +146,10 @@ namespace egret
     std::optional<ShapeLoadInfo> WorldSceneManager::getBodyShapeLoadInfo(const std::uint64_t id) const
     {
         const BodyRecord* body = findBody(id);
-        if (body == nullptr || body->shape == nullptr) {
+        if (body == nullptr || body->entity->getShape() == nullptr) {
             return std::nullopt;
         }
-        return body->shape->getLoadInfo();
+        return body->entity->getShape()->getLoadInfo();
     }
 
     std::optional<Eigen::Vector3d> WorldSceneManager::getBodyPosition(const std::uint64_t id) const
@@ -219,7 +221,7 @@ namespace egret
         bodyRecord->id = id;
         bodyRecord->name = bodyName;
         bodyRecord->entity = entity;
-        bodyRecord->shape = std::move(shape);
+        bodyRecord->entity->setShape(std::move(shape));
         m_bodies.push_back(std::move(bodyRecord));
 
         auto fieldRecord = std::make_unique<FieldRecord>();
@@ -315,7 +317,7 @@ namespace egret
         items.reserve(m_bodies.size());
 
         for (const auto& body : m_bodies) {
-            if (body == nullptr || body->entity == nullptr || body->shape == nullptr) {
+            if (body == nullptr || body->entity == nullptr || body->entity->getShape() == nullptr) {
                 continue;
             }
 
@@ -324,7 +326,7 @@ namespace egret
 
             // const std::string& shapeTypeStr {body->shape->typeId()};
 
-            SceneRenderItem item{body->shape->getBasicRenderInfo(position)};
+            SceneRenderItem item{body->entity->getShape()->getBasicRenderInfo(position)};
 
             item.id = body->id;
             item.label = body->name.empty() ? (std::string("Body ") + std::to_string(body->id)) : body->name;
@@ -336,7 +338,7 @@ namespace egret
             item.speedY = speed.y();
             item.speedZ = speed.z();
 
-            const ShapeLoadInfo shapeInfo = body->shape->getLoadInfo();
+            const ShapeLoadInfo shapeInfo = body->entity->getShape()->getLoadInfo();
             item.sizeX = std::max(1.0, item.width);
             item.sizeY = std::max(1.0, item.height);
             item.sizeZ = std::max(1.0, std::min(item.sizeX, item.sizeY));
@@ -478,7 +480,7 @@ namespace egret
         m_solverBodyOwners.reserve(m_bodies.size());
 
         for (const auto& body : m_bodies) {
-            if (body == nullptr || body->entity == nullptr || body->shape == nullptr) {
+            if (body == nullptr || body->entity == nullptr || body->entity->getShape() == nullptr) {
                 continue;
             }
 
@@ -488,7 +490,7 @@ namespace egret
             handle.id = body->id;
             handle.entity = body->entity.get();
             handle.transform = &body->entity->getTransform();
-            handle.shape = body->shape.get();
+            // handle.shape = body->entity->getShape().get();
             handle.inverseMass = body->entity->getMass() > 0.0 ? 1.0 / body->entity->getMass() : 0.0;
             handle.restitution = body->entity->getRestitution() /*(body->restitution)*/;
             handle.enableCollision = body->enableCollision;
