@@ -61,6 +61,6 @@ def generate_favicons(input_image_path, output_dir="output"):
 
 if __name__ == "__main__":
     # 使用示例 - 请修改为你的图片路径
-    input_image = "favicon_2.png"  # 替换为你的图片路径
+    input_image = "favicon_2048.png"  # 替换为你的图片路径
     
     generate_favicons(input_image)

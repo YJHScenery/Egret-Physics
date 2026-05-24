@@ -84,6 +84,7 @@ ColumnLayout {
                     anchors.fill: parent
                     camera: editorCamera
 
+
                     environment: SceneEnvironment {
                         backgroundMode: SceneEnvironment.Color
                         clearColor: "#061425"
@@ -121,6 +122,7 @@ ColumnLayout {
                         }
 
                         Model {
+                            id: refCubeModel
                             source: "#Cube"
                             position: Qt.vector3d(0, 80, 0)
                             scale: Qt.vector3d(1.2, 0.12, 1.2)
@@ -129,6 +131,8 @@ ColumnLayout {
                                 roughness: 0.3
                                 metalness: 0.1
                             }
+
+
                         }
                     }
                 }

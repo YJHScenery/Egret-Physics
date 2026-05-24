@@ -66,15 +66,15 @@ namespace egret
         return ConstraintType::ConnectingLine;
     }
 
-    std::vector<PhysicalEntity*> ConnectingLine::getConstrainedEntities()
-    {
-        return m_physicalEntities;
-    }
-
-    const std::vector<PhysicalEntity*>& ConnectingLine::getConstrainedEntities() const
-    {
-        return m_physicalEntities;
-    }
+    // std::vector<PhysicalEntity*> ConnectingLine::getConstrainedEntities()
+    // {
+    //     return m_physicalEntities;
+    // }
+    //
+    // const std::vector<PhysicalEntity*>& ConnectingLine::getConstrainedEntities() const
+    // {
+    //     return m_physicalEntities;
+    // }
 
     void ConnectingLine::applyVelocityConstraint(double dt)
     {
@@ -325,5 +325,11 @@ namespace egret
 
         // 返回超出长度（如果 totalLength <= m_length，误差为 0）
         return std::max(0.0, totalLength - m_length);
+    }
+
+    void ConnectingLine::applyAngularVelocityConstraint(double dt)
+    {
+        std::ignore = dt;
+        // 不参与角速度变化。
     }
 } // egret

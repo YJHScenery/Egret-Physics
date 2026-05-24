@@ -431,107 +431,102 @@ namespace egret
         //
         m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
         //
-        m_world->spawnBox("地面", {0.0, 0.0, -15.0}, {0.0, 0.0, 0.0}, {800.0, 600.0, 30.0}, 0.0);
-        m_world->spawnBox("地面", {0, -300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
-        m_world->spawnBox("地面", {0, 300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
-        m_world->spawnBox("地面", {400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
-        m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
 
-        std::uint64_t idBox = m_world->spawnBox("测试", {0, 400, 300}, {320, 100, 233}, {100, 30, 100}, 10.0);
-        // std::uint64_t idBox2 = m_world->spawnBox("测试", {0, 0, 430}, {0, 0, 0}, {100, 30, 100}, 10.0);
-        // Eigen::Matrix3d R;
-        double angle_z = M_PI / 5.0;   // 36 degrees
-        double angle_x = 40.0 * M_PI / 180.0;  // 40 degrees
+        auto generateBox{[&]()
+        {
+            m_world->spawnBox("地面", {0.0, 0.0, -15.0}, {0.0, 0.0, 0.0}, {800.0, 600.0, 30.0}, 0.0);
+            m_world->spawnBox("地面", {0, -300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
+            m_world->spawnBox("地面", {0, 300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
+            m_world->spawnBox("地面", {400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
+            m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
 
-        double cz = std::cos(angle_z);
-        double sz = std::sin(angle_z);
-        double cx = std::cos(angle_x);
-        double sx = std::sin(angle_x);
+        }};
 
-        // 绕Z轴旋转矩阵
-        Eigen::Matrix3d R_z;
-        R_z << cz, -sz, 0,
-               sz,  cz, 0,
-                0,   0, 1;
+        auto generateRotationTest{[&]()
+        {
+            std::uint64_t idBox = m_world->spawnBox("测试", {0, 400, 300}, {320, 100, 233}, {100, 30, 100}, 10.0);
+            // std::uint64_t idBox2 = m_world->spawnBox("测试", {0, 0, 430}, {0, 0, 0}, {100, 30, 100}, 10.0);
+            // Eigen::Matrix3d R;
+            double angle_z = M_PI / 5.0;   // 36 degrees
+            double angle_x = 40.0 * M_PI / 180.0;  // 40 degrees
 
-        // 绕X轴旋转矩阵
-        Eigen::Matrix3d R_x;
-        R_x << 1,   0,    0,
-               0,  cx,  -sx,
-               0,  sx,   cx;
+            double cz = std::cos(angle_z);
+            double sz = std::sin(angle_z);
+            double cx = std::cos(angle_x);
+            double sx = std::sin(angle_x);
 
-        // 先绕Z转，再绕X转（注意乘法顺序：右边先应用）
-        Eigen::Matrix3d R = R_x * R_z;
-        //
-        // double angle2 = M_PI / 6.0; // 45 degrees
-        // double c2 = std::cos(angle2);
-        // double s2 = std::sin(angle2);
-        //
-        // Eigen::Matrix3d R2{}; // 显式行优先
-        // R2 << c2, -s2, 0,
-        //     s2, c2, 0,
-        //     0, 0, 1;
+            // 绕Z轴旋转矩阵
+            Eigen::Matrix3d R_z;
+            R_z << cz, -sz, 0,
+                   sz,  cz, 0,
+                    0,   0, 1;
 
-        m_world->setBodyRotation(idBox, R);
-        // m_world->setBodyRotation(idBox2, R2);
+            // 绕X轴旋转矩阵
+            Eigen::Matrix3d R_x;
+            R_x << 1,   0,    0,
+                   0,  cx,  -sx,
+                   0,  sx,   cx;
 
-        // m_world->setBodyPosition(idBox, {0, 100, 100});
-        // m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
+            // 先绕Z转，再绕X转（注意乘法顺序：右边先应用）
+            Eigen::Matrix3d R = R_x * R_z;
+            //
+            // double angle2 = M_PI / 6.0; // 45 degrees
+            // double c2 = std::cos(angle2);
+            // double s2 = std::sin(angle2);
+            //
+            // Eigen::Matrix3d R2{}; // 显式行优先
+            // R2 << c2, -s2, 0,
+            //     s2, c2, 0,
+            //     0, 0, 1;
 
-        // const auto id1 = m_world->spawnSphere("小球 A", {0.0, 0.0, 280.0}, {0.0, 0.0, 0.0}, 5.0, 50.0);
-        // const auto id2 = m_world->spawnSphere("小球 B", {200.0, 0.0, 200.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
-        // const auto id3 = m_world->spawnSphere("小球 C", {100.0, 0.0, 400.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
-        // m_world->spawnSphere("小球 D", {100.0, 100.0, 400.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
-        // m_world->spawnSphere("小球 E", {100.0, 120.0, 400.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
-        // m_world->spawnSphere("小球 F", {100.0, 123.0, 450.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
-        // m_world->spawnSphere("小球 G", {100.0, 104.0, 430.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
-        // m_world->spawnSphere("小球 H", {100.0, 123.0, 430.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
+            m_world->setBodyRotation(idBox, R);
 
-        // for (int i = 0; i <= 10; ++i) {
-        //     for (int j = 0; j <= 10; ++j) {
-        //         m_world->spawnSphere("小球 H", {11.0 * i, 8.0 * j, 130.0 + 10 * j}, {0.0, 0.0, 0.0}, 5.0, 10.0);
-        //     }
-        // }
-        // const std::uint64_t body1Id = m_world->spawnSphere("sphere1",Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0), 1.0, 1.0);
-        // const std::uint64_t body2Id = m_world->spawnSphere("sphere2",Eigen::Vector3d(5, 0, 0), Eigen::Vector3d(0, 0, 0), 1.0, 1.0);
 
-        // 创建折线约束，限制长度为 3.0（两点之间距离为 5，超过限制）
-        // m_world->createConnectingLine("connecting_line_test", sqrt(80 * 80 + 200 * 200), id1, id2);
-        //
-        m_world->createSimplePendulum("simple_pendulum_test", 100, {0, 0, 500}, idBox);
+            m_world->createSimplePendulum("simple_pendulum_test", 100, {0, 0, 500}, idBox);
+        }};
 
-        // auto generateField {[&](const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass, double coupling_G = G)
-        // {
-        //     auto gravitationalField = std::make_shared<GravitationalField>(
-        //     position,
-        //     speed,
-        //     mass, coupling_G,
-        //     false);
-        //
-        //     GravitationalField::setMinDistanceSquared(1600);
-        //
-        //     // gravitationalField->setCouplingCoefficient(1.0);
-        //     auto gravFieldEntity = std::static_pointer_cast<PhysicalEntity>(gravitationalField);
-        //     auto gravFieldBase = std::static_pointer_cast<FieldBase>(gravitationalField);
-        //     static int i = 0;
-        //     i ++;
-        //     QString bodyName{"测试引力源"};
-        //     bodyName += QString::number(i);
-        //     QString fieldName{"引力场"};
-        //     fieldName += QString::number(i);
-        //
-        //
-        //     m_world->registerBodyField(bodyName.toStdString(),
-        //                                fieldName.toStdString(),
-        //                                gravFieldEntity,
-        //                                gravFieldBase,
-        //                                std::make_unique<ShapeSphere>(10.0));
-        // }};
-        //
-        // generateField({300, 0, -1}, {0, 75, 100}, 200, 50000);
-        // generateField({-150, 259.8, 100}, {-120, -45, 43}, 100, 50000);
-        // generateField({-150, -259.8, -300}, {-120, 45, 23}, 50, 50000);
+        auto generate3BodyScene{[&]()
+        {
+            auto generateField {[&](const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass, double coupling_G = G)
+            {
+                auto gravitationalField = std::make_shared<GravitationalField>(
+                position,
+                speed,
+                mass, coupling_G,
+                false);
 
+                GravitationalField::setMinDistanceSquared(1600);
+
+                // gravitationalField->setCouplingCoefficient(1.0);
+                auto gravFieldEntity = std::static_pointer_cast<PhysicalEntity>(gravitationalField);
+                auto gravFieldBase = std::static_pointer_cast<FieldBase>(gravitationalField);
+                static int i = 0;
+                i ++;
+                QString bodyName{"测试引力源"};
+                bodyName += QString::number(i);
+                QString fieldName{"引力场"};
+                fieldName += QString::number(i);
+
+
+                m_world->registerBodyField(bodyName.toStdString(),
+                                           fieldName.toStdString(),
+                                           gravFieldEntity,
+                                           gravFieldBase,
+                                           std::make_unique<ShapeSphere>(10.0));
+            }};
+
+            generateField({300, 0, -1}, {0, 75, 100}, 200, 50000);
+            generateField({-150, 259.8, 100}, {-120, -45, 43}, 100, 50000);
+            generateField({-150, -259.8, -300}, {-120, 45, 23}, 50, 50000);
+        }};
+
+        auto generateSupportSurfaceTest{[&]()
+        {
+            m_world->spawnSphere("球", {0, 0, 300}, {0, 0, 0}, 10.0, 10.0);
+            std::uint64_t id = m_world->spawnSphere("球", {0, 0, 200}, {0, 0, 0}, 10.0, 10.0);
+        }};
+        generateBox();
+        generateSupportSurfaceTest();
         // m_world->spawnCylinder("cylinder", {}, {}, 4, 2, 4);
 
         // generateField({10, 0, 0}, {-0.1, 0, 0.1}, 1, 1000);

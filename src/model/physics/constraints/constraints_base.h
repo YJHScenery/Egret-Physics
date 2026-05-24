@@ -15,7 +15,6 @@ enum class ConstraintType : std::uint64_t
     SimplePendulum = 0xFFFFFFAA00000002,
     ConnectingRod = 0xFFFFFFAA00000003,
     SlidingRail = 0xFFFFFFAA00000004,
-    SupportSurface = 0xFFFFFFAA00000005,
 };
 
 namespace egret {
@@ -36,9 +35,9 @@ namespace egret {
         [[nodiscard]] virtual ConstraintType getType() const;
 
         // 获取约束施加的所有实体
-        [[nodiscard]] virtual std::vector<PhysicalEntity*> getConstrainedEntities() = 0;
+        [[nodiscard]] virtual std::vector<PhysicalEntity*> getConstrainedEntities();
 
-        [[nodiscard]] virtual const std::vector<PhysicalEntity*>& getConstrainedEntities() const = 0;
+        [[nodiscard]] virtual const std::vector<PhysicalEntity*>& getConstrainedEntities() const;
 
         // 应用约束力/冲量到实体上（速度级别）
         virtual void applyVelocityConstraint(double dt) = 0;
@@ -46,17 +45,23 @@ namespace egret {
         // 应用位置修正（位置级别，解决穿透等问题）
         virtual void applyPositionConstraint(double dt) = 0;
 
+        // 角动量修正
+        virtual void applyAngularVelocityConstraint(double dt) = 0;
+
         // 计算约束满足程度（用于调试，返回误差值）
         [[nodiscard]] virtual double computeConstraintError() const = 0;
 
         // 设置约束启用/禁用
         void setEnabled(bool enabled);
+
         [[nodiscard]] bool isEnabled() const;
 
         // 获取约束ID
         [[nodiscard]] uint64_t getId() const;
 
     protected:
+        std::vector<PhysicalEntity*> m_physicalEntities{};
+
         bool m_enabled{true};
 
         std::uint64_t m_id;

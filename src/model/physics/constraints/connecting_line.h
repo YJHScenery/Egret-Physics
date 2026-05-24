@@ -32,9 +32,9 @@ namespace egret
 
         [[nodiscard]] ConstraintType getType() const override;
 
-        [[nodiscard]] std::vector<PhysicalEntity*> getConstrainedEntities() override;
-
-        [[nodiscard]] const std::vector<PhysicalEntity*>& getConstrainedEntities() const override;
+        // [[nodiscard]] std::vector<PhysicalEntity*> getConstrainedEntities() override;
+        //
+        // [[nodiscard]] const std::vector<PhysicalEntity*>& getConstrainedEntities() const override;
 
         void applyVelocityConstraint(double dt) override;
 
@@ -42,11 +42,13 @@ namespace egret
 
         [[nodiscard]] double computeConstraintError() const override;
 
+        void applyAngularVelocityConstraint(double dt) override;
+
     protected:
         explicit ConnectingLine(std::uint64_t id);
 
 
-        std::vector<PhysicalEntity*> m_physicalEntities{};
+
 
         // 始末会由 Physical Entity 的 Position 给出，此处不会储存此二者。
         std::vector<Eigen::Vector3d> m_pathPositions;

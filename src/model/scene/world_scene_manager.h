@@ -30,6 +30,7 @@ namespace egret
      * 该结构不包含任何拥有权，只提供渲染所需的几何与样式信息，
      * 便于 ViewModel 层转换为 QML 可消费的数据模型。
      */
+    // ReSharper disable once CppMismatchedClassTags
     struct SceneRenderItem
     {
         /** 实体 ID。 */
@@ -416,6 +417,7 @@ namespace egret
          */
         std::uint64_t createSimplePendulum(const std::string& name,
                                            double length, const Eigen::Vector3d& anchorPos, std::uint64_t entityId);
+
 
         /**
          * @brief 获取约束器。
