@@ -29,36 +29,42 @@ namespace egret
 
 	void RigidBody::applyTorque(const double time, Eigen::Matrix4d rotation)
 	{
-		// 刚体转动：α = τ / I，更新角速度
+		if (m_mass <= 0.0 || !m_shape)
+		{
+			return;
+		}
+
 		Eigen::Vector3d torque = getTorque();
 		if (torque.norm() < 1e-10)
 		{
 			return;
 		}
-		// 简化处理：使用总转动惯量的模来计算角加速度方向
-		Axis defaultAxis{{0, 0, 0}, {0, 0, 1}};
-		double I = getRotationalInertia(defaultAxis);
-		if (I > 1e-10)
-		{
-			Eigen::Vector3d angularAcceleration = torque / I;
-			m_angular += angularAcceleration * time;
-		}
+
+		Eigen::Matrix3d I_local = m_shape->getInertiaTensor(m_mass);
+		Eigen::Matrix3d R = m_transform.getRotationMatrix();
+		Eigen::Matrix3d I_world = R * I_local * R.transpose();
+
+		Eigen::Vector3d angularAcceleration = I_world.inverse() * torque;
+
+		m_angular += angularAcceleration * time;
 	}
 
 	void RigidBody::rotate(const double time, Eigen::Matrix4d rotation)
 	{
-		// 刚体匀速转动：根据角速度更新姿态
-		// 使用旋转矩阵更新位置（绕参考点的旋转）
 		if (m_angular.norm() < 1e-10)
 		{
 			return;
 		}
-		Eigen::Vector3d angularDisplacement = m_angular * time;
-		Eigen::AngleAxisd rx(angularDisplacement[0], Eigen::Vector3d::UnitX());
-		Eigen::AngleAxisd ry(angularDisplacement[1], Eigen::Vector3d::UnitY());
-		Eigen::AngleAxisd rz(angularDisplacement[2], Eigen::Vector3d::UnitZ());
-		Eigen::Matrix3d rotationMatrix = (rz * ry * rx).toRotationMatrix();
-		m_transform.setTranslation(rotationMatrix * m_transform.getTranslation());
+
+		Eigen::Quaterniond currentRot = m_transform.getRotation();
+		Eigen::Quaterniond omegaQuat(0, m_angular.x(), m_angular.y(), m_angular.z());
+
+		Eigen::Quaterniond deltaQ = omegaQuat * currentRot;
+		Eigen::Quaterniond newRot = currentRot;
+		newRot.coeffs() += 0.5 * deltaQ.coeffs() * time;
+		newRot.normalize();
+
+		m_transform.setRotation(newRot);
 	}
 
 	double RigidBody::getRotationalInertia(const Axis &axis)
@@ -99,7 +105,13 @@ namespace egret
 
 	Eigen::Vector3d RigidBody::getAngularMomentum()
 	{
-		// 角动量 L = r × p = position × (mass * velocity)
-		return m_transform.getTranslation().cross(m_mass * m_speed);
+		if (!m_shape)
+		{
+			return Eigen::Vector3d::Zero();
+		}
+		Eigen::Matrix3d I_local = m_shape->getInertiaTensor(m_mass);
+		Eigen::Matrix3d R = m_transform.getRotationMatrix();
+		Eigen::Matrix3d I_world = R * I_local * R.transpose();
+		return I_world * m_angular;
 	}
 } // egret

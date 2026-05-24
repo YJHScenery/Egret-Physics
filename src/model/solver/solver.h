@@ -104,6 +104,12 @@ namespace egret
 
     private:
         /**
+         * @brief 更新所有物体的逆惯量矩阵缓存。
+         * @param scene 可变场景快照。
+         */
+        void updateBodyInertiaCache(SolverSceneSnapshotBase &scene) const;
+
+        /**
          * @brief 第 1 阶段：维护外力累加器并应用场。
          * @param scene 可变场景快照。
          */

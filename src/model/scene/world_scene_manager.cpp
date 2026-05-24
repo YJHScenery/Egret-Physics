@@ -172,6 +172,46 @@ namespace egret
         return true;
     }
 
+    std::optional<Eigen::Quaterniond> WorldSceneManager::getBodyRotationQuat(std::uint64_t id) const
+    {
+        const BodyRecord* body = findBody(id);
+        if (body == nullptr || body->entity == nullptr) {
+            return std::nullopt;
+        }
+        return body->entity->getTransform().getRotation();
+    }
+
+    std::optional<Eigen::Matrix3d> WorldSceneManager::getBodyRotationMat(std::uint64_t id) const
+    {
+        const BodyRecord* body = findBody(id);
+        if (body == nullptr || body->entity == nullptr) {
+            return std::nullopt;
+        }
+        return body->entity->getTransform().getRotationMatrix();
+    }
+
+    bool WorldSceneManager::setBodyRotation(std::uint64_t id, const Eigen::Quaterniond& rotationQuat)
+    {
+        BodyRecord* body = findBody(id);
+        if (body == nullptr || body->entity == nullptr) {
+            return false;
+        }
+
+        body->entity->setRotation(rotationQuat);
+        return true;
+    }
+
+    bool WorldSceneManager::setBodyRotation(std::uint64_t id, const Eigen::Matrix3d& rotationMat)
+    {
+        BodyRecord* body = findBody(id);
+        if (body == nullptr || body->entity == nullptr) {
+            return false;
+        }
+
+        body->entity->setRotation(Eigen::Quaterniond(rotationMat));
+        return true;
+    }
+
     std::uint64_t WorldSceneManager::addGravityField(const Eigen::Vector3d& gravity,
                                                      const Eigen::Vector3d& referencePoint,
                                                      const std::string& name)

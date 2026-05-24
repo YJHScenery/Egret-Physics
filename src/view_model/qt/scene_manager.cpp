@@ -415,30 +415,42 @@ namespace egret
         m_world->spawnBox("地面", {0, -300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
         m_world->spawnBox("地面", {0, 300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
         m_world->spawnBox("地面", {400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
+        // m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
+
+
+        std::uint64_t idBox = m_world->spawnBox("测试", {0, 0, 300}, {0, 0, 0}, {100, 30, 100}, 10.0);
+        Eigen::Matrix3d R;
+        double angle = M_PI / 4.0;  // 45 degrees
+        double c = std::cos(angle);
+        double s = std::sin(angle);
+
+        R << 1, 0, 0,
+             0, c, -s,
+             0, s,  c;
+        m_world->setBodyRotation(idBox, R);
         m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
 
+        // const auto id1 = m_world->spawnSphere("小球 A", {0.0, 0.0, 280.0}, {0.0, 0.0, 0.0}, 5.0, 50.0);
+        // const auto id2 = m_world->spawnSphere("小球 B", {200.0, 0.0, 200.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
+        // const auto id3 = m_world->spawnSphere("小球 C", {100.0, 0.0, 400.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
+        // m_world->spawnSphere("小球 D", {100.0, 100.0, 400.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
+        // m_world->spawnSphere("小球 E", {100.0, 120.0, 400.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
+        // m_world->spawnSphere("小球 F", {100.0, 123.0, 450.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
+        // m_world->spawnSphere("小球 G", {100.0, 104.0, 430.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
+        // m_world->spawnSphere("小球 H", {100.0, 123.0, 430.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
 
-        const auto id1 = m_world->spawnSphere("小球 A", {0.0, 0.0, 280.0}, {0.0, 0.0, 0.0}, 5.0, 50.0);
-        const auto id2 = m_world->spawnSphere("小球 B", {200.0, 0.0, 200.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
-        const auto id3 = m_world->spawnSphere("小球 C", {100.0, 0.0, 400.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
-        m_world->spawnSphere("小球 D", {100.0, 100.0, 400.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
-        m_world->spawnSphere("小球 E", {100.0, 120.0, 400.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
-        m_world->spawnSphere("小球 F", {100.0, 123.0, 450.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
-        m_world->spawnSphere("小球 G", {100.0, 104.0, 430.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
-        m_world->spawnSphere("小球 H", {100.0, 123.0, 430.0}, {0.0, 0.0, 0.0}, 5.0, 10.0);
-
-        for (int i = 0; i <= 10; ++i) {
-            for (int j = 0; j <= 10; ++j) {
-                m_world->spawnSphere("小球 H", {11.0 * i, 8.0 * j, 130.0 + 10 * j}, {0.0, 0.0, 0.0}, 5.0, 10.0);
-            }
-        }
+        // for (int i = 0; i <= 10; ++i) {
+        //     for (int j = 0; j <= 10; ++j) {
+        //         m_world->spawnSphere("小球 H", {11.0 * i, 8.0 * j, 130.0 + 10 * j}, {0.0, 0.0, 0.0}, 5.0, 10.0);
+        //     }
+        // }
         // const std::uint64_t body1Id = m_world->spawnSphere("sphere1",Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0), 1.0, 1.0);
         // const std::uint64_t body2Id = m_world->spawnSphere("sphere2",Eigen::Vector3d(5, 0, 0), Eigen::Vector3d(0, 0, 0), 1.0, 1.0);
 
         // 创建折线约束，限制长度为 3.0（两点之间距离为 5，超过限制）
-        m_world->createConnectingLine("connecting_line_test", sqrt(80 * 80 + 200 * 200), id1, id2);
-
-        m_world->createSimplePendulum("simple_pendulum_test", 100, {0, 0, 400}, id3);
+        // m_world->createConnectingLine("connecting_line_test", sqrt(80 * 80 + 200 * 200), id1, id2);
+        //
+        // m_world->createSimplePendulum("simple_pendulum_test", 100, {0, 0, 400}, id3);
 
         // auto generateField {[&](const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass, double coupling_G = G)
         // {

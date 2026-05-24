@@ -35,15 +35,19 @@ namespace egret
 
         [[nodiscard]] Eigen::Vector3d getPosition() const { return m_transform.getTranslation(); }
 
-        [[nodiscard]] const Eigen::Vector3d& getPositionCR() const { return m_transform.getTranslation(); }
+        [[nodiscard]] const Eigen::Vector3d &getPositionCR() const { return m_transform.getTranslation(); }
 
-        [[nodiscard]] Transform& getTransform() { return m_transform; }
+        [[nodiscard]] Transform &getTransform() { return m_transform; }
 
-        [[nodiscard]] const Transform& getTransformCR() const { return m_transform; }
+        [[nodiscard]] const Transform &getTransformCR() const { return m_transform; }
 
         [[nodiscard]] std::vector<Force> getForces() const { return m_forces; }
 
         [[nodiscard]] const std::vector<Force> &getForcesCR() const { return m_forces; }
+
+        [[nodiscard]] std::vector<Torque> getTorques() const { return m_torques; }
+
+        [[nodiscard]] const std::vector<Torque> &getTorquesCR() const { return m_torques; }
 
         [[nodiscard]] Eigen::Vector3d getSpeed() const { return m_speed; }
 
@@ -61,6 +65,12 @@ namespace egret
 
         void setPosition(const Eigen::Vector3d &position) { m_transform.setTranslation(position); }
 
+        void setRotation(const Eigen::Quaterniond &rotation) { m_transform.setRotation(rotation); }
+
+        void setRotation(const Eigen::Matrix3d &rotation) { m_transform.setRotation(Eigen::Quaterniond(rotation)); }
+
+        void setScale(const Eigen::Vector3d &scale) { m_transform.setScale(scale); }
+
         void setMass(const double mass) { m_mass = mass; }
 
         void addForce(const Force &force) { m_forces.push_back(force); }
@@ -74,6 +84,16 @@ namespace egret
         [[nodiscard]] bool hasForce(std::uint64_t id) const;
 
         void removeForce(long long index);
+
+        void addTorque(const Torque &torque) { m_torques.push_back(torque); }
+
+        void upsertTorque(const Torque &torque);
+
+        bool removeTorqueById(std::uint64_t id);
+
+        [[nodiscard]] bool hasTorque(std::uint64_t id) const;
+
+        void removeTorque(long long index);
 
         void setSpeed(const Eigen::Vector3d &speed) { m_speed = speed; }
 
