@@ -437,8 +437,8 @@ namespace egret
         m_world->spawnBox("地面", {400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
         m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
 
-        std::uint64_t idBox = m_world->spawnBox("测试", {0, 0, 300}, {0, 0, 0}, {100, 30, 100}, 10.0);
-        std::uint64_t idBox2 = m_world->spawnBox("测试", {0, 0, 430}, {0, 0, 0}, {100, 30, 100}, 10.0);
+        std::uint64_t idBox = m_world->spawnBox("测试", {0, 400, 300}, {320, 100, 233}, {100, 30, 100}, 10.0);
+        // std::uint64_t idBox2 = m_world->spawnBox("测试", {0, 0, 430}, {0, 0, 0}, {100, 30, 100}, 10.0);
         // Eigen::Matrix3d R;
         double angle_z = M_PI / 5.0;   // 36 degrees
         double angle_x = 40.0 * M_PI / 180.0;  // 40 degrees
@@ -462,18 +462,18 @@ namespace egret
 
         // 先绕Z转，再绕X转（注意乘法顺序：右边先应用）
         Eigen::Matrix3d R = R_x * R_z;
-
-        double angle2 = M_PI / 6.0; // 45 degrees
-        double c2 = std::cos(angle2);
-        double s2 = std::sin(angle2);
-
-        Eigen::Matrix3d R2{}; // 显式行优先
-        R2 << c2, -s2, 0,
-            s2, c2, 0,
-            0, 0, 1;
+        //
+        // double angle2 = M_PI / 6.0; // 45 degrees
+        // double c2 = std::cos(angle2);
+        // double s2 = std::sin(angle2);
+        //
+        // Eigen::Matrix3d R2{}; // 显式行优先
+        // R2 << c2, -s2, 0,
+        //     s2, c2, 0,
+        //     0, 0, 1;
 
         m_world->setBodyRotation(idBox, R);
-        m_world->setBodyRotation(idBox2, R2);
+        // m_world->setBodyRotation(idBox2, R2);
 
         // m_world->setBodyPosition(idBox, {0, 100, 100});
         // m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
@@ -498,7 +498,7 @@ namespace egret
         // 创建折线约束，限制长度为 3.0（两点之间距离为 5，超过限制）
         // m_world->createConnectingLine("connecting_line_test", sqrt(80 * 80 + 200 * 200), id1, id2);
         //
-        // m_world->createSimplePendulum("simple_pendulum_test", 100, {0, 0, 400}, id3);
+        m_world->createSimplePendulum("simple_pendulum_test", 100, {0, 0, 500}, idBox);
 
         // auto generateField {[&](const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass, double coupling_G = G)
         // {
