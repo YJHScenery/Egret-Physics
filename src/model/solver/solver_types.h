@@ -161,8 +161,6 @@ namespace egret
         /** 若为真，则在外力/接触处理后积分实体状态。 */
         bool enableIntegration{true};
 
-        /** 若为真，则将动力学约束在 XY 平面（清零 z 方向位置与速度）。 */
-        bool lockToXYPlane{false};
 
         /** 若为真，则使用TOI事件队列进行时间步进的CCD碰撞检测。 */
         bool enableToiQueue{true};
