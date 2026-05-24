@@ -438,6 +438,14 @@ namespace egret
             //     item.y = position.y() - 8.0;
             // }
 
+            // 获取旋转矩阵并填充到渲染项
+            const Eigen::Matrix3d rotationMat = body->entity->getTransform().getRotationMatrix();
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 3; ++j) {
+                    item.rotation[i * 3 + j] = rotationMat(i, j);
+                }
+            }
+
             items.push_back(std::move(item));
         }
 

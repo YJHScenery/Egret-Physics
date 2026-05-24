@@ -72,6 +72,9 @@ namespace egret
 
         /** 标签。 */
         QString label;
+
+        /** 旋转矩阵元素 (row-major)：m11, m12, m13, m21, m22, m23, m31, m32, m33。 */
+        double rotation[9]{1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
     };
 
     /**
@@ -104,19 +107,20 @@ namespace egret
             SizeZRole,
             ColorRole,
             LabelRole,
+            RotationRole,
         };
 
         /** 默认构造。 */
-        explicit SceneBodyModel(QObject* parent = nullptr);
+        explicit SceneBodyModel(QObject *parent = nullptr);
 
         /** 默认析构。 */
         ~SceneBodyModel() override = default;
 
         /** 行数。 */ //  = QModelIndex()
-        [[nodiscard]] int rowCount(const QModelIndex& parent) const override;
+        [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
 
         /** 模型数据。 */ //  = Qt::DisplayRole
-        [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
+        [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
 
         /** 角色名称。 */
         [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
@@ -125,7 +129,7 @@ namespace egret
          * @brief 用新的数据覆盖整个模型。
          * @param items 新的实体渲染快照。
          */
-        void setItems(const std::vector<SceneBodyVisualItem>& items);
+        void setItems(const std::vector<SceneBodyVisualItem> &items);
 
         /**
          * @brief 清空模型。
