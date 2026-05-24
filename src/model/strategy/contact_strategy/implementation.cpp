@@ -38,44 +38,85 @@ namespace egret
                     continue;
                 }
                 const Eigen::Vector3d normal = rawNormal.normalized();
+
                 const Eigen::Vector3d velocityA = bodyA.entity->getSpeed();
+                const Eigen::Vector3d angularA = bodyA.entity->getAngular();
                 const Eigen::Vector3d velocityB = bodyB.entity->getSpeed();
-                if (!velocityA.allFinite() || !velocityB.allFinite()) {
+                const Eigen::Vector3d angularB = bodyB.entity->getAngular();
+
+                if (!velocityA.allFinite() || !velocityB.allFinite() || !angularA.allFinite() || !angularB.allFinite()) {
                     continue;
                 }
-                const double relativeNormalVelocity = (velocityB - velocityA).dot(normal);
-                const double invMassSum = bodyA.inverseMass + bodyB.inverseMass;
 
-                if (!std::isfinite(invMassSum) || invMassSum <= 0.0) {
+                const Eigen::Vector3d positionA = bodyA.entity->getPosition();
+                const Eigen::Vector3d positionB = bodyB.entity->getPosition();
+                const Eigen::Vector3d contactPosition = constraint.contact.position;
+
+                const Eigen::Vector3d rA = contactPosition - positionA;
+                const Eigen::Vector3d rB = contactPosition - positionB;
+
+                const Eigen::Vector3d contactVelA = velocityA + angularA.cross(rA);
+                const Eigen::Vector3d contactVelB = velocityB + angularB.cross(rB);
+
+                const double relativeNormalVelocity = (contactVelB - contactVelA).dot(normal);
+
+                const Eigen::Vector3d rA_cross_n = rA.cross(normal);
+                const Eigen::Vector3d rB_cross_n = rB.cross(normal);
+
+                double effectiveMass = bodyA.inverseMass + bodyB.inverseMass;
+                effectiveMass += rA_cross_n.dot(bodyA.inverseInertiaTensor * rA_cross_n);
+                effectiveMass += rB_cross_n.dot(bodyB.inverseInertiaTensor * rB_cross_n);
+
+                if (!std::isfinite(effectiveMass) || effectiveMass <= 0.0) {
                     continue;
                 }
 
                 if (relativeNormalVelocity < 0.0) {
-                    const double impulseMagnitude = -(1.0 + constraint.restitution) * relativeNormalVelocity / invMassSum;
+                    const double impulseMagnitude = -(1.0 + constraint.restitution) * relativeNormalVelocity / effectiveMass;
                     if (!std::isfinite(impulseMagnitude)) {
                         continue;
                     }
                     const Eigen::Vector3d impulse = impulseMagnitude * normal;
 
                     if (bodyA.inverseMass > 0.0) {
-                        const Eigen::Vector3d nextSpeed = velocityA - impulse * bodyA.inverseMass;
+                        Eigen::Vector3d nextSpeed = velocityA - impulse * bodyA.inverseMass;
                         if (nextSpeed.allFinite()) {
-                            Eigen::Vector3d clampedSpeed = nextSpeed;
                             if (config.lockToXYPlane) {
-                                clampedSpeed.z() = 0.0;
+                                nextSpeed.z() = 0.0;
                             }
-                            bodyA.entity->setSpeed(clampedSpeed);
+                            bodyA.entity->setSpeed(nextSpeed);
                         }
                     }
 
                     if (bodyB.inverseMass > 0.0) {
-                        const Eigen::Vector3d nextSpeed = velocityB + impulse * bodyB.inverseMass;
+                        Eigen::Vector3d nextSpeed = velocityB + impulse * bodyB.inverseMass;
                         if (nextSpeed.allFinite()) {
-                            Eigen::Vector3d clampedSpeed = nextSpeed;
                             if (config.lockToXYPlane) {
-                                clampedSpeed.z() = 0.0;
+                                nextSpeed.z() = 0.0;
                             }
-                            bodyB.entity->setSpeed(clampedSpeed);
+                            bodyB.entity->setSpeed(nextSpeed);
+                        }
+                    }
+
+                    if (bodyA.inverseMass > 0.0) {
+                        const Eigen::Vector3d angularImpulse = rA.cross(impulse);
+                        Eigen::Vector3d nextAngular = angularA - bodyA.inverseInertiaTensor * angularImpulse;
+                        if (nextAngular.allFinite()) {
+                            if (config.lockToXYPlane) {
+                                nextAngular.z() = 0.0;
+                            }
+                            bodyA.entity->setAngular(nextAngular);
+                        }
+                    }
+
+                    if (bodyB.inverseMass > 0.0) {
+                        const Eigen::Vector3d angularImpulse = rB.cross(-impulse);
+                        Eigen::Vector3d nextAngular = angularB - bodyB.inverseInertiaTensor * angularImpulse;
+                        if (nextAngular.allFinite()) {
+                            if (config.lockToXYPlane) {
+                                nextAngular.z() = 0.0;
+                            }
+                            bodyB.entity->setAngular(nextAngular);
                         }
                     }
                 }

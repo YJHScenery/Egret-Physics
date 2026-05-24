@@ -216,6 +216,36 @@ namespace egret
         bool setBodyPosition(std::uint64_t id, const Eigen::Vector3d& position);
 
         /**
+         * @brief 读取实体旋转
+         * @param id 实体 ID。
+         * @return 找到则返回旋转，否则返回空。
+         */
+        [[nodiscard]] std::optional<Eigen::Quaterniond> getBodyRotationQuat(std::uint64_t id) const;
+
+        /**
+         * @brief 读取实体旋转矩阵
+         * @param id 实体 ID。
+         * @return 找到则返回旋转，否则返回空。
+         */
+        [[nodiscard]] std::optional<Eigen::Matrix3d> getBodyRotationMat(std::uint64_t id) const;
+
+        /**
+         * @brief 设置实体旋转
+         * @param id 实体 ID。
+         * @param rotationQuat 新的旋转四元数
+         * @return 找到则返回旋转，否则返回空。
+         */
+        bool setBodyRotation(std::uint64_t id, const Eigen::Quaterniond& rotationQuat);
+
+        /**
+         * @brief 设置实体旋转(矩阵版本)
+         * @param id 实体 ID。
+         * @param rotationMat 新的旋转矩阵
+         * @return 找到则返回旋转，否则返回空。
+         */
+        bool setBodyRotation(std::uint64_t id, const Eigen::Matrix3d& rotationMat);
+
+        /**
          * @brief 添加一个重力场。
          * @param gravity 重力向量。
          * @param referencePoint 势能参考点。

@@ -10,9 +10,9 @@ namespace egret
                                                     const SolverConfig& config,
                                                     SolverStats& stats) const
     {
-        const auto bodies = scene.getBodies();
+        auto bodies = scene.getBodies();
 
-        for (const SolverBodyHandle& body : bodies) {
+        for (SolverBodyHandle& body : bodies) {
             if (body.entity == nullptr || body.transform == nullptr || !body.enableIntegration) {
                 continue;
             }
@@ -22,14 +22,19 @@ namespace egret
             }
 
             body.entity->applyForce(dt);
+            body.entity->applyTorque(dt, body.transform->getLocalToWorldMatrix());
+            body.entity->rotate(dt, body.transform->getLocalToWorldMatrix());
 
             if (config.lockToXYPlane) {
                 Eigen::Vector3d position = body.entity->getPosition();
                 Eigen::Vector3d speed = body.entity->getSpeed();
+                Eigen::Vector3d angular = body.entity->getAngular();
                 position.z() = 0.0;
                 speed.z() = 0.0;
+                angular.z() = 0.0;
                 body.entity->setPosition(position);
                 body.entity->setSpeed(speed);
+                body.entity->setAngular(angular);
                 body.transform->setTranslation(position);
             } else {
                 body.transform->setTranslation(body.entity->getPosition());

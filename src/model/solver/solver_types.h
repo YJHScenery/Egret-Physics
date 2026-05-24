@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "Eigen/Dense"
 #include "basic_utils.h"
 #include "physics_utils.h"
 
@@ -40,6 +41,9 @@ namespace egret
 
         /** 逆质量，用于快速冲量求解；静态体或无限质量体设为 0。 */
         double inverseMass{0.0};
+
+        /** 世界坐标系下的逆转动惯量矩阵，用于碰撞角动量传递。 */
+        Eigen::Matrix3d inverseInertiaTensor{Eigen::Matrix3d::Zero()};
 
         /** 恢复系数，范围为 [0, 1]，用于无摩擦法向冲量。 */
         double restitution{0.2};
