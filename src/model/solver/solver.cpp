@@ -28,13 +28,13 @@ namespace egret
                                       const SolverBodyHandle& bodyB,
                                       ContactManifold& manifold)
         {
-            if (bodyA.shape == nullptr || bodyB.shape == nullptr || bodyA.transform == nullptr || bodyB.transform ==
+            if (bodyA.entity->getShape() == nullptr || bodyB.entity->getShape() == nullptr || bodyA.transform == nullptr || bodyB.transform ==
                 nullptr) {
                 return false;
             }
 
-            const AABB aabbA = bodyA.shape->getAABB(*bodyA.transform);
-            const AABB aabbB = bodyB.shape->getAABB(*bodyB.transform);
+            const AABB aabbA = bodyA.entity->getShape()->getAABB(*bodyA.transform);
+            const AABB aabbB = bodyB.entity->getShape()->getAABB(*bodyB.transform);
             const Eigen::Vector3d overlapMin = aabbA.min.cwiseMax(aabbB.min);
             const Eigen::Vector3d overlapMax = aabbA.max.cwiseMin(aabbB.max);
             const Eigen::Vector3d overlap = overlapMax - overlapMin;
@@ -233,17 +233,17 @@ namespace egret
             const SolverBodyHandle& bodyA = bodies[pair.bodyAIndex];
             const SolverBodyHandle& bodyB = bodies[pair.bodyBIndex];
 
-            if (bodyA.shape == nullptr || bodyB.shape == nullptr || bodyA.transform == nullptr || bodyB.transform ==
+            if (bodyA.entity->getShape() == nullptr || bodyB.entity->getShape() == nullptr || bodyA.transform == nullptr || bodyB.transform ==
                 nullptr) {
                 continue;
             }
 
             ContactManifold manifold;
-            bool collided = bodyA.shape->collide(bodyB.shape, *bodyA.transform, *bodyB.transform, manifold);
+            bool collided = bodyA.entity->getShape()->collide(bodyB.entity->getShape().get(), *bodyA.transform, *bodyB.transform, manifold);
 
             if (!collided) {
                 ContactManifold reversedManifold;
-                collided = bodyB.shape->collide(bodyA.shape, *bodyB.transform, *bodyA.transform, reversedManifold);
+                collided = bodyB.entity->getShape()->collide(bodyA.entity->getShape().get(), *bodyB.transform, *bodyA.transform, reversedManifold);
                 if (collided) {
                     manifold.reserve(reversedManifold.size());
                     for (ContactPoint contact : reversedManifold) {
@@ -303,7 +303,7 @@ namespace egret
             const SolverBodyHandle& bodyA = bodies[pair.bodyAIndex];
             const SolverBodyHandle& bodyB = bodies[pair.bodyBIndex];
 
-            if (bodyA.shape == nullptr || bodyB.shape == nullptr ||
+            if (bodyA.entity->getShape() == nullptr || bodyB.entity->getShape() == nullptr ||
                 bodyA.transform == nullptr || bodyB.transform == nullptr ||
                 bodyA.entity == nullptr || bodyB.entity == nullptr) {
                 continue;
@@ -315,8 +315,8 @@ namespace egret
             const Eigen::Vector3d angularVelB = bodyB.entity->getAngular();
 
             ContactManifold manifold;
-            auto toiOpt = bodyA.shape->continuousCollide(
-                bodyB.shape,
+            auto toiOpt = bodyA.entity->getShape()->continuousCollide(
+                bodyB.entity->getShape().get(),
                 *bodyA.transform,
                 *bodyB.transform,
                 linearVelA,
@@ -375,7 +375,7 @@ namespace egret
             const SolverBodyHandle& bodyA = bodies[pair.bodyAIndex];
             const SolverBodyHandle& bodyB = bodies[pair.bodyBIndex];
 
-            if (bodyA.shape == nullptr || bodyB.shape == nullptr ||
+            if (bodyA.entity->getShape() == nullptr || bodyB.entity->getShape() == nullptr ||
                 bodyA.transform == nullptr || bodyB.transform == nullptr ||
                 bodyA.entity == nullptr || bodyB.entity == nullptr) {
                 continue;
@@ -387,8 +387,8 @@ namespace egret
             const Eigen::Vector3d angularVelB = bodyB.entity->getAngular();
 
             ContactManifold manifold;
-            auto toiOpt = bodyA.shape->continuousCollide(
-                bodyB.shape,
+            auto toiOpt = bodyA.entity->getShape()->continuousCollide(
+                bodyB.entity->getShape().get(),
                 *bodyA.transform,
                 *bodyB.transform,
                 linearVelA,

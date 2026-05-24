@@ -36,7 +36,7 @@ namespace egret
         Transform *transform{nullptr};
 
         /** 指向碰撞形状的非拥有指针，在窄相位中使用。 */
-        ShapeBase *shape{nullptr};
+        // ShapeBase *shape{nullptr};
 
         /** 逆质量，用于快速冲量求解；静态体或无限质量体设为 0。 */
         double inverseMass{0.0};

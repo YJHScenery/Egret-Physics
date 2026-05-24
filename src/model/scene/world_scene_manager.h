@@ -472,8 +472,8 @@ namespace egret
             /** 物理实体的所有权。 */
             std::shared_ptr<PhysicalEntity> entity;
 
-            /** 碰撞形状的所有权。 */
-            std::unique_ptr<ShapeBase> shape;
+            // /** 碰撞形状的所有权。 */
+            // std::unique_ptr<ShapeBase> shape;
 
             /** 是否参与碰撞。 */
             bool enableCollision{true};

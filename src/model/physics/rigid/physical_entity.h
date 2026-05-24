@@ -81,6 +81,8 @@ namespace egret
 
         void setShape(const std::shared_ptr<ShapeBase> &shape) { m_shape = shape; }
 
+        std::shared_ptr<ShapeBase> getShape() { return m_shape; }
+
         // 匀加速直线运动
         virtual void applyForce(double time) = 0; // 应用所有的力，更新位置信息
 
