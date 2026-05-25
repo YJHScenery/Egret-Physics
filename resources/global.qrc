@@ -46,5 +46,9 @@
         <file>assets/model_3d/torus/mesh/torus_R100.mesh</file>
         <file>assets/model_3d/torus/mesh/torus_R1000.mesh</file>
         <file>assets/model_3d/torus/mesh/torus_R10000.mesh</file>
+        <file>assets/model_3d/cylinder_side/cylinder_side.mesh</file>
+        <file>assets/model_3d/cylinder_side/cylinder_side.obj</file>
+        <file>assets/model_3d/circle_disk/circle.mesh</file>
+        <file>assets/model_3d/circle_disk/circle.obj</file>
     </qresource>
 </RCC>

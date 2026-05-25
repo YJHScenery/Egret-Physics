@@ -1,0 +1,118 @@
+//
+// Created by jehor on 2026/5/25.
+//
+
+#ifndef EGRET_PHYSICS_MATERIAL_DATA_H
+#define EGRET_PHYSICS_MATERIAL_DATA_H
+#include <QObject>
+#include <QVector3D>
+#include <QQuaternion>
+#include <QColor>
+#include <QString>
+#include <QJsonObject>
+#include <QJsonArray>
+
+
+namespace egret
+{
+    class MaterialData : public QObject
+    {
+        Q_OBJECT
+        Q_PROPERTY(QColor baseColor READ baseColor WRITE setBaseColor NOTIFY baseColorChanged)
+        Q_PROPERTY(qreal metalness READ metalness WRITE setMetalness NOTIFY metalnessChanged)
+        Q_PROPERTY(qreal roughness READ roughness WRITE setRoughness NOTIFY roughnessChanged)
+        Q_PROPERTY(QString alphaMode READ alphaMode WRITE setAlphaMode NOTIFY alphaModeChanged)
+
+    public:
+        explicit MaterialData(QObject* parent = nullptr);
+
+        // Getters/Setters
+        QColor baseColor() const;
+        qreal metalness() const;
+        qreal roughness() const;
+        QString alphaMode() const;
+
+        void setBaseColor(const QColor& baseColor);
+        void setMetalness(qreal metalness);
+        void setRoughness(qreal roughness);
+        void setAlphaMode(const QString& alphaMode);
+
+        // 序列化
+        QJsonObject toJson() const;
+        bool fromJson(const QJsonObject& json);
+
+    signals:
+        void baseColorChanged();
+        void metalnessChanged();
+        void roughnessChanged();
+        void alphaModeChanged();
+
+    private:
+        QColor m_baseColor{};
+        qreal m_metalness{};
+        qreal m_roughness{};
+        QString m_alphaMode{};
+    };
+
+    class ModelItemData : public QObject
+    {
+        Q_OBJECT
+        Q_PROPERTY(QString id READ id WRITE setId NOTIFY idChanged)
+        Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+        Q_PROPERTY(QString source READ source WRITE setSource NOTIFY sourceChanged)
+        Q_PROPERTY(QColor color READ color WRITE setColor NOTIFY colorChanged)
+        Q_PROPERTY(QVector3D pos READ pos WRITE setPos NOTIFY posChanged)
+        Q_PROPERTY(QVector3D scale READ scale WRITE setScale NOTIFY scaleChanged)
+        Q_PROPERTY(QQuaternion rotation READ rotation WRITE setRotation NOTIFY rotationChanged)
+        Q_PROPERTY(MaterialData* materials READ materials CONSTANT)
+
+    public:
+        explicit ModelItemData(QObject* parent = nullptr);
+
+        // Getters/Setters
+        [[nodiscard]] QString id() const;
+        [[nodiscard]] QString name() const;
+        [[nodiscard]] QString source() const;
+        [[nodiscard]] QColor color() const;
+        [[nodiscard]] QVector3D pos() const;
+        [[nodiscard]] QVector3D scale() const;
+        [[nodiscard]] QQuaternion rotation() const;
+        [[nodiscard]] MaterialData* materials() const;
+
+        void setId(const QString& id);
+        void setName(const QString& name);
+        void setSource(const QString& source);
+        void setColor(const QColor& color);
+        void setPos(const QVector3D& pos);
+        void setScale(const QVector3D& scale);
+        void setRotation(const QQuaternion& rotation);
+
+        // 序列化
+        [[nodiscard]] QJsonObject toJson() const;
+        bool fromJson(const QJsonObject& json);
+
+        // 克隆
+        [[nodiscard]] ModelItemData* clone() const;
+
+    signals:
+        void idChanged();
+        void nameChanged();
+        void sourceChanged();
+        void colorChanged();
+        void posChanged();
+        void scaleChanged();
+        void rotationChanged();
+
+    private:
+        QString m_id{};
+        QString m_name{};
+        QString m_source{};
+        QColor m_color{};
+        QVector3D m_pos{};
+        QVector3D m_scale{};
+        QQuaternion m_rotation{};
+        MaterialData* m_materials{};
+    };
+} // egret
+
+#endif //EGRET_PHYSICS_MATERIAL_DATA_H

@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick3D 6.9
+import ModelManager 1.0
 import "qrc:/components/components"
 
 ColumnLayout {
@@ -25,6 +26,7 @@ ColumnLayout {
             Item {
                 id: editorCanvas
                 anchors.fill: parent
+                property string selectedObjectName: ""
                 property real orbitYaw: 35
                 property real orbitPitch: 45
                 property real orbitDistance: 1200
@@ -85,7 +87,6 @@ ColumnLayout {
                     camera: editorCamera
 
 
-
                     environment: SceneEnvironment {
                         backgroundMode: SceneEnvironment.Color
                         clearColor: "#061425"
@@ -111,92 +112,27 @@ ColumnLayout {
                     }
 
 
+                    // 基础配置属性
                     ListModel {
-                        id: entitiesListModel
+                        id: basicConfigListModel
 
                         Component.onCompleted: {
-                            // 添加第一个元素：Default Cube
-                            append({
-                                name: "Default Cube",
-                                source: "#Cube",
-                                color: "#4CA3FF",
-                                pos: Qt.vector3d(80, 0, 0),
-                                scale: Qt.vector3d(1.2, 0.12, 1.2),
-                                rotation: Qt.quaternion(0.0, 0.0, 0.0, 0.0),
-                                materials: {
-                                    baseColor: "#4CA3FF",
-                                    metalness: 0.8,
-                                    roughness: 0.3,
-                                    alphaMode: "Opaque"
-                                }
-                            })
+                            append([
 
-                            // 添加第二个元素：Default Sphere
-                            append({
-                                name: "Default Sphere",
-                                source: "#Sphere",
-                                color: "#4CA3FF",
-                                pos: Qt.vector3d(0, 80, 0),
-                                scale: Qt.vector3d(1.0, 1.0, 1.0),
-                                rotation: Qt.quaternion(0.0, 0.0, 0.0, 0.0),
-                                materials: {
-                                    baseColor: "#4CA3FF",
-                                    metalness: 0.8,
-                                    roughness: 0.3,
-                                    alphaMode: "Opaque"
-                                }
-                            })
-
-                            append({
-                                name: "Default Sphere",
-                                source: "#Rectangle",
-                                color: "#4CA3FF",
-                                pos: Qt.vector3d(140, 80, 0),
-                                scale: Qt.vector3d(1.0, 1.0, 1.0),
-                                rotation: Qt.quaternion(0.0, 0.0, 0.0, 0.0),
-                                materials: {
-                                    baseColor: "#4CA3FF",
-                                    metalness: 0.8,
-                                    roughness: 0.3,
-                                    alphaMode: "Opaque"
-                                }
-                            })
-
-                            append({
-                                name: "Default Sphere",
-                                source: "#Cylinder",
-                                color: "#4CA3FF",
-                                pos: Qt.vector3d(-160, 80, 0),
-                                scale: Qt.vector3d(1.0, 1.0, 1.0),
-                                rotation: Qt.quaternion(0.0, 0.0, 0.0, 0.0),
-                                materials: {
-                                    baseColor: "#4CA3FF",
-                                    metalness: 0.8,
-                                    roughness: 0.3,
-                                    alphaMode: "Opaque"
-                                }
-                            })
-
-                            append({
-                                name: "Default Sphere",
-                                source: "qrc:/model_3d/assets/model_3d/torus/mesh/torus_R0_1.mesh",
-                                color: "#4CA3FF",
-                                pos: Qt.vector3d(160, 180, 160),
-                                scale: Qt.vector3d(1000.0, 1000.0, 1000.0),
-                                rotation: Qt.quaternion(0.0, 0.0, 0.0, 0.0),
-                                materials: {
-                                    baseColor: "#c9dff6",
-                                    metalness: 0.2,
-                                    roughness: 0.9,
-                                    alphaMode: "Opaque"
-                                }
-                            })
-
+                            ])
                         }
                     }
 
+
                     Node {
                         id: basicNode
+
+                        property var alphaModeMap: ({
+                            "Default": PrincipledMaterial.Default,
+                            "Blend": PrincipledMaterial.Blend,
+                            "Opaque": PrincipledMaterial.Opaque,
+                            "Mask": PrincipledMaterial.Mask
+                        })
 
                         Coordinate {
                             id: editorCoordinate
@@ -209,30 +145,36 @@ ColumnLayout {
                             viewportHeight: editorView.height
                         }
 
+
                         Repeater3D {
                             id: repeater
-                            model: entitiesListModel
+                            model: ModelManager.getAllModels()
 
-                            // 代理：定义每个实体长什么样
+
+
                             delegate: Model {
                                 id: delegateModel
-                                source: model.source
-                                position: model.pos
-                                scale: model.scale
+
+                                property var materialAlphaMode: basicNode.alphaModeMap[modelData.materials.alphaMode]
+                                property bool isSelected: editorCanvas.selectedObjectName === objectName
+
+                                objectName: modelData.name ? modelData.name : ("model-" + index)
+                                source: modelData.source
+                                position: modelData.pos
+                                scale: modelData.scale
+                                rotation: modelData.rotation
                                 pickable: true
 
                                 materials: PrincipledMaterial {
-                                    baseColor: model.materials.baseColor
-                                    roughness: model.materials.roughness
-                                    metalness: model.materials.metalness
-                                    alphaMode: model.materials.alphaMode
+                                    baseColor: delegateModel.isSelected ? "#5CC8FF" : modelData.materials.baseColor
+                                    roughness: modelData.materials.roughness
+                                    metalness: modelData.materials.metalness
+                                    emissiveFactor: delegateModel.isSelected ? "#1A6AA6" : "#000000"
+                                    alphaMode: delegateModel.materialAlphaMode ? delegateModel.materialAlphaMode : PrincipledMaterial.Default
+                                    cullMode: Material.NoCulling
                                 }
                             }
                         }
-
-
-
-
 
                     }
 
@@ -294,9 +236,18 @@ ColumnLayout {
                     anchors.fill: parent
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                    preventStealing: true
 
                     onPressed: function (mouse) {
                         editorCanvas.lastMousePoint = Qt.point(mouse.x, mouse.y);
+                        if (mouse.button === Qt.LeftButton) {
+                            const pickResult = editorView.pick(mouse.x, mouse.y);
+                            if (pickResult && pickResult.objectHit) {
+                                editorCanvas.selectedObjectName = pickResult.objectHit.objectName;
+                            } else {
+                                editorCanvas.selectedObjectName = "";
+                            }
+                        }
                     }
 
                     onPositionChanged: function (mouse) {

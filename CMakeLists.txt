@@ -26,8 +26,7 @@ include_directories(
         src/model/physics/rigid/shape/register
         src/model/physics/rigid/shape/standard/collide_judge
         src/model/physics/rigid/shape/standard
-        src/view_model/qt
-        src/view_model/scene
+        src/view_model/
         src/model/strategy
         src/view_model
         src/view
@@ -141,10 +140,10 @@ set(CPP_FILES
         src/model/strategy/integrator_strategy/semi_implicit_euler_integrator.h
         src/model/strategy/integrator_strategy/implementation.cpp
 
-        src/view_model/qt/scene_manager.cpp
-        src/view_model/qt/scene_manager.h
-        src/view_model/qt/scene_body_model.h
-        src/view_model/qt/scene_body_model.cpp
+        src/view_model/scene_manager.cpp
+        src/view_model/scene_manager.h
+        src/view_model/scene_body_model.h
+        src/view_model/scene_body_model.cpp
 
         src/view/coordinate.cpp
         src/view/coordinate.h
@@ -155,6 +154,10 @@ set(CPP_FILES
         src/view/resource_helper.h
         src/model/physics/constraints/simple_pendulum.cpp
         src/model/physics/constraints/simple_pendulum.h
+        src/view_model/editor/model_manager.cpp
+        src/view_model/editor/model_manager.h
+        src/view_model/serialize/model_item_data.cpp
+        src/view_model/serialize/model_item_data.h
 )
 
 
