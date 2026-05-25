@@ -16,6 +16,7 @@
 #include <QJsonDocument>
 #include <QDebug>
 #include <QUuid>
+#include <QSharedPointer>
 
 #include "serialize/model_item_data.h"
 
@@ -30,19 +31,26 @@ namespace egret
     public:
         explicit ModelManager(QObject* parent = nullptr);
 
+
         // 单例访问
         static ModelManager* instance();
 
         // 基本操作
         Q_INVOKABLE bool addModel(ModelItemData* model);
+
         Q_INVOKABLE bool removeModel(const QString& id);
+
         Q_INVOKABLE ModelItemData* getModel(const QString& id);
+
         Q_INVOKABLE ModelItemData* getModelAtIndex(int index);
+
         Q_INVOKABLE bool updateModel(const QString& id, ModelItemData* model);
+
         Q_INVOKABLE void clearAll();
 
         // 批量操作
         Q_INVOKABLE void addModels(const QList<ModelItemData*>& models);
+
         Q_INVOKABLE [[nodiscard]] QList<ModelItemData*> getAllModels() const;
 
         // 属性查询
@@ -51,27 +59,36 @@ namespace egret
 
         // JSON 序列化
         Q_INVOKABLE bool saveToJson(const QString& filePath);
+
         Q_INVOKABLE bool loadFromJson(const QString& filePath);
+
         Q_INVOKABLE QString toJsonString(bool pretty = true);
+
         Q_INVOKABLE bool fromJsonString(const QString& jsonString);
 
         // 导入导出
         Q_INVOKABLE bool exportToFile(const QString& filePath);
+
         Q_INVOKABLE bool importFromFile(const QString& filePath);
 
         // 查找和筛选
         Q_INVOKABLE QList<ModelItemData*> findModelsByName(const QString& name);
+
         Q_INVOKABLE QList<ModelItemData*> findModelsBySource(const QString& source);
 
         // 批量修改
         Q_INVOKABLE void setModelsPosition(const QVector3D& position, const QStringList& ids = QStringList());
+
         Q_INVOKABLE void setModelsScale(const QVector3D& scale, const QStringList& ids = QStringList());
+
         Q_INVOKABLE void setModelsMaterialProperty(const QString& property, const QVariant& value,
                                                    const QStringList& ids = QStringList());
 
         // 撤销/重做（可选）
         Q_INVOKABLE void saveState();
+
         Q_INVOKABLE bool undo();
+
         Q_INVOKABLE bool redo();
 
     signals:
@@ -88,10 +105,13 @@ namespace egret
         void operationCompleted(bool success, const QString& message);
 
     private:
-        QHash<QString, ModelItemData*> m_models;
-        QList<ModelItemData*> m_modelList;
-        QList<QHash<QString, ModelItemData*>> m_undoStack;
-        QList<QHash<QString, ModelItemData*>> m_redoStack;
+        QHash<QString, QSharedPointer<ModelItemData>> m_models;
+
+        QList<QSharedPointer<ModelItemData>> m_modelList;
+
+        QList<QHash<QString, QSharedPointer<ModelItemData>>> m_undoStack;
+
+        QList<QHash<QString, QSharedPointer<ModelItemData>>> m_redoStack;
 
         void emitModelListChanged();
         static bool validateModel(const ModelItemData* model);

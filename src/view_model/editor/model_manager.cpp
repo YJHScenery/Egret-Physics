@@ -8,6 +8,7 @@
 #include <QJsonDocument>
 #include <QDebug>
 #include <QUuid>
+#include <QQmlEngine>
 
 
 namespace egret
@@ -15,6 +16,7 @@ namespace egret
     ModelManager::ModelManager(QObject* parent) : QObject(parent)
     {
     }
+
 
     ModelManager* ModelManager::instance()
     {
@@ -34,8 +36,12 @@ namespace egret
             return false;
         }
 
-        m_models[id] = model;
-        m_modelList.append(model);
+        model->setParent(nullptr);
+        QQmlEngine::setObjectOwnership(model, QQmlEngine::CppOwnership);
+
+        QSharedPointer<ModelItemData> modelPtr(model);
+        m_models[id] = modelPtr;
+        m_modelList.append(modelPtr);
         emitModelListChanged();
         emit modelAdded(id);
         emit operationCompleted(true, "Model added successfully");
@@ -49,10 +55,9 @@ namespace egret
             return false;
         }
 
-        ModelItemData* model = m_models[id];
+        QSharedPointer<ModelItemData> model = m_models.value(id);
         m_modelList.removeOne(model);
         m_models.remove(id);
-        model->deleteLater();
 
         emitModelListChanged();
         emit modelRemoved(id);
@@ -62,14 +67,14 @@ namespace egret
 
     ModelItemData* ModelManager::getModel(const QString& id)
     {
-        return m_models.value(id, nullptr);
+        return m_models.value(id, QSharedPointer<ModelItemData>()).data();
     }
 
     ModelItemData* ModelManager::getModelAtIndex(int index)
     {
         if (index < 0 || index >= m_modelList.size())
             return nullptr;
-        return m_modelList[index];
+        return m_modelList[index].data();
     }
 
     bool ModelManager::updateModel(const QString& id, ModelItemData* model)
@@ -79,7 +84,7 @@ namespace egret
             return false;
         }
 
-        ModelItemData* oldModel = m_models[id];
+        ModelItemData* oldModel = m_models[id].data();
         QJsonObject newData = model->toJson();
         oldModel->fromJson(newData);
 
@@ -91,7 +96,6 @@ namespace egret
     void ModelManager::clearAll()
     {
         saveState();
-        qDeleteAll(m_models);
         m_models.clear();
         m_modelList.clear();
         emitModelListChanged();
@@ -108,7 +112,12 @@ namespace egret
 
     QList<ModelItemData*> ModelManager::getAllModels() const
     {
-        return m_modelList;
+        QList<ModelItemData*> results;
+        results.reserve(m_modelList.size());
+        for (const QSharedPointer<ModelItemData>& model : m_modelList) {
+            results.append(model.data());
+        }
+        return results;
     }
 
     qsizetype ModelManager::count() const
@@ -124,7 +133,7 @@ namespace egret
     bool ModelManager::saveToJson(const QString& filePath)
     {
         QJsonArray modelsArray;
-        for (ModelItemData* model : m_modelList) {
+        for (const QSharedPointer<ModelItemData>& model : m_modelList) {
             modelsArray.append(model->toJson());
         }
 
@@ -165,7 +174,7 @@ namespace egret
     QString ModelManager::toJsonString(bool pretty)
     {
         QJsonArray modelsArray;
-        for (ModelItemData* model : m_modelList) {
+        for (const QSharedPointer<ModelItemData>& model : m_modelList) {
             modelsArray.append(model->toJson());
         }
 
@@ -226,9 +235,9 @@ namespace egret
     QList<ModelItemData*> ModelManager::findModelsByName(const QString& name)
     {
         QList<ModelItemData*> results;
-        for (ModelItemData* model : m_modelList) {
+        for (const QSharedPointer<ModelItemData>& model : m_modelList) {
             if (model->name().contains(name, Qt::CaseInsensitive)) {
-                results.append(model);
+                results.append(model.data());
             }
         }
         return results;
@@ -237,9 +246,9 @@ namespace egret
     QList<ModelItemData*> ModelManager::findModelsBySource(const QString& source)
     {
         QList<ModelItemData*> results;
-        for (ModelItemData* model : m_modelList) {
+        for (const QSharedPointer<ModelItemData>& model : m_modelList) {
             if (model->source() == source) {
-                results.append(model);
+                results.append(model.data());
             }
         }
         return results;
@@ -251,7 +260,8 @@ namespace egret
         QStringList targetIds = ids.isEmpty() ? m_models.keys() : ids;
 
         for (const QString& id : targetIds) {
-            if (ModelItemData* model = m_models.value(id)) {
+            QSharedPointer<ModelItemData> model = m_models.value(id);
+            if (model) {
                 model->setPos(position);
                 emit modelUpdated(id);
             }
@@ -265,7 +275,8 @@ namespace egret
         QStringList targetIds = ids.isEmpty() ? m_models.keys() : ids;
 
         for (const QString& id : targetIds) {
-            if (ModelItemData* model = m_models.value(id)) {
+            QSharedPointer<ModelItemData> model = m_models.value(id);
+            if (model) {
                 model->setScale(scale);
                 emit modelUpdated(id);
             }
@@ -279,7 +290,7 @@ namespace egret
         QStringList targetIds = ids.isEmpty() ? m_models.keys() : ids;
 
         for (const QString& id : targetIds) {
-            ModelItemData* model = m_models.value(id);
+            QSharedPointer<ModelItemData> model = m_models.value(id);
             if (!model) continue;
 
             if (property == "baseColor" && value.canConvert<QColor>())
@@ -298,9 +309,9 @@ namespace egret
 
     void ModelManager::saveState()
     {
-        QHash<QString, ModelItemData*> currentState;
-        for (ModelItemData* model : m_modelList) {
-            currentState[model->id()] = model->clone();
+        QHash<QString, QSharedPointer<ModelItemData>> currentState;
+        for (const QSharedPointer<ModelItemData>& model : m_modelList) {
+            currentState[model->id()] = QSharedPointer<ModelItemData>(model->clone());
         }
         m_undoStack.append(currentState);
         m_redoStack.clear();
@@ -314,16 +325,16 @@ namespace egret
         }
 
         // 保存当前状态到 redo
-        QHash<QString, ModelItemData*> currentState;
-        for (ModelItemData* model : m_modelList) {
-            currentState[model->id()] = model->clone();
+        QHash<QString, QSharedPointer<ModelItemData>> currentState;
+        for (const QSharedPointer<ModelItemData>& model : m_modelList) {
+            currentState[model->id()] = QSharedPointer<ModelItemData>(model->clone());
         }
         m_redoStack.append(currentState);
 
         // 恢复上一个状态
-        QHash<QString, ModelItemData*> prevState = m_undoStack.takeLast();
+        QHash<QString, QSharedPointer<ModelItemData>> prevState = m_undoStack.takeLast();
         clearAll();
-        for (ModelItemData* model : prevState.values()) {
+        for (const QSharedPointer<ModelItemData>& model : prevState.values()) {
             addModel(model->clone());
         }
 
@@ -338,11 +349,11 @@ namespace egret
             return false;
         }
 
-        QHash<QString, ModelItemData*> nextState = m_redoStack.takeLast();
+        QHash<QString, QSharedPointer<ModelItemData>> nextState = m_redoStack.takeLast();
         saveState(); // 保存当前状态到 undo
         clearAll();
 
-        for (ModelItemData* model : nextState.values()) {
+        for (const QSharedPointer<ModelItemData>& model : nextState.values()) {
             addModel(model->clone());
         }
 
@@ -445,11 +456,11 @@ namespace egret
 
 
         auto* disk = new ModelItemData();
-        disk->setName("Default Cylinder Side");
-        disk->setSource("qrc:/model_3d/assets/model_3d/circle_disk/circle.mesh");
+        disk->setName("Default Disk");
+        disk->setSource("#Cylinder");
         disk->setColor(QColor("#4CA3FF"));
-        disk->setPos(QVector3D(160, -180, -160));
-        disk->setScale(QVector3D(100.0f, 100.0f, 100.0f));
+        disk->setPos(QVector3D(160, 180, 160));
+        disk->setScale(QVector3D(1.0f, 0.01f, 1.0f));
         disk->materials()->setBaseColor(QColor("#c9dff6"));
         disk->materials()->setMetalness(0.2);
         disk->materials()->setRoughness(0.9);
