@@ -9,7 +9,6 @@
         <file>assets/favicon/favicon_512.png</file>
         <file>assets/favicon/favicon_1024.png</file>
         <file>assets/favicon/favicon_2048.png</file>
-
     </qresource>
     <qresource prefix="/main_icons">
         <file>assets/icons/copy.svg</file>
@@ -33,5 +32,19 @@
         <file>assets/icons/save_as.svg</file>
         <file>assets/icons/simulator.svg</file>
         <file>assets/icons/qt_logo.png</file>
+    </qresource>
+    <qresource prefix="/model_3d">
+        <file>assets/model_3d/torus/obj/torus_R0_1.obj</file>
+        <file>assets/model_3d/torus/obj/torus_R1.obj</file>
+        <file>assets/model_3d/torus/obj/torus_R10.obj</file>
+        <file>assets/model_3d/torus/obj/torus_R100.obj</file>
+        <file>assets/model_3d/torus/obj/torus_R1000.obj</file>
+        <file>assets/model_3d/torus/obj/torus_R10000.obj</file>
+        <file>assets/model_3d/torus/mesh/torus_R1.mesh</file>
+        <file>assets/model_3d/torus/mesh/torus_R0_1.mesh</file>
+        <file>assets/model_3d/torus/mesh/torus_R10.mesh</file>
+        <file>assets/model_3d/torus/mesh/torus_R100.mesh</file>
+        <file>assets/model_3d/torus/mesh/torus_R1000.mesh</file>
+        <file>assets/model_3d/torus/mesh/torus_R10000.mesh</file>
     </qresource>
 </RCC>

@@ -85,6 +85,7 @@ ColumnLayout {
                     camera: editorCamera
 
 
+
                     environment: SceneEnvironment {
                         backgroundMode: SceneEnvironment.Color
                         clearColor: "#061425"
@@ -109,7 +110,94 @@ ColumnLayout {
                         brightness: 0.8
                     }
 
+
+                    ListModel {
+                        id: entitiesListModel
+
+                        Component.onCompleted: {
+                            // 添加第一个元素：Default Cube
+                            append({
+                                name: "Default Cube",
+                                source: "#Cube",
+                                color: "#4CA3FF",
+                                pos: Qt.vector3d(80, 0, 0),
+                                scale: Qt.vector3d(1.2, 0.12, 1.2),
+                                rotation: Qt.quaternion(0.0, 0.0, 0.0, 0.0),
+                                materials: {
+                                    baseColor: "#4CA3FF",
+                                    metalness: 0.8,
+                                    roughness: 0.3,
+                                    alphaMode: "Opaque"
+                                }
+                            })
+
+                            // 添加第二个元素：Default Sphere
+                            append({
+                                name: "Default Sphere",
+                                source: "#Sphere",
+                                color: "#4CA3FF",
+                                pos: Qt.vector3d(0, 80, 0),
+                                scale: Qt.vector3d(1.0, 1.0, 1.0),
+                                rotation: Qt.quaternion(0.0, 0.0, 0.0, 0.0),
+                                materials: {
+                                    baseColor: "#4CA3FF",
+                                    metalness: 0.8,
+                                    roughness: 0.3,
+                                    alphaMode: "Opaque"
+                                }
+                            })
+
+                            append({
+                                name: "Default Sphere",
+                                source: "#Rectangle",
+                                color: "#4CA3FF",
+                                pos: Qt.vector3d(140, 80, 0),
+                                scale: Qt.vector3d(1.0, 1.0, 1.0),
+                                rotation: Qt.quaternion(0.0, 0.0, 0.0, 0.0),
+                                materials: {
+                                    baseColor: "#4CA3FF",
+                                    metalness: 0.8,
+                                    roughness: 0.3,
+                                    alphaMode: "Opaque"
+                                }
+                            })
+
+                            append({
+                                name: "Default Sphere",
+                                source: "#Cylinder",
+                                color: "#4CA3FF",
+                                pos: Qt.vector3d(-160, 80, 0),
+                                scale: Qt.vector3d(1.0, 1.0, 1.0),
+                                rotation: Qt.quaternion(0.0, 0.0, 0.0, 0.0),
+                                materials: {
+                                    baseColor: "#4CA3FF",
+                                    metalness: 0.8,
+                                    roughness: 0.3,
+                                    alphaMode: "Opaque"
+                                }
+                            })
+
+                            append({
+                                name: "Default Sphere",
+                                source: "qrc:/model_3d/assets/model_3d/torus/mesh/torus_R0_1.mesh",
+                                color: "#4CA3FF",
+                                pos: Qt.vector3d(160, 180, 160),
+                                scale: Qt.vector3d(1000.0, 1000.0, 1000.0),
+                                rotation: Qt.quaternion(0.0, 0.0, 0.0, 0.0),
+                                materials: {
+                                    baseColor: "#c9dff6",
+                                    metalness: 0.2,
+                                    roughness: 0.9,
+                                    alphaMode: "Opaque"
+                                }
+                            })
+
+                        }
+                    }
+
                     Node {
+                        id: basicNode
+
                         Coordinate {
                             id: editorCoordinate
                             orbitDistance: editorCanvas.orbitDistance
@@ -121,20 +209,34 @@ ColumnLayout {
                             viewportHeight: editorView.height
                         }
 
-                        Model {
-                            id: refCubeModel
-                            source: "#Cube"
-                            position: Qt.vector3d(0, 80, 0)
-                            scale: Qt.vector3d(1.2, 0.12, 1.2)
-                            materials: PrincipledMaterial {
-                                baseColor: "#4CA3FF"
-                                roughness: 0.3
-                                metalness: 0.1
+                        Repeater3D {
+                            id: repeater
+                            model: entitiesListModel
+
+                            // 代理：定义每个实体长什么样
+                            delegate: Model {
+                                id: delegateModel
+                                source: model.source
+                                position: model.pos
+                                scale: model.scale
+                                pickable: true
+
+                                materials: PrincipledMaterial {
+                                    baseColor: model.materials.baseColor
+                                    roughness: model.materials.roughness
+                                    metalness: model.materials.metalness
+                                    alphaMode: model.materials.alphaMode
+                                }
                             }
-
-
                         }
+
+
+
+
+
                     }
+
+
                 }
 
                 Rectangle {
@@ -223,6 +325,7 @@ ColumnLayout {
                 }
             }
         }
+
         GlassPanel {
             id: editorToolRail
             Layout.preferredWidth: 86

@@ -36,7 +36,7 @@ include_directories(
 )
 
 set(QT_MODULES_LIST
-        Core Gui Widgets Quick Qml Quick3D Sql
+        Core Gui Widgets Quick Qml Quick3D Sql Quick3DAssetImport
 )
 
 find_package(Qt6 COMPONENTS
