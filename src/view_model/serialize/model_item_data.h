@@ -27,10 +27,10 @@ namespace egret
         explicit MaterialData(QObject* parent = nullptr);
 
         // Getters/Setters
-        QColor baseColor() const;
-        qreal metalness() const;
-        qreal roughness() const;
-        QString alphaMode() const;
+        [[nodiscard]] QColor baseColor() const;
+        [[nodiscard]] qreal metalness() const;
+        [[nodiscard]] qreal roughness() const;
+        [[nodiscard]] QString alphaMode() const;
 
         void setBaseColor(const QColor& baseColor);
         void setMetalness(qreal metalness);
@@ -38,7 +38,7 @@ namespace egret
         void setAlphaMode(const QString& alphaMode);
 
         // 序列化
-        QJsonObject toJson() const;
+        [[nodiscard]] QJsonObject toJson() const;
         bool fromJson(const QJsonObject& json);
 
     signals:
@@ -57,6 +57,8 @@ namespace egret
     class ModelItemData : public QObject
     {
         Q_OBJECT
+        Q_PROPERTY(double mass READ mass WRITE setMass NOTIFY massChanged)
+        Q_PROPERTY(double loadTime READ loadTime WRITE setLoadTime NOTIFY loadTimeChanged)
         Q_PROPERTY(QString id READ id WRITE setId NOTIFY idChanged)
         Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
         Q_PROPERTY(QString source READ source WRITE setSource NOTIFY sourceChanged)
@@ -64,12 +66,16 @@ namespace egret
         Q_PROPERTY(QVector3D pos READ pos WRITE setPos NOTIFY posChanged)
         Q_PROPERTY(QVector3D scale READ scale WRITE setScale NOTIFY scaleChanged)
         Q_PROPERTY(QQuaternion rotation READ rotation WRITE setRotation NOTIFY rotationChanged)
+        Q_PROPERTY(QVector3D initialVelo READ initialVelo NOTIFY initialVeloChanged)
+        Q_PROPERTY(QVector3D initialAnguVelo READ initialAnguVelo NOTIFY initialAnguVeloChanged)
         Q_PROPERTY(MaterialData* materials READ materials CONSTANT)
 
     public:
         explicit ModelItemData(QObject* parent = nullptr);
 
         // Getters/Setters
+        [[nodiscard]] double mass() const;
+        [[nodiscard]] double loadTime() const;
         [[nodiscard]] QString id() const;
         [[nodiscard]] QString name() const;
         [[nodiscard]] QString source() const;
@@ -77,8 +83,12 @@ namespace egret
         [[nodiscard]] QVector3D pos() const;
         [[nodiscard]] QVector3D scale() const;
         [[nodiscard]] QQuaternion rotation() const;
+        [[nodiscard]] QVector3D initialVelo() const;
+        [[nodiscard]] QVector3D initialAnguVelo() const;
         [[nodiscard]] MaterialData* materials() const;
 
+        void setMass(double mass);
+        void setLoadTime(double loadTime);
         void setId(const QString& id);
         void setName(const QString& name);
         void setSource(const QString& source);
@@ -86,15 +96,20 @@ namespace egret
         void setPos(const QVector3D& pos);
         void setScale(const QVector3D& scale);
         void setRotation(const QQuaternion& rotation);
+        void setInitialVelo(const QVector3D& initialVelo);
+        void setInitialAnguVelo(const QVector3D& initialAnguVelo);
 
         // 序列化
         [[nodiscard]] QJsonObject toJson() const;
         bool fromJson(const QJsonObject& json);
 
         // 克隆
-        [[nodiscard]] ModelItemData* clone() const;
+        [[nodiscard]] QSharedPointer<ModelItemData> clone() const;
+        static ModelItemData* createCopy(const ModelItemData& source, QObject* parent = nullptr);
 
     signals:
+        void massChanged();
+        void loadTimeChanged();
         void idChanged();
         void nameChanged();
         void sourceChanged();
@@ -102,15 +117,24 @@ namespace egret
         void posChanged();
         void scaleChanged();
         void rotationChanged();
+        void initialVeloChanged();
+        void initialAnguVeloChanged();
 
     private:
+        double m_mass{};
+        double m_loadTime{};
         QString m_id{};
         QString m_name{};
         QString m_source{};
+        QString m_type{};
         QColor m_color{};
         QVector3D m_pos{};
         QVector3D m_scale{};
         QQuaternion m_rotation{};
+
+        QVector3D m_initialVelo{};
+        QVector3D m_initialAnguVelo{};
+
         MaterialData* m_materials{};
     };
 } // egret

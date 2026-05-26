@@ -9,6 +9,7 @@
 #include <QDebug>
 #include <QUuid>
 #include <QQmlEngine>
+#include "logger.h"
 
 
 namespace egret
@@ -37,6 +38,10 @@ namespace egret
         }
 
         model->setParent(nullptr);
+        if (QQmlEngine::objectOwnership(model) == QQmlEngine::JavaScriptOwnership) {
+            qWarning() << "Object is already owned by QML engine!";
+            LOG_WARN_LITERAL("Object is already owned by QML engine!");
+        }
         QQmlEngine::setObjectOwnership(model, QQmlEngine::CppOwnership);
 
         QSharedPointer<ModelItemData> modelPtr(model);
@@ -106,7 +111,9 @@ namespace egret
     {
         saveState();
         for (ModelItemData* model : models) {
-            addModel(model);
+            if (!addModel(model)) {
+                delete model;
+            }
         }
     }
 
@@ -210,7 +217,9 @@ namespace egret
             if (value.isObject()) {
                 auto* model = new ModelItemData(this);
                 if (model->fromJson(value.toObject())) {
-                    addModel(model);
+                    if (!addModel(model)) {
+                        delete model;
+                    }
                 }
                 else {
                     delete model;
@@ -335,7 +344,10 @@ namespace egret
         QHash<QString, QSharedPointer<ModelItemData>> prevState = m_undoStack.takeLast();
         clearAll();
         for (const QSharedPointer<ModelItemData>& model : prevState.values()) {
-            addModel(model->clone());
+            ModelItemData* copy = ModelItemData::createCopy(*model);
+            if (!addModel(copy)) {
+                delete copy;
+            }
         }
 
         emit operationCompleted(true, "Undo successful");
@@ -354,7 +366,10 @@ namespace egret
         clearAll();
 
         for (const QSharedPointer<ModelItemData>& model : nextState.values()) {
-            addModel(model->clone());
+            ModelItemData* copy = ModelItemData::createCopy(*model);
+            if (!addModel(copy)) {
+                delete copy;
+            }
         }
 
         emit operationCompleted(true, "Redo successful");
