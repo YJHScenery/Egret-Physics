@@ -123,6 +123,7 @@ namespace egret
     private:
         double m_mass{};
         double m_loadTime{};
+        double m_restitution{1.0};
         QString m_id{};
         QString m_name{};
         QString m_source{};

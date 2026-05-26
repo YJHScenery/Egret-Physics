@@ -1,14 +1,22 @@
 import QtQuick 2.15
-import QtQuick.Controls 2.15
+import QtQuick.Controls 6.9
+import QtQuick.Controls.Basic 6.9 as Basic
 import QtQuick.Layouts 1.15
 import QtQuick3D 6.9
+import QtQuick.Dialogs 6.9
 import ModelManager 1.0
+
 import "qrc:/components/components"
+import "qrc:/components/components/theme"
 
 ColumnLayout {
     id: editorRoot
 
     spacing: 14
+
+    DeepBlueTheme {
+        id: theme
+    }
 
     RowLayout {
         Layout.fillWidth: true
@@ -277,162 +285,486 @@ ColumnLayout {
             }
         }
 
-        GlassPanel {
-            id: editorToolRail
-            Layout.preferredWidth: 86
-            Layout.minimumWidth: 86
-            Layout.maximumWidth: 86
-            Layout.fillHeight: true
-            title: "工具"
-
-            ColumnLayout {
-                anchors.fill: parent
-                spacing: 10
-
-                Repeater {
-                    model: ["选择", "移动", "旋转", "缩放", "测量", "标注"]
-
-                    delegate: Rectangle {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 44
-                        radius: 10
-                        property bool hovered: false
-                        color: hovered ? "#1A3A72" : "#102B4B"
-                        border.width: 1
-                        border.color: hovered ? "#4CA3FF" : "#2C5D88"
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onEntered: {
-                                parent.hovered = true;
-                            }
-                            onExited: {
-                                parent.hovered = false;
-                            }
-                        }
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: modelData
-                            color: "#B8D6F5"
-                            font.pixelSize: 12
-                        }
-                    }
-                }
-
-                Item {
-                    Layout.fillHeight: true
-                }
-            }
-        }
         ColumnLayout {
-            Layout.preferredWidth: 330
-            Layout.minimumWidth: 330
-            Layout.maximumWidth: 330
+            Layout.preferredWidth: 370
+            Layout.minimumWidth: 370
+            Layout.maximumWidth: 370
             Layout.fillHeight: true
             spacing: 12
 
-            // GlassPanel {
-            //     Layout.fillWidth: true
-            //     Layout.preferredHeight: 290
-            //     title: "层级 / Outliner"
-            //
-            //     ColumnLayout {
-            //         anchors.fill: parent
-            //         spacing: 8
-            //
-            //         Repeater {
-            //             model: ["World", "Terrain", "LightRig", "Camera", "EditorPreview"]
-            //
-            //             delegate: Rectangle {
-            //                 Layout.fillWidth: true
-            //                 Layout.preferredHeight: 38
-            //                 radius: 8
-            //                 property bool hovered: false
-            //                 color: hovered ? "#12365D" : "#112F52"
-            //                 border.width: 1
-            //                 border.color: "#2C5D88"
-            //
-            //                 MouseArea {
-            //                     anchors.fill: parent
-            //                     hoverEnabled: true
-            //                     onEntered: {
-            //                         parent.hovered = true;
-            //                     }
-            //                     onExited: {
-            //                         parent.hovered = false;
-            //                     }
-            //                 }
-            //
-            //                 Text {
-            //                     anchors.verticalCenter: parent.verticalCenter
-            //                     anchors.left: parent.left
-            //                     anchors.leftMargin: 10
-            //                     text: modelData
-            //                     color: "#BFD8F4"
-            //                     font.pixelSize: 12
-            //                 }
-            //             }
-            //         }
-            //
-            //         Item {
-            //             Layout.fillHeight: true
-            //         }
-            //     }
-            // }
 
             GlassPanel {
+                id: inspectorPanel
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 title: "属性 / Inspector"
 
-                
-                ColumnLayout {
+                property real m_mass: 0.0
+                property real m_loadTime: 0.0
+                property real m_restitution: 1.0
+                property string m_name: ""
+                property string m_source: ""
+                property string m_type: ""
+                // property color m_color: "#5CC8FF"
+                property vector3d m_pos: Qt.vector3d(0, 0, 0)
+                property vector3d m_scale: Qt.vector3d(1, 1, 1)
+                property quaternion m_rotation: Qt.quaternion(1, 0, 0, 0)
+                property vector3d m_initialVelo: Qt.vector3d(0, 0, 0)
+                property vector3d m_initialAnguVelo: Qt.vector3d(0, 0, 0)
+
+                property color m_baseColor: "#8FBCE8"
+                property real m_metalness: 0.2
+                property real m_roughness: 0.6
+
+                ColorDialog {
+                    id: baseColorDialog
+                    title: "选择基础颜色"
+                    selectedColor: inspectorPanel.m_baseColor
+                    onAccepted: inspectorPanel.m_baseColor = baseColorDialog.currentColor
+                }
+
+                ScrollView {
+                    id: inspectorScrollView
                     anchors.fill: parent
-                    spacing: 10
+                    contentWidth: inspectorScrollView.availableWidth
+                    clip: true
 
-                    Repeater {
-                        model: [
-                            "位置: (0.0, 0.0, 0.0)",
-                            "旋转: (0°, 0°, 0°)",
-                            "缩放: (1.0, 1.0, 1.0)",
-                            "材质: EgretBase",
-                        ]
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                    rightPadding: inspectorScrollBar.visible ? inspectorScrollBar.width : 0
 
-                        delegate: Rectangle {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 40
-                            radius: 8
-                            property bool hovered: false
-                            color: hovered ? "#12365D" : "#112F52"
+                    ScrollBar.vertical: Basic.ScrollBar {
+                        id: inspectorScrollBar
+                        width: 8
+                        policy: ScrollBar.AsNeeded
+                        visible: size < 1.0
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        minimumSize: 0.2
+                        background: Rectangle {
+                            radius: 4
+                            color: "#0F2A4C"
                             border.width: 1
-                            border.color: "#2C5D88"
-
-                            MouseArea {
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onEntered: {
-                                    parent.hovered = true;
-                                }
-                                onExited: {
-                                    parent.hovered = false;
-                                }
-                            }
-
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.left: parent.left
-                                anchors.leftMargin: 10
-                                text: modelData
-                                color: "#BFD8F4"
-                                font.pixelSize: 12
-                            }
+                            border.color: theme.border
+                            opacity: 0.6
+                        }
+                        contentItem: Rectangle {
+                            radius: 4
+                            implicitWidth: 8
+                            color: theme.accent
+                            opacity: inspectorScrollBar.pressed ? 0.9 : 0.7
                         }
                     }
 
-                    Item {
-                        Layout.fillHeight: true
+                    ColumnLayout {
+                        width: Math.max(0, inspectorScrollView.availableWidth - inspectorScrollView.rightPadding)
+                        spacing: 10
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 28
+                            radius: 6
+                            color: "#0F2B4B"
+                            border.width: 1
+                            border.color: "#2C5D88"
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "基础 / Base"
+                                color: "#CFE6FF"
+                                font.pixelSize: 12
+                            }
+                        }
+
+                        GridLayout {
+                            Layout.fillWidth: true
+                            columns: 2
+                            columnSpacing: 10
+                            rowSpacing: 8
+
+                            Label { text: "名称"; color: "#BFD8F4" }
+                            Rectangle {
+                                id: nameFieldShell
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 28
+                                radius: theme.radiusS
+                                color: theme.bg1
+                                border.width: 1
+                                border.color: nameTextField.activeFocus ? theme.accent : theme.border
+
+                                TextField {
+                                    id: nameTextField
+                                    anchors.fill: parent
+                                    text: inspectorPanel.m_name
+                                    onTextChanged: inspectorPanel.m_name = text
+                                    color: "#FFFFFF"
+                                    horizontalAlignment: Text.AlignLeft
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                    rightPadding: 10
+                                    selectByMouse: true
+                                    background: null
+                                }
+                            }
+
+                            Label { text: "资源"; color: "#BFD8F4" }
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 28
+                                radius: theme.radiusS
+                                color: theme.bg1
+                                border.width: 1
+                                border.color: sourceTextField.activeFocus ? theme.accent : theme.border
+
+                                TextField {
+                                    id: sourceTextField
+                                    anchors.fill: parent
+                                    text: inspectorPanel.m_source
+                                    onTextChanged: inspectorPanel.m_source = text
+                                    color: "#FFFFFF"
+                                    horizontalAlignment: Text.AlignLeft
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                    rightPadding: 10
+                                    selectByMouse: true
+                                    background: null
+                                }
+                            }
+
+                            Label { text: "类型"; color: "#BFD8F4" }
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 28
+                                radius: theme.radiusS
+                                color: theme.bg1
+                                border.width: 1
+                                border.color: typeTextField.activeFocus ? theme.accent : theme.border
+
+                                TextField {
+                                    id: typeTextField
+                                    anchors.fill: parent
+                                    text: inspectorPanel.m_type
+                                    onTextChanged: inspectorPanel.m_type = text
+                                    color: "#FFFFFF"
+                                    horizontalAlignment: Text.AlignLeft
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                    rightPadding: 10
+                                    selectByMouse: true
+                                    background: null
+                                }
+                            }
+
+                            Label { text: "质量"; color: "#BFD8F4" }
+                            FloatField {
+                                Layout.fillWidth: true
+                                from: 0
+                                to: 100000
+                                stepSize: 0.1
+                                value: inspectorPanel.m_mass
+                                onValueChanged: inspectorPanel.m_mass = value
+                            }
+
+                            Label { text: "加载时间"; color: "#BFD8F4" }
+                            FloatField {
+                                Layout.fillWidth: true
+                                from: 0
+                                to: 120
+                                stepSize: 0.1
+                                value: inspectorPanel.m_loadTime
+                                onValueChanged: inspectorPanel.m_loadTime = value
+                            }
+
+                            Label { text: "弹性"; color: "#BFD8F4" }
+                            FloatField {
+                                Layout.fillWidth: true
+                                from: 0
+                                to: 2
+                                stepSize: 0.05
+                                value: inspectorPanel.m_restitution
+                                onValueChanged: inspectorPanel.m_restitution = value
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 28
+                            radius: 6
+                            color: "#0F2B4B"
+                            border.width: 1
+                            border.color: "#2C5D88"
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "变换 / Transform"
+                                color: "#CFE6FF"
+                                font.pixelSize: 12
+                            }
+                        }
+
+                        GridLayout {
+                            Layout.fillWidth: true
+                            columns: 2
+                            columnSpacing: 10
+                            rowSpacing: 8
+
+                            Label {
+                                text: "位置"
+                                color: "#BFD8F4"
+                                Layout.columnSpan: 2
+                            }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Layout.columnSpan: 2
+                                spacing: 6
+                                FloatField {
+                                    Layout.fillWidth: true
+                                    value: inspectorPanel.m_pos.x
+                                    stepSize: 0.1
+                                    onValueChanged: inspectorPanel.m_pos = Qt.vector3d(value, inspectorPanel.m_pos.y, inspectorPanel.m_pos.z)
+                                }
+                                FloatField {
+                                    Layout.fillWidth: true
+                                    value: inspectorPanel.m_pos.y
+                                    stepSize: 0.1
+                                    onValueChanged: inspectorPanel.m_pos = Qt.vector3d(inspectorPanel.m_pos.x, value, inspectorPanel.m_pos.z)
+                                }
+                                FloatField {
+                                    Layout.fillWidth: true
+                                    value: inspectorPanel.m_pos.z
+                                    stepSize: 0.1
+                                    onValueChanged: inspectorPanel.m_pos = Qt.vector3d(inspectorPanel.m_pos.x, inspectorPanel.m_pos.y, value)
+                                }
+                            }
+
+                            Label {
+                                text: "缩放"
+                                color: "#BFD8F4"
+                                Layout.columnSpan: 2
+                            }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Layout.columnSpan: 2
+                                spacing: 6
+                                FloatField {
+                                    Layout.fillWidth: true
+                                    value: inspectorPanel.m_scale.x
+                                    stepSize: 0.05
+                                    onValueChanged: inspectorPanel.m_scale = Qt.vector3d(value, inspectorPanel.m_scale.y, inspectorPanel.m_scale.z)
+                                }
+                                FloatField {
+                                    Layout.fillWidth: true
+                                    value: inspectorPanel.m_scale.y
+                                    stepSize: 0.05
+                                    onValueChanged: inspectorPanel.m_scale = Qt.vector3d(inspectorPanel.m_scale.x, value, inspectorPanel.m_scale.z)
+                                }
+                                FloatField {
+                                    Layout.fillWidth: true
+                                    value: inspectorPanel.m_scale.z
+                                    stepSize: 0.05
+                                    onValueChanged: inspectorPanel.m_scale = Qt.vector3d(inspectorPanel.m_scale.x, inspectorPanel.m_scale.y, value)
+                                }
+                            }
+
+                            Label {
+                                text: "旋转 (x,y,z,w)"
+                                color: "#BFD8F4"
+                                Layout.columnSpan: 2
+                            }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Layout.columnSpan: 2
+                                spacing: 6
+                                FloatField {
+                                    Layout.fillWidth: true
+                                    value: inspectorPanel.m_rotation.x
+                                    stepSize: 0.05
+                                    onValueChanged: inspectorPanel.m_rotation = Qt.quaternion(inspectorPanel.m_rotation.scalar, value, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z)
+                                }
+                                FloatField {
+                                    Layout.fillWidth: true
+                                    value: inspectorPanel.m_rotation.y
+                                    stepSize: 0.05
+                                    onValueChanged: inspectorPanel.m_rotation = Qt.quaternion(inspectorPanel.m_rotation.scalar, inspectorPanel.m_rotation.x, value, inspectorPanel.m_rotation.z)
+                                }
+                                FloatField {
+                                    Layout.fillWidth: true
+                                    value: inspectorPanel.m_rotation.z
+                                    stepSize: 0.05
+                                    onValueChanged: inspectorPanel.m_rotation = Qt.quaternion(inspectorPanel.m_rotation.scalar, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, value)
+                                }
+                                FloatField {
+                                    Layout.fillWidth: true
+                                    value: inspectorPanel.m_rotation.scalar
+                                    stepSize: 0.05
+                                    onValueChanged: inspectorPanel.m_rotation = Qt.quaternion(value, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z)
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 28
+                            radius: 6
+                            color: "#0F2B4B"
+                            border.width: 1
+                            border.color: "#2C5D88"
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "初始速度 / Initial"
+                                color: "#CFE6FF"
+                                font.pixelSize: 12
+                            }
+                        }
+
+                        GridLayout {
+                            Layout.fillWidth: true
+                            columns: 2
+                            columnSpacing: 10
+                            rowSpacing: 8
+
+                            Label {
+                                text: "速度"
+                                color: "#BFD8F4"
+                                Layout.columnSpan: 2
+                            }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Layout.columnSpan: 2
+                                spacing: 6
+                                FloatField {
+                                    Layout.fillWidth: true
+                                    value: inspectorPanel.m_initialVelo.x
+                                    stepSize: 0.1
+                                    onValueChanged: inspectorPanel.m_initialVelo = Qt.vector3d(value, inspectorPanel.m_initialVelo.y, inspectorPanel.m_initialVelo.z)
+                                }
+                                FloatField {
+                                    Layout.fillWidth: true
+                                    value: inspectorPanel.m_initialVelo.y
+                                    stepSize: 0.1
+                                    onValueChanged: inspectorPanel.m_initialVelo = Qt.vector3d(inspectorPanel.m_initialVelo.x, value, inspectorPanel.m_initialVelo.z)
+                                }
+                                FloatField {
+                                    Layout.fillWidth: true
+                                    value: inspectorPanel.m_initialVelo.z
+                                    stepSize: 0.1
+                                    onValueChanged: inspectorPanel.m_initialVelo = Qt.vector3d(inspectorPanel.m_initialVelo.x, inspectorPanel.m_initialVelo.y, value)
+                                }
+                            }
+
+                            Label {
+                                text: "角速度"
+                                color: "#BFD8F4"
+                                Layout.columnSpan: 2
+                            }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Layout.columnSpan: 2
+                                spacing: 6
+                                FloatField {
+                                    Layout.fillWidth: true
+                                    value: inspectorPanel.m_initialAnguVelo.x
+                                    stepSize: 0.1
+                                    onValueChanged: inspectorPanel.m_initialAnguVelo = Qt.vector3d(value, inspectorPanel.m_initialAnguVelo.y, inspectorPanel.m_initialAnguVelo.z)
+                                }
+                                FloatField {
+                                    Layout.fillWidth: true
+                                    value: inspectorPanel.m_initialAnguVelo.y
+                                    stepSize: 0.1
+                                    onValueChanged: inspectorPanel.m_initialAnguVelo = Qt.vector3d(inspectorPanel.m_initialAnguVelo.x, value, inspectorPanel.m_initialAnguVelo.z)
+                                }
+                                FloatField {
+                                    Layout.fillWidth: true
+                                    value: inspectorPanel.m_initialAnguVelo.z
+                                    stepSize: 0.1
+                                    onValueChanged: inspectorPanel.m_initialAnguVelo = Qt.vector3d(inspectorPanel.m_initialAnguVelo.x, inspectorPanel.m_initialAnguVelo.y, value)
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 28
+                            radius: 6
+                            color: "#0F2B4B"
+                            border.width: 1
+                            border.color: "#2C5D88"
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "材质 / Material"
+                                color: "#CFE6FF"
+                                font.pixelSize: 12
+                            }
+                        }
+
+                        GridLayout {
+                            Layout.fillWidth: true
+                            columns: 2
+                            columnSpacing: 10
+                            rowSpacing: 8
+
+                            Label { text: "基础色"; color: "#BFD8F4" }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+                                Rectangle {
+                                    width: 28
+                                    height: 18
+                                    radius: 4
+                                    color: inspectorPanel.m_baseColor
+                                    border.width: 1
+                                    border.color: "#2C5D88"
+                                }
+                                Rectangle {
+                                    width: 48
+                                    height: 22
+                                    radius: 6
+                                    color: pickerMouse.pressed ? "#214785" : (pickerMouse.containsMouse ? "#1A3A72" : "#102B4B")
+                                    border.width: 1
+                                    border.color: pickerMouse.containsMouse ? theme.accent : "#2C5D88"
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "选择"
+                                        color: "#FFFFFF"
+                                        font.pixelSize: 12
+                                    }
+
+                                    MouseArea {
+                                        id: pickerMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        onClicked: baseColorDialog.open()
+                                    }
+                                }
+                            }
+
+                            Label { text: "金属度"; color: "#BFD8F4" }
+                            FloatField {
+                                Layout.fillWidth: true
+                                from: 0
+                                to: 1
+                                stepSize: 0.05
+                                value: inspectorPanel.m_metalness
+                                onValueChanged: inspectorPanel.m_metalness = value
+                            }
+
+                            Label { text: "粗糙度"; color: "#BFD8F4" }
+                            FloatField {
+                                Layout.fillWidth: true
+                                from: 0
+                                to: 1
+                                stepSize: 0.05
+                                value: inspectorPanel.m_roughness
+                                onValueChanged: inspectorPanel.m_roughness = value
+                            }
+                        }
+
+                        Item {
+                            Layout.fillHeight: true
+                        }
                     }
                 }
             }

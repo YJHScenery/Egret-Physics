@@ -10,6 +10,7 @@
         <file>components/MetricCard.qml</file>
         <file>components/Coordinate.qml</file>
         <file>components/AboutDialog.qml</file>
+        <file>components/FloatField.qml</file>
     </qresource>
     <qresource prefix="/units">
         <file>units/SimulatorUnit.qml</file>
