@@ -123,10 +123,8 @@ ColumnLayout {
                     // 基础配置属性
                     ListModel {
                         id: basicConfigListModel
-
                         Component.onCompleted: {
                             append([
-
                             ])
                         }
                     }
@@ -252,6 +250,22 @@ ColumnLayout {
                             const pickResult = editorView.pick(mouse.x, mouse.y);
                             if (pickResult && pickResult.objectHit) {
                                 editorCanvas.selectedObjectName = pickResult.objectHit.objectName;
+                                // inspectorPanel.m_pos.x =
+                                var models = ModelManager.findModelsByName(editorCanvas.selectedObjectName);
+                                if (models.length > 0) {
+                                    var model = models[0];
+                                    inspectorPanel.m_pos = Qt.vector3d(model.pos.x, model.pos.y, model.pos.z);
+                                    inspectorPanel.m_scale = Qt.vector3d(model.scale.x, model.scale.y, model.scale.z);
+                                    inspectorPanel.m_rotation = model.rotation;
+                                    inspectorPanel.m_mass = model.mass;
+                                    inspectorPanel.m_name = model.name;
+                                    inspectorPanel.m_source = model.source;
+                                    // 从 materials 获取材质属性
+                                    inspectorPanel.m_baseColor = model.materials.baseColor;
+                                    inspectorPanel.m_metalness = model.materials.metalness;
+                                    inspectorPanel.m_roughness = model.materials.roughness;
+                                }
+
                             } else {
                                 editorCanvas.selectedObjectName = "";
                             }
@@ -513,6 +527,7 @@ ColumnLayout {
                                 color: "#BFD8F4"
                                 Layout.columnSpan: 2
                             }
+
                             RowLayout {
                                 Layout.fillWidth: true
                                 Layout.columnSpan: 2
