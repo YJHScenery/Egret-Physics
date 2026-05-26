@@ -333,60 +333,61 @@ ColumnLayout {
             Layout.fillHeight: true
             spacing: 12
 
-            GlassPanel {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 290
-                title: "层级 / Outliner"
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 8
-
-                    Repeater {
-                        model: ["World", "Terrain", "LightRig", "Camera", "EditorPreview"]
-
-                        delegate: Rectangle {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 38
-                            radius: 8
-                            property bool hovered: false
-                            color: hovered ? "#12365D" : "#112F52"
-                            border.width: 1
-                            border.color: "#2C5D88"
-
-                            MouseArea {
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onEntered: {
-                                    parent.hovered = true;
-                                }
-                                onExited: {
-                                    parent.hovered = false;
-                                }
-                            }
-
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.left: parent.left
-                                anchors.leftMargin: 10
-                                text: modelData
-                                color: "#BFD8F4"
-                                font.pixelSize: 12
-                            }
-                        }
-                    }
-
-                    Item {
-                        Layout.fillHeight: true
-                    }
-                }
-            }
+            // GlassPanel {
+            //     Layout.fillWidth: true
+            //     Layout.preferredHeight: 290
+            //     title: "层级 / Outliner"
+            //
+            //     ColumnLayout {
+            //         anchors.fill: parent
+            //         spacing: 8
+            //
+            //         Repeater {
+            //             model: ["World", "Terrain", "LightRig", "Camera", "EditorPreview"]
+            //
+            //             delegate: Rectangle {
+            //                 Layout.fillWidth: true
+            //                 Layout.preferredHeight: 38
+            //                 radius: 8
+            //                 property bool hovered: false
+            //                 color: hovered ? "#12365D" : "#112F52"
+            //                 border.width: 1
+            //                 border.color: "#2C5D88"
+            //
+            //                 MouseArea {
+            //                     anchors.fill: parent
+            //                     hoverEnabled: true
+            //                     onEntered: {
+            //                         parent.hovered = true;
+            //                     }
+            //                     onExited: {
+            //                         parent.hovered = false;
+            //                     }
+            //                 }
+            //
+            //                 Text {
+            //                     anchors.verticalCenter: parent.verticalCenter
+            //                     anchors.left: parent.left
+            //                     anchors.leftMargin: 10
+            //                     text: modelData
+            //                     color: "#BFD8F4"
+            //                     font.pixelSize: 12
+            //                 }
+            //             }
+            //         }
+            //
+            //         Item {
+            //             Layout.fillHeight: true
+            //         }
+            //     }
+            // }
 
             GlassPanel {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 title: "属性 / Inspector"
 
+                
                 ColumnLayout {
                     anchors.fill: parent
                     spacing: 10
@@ -397,7 +398,6 @@ ColumnLayout {
                             "旋转: (0°, 0°, 0°)",
                             "缩放: (1.0, 1.0, 1.0)",
                             "材质: EgretBase",
-                            "渲染层: Default"
                         ]
 
                         delegate: Rectangle {
