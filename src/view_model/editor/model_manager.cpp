@@ -137,112 +137,33 @@ namespace egret
         return m_models.keys();
     }
 
+
     bool ModelManager::addModelByJsonString(const QString& jsonString)
     {
-        QJsonParseError parseError;
-        QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8(), &parseError);
-
-        if (parseError.error != QJsonParseError::NoError) {
-            qDebug() << "JSON解析失败:" << parseError.errorString();
-            return false;
-        }
-
-        if (!doc.isObject()) {
-            qDebug() << "JSON不是对象格式";
-            return false;
-        }
-
-        QJsonObject obj = doc.object();
-        auto getString = [&](const QString& key) -> QString
-        {
-            return obj[key].toString();
-        };
-
-        auto getDouble = [&](const QString& key) -> double
-        {
-            return obj[key].toDouble();
-        };
-
-        auto getVector3D = [&](const QString& key) -> QVector3D
-        {
-            QJsonArray arr = obj[key].toArray();
-            if (arr.size() >= 3) {
-                return QVector3D(
-                    arr[0].toDouble(),
-                    arr[1].toDouble(),
-                    arr[2].toDouble()
-                );
-            }
-            return QVector3D();
-        };
-
-        auto getQuaternion = [&](const QString& key) -> QQuaternion
-        {
-            QJsonArray arr = obj[key].toArray();
-            if (arr.size() >= 4) {
-                return QQuaternion(
-                    arr[0].toDouble(), // w
-                    arr[1].toDouble(), // x
-                    arr[2].toDouble(), // y
-                    arr[3].toDouble() // z
-                );
-            }
-            return QQuaternion();
-        };
-
-        auto getColor = [&](const QString& key) -> QColor
-        {
-            QString colorStr = obj[key].toString();
-            QColor color(colorStr);
-            if (color.isValid()) {
-                return color;
-            }
-            return QColor(); // 默认黑色
-        };
-
-        // 3. 读取所有字段到临时变量
-        const QString name = getString("entity_name");
-        const QString type = getString("entity_type");
-        const double mass = getDouble("entity_mass");
-        const double loadTime = getDouble("load_time");
-        const double restitution = getDouble("restitution");
-
-        const QVector3D position = getVector3D("position");
-        const QVector3D scale = getVector3D("scale");
-        const QQuaternion rotation = getQuaternion("rotation");
-        const QVector3D initialVelocity = getVector3D("initial_velocity");
-        const QVector3D initialAngularVelocity = getVector3D("initial_angular_velocity");
-
-        const QString baseColor = getString("material_base_color");
-
-        qDebug() << baseColor;
-
-        const double metalness = getDouble("material_metalness");
-        const double roughness = getDouble("material_roughness");
-
+        const auto data = parseModelItemDataFromQMLJson(jsonString);
         // 4. 验证必要字段（根据你的需求调整）
-        if (name.isEmpty()) {
-            qDebug() << "entity_name不能为空";
+        if (data.m_name.isEmpty()) {
+            qDebug() << "entity_name cannot be empty";
             return false;
         }
 
         auto* newModel = new ModelItemData();
-        newModel->setName(name);
+        newModel->setName(data.m_name);
         // newModel->setSource("#Cylinder");
-        newModel->setType(type);
-        newModel->setPos(position);
-        newModel->setScale(scale);
+        newModel->setType(data.m_type);
+        newModel->setPos(data.m_pos);
+        newModel->setScale(data.m_scale);
 
-        newModel->setMass(mass);
-        newModel->setLoadTime(loadTime);
-        newModel->setRestitution(restitution);
-        newModel->setRotation(rotation);
-        newModel->setInitialVelo(initialVelocity);
-        newModel->setInitialAnguVelo(initialAngularVelocity);
+        newModel->setMass(data.m_mass);
+        newModel->setLoadTime(data.m_loadTime);
+        newModel->setRestitution(data.m_restitution);
+        newModel->setRotation(data.m_rotation);
+        newModel->setInitialVelo(data.m_initialVelo);
+        newModel->setInitialAnguVelo(data.m_initialAnguVelo);
 
-        newModel->materials()->setBaseColor(baseColor);
-        newModel->materials()->setMetalness(metalness);
-        newModel->materials()->setRoughness(roughness);
+        newModel->materials()->setBaseColor(data.m_baseColor);
+        newModel->materials()->setMetalness(data.m_metalness);
+        newModel->materials()->setRoughness(data.m_roughness);
 
         newModel->materials()->setAlphaMode("Opaque");
 
@@ -250,6 +171,41 @@ namespace egret
         qDebug() << m_models.size();
         qDebug() << newModel->source();
         return addModel(newModel);
+    }
+
+    bool ModelManager::modifyModelByJsonString(const QString& jsonString)
+    {
+        const auto data = parseModelItemDataFromQMLJson(jsonString);
+        if (data.m_name.isEmpty()) {
+            qDebug() << "entity_name cannot be empty";
+            return false;
+        }
+
+        const QList<ModelItemData*> models{findModelsByName(data.m_name)};
+        if (models.isEmpty()) {
+            qDebug() << "cannot find models";
+            return false;
+        }
+
+        ModelItemData* model = models[0];
+        qDebug() << "name: " << model->name();
+        model->setMass(data.m_mass);
+        model->setLoadTime(data.m_loadTime);
+        model->setRestitution(data.m_restitution);
+        model->setPos(data.m_pos);
+        qDebug() << "new position" << model->pos();
+
+        model->setScale(data.m_scale);
+        model->setRotation(data.m_rotation);
+        model->setInitialVelo(data.m_initialVelo);
+        model->setInitialAnguVelo(data.m_initialAnguVelo);
+        model->materials()->setBaseColor(data.m_baseColor);
+        model->materials()->setMetalness(data.m_metalness);
+        model->materials()->setRoughness(data.m_roughness);
+
+
+        emit modelListChanged();
+        return true;
     }
 
     bool ModelManager::saveToJson(const QString& filePath)

@@ -38,6 +38,7 @@ namespace egret
 
     protected:
         double m_radius{};
+
     };
 } // egret
 

@@ -292,6 +292,19 @@ namespace egret
         return id;
     }
 
+    void WorldSceneManager::registerScene(const SceneRecord& record)
+    {
+        for (const auto &body: record.bodies) {
+            m_bodies.push_back(std::make_unique<BodyRecord>(body));
+        }
+        for (const auto &field: record.fields) {
+            m_fields.push_back(std::make_unique<FieldRecord>(field));
+        }
+        for (const auto &constraint: record.constraints) {
+            m_constraints.push_back(std::make_unique<ConstraintRecord>(constraint));
+        }
+    }
+
     bool WorldSceneManager::removeBody(const std::uint64_t id)
     {
         const auto beforeSize = m_bodies.size();
@@ -625,7 +638,7 @@ namespace egret
         return m_nextId++;
     }
 
-    WorldSceneManager::BodyRecord *WorldSceneManager::findBody(const std::uint64_t id)
+    BodyRecord *WorldSceneManager::findBody(const std::uint64_t id)
     {
         for (auto &body : m_bodies)
         {
@@ -637,7 +650,7 @@ namespace egret
         return nullptr;
     }
 
-    WorldSceneManager::FieldRecord *WorldSceneManager::findField(const std::uint64_t id)
+    FieldRecord *WorldSceneManager::findField(const std::uint64_t id)
     {
         for (auto &field : m_fields)
         {
@@ -649,7 +662,7 @@ namespace egret
         return nullptr;
     }
 
-    const WorldSceneManager::BodyRecord *WorldSceneManager::findBody(const std::uint64_t id) const
+    const BodyRecord *WorldSceneManager::findBody(const std::uint64_t id) const
     {
         for (const auto &body : m_bodies)
         {
@@ -661,7 +674,7 @@ namespace egret
         return nullptr;
     }
 
-    const WorldSceneManager::FieldRecord *WorldSceneManager::findField(const std::uint64_t id) const
+    const FieldRecord *WorldSceneManager::findField(const std::uint64_t id) const
     {
         for (const auto &field : m_fields)
         {
@@ -855,7 +868,7 @@ namespace egret
         return {m_solverConstraints.data(), m_solverConstraints.size()};
     }
 
-    WorldSceneManager::ConstraintRecord *WorldSceneManager::findConstraint(const std::uint64_t id)
+    ConstraintRecord *WorldSceneManager::findConstraint(const std::uint64_t id)
     {
         for (auto &constraint : m_constraints)
         {
@@ -867,7 +880,7 @@ namespace egret
         return nullptr;
     }
 
-    const WorldSceneManager::ConstraintRecord *WorldSceneManager::findConstraint(const std::uint64_t id) const
+    const ConstraintRecord *WorldSceneManager::findConstraint(const std::uint64_t id) const
     {
         for (const auto &constraint : m_constraints)
         {

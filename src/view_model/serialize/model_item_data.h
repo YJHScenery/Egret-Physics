@@ -54,6 +54,28 @@ namespace egret
         QString m_alphaMode{};
     };
 
+    struct ModelItemDataField
+    {
+        double m_mass{};
+        double m_loadTime{};
+        double m_restitution{1.0};
+        QString m_id{};
+        QString m_name{};
+        QString m_source{};
+        QString m_type{};
+        QVector3D m_pos{};
+        QVector3D m_scale{};
+        QQuaternion m_rotation{};
+
+        QVector3D m_initialVelo{};
+        QVector3D m_initialAnguVelo{};
+        QColor m_baseColor{};
+        qreal m_metalness{};
+        qreal m_roughness{};
+        QString m_alphaMode{};
+    };
+
+
     class ModelItemData : public QObject
     {
         Q_OBJECT
@@ -103,6 +125,7 @@ namespace egret
         void setRestitution(double restitution);
 
 
+
         // 序列化
         [[nodiscard]] QJsonObject toJson() const;
         bool fromJson(const QJsonObject& json);
@@ -140,8 +163,6 @@ namespace egret
         QVector3D m_initialVelo{};
         QVector3D m_initialAnguVelo{};
 
-        QList<double> m_geometryArgs{};
-
         MaterialData* m_materials{};
 
         // 原则上不允许外部修改 m_source。
@@ -151,6 +172,7 @@ namespace egret
         const static QString StaticBasicRingSourceStr;
     };
 
+    [[nodiscard]] ModelItemDataField parseModelItemDataFromQMLJson(const QString& qmlJson);
 } // egret
 
 #endif //EGRET_PHYSICS_MATERIAL_DATA_H

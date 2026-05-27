@@ -3,7 +3,10 @@ import QtQuick.Controls 2.15
 import QtQuick.Controls.Basic 2.15 as Basic
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
+import QtQuick.Dialogs
+import ModelManager 1.0
 import QtQuick3D 6.9
+
 import "qrc:/components/components"
 import "qrc:/components/components/theme"
 import "qrc:/units/units"
@@ -79,6 +82,40 @@ ApplicationWindow {
         anchors.margins: 18
         spacing: 14
 
+        FileDialog {
+            id: saveJsonFileDialog
+            title: "保存场景"
+            fileMode: FileDialog.SaveFile
+            currentFolder: documentsFolder
+            defaultSuffix: "json"
+            nameFilters: [
+                "序列化场景 (*.json)",
+                "所有文件 (*)"
+            ]
+
+            onAccepted: {
+                // 2. 用户确认后，获取保存路径
+                // 注意：selectedFile 返回的是 file:// 开头的 URL，需转换为本地路径
+                var fileUrl = selectedFile
+                var localPath = fileUrl.toString().replace(/^file:\/\/\//, "")  // 简单转换
+                // 更安全的方式（若平台支持）：
+                // var localPath = fileUrl.toLocalFile()
+                //fileHandler.saveTextToFile(localPath, "114514")
+                ModelManager.saveToJson(localPath)
+
+                console.log("保存到: " + localPath)
+
+                // 3. 在这里调用 C++ 后端或使用 JavaScript 写入文件
+                // 例如：writeFile(localPath, textArea.text)
+                // resultLabel.text = "已保存至：" + localPath
+            }
+
+            onRejected: {
+                console.log("用户取消保存")
+            }
+        }
+
+
         EgretMenuBar {
             Layout.fillWidth: true
             barHeight: 36
@@ -120,6 +157,8 @@ ApplicationWindow {
                             text: "保存(&S)",
                             shortcut: "Ctrl+S",
                             onTriggered: function () {
+                                saveJsonFileDialog.open()
+
                                 console.log("Save");
                             },
                             icon: "qrc:/main_icons/assets/icons/save.svg"

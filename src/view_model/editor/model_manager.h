@@ -17,11 +17,15 @@
 #include <QDebug>
 #include <QUuid>
 #include <QSharedPointer>
+#include "physical_entity.h"
 
 #include "serialize/model_item_data.h"
 
 namespace egret
 {
+
+
+
     class ModelManager : public QObject
     {
         Q_OBJECT
@@ -57,8 +61,11 @@ namespace egret
         [[nodiscard]] qsizetype count() const;
         [[nodiscard]] QStringList modelIds() const;
 
+
         // JSON 序列化
         Q_INVOKABLE bool addModelByJsonString(const QString& jsonString);
+
+        Q_INVOKABLE bool modifyModelByJsonString(const QString& jsonString);
 
 
         Q_INVOKABLE bool saveToJson(const QString& filePath);
