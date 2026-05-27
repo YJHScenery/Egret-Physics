@@ -6,7 +6,7 @@
 
 #include <QIcon>
 
-#include "view_model/scene_manager.h"
+#include "view_model/simulator/scene_manager.h"
 #include "basic_utils.h"
 #include "logger.h"
 #include "coordinate.h"
@@ -16,6 +16,9 @@
 #include "editor/model_manager.h"
 #include "serialize/model_item_data.h"
 #include <QQuickStyle>
+#include <QStandardPaths>
+
+#include "file_handler.h"
 
 int main(int argc, char* argv[])
 {
@@ -52,6 +55,7 @@ int main(int argc, char* argv[])
     egret::SceneManagerViewModel sceneController;
     egret::QtComponentHelper qtHelper;
     egret::ResourceHelper resourceHelper;
+    egret::FileHandler fileHandler;
 
     qmlRegisterType<egret::CoordinateGeometry>("CustomGeometry", 1, 0, "SimpleGeometry");
 
@@ -61,6 +65,10 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty("sceneController", &sceneController);
     engine.rootContext()->setContextProperty("qtHelper", &qtHelper);
     engine.rootContext()->setContextProperty("resourceHelper", &resourceHelper);
+    engine.rootContext()->setContextProperty("fileHandler", &fileHandler);
+    engine.rootContext()->setContextProperty("documentsFolder",
+        QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation));
+
 
     // engine.addImportPath(QCoreApplication::applicationDirPath() + "/qml");
     const QUrl url(QStringLiteral("qrc:/main/main/MainWindow.qml"));

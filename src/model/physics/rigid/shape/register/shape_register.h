@@ -61,6 +61,9 @@ namespace egret
     constexpr char TYPE_ID_STANDARD_ROD[]{"standard_rod"};
     constexpr char TYPE_ID_STANDARD_SPHERE[]{"standard_sphere"};
     constexpr char TYPE_ID_STANDARD_SPHERICAL_SHELL[]{"standard_spherical_shell"};
+
+
+
 } // egret
 
 #endif //EGRET_PHYSICS_SHAPE_REGISTER_H

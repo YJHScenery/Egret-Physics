@@ -3,7 +3,7 @@
 //
 
 #include "scene_manager.h"
-
+#include <QCryptographicHash>
 // 原代码：
 // namespace egret {
 //
@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <QFile>
 
 #include <QMatrix4x4>
 #include <QVector3D>
@@ -27,13 +28,17 @@
 #include "broad_phase_strategy/brute_force_broad_phase.h"
 #include "contact_strategy/frictionless_contact_resolver.h"
 #include "integrator_strategy/semi_implicit_euler_integrator.h"
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+
+#include "shape_box.h"
+#include "shape_sphere.h"
 #include "shape_cylinder.h"
-#include "shape_cylindrical_shell.h"
-#include "shape_disk.h"
-#include "shape_ring.h"
-#include "shape_rod.h"
-#include "shape_spherical_shell.h"
+#include "rigid_body.h"
 #include "gravitational_field.h"
+#include "logger.h"
+#include "model_item_data.h"
 
 namespace egret
 {
@@ -90,6 +95,132 @@ namespace egret
         rebuildDemoWorld();
         refreshBodyModel();
         m_frameClock.start();
+    }
+
+    SceneRecord SceneManagerViewModel::createSceneFromJsonString(const QString &jsonString)
+    {
+        SceneRecord record;
+
+        QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
+        if (doc.isNull() || !doc.isObject())
+        {
+            return record;
+        }
+
+        QJsonObject root = doc.object();
+        if (!root.contains("models") || !root["models"].isArray())
+        {
+            return record;
+        }
+
+        QJsonArray modelsArray = root["models"].toArray();
+        for (const QJsonValueRef &value : modelsArray)
+        {
+            if (!value.isObject())
+            {
+                continue;
+            }
+
+            std::shared_ptr<ModelItemData> model = std::make_shared<ModelItemData>();
+            if (!model->fromJson(value.toObject()))
+            {
+                continue;
+            }
+
+            // Determine shape type from source
+            QString source = model->source();
+            std::unique_ptr<ShapeBase> shape;
+
+            if (source == "#Cube")
+            {
+                QVector3D scale = model->scale();
+                if (scale.x() <= 0)
+                    scale.setX(1.0);
+                if (scale.y() <= 0)
+                    scale.setY(1.0);
+                if (scale.z() <= 0)
+                    scale.setZ(1.0);
+                shape = std::make_unique<ShapeBox>(Eigen::Vector3d(scale.x(), scale.y(), scale.z()));
+            }
+            else if (source == "#Sphere")
+            {
+                double radius = model->scale().x();
+                if (radius <= 0)
+                    radius = 1.0;
+                shape = std::make_unique<ShapeSphere>(radius);
+            }
+            else if (source == "#Cylinder")
+            {
+                double radius = model->scale().x();
+                double height = model->scale().y();
+                if (radius <= 0)
+                    radius = 1.0;
+                if (height <= 0)
+                    height = 1.0;
+                shape = std::make_unique<ShapeCylinder>(radius, height);
+            }
+            else
+            {
+                // Default to box with scale or unit box
+                QVector3D scale = model->scale();
+                if (scale.x() <= 0)
+                    scale.setX(1.0);
+                if (scale.y() <= 0)
+                    scale.setY(1.0);
+                if (scale.z() <= 0)
+                    scale.setZ(1.0);
+                shape = std::make_unique<ShapeBox>(Eigen::Vector3d(scale.x(), scale.y(), scale.z()));
+            }
+
+            // Create body position and velocity from model data
+            QVector3D pos = model->pos();
+            QVector3D vel = model->initialVelo();
+            Eigen::Vector3d position(pos.x(), pos.y(), pos.z());
+            Eigen::Vector3d velocity(vel.x(), vel.y(), vel.z());
+            double mass = model->mass();
+
+            // Create RigidBody
+            auto entity = std::make_shared<RigidBody>(position, velocity, mass);
+
+            LOG_DEBUG(QString::number(mass));
+
+            entity->setShape(std::move(shape));
+
+            auto hashToUInt64 = [](const QString &str) -> quint64 {
+                QByteArray data = str.toUtf8();
+                QByteArray hash = QCryptographicHash::hash(data, QCryptographicHash::Sha512);
+
+                quint64 result = 0;
+                for (int i = 0; i < 8; ++i) {
+                    result <<= 8;
+                    result |= static_cast<unsigned char>(hash[i]);
+                }
+                return result;
+            };
+
+            // Create BodyRecord
+            BodyRecord bodyRecord;
+            bodyRecord.id = hashToUInt64(model->id()); // Use model pointer as id
+            bodyRecord.name = model->name().toStdString();
+            bodyRecord.entity = entity;
+            bodyRecord.enableCollision = true;
+            bodyRecord.enableIntegration = true;
+
+            record.bodies.push_back(bodyRecord);
+        }
+
+        return record;
+    }
+
+    SceneRecord SceneManagerViewModel::createSceneFromJsonFile(const QString& fileName)
+    {
+        QFile file(fileName);
+        if (!file.open(QIODevice::ReadOnly)) {
+            return {};
+        }
+        QByteArray data = file.readAll();
+        file.close();
+        return createSceneFromJsonString(data);
     }
 
     bool SceneManagerViewModel::isRunning() const
@@ -191,47 +322,13 @@ namespace egret
         emit entityChanged();
     }
 
-    // void SceneManagerViewModel::spawnSphere()
-    // {
-    //     if (m_world == nullptr)
-    //     {
-    //         return;
-    //     }
-    //
-    //     const std::uint64_t id = m_world->spawnSphere(
-    //         "动态球体",
-    //         {180.0 + static_cast<double>(m_world->getBodyCount()) * 28.0, 120.0, 180.0},
-    //         {40.0, 0.0, 0.0},
-    //         28.0,
-    //         1.0);
-    //
-    //     static_cast<void>(id);
-    //     refreshBodyModel();
-    //     m_entityCount = static_cast<int>(m_world->getBodyCount());
-    //     emit entityCountChanged();
-    //     emit entityChanged();
-    // }
-    //
-    // void SceneManagerViewModel::spawnBox()
-    // {
-    //     if (m_world == nullptr)
-    //     {
-    //         return;
-    //     }
-    //
-    //     const std::uint64_t id = m_world->spawnBox(
-    //         "动态盒体",
-    //         {420.0 + static_cast<double>(m_world->getBodyCount()) * 22.0, 90.0, 220.0},
-    //         {0.0, 0.0, 0.0},
-    //         {52.0, 52.0, 52.0},
-    //         2.0);
-    //
-    //     static_cast<void>(id);
-    //     refreshBodyModel();
-    //     m_entityCount = static_cast<int>(m_world->getBodyCount());
-    //     emit entityCountChanged();
-    //     emit entityChanged();
-    // }
+    void SceneManagerViewModel::loadSceneFronJsonFile(const QString &fileName)
+    {
+    }
+
+    void SceneManagerViewModel::loadSceneFromJsonString(const QString &jsonString)
+    {
+    }
 
     QVariantMap SceneManagerViewModel::mapScreenToWorldOnPlane(const double screenX,
                                                                const double screenY,
@@ -431,102 +528,101 @@ namespace egret
         //
         m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
         //
+        auto record = createSceneFromJsonFile("C:/Users/jehor/Desktop/1.json");
+        m_world->registerScene(record);
 
         auto generateBox{[&]()
-        {
-            m_world->spawnBox("地面", {0.0, 0.0, -15.0}, {0.0, 0.0, 0.0}, {800.0, 600.0, 30.0}, 0.0);
-            m_world->spawnBox("地面", {0, -300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
-            m_world->spawnBox("地面", {0, 300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
-            m_world->spawnBox("地面", {400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
-            m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
-
-        }};
+                         {
+                             m_world->spawnBox("地面", {0.0, 0.0, -15.0}, {0.0, 0.0, 0.0}, {800.0, 600.0, 30.0}, 0.0);
+                             m_world->spawnBox("地面", {0, -300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
+                             m_world->spawnBox("地面", {0, 300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
+                             m_world->spawnBox("地面", {400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
+                             m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
+                         }};
 
         auto generateRotationTest{[&]()
-        {
-            std::uint64_t idBox = m_world->spawnBox("测试", {0, 400, 300}, {320, 100, 233}, {100, 30, 100}, 10.0);
-            // std::uint64_t idBox2 = m_world->spawnBox("测试", {0, 0, 430}, {0, 0, 0}, {100, 30, 100}, 10.0);
-            // Eigen::Matrix3d R;
-            double angle_z = M_PI / 5.0;   // 36 degrees
-            double angle_x = 40.0 * M_PI / 180.0;  // 40 degrees
+                                  {
+                                      std::uint64_t idBox = m_world->spawnBox("测试", {0, 400, 300}, {320, 100, 233}, {100, 30, 100}, 10.0);
+                                      // std::uint64_t idBox2 = m_world->spawnBox("测试", {0, 0, 430}, {0, 0, 0}, {100, 30, 100}, 10.0);
+                                      // Eigen::Matrix3d R;
+                                      double angle_z = M_PI / 5.0;          // 36 degrees
+                                      double angle_x = 40.0 * M_PI / 180.0; // 40 degrees
 
-            double cz = std::cos(angle_z);
-            double sz = std::sin(angle_z);
-            double cx = std::cos(angle_x);
-            double sx = std::sin(angle_x);
+                                      double cz = std::cos(angle_z);
+                                      double sz = std::sin(angle_z);
+                                      double cx = std::cos(angle_x);
+                                      double sx = std::sin(angle_x);
 
-            // 绕Z轴旋转矩阵
-            Eigen::Matrix3d R_z;
-            R_z << cz, -sz, 0,
-                   sz,  cz, 0,
-                    0,   0, 1;
+                                      // 绕Z轴旋转矩阵
+                                      Eigen::Matrix3d R_z;
+                                      R_z << cz, -sz, 0,
+                                          sz, cz, 0,
+                                          0, 0, 1;
 
-            // 绕X轴旋转矩阵
-            Eigen::Matrix3d R_x;
-            R_x << 1,   0,    0,
-                   0,  cx,  -sx,
-                   0,  sx,   cx;
+                                      // 绕X轴旋转矩阵
+                                      Eigen::Matrix3d R_x;
+                                      R_x << 1, 0, 0,
+                                          0, cx, -sx,
+                                          0, sx, cx;
 
-            // 先绕Z转，再绕X转（注意乘法顺序：右边先应用）
-            Eigen::Matrix3d R = R_x * R_z;
-            //
-            // double angle2 = M_PI / 6.0; // 45 degrees
-            // double c2 = std::cos(angle2);
-            // double s2 = std::sin(angle2);
-            //
-            // Eigen::Matrix3d R2{}; // 显式行优先
-            // R2 << c2, -s2, 0,
-            //     s2, c2, 0,
-            //     0, 0, 1;
+                                      // 先绕Z转，再绕X转（注意乘法顺序：右边先应用）
+                                      Eigen::Matrix3d R = R_x * R_z;
+                                      //
+                                      // double angle2 = M_PI / 6.0; // 45 degrees
+                                      // double c2 = std::cos(angle2);
+                                      // double s2 = std::sin(angle2);
+                                      //
+                                      // Eigen::Matrix3d R2{}; // 显式行优先
+                                      // R2 << c2, -s2, 0,
+                                      //     s2, c2, 0,
+                                      //     0, 0, 1;
 
-            m_world->setBodyRotation(idBox, R);
+                                      m_world->setBodyRotation(idBox, R);
 
-
-            m_world->createSimplePendulum("simple_pendulum_test", 100, {0, 0, 500}, idBox);
-        }};
+                                      m_world->createSimplePendulum("simple_pendulum_test", 100, {0, 0, 500}, idBox);
+                                  }};
 
         auto generate3BodyScene{[&]()
-        {
-            auto generateField {[&](const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass, double coupling_G = G)
-            {
-                auto gravitationalField = std::make_shared<GravitationalField>(
-                position,
-                speed,
-                mass, coupling_G,
-                false);
+                                {
+                                    auto generateField{[&](const Eigen::Vector3d &position, const Eigen::Vector3d &speed, double mass, double coupling_G = G)
+                                                       {
+                                                           auto gravitationalField = std::make_shared<GravitationalField>(
+                                                               position,
+                                                               speed,
+                                                               mass, coupling_G,
+                                                               false);
 
-                GravitationalField::setMinDistanceSquared(1600);
+                                                           GravitationalField::setMinDistanceSquared(1600);
 
-                // gravitationalField->setCouplingCoefficient(1.0);
-                auto gravFieldEntity = std::static_pointer_cast<PhysicalEntity>(gravitationalField);
-                auto gravFieldBase = std::static_pointer_cast<FieldBase>(gravitationalField);
-                static int i = 0;
-                i ++;
-                QString bodyName{"测试引力源"};
-                bodyName += QString::number(i);
-                QString fieldName{"引力场"};
-                fieldName += QString::number(i);
+                                                           // gravitationalField->setCouplingCoefficient(1.0);
+                                                           auto gravFieldEntity = std::static_pointer_cast<PhysicalEntity>(gravitationalField);
+                                                           auto gravFieldBase = std::static_pointer_cast<FieldBase>(gravitationalField);
+                                                           static int i = 0;
+                                                           i++;
+                                                           QString bodyName{"测试引力源"};
+                                                           bodyName += QString::number(i);
+                                                           QString fieldName{"引力场"};
+                                                           fieldName += QString::number(i);
 
+                                                           m_world->registerBodyField(bodyName.toStdString(),
+                                                                                      fieldName.toStdString(),
+                                                                                      gravFieldEntity,
+                                                                                      gravFieldBase,
+                                                                                      std::make_unique<ShapeSphere>(10.0));
+                                                       }};
 
-                m_world->registerBodyField(bodyName.toStdString(),
-                                           fieldName.toStdString(),
-                                           gravFieldEntity,
-                                           gravFieldBase,
-                                           std::make_unique<ShapeSphere>(10.0));
-            }};
-
-            generateField({300, 0, -1}, {0, 75, 100}, 200, 50000);
-            generateField({-150, 259.8, 100}, {-120, -45, 43}, 100, 50000);
-            generateField({-150, -259.8, -300}, {-120, 45, 23}, 50, 50000);
-        }};
+                                    generateField({300, 0, -1}, {0, 75, 100}, 200, 50000);
+                                    generateField({-150, 259.8, 100}, {-120, -45, 43}, 100, 50000);
+                                    generateField({-150, -259.8, -300}, {-120, 45, 23}, 50, 50000);
+                                }};
 
         auto generateSupportSurfaceTest{[&]()
-        {
-            m_world->spawnSphere("球", {0, 0, 300}, {0, 0, 0}, 10.0, 10.0);
-            std::uint64_t id = m_world->spawnSphere("球", {0, 0, 200}, {0, 0, 0}, 10.0, 10.0);
-        }};
-        generateBox();
-        generateSupportSurfaceTest();
+                                        {
+                                            m_world->spawnSphere("球", {0, 0, 300}, {0, 0, 0}, 10.0, 10.0);
+                                            std::uint64_t id = m_world->spawnSphere("球", {0, 0, 200}, {0, 0, 0}, 10.0, 10.0);
+                                        }};
+        // generateBox();
+        // generateSupportSurfaceTest();
         // m_world->spawnCylinder("cylinder", {}, {}, 4, 2, 4);
 
         // generateField({10, 0, 0}, {-0.1, 0, 0.1}, 1, 1000);

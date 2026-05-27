@@ -127,11 +127,18 @@ ColumnLayout {
                 }
 
                 function shapeSource(kind) {
-                    if (kind === "standard_sphere" || kind === "standard_spherical_shell" || kind === "standard_disk" || kind === "standard_ring") {
+                    if (kind === "standard_sphere" ) {
                         return "#Sphere";
                     }
-                    if (kind === "standard_cylinder" || kind === "standard_cylinder_shell" || kind === "standard_rod") {
+                    if (kind === "standard_spherical_shell")
+                    {
+                        return "qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh"
+                    }
+                    if (kind === "standard_cylinder"  || kind === "standard_disk" || kind === "standard_rod") {
                         return "#Cylinder";
+                    }
+                    if (kind === "standard_ring"){
+                        return "qrc:/model_3d/assets/model_3d/torus/mesh/torus_R1.mesh"
                     }
                     if (kind === "standard_box") {
                         return "#Cube";

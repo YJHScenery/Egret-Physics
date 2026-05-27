@@ -21,7 +21,7 @@ class SceneRenderItem;
 
 struct ShapeLoadInfo
 {
-    using ValueType = std::variant<double, std::int64_t, bool, std::string, Eigen::Vector3d>;
+    using ValueType = std::variant<double, std::int64_t, bool, std::string, Eigen::Vector3d, Eigen::Quaterniond>;
 
     std::string typeId;
     std::unordered_map<std::string, ValueType> parameters;

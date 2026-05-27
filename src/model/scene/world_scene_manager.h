@@ -22,6 +22,75 @@
 
 namespace egret
 {
+
+    /**
+     * @brief 世界中的实体记录，保存所有权与可渲染/可求解数据。
+     */
+    struct BodyRecord
+    {
+        /** 实体 ID。 */
+        std::uint64_t id{0};
+
+        /** 实体名称。 */
+        std::string name;
+
+        /** 物理实体的所有权。 */
+        std::shared_ptr<PhysicalEntity> entity;
+
+        // /** 碰撞形状的所有权。 */
+        // std::unique_ptr<ShapeBase> shape;
+
+        /** 是否参与碰撞。 */
+        bool enableCollision{true};
+
+        /** 是否参与积分。 */
+        bool enableIntegration{true};
+
+        /** 恢复系数。 */
+        // 更新说明：恢复系数在 PhysicalEntity 中被定义
+        // double restitution{0.2};
+    };
+
+    /**
+     * @brief 世界中的场记录，保存场实例与名称。
+     */
+    struct FieldRecord
+    {
+        /** 场 ID。 */
+        std::uint64_t id{0};
+
+        /** 场名称。 */
+        std::string name;
+
+        /** 场的所有权。 */
+        std::shared_ptr<FieldBase> field;
+    };
+
+    /**
+     * @brief 世界中的约束记录，保存约束实例与名称。
+     */
+    struct ConstraintRecord
+    {
+        /** 约束 ID。 */
+        std::uint64_t id{0};
+
+        /** 约束名称。 */
+        std::string name;
+
+        /** 约束的所有权。 */
+        std::shared_ptr<ConstraintsBase> constraint;
+
+        /** 是否启用。 */
+        bool enabled{true};
+    };
+
+    struct SceneRecord
+    {
+        std::vector<BodyRecord> bodies;
+        std::vector<FieldRecord> fields;
+        std::vector<ConstraintRecord> constraints;
+    };
+
     class SolverBase;
 
     /**
@@ -134,6 +203,8 @@ namespace egret
         std::uint64_t registerBody(const std::string& name,
                                    const std::shared_ptr<PhysicalEntity>& entity,
                                    std::unique_ptr<ShapeBase> shape);
+
+
 
         /**
          * @brief 通过形状加载信息创建实体。
@@ -283,6 +354,10 @@ namespace egret
                                         const std::shared_ptr<PhysicalEntity>& entity,
                                         const std::shared_ptr<FieldBase>& field,
                                         std::unique_ptr<ShapeBase> shape);
+
+
+
+        void registerScene(const SceneRecord& record);
 
         /**
          * @brief 按 ID 删除实体。
@@ -492,68 +567,10 @@ namespace egret
          */
         [[nodiscard]] std::span<const ConstraintsBase*> getConstraints() const override;
 
+
+
+
     private:
-        /**
-         * @brief 世界中的实体记录，保存所有权与可渲染/可求解数据。
-         */
-        struct BodyRecord
-        {
-            /** 实体 ID。 */
-            std::uint64_t id{0};
-
-            /** 实体名称。 */
-            std::string name;
-
-            /** 物理实体的所有权。 */
-            std::shared_ptr<PhysicalEntity> entity;
-
-            // /** 碰撞形状的所有权。 */
-            // std::unique_ptr<ShapeBase> shape;
-
-            /** 是否参与碰撞。 */
-            bool enableCollision{true};
-
-            /** 是否参与积分。 */
-            bool enableIntegration{true};
-
-            /** 恢复系数。 */
-            // 更新说明：恢复系数在 PhysicalEntity 中被定义
-            // double restitution{0.2};
-        };
-
-        /**
-         * @brief 世界中的场记录，保存场实例与名称。
-         */
-        struct FieldRecord
-        {
-            /** 场 ID。 */
-            std::uint64_t id{0};
-
-            /** 场名称。 */
-            std::string name;
-
-            /** 场的所有权。 */
-            std::shared_ptr<FieldBase> field;
-        };
-
-        /**
-         * @brief 世界中的约束记录，保存约束实例与名称。
-         */
-        struct ConstraintRecord
-        {
-            /** 约束 ID。 */
-            std::uint64_t id{0};
-
-            /** 约束名称。 */
-            std::string name;
-
-            /** 约束的所有权。 */
-            std::shared_ptr<ConstraintsBase> constraint;
-
-            /** 是否启用。 */
-            bool enabled{true};
-        };
-
         /**
          * @brief 重建求解器缓存，确保句柄指向当前记录地址。
          */

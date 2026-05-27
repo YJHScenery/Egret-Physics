@@ -56,6 +56,7 @@ Item {
             selectByMouse: true
             inputMethodHints: Qt.ImhFormattedNumbersOnly
             background: null
+
             validator: DoubleValidator {
                 bottom: root.from
                 top: root.to
@@ -75,8 +76,8 @@ Item {
     }
 
     onValueChanged: {
-        if (!field.activeFocus) {
+
             field.text = formatValue(value);
-        }
+
     }
 }

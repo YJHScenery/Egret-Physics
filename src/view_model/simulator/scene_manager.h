@@ -21,6 +21,15 @@ namespace egret
 {
     class WorldSceneManager;
 
+    struct FieldRecord;
+
+    struct ConstraintRecord;
+
+    struct BodyRecord;
+
+    struct SceneRecord;
+
+
     /**
      * @brief Qt / ViewModel 层的场景门面对象。
      *
@@ -55,6 +64,12 @@ namespace egret
 
         /** 默认析构。 */
         ~SceneManagerViewModel() override = default;
+
+        // 从 json 创建 PhysicalEntity 等实例以供仿真器使用
+        static SceneRecord createSceneFromJsonString(const QString& jsonString);
+
+        static SceneRecord createSceneFromJsonFile(const QString& fileName);
+
 
         /** 当前是否运行。 */
         [[nodiscard]] bool isRunning() const;
@@ -94,6 +109,11 @@ namespace egret
 
         /** 重置场景。 */
         Q_INVOKABLE void reset();
+
+        /** 从 JSON 文件中加载新的场景 */
+        Q_INVOKABLE void loadSceneFronJsonFile(const QString& fileName);
+
+        Q_INVOKABLE void loadSceneFromJsonString(const QString& jsonString);
 
         // /** 生成一个默认球体。 */
         // Q_INVOKABLE void spawnSphere();
@@ -282,6 +302,28 @@ namespace egret
 
         /** 模型层世界管理器。 */
         std::unique_ptr<WorldSceneManager> m_world;
+
+        const inline static QMap<QString, QString> ShowMatchesTypeIDMap = {
+            // 英文
+            {"Standard Box", TYPE_ID_STANDARD_BOX},
+            {"Standard Cylinder", TYPE_ID_STANDARD_CYLINDER},
+            {"Standard Cylindrical Shell", TYPE_ID_STANDARD_CYLINDRICAL_SHELL},
+            {"Standard Disk", TYPE_ID_STANDARD_DISK},
+            {"Standard Ring", TYPE_ID_STANDARD_RING},
+            {"Standard Rod", TYPE_ID_STANDARD_ROD},
+            {"Standard Sphere", TYPE_ID_STANDARD_SPHERE},
+            {"Standard Spherical Shell", TYPE_ID_STANDARD_SPHERICAL_SHELL},
+
+            // 中文
+            {"标准盒体", TYPE_ID_STANDARD_BOX},
+            {"标准圆柱体", TYPE_ID_STANDARD_CYLINDER},
+            {"标准圆柱面", TYPE_ID_STANDARD_CYLINDRICAL_SHELL},
+            {"标准圆盘", TYPE_ID_STANDARD_DISK},
+            {"标准圆环", TYPE_ID_STANDARD_RING},
+            {"标准细杆", TYPE_ID_STANDARD_ROD},
+            {"标准球体", TYPE_ID_STANDARD_SPHERE},
+            {"标准球壳", TYPE_ID_STANDARD_SPHERICAL_SHELL}
+        };
     };
 }
 

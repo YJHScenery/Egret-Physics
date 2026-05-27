@@ -29,6 +29,83 @@ namespace egret
 
     const QString ModelItemData::StaticBasicRingSourceStr = "qrc:/model_3d/assets/model_3d/torus/mesh/torus_R%1.mesh";
 
+
+    ModelItemDataField parseModelItemDataFromQMLJson(const QString& qmlJson)
+    {
+        qDebug() << qmlJson;
+        ModelItemDataField data;
+        QJsonParseError parseError;
+        QJsonDocument doc = QJsonDocument::fromJson(qmlJson.toUtf8(), &parseError);
+
+        if (parseError.error != QJsonParseError::NoError) {
+            qDebug() << "JSON解析失败:" << parseError.errorString();
+            return {};
+        }
+
+        if (!doc.isObject()) {
+            qDebug() << "JSON不是对象格式";
+            return {};
+        }
+
+        QJsonObject obj = doc.object();
+        auto getString = [&](const QString& key) -> QString
+        {
+            return obj[key].toString();
+        };
+
+        auto getDouble = [&](const QString& key) -> double
+        {
+            return obj[key].toDouble();
+        };
+
+        auto getVector3D = [&](const QString& key) -> QVector3D
+        {
+            QJsonArray arr = obj[key].toArray();
+            if (arr.size() >= 3) {
+                return QVector3D(
+                    arr[0].toDouble(),
+                    arr[1].toDouble(),
+                    arr[2].toDouble()
+                );
+            }
+            return QVector3D();
+        };
+
+        auto getQuaternion = [&](const QString& key) -> QQuaternion
+        {
+            QJsonArray arr = obj[key].toArray();
+            if (arr.size() >= 4) {
+                return QQuaternion(
+                    arr[0].toDouble(), // w
+                    arr[1].toDouble(), // x
+                    arr[2].toDouble(), // y
+                    arr[3].toDouble() // z
+                );
+            }
+            return QQuaternion();
+        };
+
+        // 3. 读取所有字段到临时变量
+        data.m_name = getString("entity_name");
+        data.m_type = getString("entity_type");
+        data.m_mass = getDouble("entity_mass");
+        data.m_loadTime = getDouble("load_time");
+        data.m_restitution = getDouble("restitution");
+
+        data.m_pos = getVector3D("position");
+        data.m_scale = getVector3D("scale");
+        data.m_rotation = getQuaternion("rotation");
+        data.m_initialVelo = getVector3D("initial_velocity");
+        data.m_initialAnguVelo = getVector3D("initial_angular_velocity");
+
+        data.m_baseColor = getString("material_base_color");
+
+        data.m_metalness = getDouble("material_metalness");
+        data.m_roughness = getDouble("material_roughness");
+
+        return data;
+    }
+
     // MaterialData 实现
     MaterialData::MaterialData(QObject* parent) : QObject(parent)
     {

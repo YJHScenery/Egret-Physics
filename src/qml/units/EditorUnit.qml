@@ -169,6 +169,10 @@ ColumnLayout {
 
                                 objectName: modelData.name ? modelData.name : ("model-" + index)
                                 source: modelData.source
+
+                                // z-up 到 y-up 的交换
+                                // position: Qt.vector3d(modelData.pos.x, modelData.pos.z, -modelData.pos.y)
+
                                 position: modelData.pos
                                 scale: modelData.scale
                                 rotation: modelData.rotation
@@ -339,7 +343,7 @@ ColumnLayout {
                         restitution: inspectorPanel.m_restitution,
                         position: [inspectorPanel.m_pos.x, inspectorPanel.m_pos.y, inspectorPanel.m_pos.z],
                         scale: [inspectorPanel.m_scale.x, inspectorPanel.m_scale.y, inspectorPanel.m_scale.z],
-                        rotation: [inspectorPanel.m_rotation.w, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z],
+                        rotation: [inspectorPanel.m_rotation.scalar, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z],
                         initial_velocity: [inspectorPanel.m_initialVelo.x, inspectorPanel.m_initialVelo.y, inspectorPanel.m_initialVelo.z],
                         initial_angular_velocity: [inspectorPanel.m_initialAnguVelo.x, inspectorPanel.m_initialAnguVelo.y, inspectorPanel.m_initialAnguVelo.z],
                         material_base_color: inspectorPanel.m_baseColor.toString(),
@@ -635,7 +639,7 @@ ColumnLayout {
                             rowSpacing: 8
 
                             Label {
-                                text: "位置"
+                                text: "位置 (x, y, z)"
                                 color: "#BFD8F4"
                                 Layout.columnSpan: 2
                             }
@@ -650,12 +654,14 @@ ColumnLayout {
                                     stepSize: 0.1
                                     onValueChanged: inspectorPanel.m_pos = Qt.vector3d(value, inspectorPanel.m_pos.y, inspectorPanel.m_pos.z)
                                 }
+
                                 FloatField {
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_pos.y
                                     stepSize: 0.1
                                     onValueChanged: inspectorPanel.m_pos = Qt.vector3d(inspectorPanel.m_pos.x, value, inspectorPanel.m_pos.z)
                                 }
+
                                 FloatField {
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_pos.z
@@ -694,7 +700,7 @@ ColumnLayout {
                             }
 
                             Label {
-                                text: "旋转 (x,y,z,w)"
+                                text: "旋转 (scalar, x, y, z)"
                                 color: "#BFD8F4"
                                 Layout.columnSpan: 2
                             }
@@ -704,28 +710,32 @@ ColumnLayout {
                                 spacing: 6
                                 FloatField {
                                     Layout.fillWidth: true
+                                    value: inspectorPanel.m_rotation.scalar
+                                    stepSize: 0.05
+                                    onValueChanged: inspectorPanel.m_rotation = Qt.quaternion(value, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z)
+                                }
+
+                                FloatField {
+                                    Layout.fillWidth: true
                                     value: inspectorPanel.m_rotation.x
                                     stepSize: 0.05
                                     onValueChanged: inspectorPanel.m_rotation = Qt.quaternion(inspectorPanel.m_rotation.scalar, value, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z)
                                 }
+
                                 FloatField {
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_rotation.y
                                     stepSize: 0.05
                                     onValueChanged: inspectorPanel.m_rotation = Qt.quaternion(inspectorPanel.m_rotation.scalar, inspectorPanel.m_rotation.x, value, inspectorPanel.m_rotation.z)
                                 }
+
                                 FloatField {
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_rotation.z
                                     stepSize: 0.05
                                     onValueChanged: inspectorPanel.m_rotation = Qt.quaternion(inspectorPanel.m_rotation.scalar, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, value)
                                 }
-                                FloatField {
-                                    Layout.fillWidth: true
-                                    value: inspectorPanel.m_rotation.scalar
-                                    stepSize: 0.05
-                                    onValueChanged: inspectorPanel.m_rotation = Qt.quaternion(value, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z)
-                                }
+
                             }
                         }
 
@@ -915,6 +925,7 @@ ColumnLayout {
                                     ModelManager.addModelByJsonString(inspectorPanel.serializeToJson());
                                     console.log("Create Successfully");
                                 } else {
+                                    ModelManager.modifyModelByJsonString(inspectorPanel.serializeToJson());
                                     console.log("Modify Successfully");
                                 }
                             }
