@@ -8,6 +8,7 @@ import ModelManager 1.0
 
 import "qrc:/components/components"
 import "qrc:/components/components/theme"
+import "qrc:/components/components/basic"
 
 ColumnLayout {
     id: editorRoot
@@ -22,7 +23,6 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
         spacing: 12
-
 
         GlassPanel {
             id: editorViewportPanel
@@ -93,7 +93,7 @@ ColumnLayout {
                     id: editorView
                     anchors.fill: parent
                     camera: editorCamera
-
+                    // refreshMode: View3D.OnDemand
 
                     environment: SceneEnvironment {
                         backgroundMode: SceneEnvironment.Color
@@ -119,26 +119,32 @@ ColumnLayout {
                         brightness: 0.8
                     }
 
-
                     // 基础配置属性
                     ListModel {
                         id: basicConfigListModel
                         Component.onCompleted: {
-                            append([
-                            ])
+                            append([]);
                         }
                     }
-
 
                     Node {
                         id: basicNode
 
                         property var alphaModeMap: ({
-                            "Default": PrincipledMaterial.Default,
-                            "Blend": PrincipledMaterial.Blend,
-                            "Opaque": PrincipledMaterial.Opaque,
-                            "Mask": PrincipledMaterial.Mask
-                        })
+                                "Default": PrincipledMaterial.Default,
+                                "Blend": PrincipledMaterial.Blend,
+                                "Opaque": PrincipledMaterial.Opaque,
+                                "Mask": PrincipledMaterial.Mask
+                            })
+
+                        property var modelList: ModelManager.getAllModels()
+                        Connections {
+                            target: ModelManager
+                            function onModelListChanged() {
+                                console.log("Model list changed, refreshing Repeater3D");
+                                basicNode.modelList = ModelManager.getAllModels();
+                            }
+                        }
 
                         Coordinate {
                             id: editorCoordinate
@@ -151,12 +157,9 @@ ColumnLayout {
                             viewportHeight: editorView.height
                         }
 
-
                         Repeater3D {
                             id: repeater
-                            model: ModelManager.getAllModels()
-
-
+                            model: basicNode.modelList
 
                             delegate: Model {
                                 id: delegateModel
@@ -181,10 +184,7 @@ ColumnLayout {
                                 }
                             }
                         }
-
                     }
-
-
                 }
 
                 Rectangle {
@@ -259,13 +259,14 @@ ColumnLayout {
                                     inspectorPanel.m_rotation = model.rotation;
                                     inspectorPanel.m_mass = model.mass;
                                     inspectorPanel.m_name = model.name;
-                                    inspectorPanel.m_source = model.source;
+                                    // inspectorPanel.m_source = model.source;
                                     // 从 materials 获取材质属性
                                     inspectorPanel.m_baseColor = model.materials.baseColor;
                                     inspectorPanel.m_metalness = model.materials.metalness;
                                     inspectorPanel.m_roughness = model.materials.roughness;
-                                }
 
+                                    operatingButton.isCreateMode = false;
+                                }
                             } else {
                                 editorCanvas.selectedObjectName = "";
                             }
@@ -306,7 +307,6 @@ ColumnLayout {
             Layout.fillHeight: true
             spacing: 12
 
-
             GlassPanel {
                 id: inspectorPanel
                 Layout.fillWidth: true
@@ -317,7 +317,7 @@ ColumnLayout {
                 property real m_loadTime: 0.0
                 property real m_restitution: 1.0
                 property string m_name: ""
-                property string m_source: ""
+                //  property string m_source: ""
                 property string m_type: ""
                 // property color m_color: "#5CC8FF"
                 property vector3d m_pos: Qt.vector3d(0, 0, 0)
@@ -330,11 +330,36 @@ ColumnLayout {
                 property real m_metalness: 0.2
                 property real m_roughness: 0.6
 
+                function serializeToJson() {
+                    var data = {
+                        entity_name: inspectorPanel.m_name,
+                        entity_type: inspectorPanel.m_type,
+                        entity_mass: inspectorPanel.m_mass,
+                        load_time: inspectorPanel.m_loadTime,
+                        restitution: inspectorPanel.m_restitution,
+                        position: [inspectorPanel.m_pos.x, inspectorPanel.m_pos.y, inspectorPanel.m_pos.z],
+                        scale: [inspectorPanel.m_scale.x, inspectorPanel.m_scale.y, inspectorPanel.m_scale.z],
+                        rotation: [inspectorPanel.m_rotation.w, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z],
+                        initial_velocity: [inspectorPanel.m_initialVelo.x, inspectorPanel.m_initialVelo.y, inspectorPanel.m_initialVelo.z],
+                        initial_angular_velocity: [inspectorPanel.m_initialAnguVelo.x, inspectorPanel.m_initialAnguVelo.y, inspectorPanel.m_initialAnguVelo.z],
+                        material_base_color: inspectorPanel.m_baseColor.toString(),
+                        material_metalness: inspectorPanel.m_metalness,
+                        material_roughness: inspectorPanel.m_roughness
+                    };
+
+                    var jsonData = JSON.stringify(data);
+                    return jsonData;
+                }
+
                 ColorDialog {
                     id: baseColorDialog
                     title: "选择基础颜色"
                     selectedColor: inspectorPanel.m_baseColor
-                    onAccepted: inspectorPanel.m_baseColor = baseColorDialog.currentColor
+                    onAccepted: {
+                        inspectorPanel.m_baseColor = baseColorDialog.selectedColor;
+                        console.log("color: " + baseColorDialog.selectedColor);
+                        console.log("color: " + inspectorPanel.m_baseColor);
+                    }
                 }
 
                 ScrollView {
@@ -374,6 +399,22 @@ ColumnLayout {
                         width: Math.max(0, inspectorScrollView.availableWidth - inspectorScrollView.rightPadding)
                         spacing: 10
 
+                        EgretPushButton {
+                            id: createNewButton
+                            text: "+"
+                            pixelSize: 16
+                            onClicked: {
+                                operatingButton.isCreateMode = true;
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 2  // 线条高度
+                            color: theme.accent         // 淡蓝色
+                            opacity: 0.8               // 可选：稍微透明增加柔和感
+                        }
+
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 28
@@ -396,7 +437,11 @@ ColumnLayout {
                             columnSpacing: 10
                             rowSpacing: 8
 
-                            Label { text: "名称"; color: "#BFD8F4" }
+                            Label {
+                                text: "名称"
+                                color: "#BFD8F4"
+                            }
+
                             Rectangle {
                                 id: nameFieldShell
                                 Layout.fillWidth: true
@@ -408,6 +453,8 @@ ColumnLayout {
 
                                 TextField {
                                     id: nameTextField
+                                    // property bool isReadOnly: false
+                                    readOnly: !(operatingButton.isCreateMode)
                                     anchors.fill: parent
                                     text: inspectorPanel.m_name
                                     onTextChanged: inspectorPanel.m_name = text
@@ -421,55 +468,114 @@ ColumnLayout {
                                 }
                             }
 
-                            Label { text: "资源"; color: "#BFD8F4" }
-                            Rectangle {
+                            Label {
+                                text: "类型"
+                                color: "#BFD8F4"
+                            }
+
+                            ComboBox {
+                                id: sourceComboBox
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 28
-                                radius: theme.radiusS
-                                color: theme.bg1
-                                border.width: 1
-                                border.color: sourceTextField.activeFocus ? theme.accent : theme.border
 
-                                TextField {
-                                    id: sourceTextField
-                                    anchors.fill: parent
-                                    text: inspectorPanel.m_source
-                                    onTextChanged: inspectorPanel.m_source = text
+                                // 下拉菜单样式
+                                popup.width: parent.width * 0.82
+                                popup.background: Rectangle {
+                                    // y: parent.height
+                                    color: theme.bg1
+                                    border.width: 1
+                                    border.color: theme.border
+                                    radius: theme.radiusS
+                                }
+
+                                // 当前选中项的显示
+                                contentItem: Text {
+                                    text: sourceComboBox.displayText
                                     color: "#FFFFFF"
                                     horizontalAlignment: Text.AlignLeft
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
                                     rightPadding: 10
-                                    selectByMouse: true
-                                    background: null
+                                    font: sourceComboBox.font
+                                    elide: Text.ElideRight
                                 }
-                            }
 
-                            Label { text: "类型"; color: "#BFD8F4" }
-                            Rectangle {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 28
-                                radius: theme.radiusS
-                                color: theme.bg1
-                                border.width: 1
-                                border.color: typeTextField.activeFocus ? theme.accent : theme.border
-
-                                TextField {
-                                    id: typeTextField
-                                    anchors.fill: parent
-                                    text: inspectorPanel.m_type
-                                    onTextChanged: inspectorPanel.m_type = text
-                                    color: "#FFFFFF"
-                                    horizontalAlignment: Text.AlignLeft
-                                    verticalAlignment: Text.AlignVCenter
-                                    leftPadding: 10
-                                    rightPadding: 10
-                                    selectByMouse: true
-                                    background: null
+                                // 背景（与原 Rectangle 样式一致）
+                                background: Rectangle {
+                                    color: theme.bg1
+                                    radius: theme.radiusS
+                                    border.width: 1
+                                    border.color: sourceComboBox.activeFocus ? theme.accent : theme.border
                                 }
-                            }
 
-                            Label { text: "质量"; color: "#BFD8F4" }
+                                // 下拉箭头
+                                indicator: Image {
+                                    source: "qrc:/units/assets/units/triangle_arrow.svg"
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 16
+                                    height: 16
+                                    opacity: sourceComboBox.enabled ? 1 : 0.3
+                                }
+
+                                // 下拉列表项样式
+                                delegate: ItemDelegate {
+                                    width: sourceComboBox.width
+                                    height: 28
+                                    highlighted: sourceComboBox.highlightedIndex === index
+
+                                    contentItem: Text {
+                                        text: modelData
+                                        color: highlighted ? "#FFFFFF" : "#CCCCCC"
+                                        horizontalAlignment: Text.AlignLeft
+                                        verticalAlignment: Text.AlignVCenter
+                                        leftPadding: 10
+                                        font.pixelSize: 12
+                                    }
+
+                                    background: Rectangle {
+                                        color: highlighted ? theme.accent : "transparent"
+                                        radius: theme.radiusS
+                                    }
+                                }
+
+                                model: ["标准盒体", "标准圆柱体", "标准圆柱面", "标准圆盘", "标准圆环", "标准细杆", "标准球体", "标准球壳"]
+
+                                // 绑定到 inspectorPanel 的属性
+                                currentIndex: {
+                                    var idx = model.indexOf(inspectorPanel.m_type);
+                                    return idx !== -1 ? idx : 0;
+                                }
+                                onCurrentValueChanged: inspectorPanel.m_type = currentValue
+                            }
+                            // Rectangle {
+                            //     Layout.fillWidth: true
+                            //     Layout.preferredHeight: 28
+                            //     radius: theme.radiusS
+                            //     color: theme.bg1
+                            //     border.width: 1
+                            //     border.color: typeTextField.activeFocus ? theme.accent : theme.border
+                            //
+                            //     TextField {
+                            //         id: typeTextField
+                            //         anchors.fill: parent
+                            //         text: inspectorPanel.m_type
+                            //         onTextChanged: inspectorPanel.m_type = text
+                            //         color: "#FFFFFF"
+                            //         horizontalAlignment: Text.AlignLeft
+                            //         verticalAlignment: Text.AlignVCenter
+                            //         leftPadding: 10
+                            //         rightPadding: 10
+                            //         selectByMouse: true
+                            //         background: null
+                            //     }
+                            // }
+
+                            Label {
+                                text: "质量"
+                                color: "#BFD8F4"
+                            }
                             FloatField {
                                 Layout.fillWidth: true
                                 from: 0
@@ -479,7 +585,10 @@ ColumnLayout {
                                 onValueChanged: inspectorPanel.m_mass = value
                             }
 
-                            Label { text: "加载时间"; color: "#BFD8F4" }
+                            Label {
+                                text: "加载时间"
+                                color: "#BFD8F4"
+                            }
                             FloatField {
                                 Layout.fillWidth: true
                                 from: 0
@@ -489,7 +598,10 @@ ColumnLayout {
                                 onValueChanged: inspectorPanel.m_loadTime = value
                             }
 
-                            Label { text: "弹性"; color: "#BFD8F4" }
+                            Label {
+                                text: "弹性"
+                                color: "#BFD8F4"
+                            }
                             FloatField {
                                 Layout.fillWidth: true
                                 from: 0
@@ -720,7 +832,11 @@ ColumnLayout {
                             columnSpacing: 10
                             rowSpacing: 8
 
-                            Label { text: "基础色"; color: "#BFD8F4" }
+                            Label {
+                                text: "基础色"
+                                color: "#BFD8F4"
+                            }
+
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 8
@@ -756,7 +872,10 @@ ColumnLayout {
                                 }
                             }
 
-                            Label { text: "金属度"; color: "#BFD8F4" }
+                            Label {
+                                text: "金属度"
+                                color: "#BFD8F4"
+                            }
                             FloatField {
                                 Layout.fillWidth: true
                                 from: 0
@@ -766,7 +885,10 @@ ColumnLayout {
                                 onValueChanged: inspectorPanel.m_metalness = value
                             }
 
-                            Label { text: "粗糙度"; color: "#BFD8F4" }
+                            Label {
+                                text: "粗糙度"
+                                color: "#BFD8F4"
+                            }
                             FloatField {
                                 Layout.fillWidth: true
                                 from: 0
@@ -774,6 +896,27 @@ ColumnLayout {
                                 stepSize: 0.05
                                 value: inspectorPanel.m_roughness
                                 onValueChanged: inspectorPanel.m_roughness = value
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 2  // 线条高度
+                            color: theme.accent        // 淡蓝色
+                            opacity: 0.8               // 可选：稍微透明增加柔和感
+                        }
+
+                        EgretPushButton {
+                            id: operatingButton
+                            property bool isCreateMode: true
+                            text: isCreateMode ? "创建" : "确定修改"
+                            onClicked: {
+                                if (isCreateMode) {
+                                    ModelManager.addModelByJsonString(inspectorPanel.serializeToJson());
+                                    console.log("Create Successfully");
+                                } else {
+                                    console.log("Modify Successfully");
+                                }
                             }
                         }
 

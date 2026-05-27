@@ -137,6 +137,121 @@ namespace egret
         return m_models.keys();
     }
 
+    bool ModelManager::addModelByJsonString(const QString& jsonString)
+    {
+        QJsonParseError parseError;
+        QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8(), &parseError);
+
+        if (parseError.error != QJsonParseError::NoError) {
+            qDebug() << "JSON解析失败:" << parseError.errorString();
+            return false;
+        }
+
+        if (!doc.isObject()) {
+            qDebug() << "JSON不是对象格式";
+            return false;
+        }
+
+        QJsonObject obj = doc.object();
+        auto getString = [&](const QString& key) -> QString
+        {
+            return obj[key].toString();
+        };
+
+        auto getDouble = [&](const QString& key) -> double
+        {
+            return obj[key].toDouble();
+        };
+
+        auto getVector3D = [&](const QString& key) -> QVector3D
+        {
+            QJsonArray arr = obj[key].toArray();
+            if (arr.size() >= 3) {
+                return QVector3D(
+                    arr[0].toDouble(),
+                    arr[1].toDouble(),
+                    arr[2].toDouble()
+                );
+            }
+            return QVector3D();
+        };
+
+        auto getQuaternion = [&](const QString& key) -> QQuaternion
+        {
+            QJsonArray arr = obj[key].toArray();
+            if (arr.size() >= 4) {
+                return QQuaternion(
+                    arr[0].toDouble(), // w
+                    arr[1].toDouble(), // x
+                    arr[2].toDouble(), // y
+                    arr[3].toDouble() // z
+                );
+            }
+            return QQuaternion();
+        };
+
+        auto getColor = [&](const QString& key) -> QColor
+        {
+            QString colorStr = obj[key].toString();
+            QColor color(colorStr);
+            if (color.isValid()) {
+                return color;
+            }
+            return QColor(); // 默认黑色
+        };
+
+        // 3. 读取所有字段到临时变量
+        const QString name = getString("entity_name");
+        const QString type = getString("entity_type");
+        const double mass = getDouble("entity_mass");
+        const double loadTime = getDouble("load_time");
+        const double restitution = getDouble("restitution");
+
+        const QVector3D position = getVector3D("position");
+        const QVector3D scale = getVector3D("scale");
+        const QQuaternion rotation = getQuaternion("rotation");
+        const QVector3D initialVelocity = getVector3D("initial_velocity");
+        const QVector3D initialAngularVelocity = getVector3D("initial_angular_velocity");
+
+        const QString baseColor = getString("material_base_color");
+
+        qDebug() << baseColor;
+
+        const double metalness = getDouble("material_metalness");
+        const double roughness = getDouble("material_roughness");
+
+        // 4. 验证必要字段（根据你的需求调整）
+        if (name.isEmpty()) {
+            qDebug() << "entity_name不能为空";
+            return false;
+        }
+
+        auto* newModel = new ModelItemData();
+        newModel->setName(name);
+        // newModel->setSource("#Cylinder");
+        newModel->setType(type);
+        newModel->setPos(position);
+        newModel->setScale(scale);
+
+        newModel->setMass(mass);
+        newModel->setLoadTime(loadTime);
+        newModel->setRestitution(restitution);
+        newModel->setRotation(rotation);
+        newModel->setInitialVelo(initialVelocity);
+        newModel->setInitialAnguVelo(initialAngularVelocity);
+
+        newModel->materials()->setBaseColor(baseColor);
+        newModel->materials()->setMetalness(metalness);
+        newModel->materials()->setRoughness(roughness);
+
+        newModel->materials()->setAlphaMode("Opaque");
+
+        qDebug() << __func__ << "Create";
+        qDebug() << m_models.size();
+        qDebug() << newModel->source();
+        return addModel(newModel);
+    }
+
     bool ModelManager::saveToJson(const QString& filePath)
     {
         QJsonArray modelsArray;
@@ -402,7 +517,6 @@ namespace egret
         auto* cube = new ModelItemData();
         cube->setName("Default Cube");
         cube->setSource("#Cube");
-        cube->setColor(QColor("#4CA3FF"));
         cube->setPos(QVector3D(80, 0, 0));
         cube->setScale(QVector3D(1.2f, 0.12f, 1.2f));
         cube->materials()->setBaseColor(QColor("#4CA3FF"));
@@ -415,7 +529,6 @@ namespace egret
         auto* sphere = new ModelItemData();
         sphere->setName("Default Sphere");
         sphere->setSource("#Sphere");
-        sphere->setColor(QColor("#4CA3FF"));
         sphere->setPos(QVector3D(0, 80, 0));
         sphere->materials()->setBaseColor(QColor("#4CA3FF"));
         sphere->materials()->setMetalness(0.8);
@@ -426,7 +539,6 @@ namespace egret
         auto* rect = new ModelItemData();
         rect->setName("Default Rectangle");
         rect->setSource("#Rectangle");
-        rect->setColor(QColor("#4CA3FF"));
         rect->setPos(QVector3D(140, 80, 0));
         rect->materials()->setBaseColor(QColor("#4CA3FF"));
         rect->materials()->setMetalness(0.8);
@@ -437,7 +549,6 @@ namespace egret
         auto* cylinder = new ModelItemData();
         cylinder->setName("Default Cylinder");
         cylinder->setSource("#Cylinder");
-        cylinder->setColor(QColor("#4CA3FF"));
         cylinder->setPos(QVector3D(-160, 80, 0));
         cylinder->materials()->setBaseColor(QColor("#4CA3FF"));
         cylinder->materials()->setMetalness(0.8);
@@ -448,7 +559,6 @@ namespace egret
         auto* torus = new ModelItemData();
         torus->setName("Default Torus");
         torus->setSource("qrc:/model_3d/assets/model_3d/torus/mesh/torus_R1.mesh");
-        torus->setColor(QColor("#4CA3FF"));
         torus->setPos(QVector3D(160, 180, 160));
         torus->setScale(QVector3D(100.0f, 100.0f, 100.0f));
         torus->materials()->setBaseColor(QColor("#c9dff6"));
@@ -460,7 +570,6 @@ namespace egret
         auto* cylinder_side = new ModelItemData();
         cylinder_side->setName("Default Cylinder Side");
         cylinder_side->setSource("qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh");
-        cylinder_side->setColor(QColor("#4CA3FF"));
         cylinder_side->setPos(QVector3D(-160, -180, -160));
         cylinder_side->setScale(QVector3D(100.0f, 100.0f, 100.0f));
         cylinder_side->materials()->setBaseColor(QColor("#c9dff6"));
@@ -473,7 +582,6 @@ namespace egret
         auto* disk = new ModelItemData();
         disk->setName("Default Disk");
         disk->setSource("#Cylinder");
-        disk->setColor(QColor("#4CA3FF"));
         disk->setPos(QVector3D(160, 180, 160));
         disk->setScale(QVector3D(1.0f, 0.01f, 1.0f));
         disk->materials()->setBaseColor(QColor("#c9dff6"));

@@ -50,4 +50,7 @@
         <file>assets/model_3d/cylinder_side/cylinder_side.obj</file>
 
     </qresource>
+    <qresource prefix="/units">
+        <file>assets/units/triangle_arrow.svg</file>
+    </qresource>
 </RCC>

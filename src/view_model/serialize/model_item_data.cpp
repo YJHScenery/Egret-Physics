@@ -3,11 +3,31 @@
 //
 
 #include "model_item_data.h"
+#include <QUuid>
+#include <QJsonDocument>
 
 namespace egret
 {
-#include <QUuid>
-#include <QJsonDocument>
+    const QMap<QString, QString> ModelItemData::StaticGeneralTypeSourceMap = {
+        {"Standard Box", "#Cube"},
+        {"Standard Cylinder", "#Cylinder"},
+        {"Standard Cylindrical Shell", "qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh"},
+        {"Standard Disk", "#Cylinder"},
+        {"Standard Rod", "#Cylinder"},
+        {"Standard Sphere", "#Sphere"},
+        {"Standard Spherical Shell", "#Sphere"},
+
+        {"标准盒体", "#Cube"},
+        {"标准圆柱体", "#Cylinder"},
+        {"标准圆柱面", "qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh"},
+        {"标准圆盘", "#Cylinder"},
+        {"标准圆环", "#Cylinder"},
+        {"标准细杆", "#Cylinder"},
+        {"标准球体", "#Sphere"},
+        {"标准球壳", "#Sphere"}
+    };
+
+    const QString ModelItemData::StaticBasicRingSourceStr = "qrc:/model_3d/assets/model_3d/torus/mesh/torus_R%1.mesh";
 
     // MaterialData 实现
     MaterialData::MaterialData(QObject* parent) : QObject(parent)
@@ -91,7 +111,11 @@ namespace egret
     QString ModelItemData::id() const { return m_id; }
     QString ModelItemData::name() const { return m_name; }
     QString ModelItemData::source() const { return m_source; }
-    QColor ModelItemData::color() const { return m_color; }
+
+    QString ModelItemData::type() const { return m_type; }
+
+    double ModelItemData::restitution() const { return m_restitution; }
+
     QVector3D ModelItemData::pos() const { return m_pos; }
     QVector3D ModelItemData::scale() const { return m_scale; }
     QQuaternion ModelItemData::rotation() const { return m_rotation; }
@@ -134,19 +158,20 @@ namespace egret
         }
     }
 
+    void ModelItemData::setType(const QString& type)
+    {
+        if (m_type != type) {
+            m_type = type;
+            matchSource();
+            emit typeChanged();
+        }
+    }
+
     void ModelItemData::setSource(const QString& source)
     {
         if (m_source != source) {
             m_source = source;
             emit sourceChanged();
-        }
-    }
-
-    void ModelItemData::setColor(const QColor& color)
-    {
-        if (m_color != color) {
-            m_color = color;
-            emit colorChanged();
         }
     }
 
@@ -190,6 +215,32 @@ namespace egret
         }
     }
 
+    void ModelItemData::setRestitution(double restitution)
+    {
+        if (m_restitution != restitution) {
+            m_restitution = restitution;
+            emit restitutionChanged();
+        }
+    }
+
+    void ModelItemData::matchSource()
+    {
+        if (StaticGeneralTypeSourceMap.contains(m_type)) {
+            const QString source = StaticGeneralTypeSourceMap.value(m_type);
+            if (m_source != source) {
+                m_source = source;
+                emit sourceChanged();
+            }
+        }
+        else if (m_type == "Standard Ring") {
+            const QString source = StaticBasicRingSourceStr.arg("1");
+            if (m_source != source) {
+                m_source = source;
+                emit sourceChanged();
+            }
+        }
+    }
+
     QJsonObject ModelItemData::toJson() const
     {
         QJsonObject obj;
@@ -198,7 +249,6 @@ namespace egret
         obj["id"] = m_id;
         obj["name"] = m_name;
         obj["source"] = m_source;
-        obj["color"] = m_color.name(QColor::HexArgb);
         obj["pos"] = QJsonArray{m_pos.x(), m_pos.y(), m_pos.z()};
         obj["scale"] = QJsonArray{m_scale.x(), m_scale.y(), m_scale.z()};
         obj["rotation"] = QJsonArray{m_rotation.scalar(), m_rotation.x(), m_rotation.y(), m_rotation.z()};
@@ -217,7 +267,6 @@ namespace egret
         if (json.contains("id")) { setId(json["id"].toString()); }
         if (json.contains("name")) { setName(json["name"].toString()); }
         if (json.contains("source")) { setSource(json["source"].toString()); }
-        if (json.contains("color")) { setColor(QColor(json["color"].toString())); }
 
         if (json.contains("pos") && json["pos"].isArray()) {
             QJsonArray posArr = json["pos"].toArray();
@@ -283,7 +332,6 @@ namespace egret
         copy->setId(source.id());
         copy->setName(source.name());
         copy->setSource(source.source());
-        copy->setColor(source.color());
         copy->setPos(source.pos());
         copy->setScale(source.scale());
         copy->setRotation(source.rotation());

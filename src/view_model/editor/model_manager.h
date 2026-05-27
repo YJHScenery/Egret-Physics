@@ -58,6 +58,9 @@ namespace egret
         [[nodiscard]] QStringList modelIds() const;
 
         // JSON 序列化
+        Q_INVOKABLE bool addModelByJsonString(const QString& jsonString);
+
+
         Q_INVOKABLE bool saveToJson(const QString& filePath);
 
         Q_INVOKABLE bool loadFromJson(const QString& filePath);
@@ -91,6 +94,7 @@ namespace egret
 
         Q_INVOKABLE bool redo();
 
+
     signals:
         void countChanged();
 
@@ -114,7 +118,9 @@ namespace egret
         QList<QHash<QString, QSharedPointer<ModelItemData>>> m_redoStack;
 
         void emitModelListChanged();
+
         static bool validateModel(const ModelItemData* model);
+
         static QString generateUniqueId();
     };
 
