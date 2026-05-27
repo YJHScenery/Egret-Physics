@@ -15,12 +15,13 @@
 #include "resource_helper.h"
 #include "editor/model_manager.h"
 #include "serialize/model_item_data.h"
+#include <QQuickStyle>
 
 int main(int argc, char* argv[])
 {
     // ReSharper disable once CppLocalVariableMayBeConst
     QApplication app(argc, argv);
-
+    QQuickStyle::setStyle("Fusion");
     QObject::connect(&app, &QGuiApplication::aboutToQuit, []()
     {
         LOG_INFO_LITERAL("准备退出");
