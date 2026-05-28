@@ -6,6 +6,8 @@
 #define EGRET_PHYSICS_RESOURCE_HELPER_H
 #include "basic_utils.h"
 #include <QObject>
+#include <QVariantMap>
+#include <QAbstractListModel>
 
 namespace egret
 {
@@ -44,9 +46,11 @@ namespace egret
         Q_INVOKABLE static double getSunMass();
 
         Q_INVOKABLE static double getAstronomicalUnit();
-
-
+        
     };
+
+
+
 } // egret
 
 #endif //EGRET_PHYSICS_RESOURCE_HELPER_H

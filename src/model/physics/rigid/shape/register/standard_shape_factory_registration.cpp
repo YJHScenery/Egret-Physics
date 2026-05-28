@@ -15,51 +15,57 @@ namespace egret
     {
         bool registerStandardShapeFactories()
         {
-            auto &registry = ShapeFactoryRegistry::instance();
+            auto& registry = ShapeFactoryRegistry::instance();
 
-            registry.registerFactory(TYPE_ID_STANDARD_SPHERE, [](const ShapeLoadInfo &info) -> std::unique_ptr<ShapeBase>
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::Sphere),
+                                     [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
                                      {
-                const auto it = info.parameters.find("radius");
-                if (it == info.parameters.end()) {
+                                         const auto it = info.numberParams.find("radius");
+                                         if (it == info.numberParams.end()) {
+                                             return nullptr;
+                                         }
+
+                                         const auto radius = &it->second[0];
+                                         if (radius == nullptr) {
+                                             return nullptr;
+                                         }
+
+                                         return std::make_unique<ShapeSphere>(*radius);
+                                     });
+
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::Box), [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
+            {
+                const auto it = info.numberParams.find("size");
+                if (it == info.numberParams.end()) {
                     return nullptr;
                 }
-
-                const auto radius = std::get_if<double>(&it->second);
-                if (radius == nullptr) {
-                    return nullptr;
+                Eigen::Vector3d size;
+                if (it->second.size() >= 3) {
+                    size = Eigen::Vector3d(it->second.data());
                 }
 
-                return std::make_unique<ShapeSphere>(*radius); });
+                return std::make_unique<ShapeBox>(size);
+            });
 
-            registry.registerFactory(TYPE_ID_STANDARD_BOX, [](const ShapeLoadInfo &info) -> std::unique_ptr<ShapeBase>
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::Cylinder),
+                                     [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
                                      {
-                const auto it = info.parameters.find("size");
-                if (it == info.parameters.end()) {
-                    return nullptr;
-                }
+                                         const auto radiusIt = info.numberParams.find("radius");
+                                         const auto heightIt = info.numberParams.find("height");
+                                         if (radiusIt == info.numberParams.end() || heightIt == info.numberParams.
+                                             end()) {
+                                             return nullptr;
+                                         }
 
-                const auto size = std::get_if<Eigen::Vector3d>(&it->second);
-                if (size == nullptr) {
-                    return nullptr;
-                }
+                                         if (radiusIt->second.size() >= 1 && heightIt->second.size() >= 1) {
+                                             const auto radius = radiusIt->second[0];
+                                             const auto height = heightIt->second[0];
 
-                return std::make_unique<ShapeBox>(*size); });
 
-            registry.registerFactory(TYPE_ID_STANDARD_CYLINDER, [](const ShapeLoadInfo &info) -> std::unique_ptr<ShapeBase>
-                                     {
-                const auto radiusIt = info.parameters.find("radius");
-                const auto heightIt = info.parameters.find("height");
-                if (radiusIt == info.parameters.end() || heightIt == info.parameters.end()) {
-                    return nullptr;
-                }
-
-                const auto radius = std::get_if<double>(&radiusIt->second);
-                const auto height = std::get_if<double>(&heightIt->second);
-                if (radius == nullptr || height == nullptr) {
-                    return nullptr;
-                }
-
-                return std::make_unique<ShapeCylinder>(*radius, *height); });
+                                             return std::make_unique<ShapeCylinder>(radius, height);
+                                         }
+                                         return nullptr;
+                                     });
 
             return true;
         }

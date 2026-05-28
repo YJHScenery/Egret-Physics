@@ -36,31 +36,23 @@ namespace egret
         static ShapeRegister& instance();
 
         // 注册判定函数（自动处理对称性，约定 id1 <= id2）
-        void registerJudge(const std::string& id1, const std::string& id2, CollideFunc func);
+        void registerJudge(std::uint32_t id1, std::uint32_t id2, CollideFunc func);
 
-        void registerContinuousJudge(const std::string& id1, const std::string& id2, ContiCollideFunc func);
+        void registerContinuousJudge(std::uint32_t id1, std::uint32_t id2, ContiCollideFunc func);
 
         // 查询判定函数
-        CollideFunc* findJudge(const std::string& id1, const std::string& id2) ;
+        CollideFunc* findJudge(std::uint32_t id1, std::uint32_t id2) ;
 
         // 查询连续判定函数
-        ContiCollideFunc* findContinuousJudge(const std::string& id1, const std::string& id2);
+        ContiCollideFunc* findContinuousJudge(std::uint32_t id1, std::uint32_t id2);
 
     private:
-        std::map<std::pair<std::string, std::string>, CollideFunc> m_collideRegistry;
+        std::map<std::pair<std::uint32_t, std::uint32_t>, CollideFunc> m_collideRegistry;
 
-        std::map<std::pair<std::string, std::string>, ContiCollideFunc> m_continuousJudge;
+        std::map<std::pair<std::uint32_t, std::uint32_t>, ContiCollideFunc> m_continuousJudge;
     };
 
 
-    constexpr char TYPE_ID_STANDARD_BOX[]{"standard_box"};
-    constexpr char TYPE_ID_STANDARD_CYLINDER[]{"standard_cylinder"};
-    constexpr char TYPE_ID_STANDARD_CYLINDRICAL_SHELL[]{"standard_cylinder_shell"};
-    constexpr char TYPE_ID_STANDARD_DISK[]{"standard_disk"};
-    constexpr char TYPE_ID_STANDARD_RING[]{"standard_ring"};
-    constexpr char TYPE_ID_STANDARD_ROD[]{"standard_rod"};
-    constexpr char TYPE_ID_STANDARD_SPHERE[]{"standard_sphere"};
-    constexpr char TYPE_ID_STANDARD_SPHERICAL_SHELL[]{"standard_spherical_shell"};
 
 
 

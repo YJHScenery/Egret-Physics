@@ -16,10 +16,9 @@ namespace egret
         m_radius = radius;
     }
 
-    const std::string &ShapeSphere::typeId() const
+    ShapeID ShapeSphere::typeId() const
     {
-        static std::string typeId{TYPE_ID_STANDARD_SPHERE};
-        return typeId;
+        return ShapeID::Sphere;
     }
 
     double ShapeSphere::getVolume() const
@@ -66,8 +65,8 @@ namespace egret
     ShapeLoadInfo ShapeSphere::getLoadInfo() const
     {
         ShapeLoadInfo info{};
-        info.typeId = typeId();
-        info.parameters["radius"] = m_radius;
+        info.typeId = static_cast<std::uint32_t>(typeId());
+        info.numberParams["radius"] = std::vector<double>{m_radius};
         return info;
     }
 
@@ -75,7 +74,7 @@ namespace egret
     {
         SceneRenderItem item{};
         const double diameter = m_radius * 2.0;
-        item.kind = this->typeId();
+        item.kind = static_cast<std::uint32_t>(this->typeId());
         item.width = diameter;
         item.height = diameter;
         item.x = position.x() - m_radius;

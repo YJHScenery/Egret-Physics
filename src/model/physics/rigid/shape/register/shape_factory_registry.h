@@ -21,12 +21,12 @@ namespace egret
     public:
         static ShapeFactoryRegistry& instance();
 
-        void registerFactory(const std::string& typeId, ShapeFactory factory);
+        void registerFactory(std::uint32_t typeId, ShapeFactory factory);
 
         [[nodiscard]] std::unique_ptr<ShapeBase> create(const ShapeLoadInfo& info) const;
 
     private:
-        std::unordered_map<std::string, ShapeFactory> m_factories;
+        std::unordered_map<std::uint32_t, ShapeFactory> m_factories;
     };
 }
 

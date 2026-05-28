@@ -132,31 +132,31 @@ namespace egret
          * @return 包含 ok/x/y/z/error 的映射结果。
          */
         Q_INVOKABLE [[nodiscard]] QVariantMap mapScreenToWorldOnPlane(double screenX,
-                                double screenY,
-                                double viewportWidth,
-                                double viewportHeight,
-                                const QVariantMap& cameraState,
-                                double planeZ) const;
+                                                                      double screenY,
+                                                                      double viewportWidth,
+                                                                      double viewportHeight,
+                                                                      const QVariantMap& cameraState,
+                                                                      double planeZ) const;
 
         /**
          * @brief 开始拖拽指定实体。
          */
         Q_INVOKABLE bool beginBodyDrag(quint64 bodyId,
-                           double screenX,
-                           double screenY,
-                           double viewportWidth,
-                           double viewportHeight,
-                           const QVariantMap& cameraState,
-                           const QString& mode = "xy_plane");
+                                       double screenX,
+                                       double screenY,
+                                       double viewportWidth,
+                                       double viewportHeight,
+                                       const QVariantMap& cameraState,
+                                       const QString& mode = "xy_plane");
 
         /**
          * @brief 更新当前拖拽。
          */
         Q_INVOKABLE bool updateBodyDrag(double screenX,
-                        double screenY,
-                        double viewportWidth,
-                        double viewportHeight,
-                        const QVariantMap& cameraState);
+                                        double screenY,
+                                        double viewportWidth,
+                                        double viewportHeight,
+                                        const QVariantMap& cameraState);
 
         /**
          * @brief 结束拖拽。
@@ -234,20 +234,20 @@ namespace egret
 
         /** 从相机状态构建拾取射线。 */
         [[nodiscard]] bool buildPickRay(double screenX,
-                        double screenY,
-                        double viewportWidth,
-                        double viewportHeight,
-                        const QVariantMap& cameraState,
-                        Eigen::Vector3d* origin,
-                        Eigen::Vector3d* direction,
-                        QString* error = nullptr) const;
+                                        double screenY,
+                                        double viewportWidth,
+                                        double viewportHeight,
+                                        const QVariantMap& cameraState,
+                                        Eigen::Vector3d* origin,
+                                        Eigen::Vector3d* direction,
+                                        QString* error = nullptr) const;
 
         /** 射线与 z=planeZ 平面的交点。 */
         [[nodiscard]] static bool intersectRayWithPlaneZ(const Eigen::Vector3d& rayOrigin,
-                                 const Eigen::Vector3d& rayDirection,
-                                 double planeZ,
-                                 Eigen::Vector3d* hitPoint,
-                                 QString* error = nullptr);
+                                                         const Eigen::Vector3d& rayDirection,
+                                                         double planeZ,
+                                                         Eigen::Vector3d* hitPoint,
+                                                         QString* error = nullptr);
 
         /** 更新拖拽状态并发信号。 */
         void setDragActive(bool active);
@@ -303,27 +303,7 @@ namespace egret
         /** 模型层世界管理器。 */
         std::unique_ptr<WorldSceneManager> m_world;
 
-        const inline static QMap<QString, QString> ShowMatchesTypeIDMap = {
-            // 英文
-            {"Standard Box", TYPE_ID_STANDARD_BOX},
-            {"Standard Cylinder", TYPE_ID_STANDARD_CYLINDER},
-            {"Standard Cylindrical Shell", TYPE_ID_STANDARD_CYLINDRICAL_SHELL},
-            {"Standard Disk", TYPE_ID_STANDARD_DISK},
-            {"Standard Ring", TYPE_ID_STANDARD_RING},
-            {"Standard Rod", TYPE_ID_STANDARD_ROD},
-            {"Standard Sphere", TYPE_ID_STANDARD_SPHERE},
-            {"Standard Spherical Shell", TYPE_ID_STANDARD_SPHERICAL_SHELL},
 
-            // 中文
-            {"标准盒体", TYPE_ID_STANDARD_BOX},
-            {"标准圆柱体", TYPE_ID_STANDARD_CYLINDER},
-            {"标准圆柱面", TYPE_ID_STANDARD_CYLINDRICAL_SHELL},
-            {"标准圆盘", TYPE_ID_STANDARD_DISK},
-            {"标准圆环", TYPE_ID_STANDARD_RING},
-            {"标准细杆", TYPE_ID_STANDARD_ROD},
-            {"标准球体", TYPE_ID_STANDARD_SPHERE},
-            {"标准球壳", TYPE_ID_STANDARD_SPHERICAL_SHELL}
-        };
     };
 }
 

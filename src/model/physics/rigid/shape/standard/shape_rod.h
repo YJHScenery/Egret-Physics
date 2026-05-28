@@ -15,7 +15,7 @@ namespace egret
     {
     public:
         explicit ShapeRod(double length);
-        [[nodiscard]] const std::string& typeId() const override;
+        [[nodiscard]] ShapeID typeId() const override;
 
         [[nodiscard]] double getLength() const { return m_length; }
 

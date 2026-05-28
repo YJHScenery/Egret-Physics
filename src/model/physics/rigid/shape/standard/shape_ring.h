@@ -14,7 +14,7 @@ class ShapeRing: public ShapeDisk {
 public:
     explicit ShapeRing(double radius);
 
-    [[nodiscard]] const std::string& typeId() const override;
+    [[nodiscard]] ShapeID typeId() const override;
 
     [[nodiscard]] Eigen::Matrix3d getInertiaTensor(double mass) const override;
 

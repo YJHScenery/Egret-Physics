@@ -15,10 +15,9 @@ namespace egret
     {
     }
 
-    const std::string& ShapeBox::typeId() const
+    ShapeID ShapeBox::typeId() const
     {
-        static std::string typeId = TYPE_ID_STANDARD_BOX;
-        return typeId;
+        return ShapeID::Box;
     }
 
     ShapeBox::ShapeBox(const double length, const double width, const double height) : m_size(length, width, height)
@@ -117,8 +116,8 @@ namespace egret
     ShapeLoadInfo ShapeBox::getLoadInfo() const
     {
         ShapeLoadInfo info{};
-        info.typeId = typeId();
-        info.parameters["size"] = m_size;
+        info.typeId = (std::uint32_t)typeId();
+        info.numberParams["size"] = std::vector<double>{m_size.data(), m_size.data() + m_size.size()};
         return info;
     }
 
@@ -126,7 +125,7 @@ namespace egret
     {
         SceneRenderItem item{};
         const Eigen::Vector3d size {this->getSize()};
-        item.kind = this->typeId();
+        item.kind = (std::uint32_t)this->typeId();
         item.width = size.x();
         item.height = size.y();
         item.x = position.x() - size.x() * 0.5;

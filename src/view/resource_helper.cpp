@@ -6,12 +6,17 @@
 #include <QString>
 
 #include "constants.h"
+#include "shape_base.h"
+#include <QList>
+#include <QVariant>
+#include <QVariantMap>
 
 namespace egret
 {
     ResourceHelper::ResourceHelper(QObject* parent) : QObject(parent)
     {
     }
+
 
     QString ResourceHelper::getVersionString(const QString& prefix, const QString& suffix, const QString& sep)
     {
@@ -24,17 +29,17 @@ namespace egret
         return result;
     }
 
-     int ResourceHelper::getMajorVersion()
+    int ResourceHelper::getMajorVersion()
     {
         return EGRET_PHYSICS_VERSION_MAJOR;
     }
 
-     int ResourceHelper::getMinorVersion()
+    int ResourceHelper::getMinorVersion()
     {
         return EGRET_PHYSICS_VERSION_MINOR;
     }
 
-     int ResourceHelper::getPatchVersion()
+    int ResourceHelper::getPatchVersion()
     {
         return EGRET_PHYSICS_VERSION_PATCH;
     }
@@ -88,4 +93,6 @@ namespace egret
     {
         return ASTRONOMICAL_UNIT;
     }
+
+
 } // egret

@@ -48,6 +48,8 @@
         <file>assets/model_3d/torus/mesh/torus_R10000.mesh</file>
         <file>assets/model_3d/cylinder_side/cylinder_side.mesh</file>
         <file>assets/model_3d/cylinder_side/cylinder_side.obj</file>
+        <file>assets/model_3d/disk/disk.obj</file>
+        <file>assets/model_3d/disk/disk.mesh</file>
 
     </qresource>
     <qresource prefix="/units">

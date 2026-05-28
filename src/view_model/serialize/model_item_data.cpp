@@ -6,6 +6,9 @@
 #include <QUuid>
 #include <QJsonDocument>
 
+#include "logger.h"
+#include "shape_base.h"
+
 namespace egret
 {
     const QMap<QString, QString> ModelItemData::StaticGeneralTypeSourceMap = {
@@ -14,6 +17,7 @@ namespace egret
         {"Standard Cylindrical Shell", "qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh"},
         {"Standard Disk", "#Cylinder"},
         {"Standard Rod", "#Cylinder"},
+        {"Standard Ring", StaticBasicRingSourceStr},
         {"Standard Sphere", "#Sphere"},
         {"Standard Spherical Shell", "#Sphere"},
 
@@ -21,13 +25,36 @@ namespace egret
         {"标准圆柱体", "#Cylinder"},
         {"标准圆柱面", "qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh"},
         {"标准圆盘", "#Cylinder"},
-        {"标准圆环", "#Cylinder"},
         {"标准细杆", "#Cylinder"},
+        {"标准圆环", StaticBasicRingSourceStr},
         {"标准球体", "#Sphere"},
         {"标准球壳", "#Sphere"}
     };
 
-    const QString ModelItemData::StaticBasicRingSourceStr = "qrc:/model_3d/assets/model_3d/torus/mesh/torus_R%1.mesh";
+    QMap<QString, std::uint32_t> ModelItemData::ShowMatchesTypeIDMap = {
+        // 英文
+        {"Standard Box", static_cast<std::uint32_t>(ShapeID::Box)},
+        {"Standard Cylinder", static_cast<std::uint32_t>(ShapeID::Cylinder)},
+        {"Standard Cylindrical Shell", static_cast<std::uint32_t>(ShapeID::CylindricalShell)},
+        {"Standard Disk", static_cast<std::uint32_t>(ShapeID::Disk)},
+        {"Standard Ring", static_cast<std::uint32_t>(ShapeID::Ring)},
+        {"Standard Rod", static_cast<std::uint32_t>(ShapeID::Rod)},
+        {"Standard Sphere", static_cast<std::uint32_t>(ShapeID::Sphere)},
+        {"Standard Spherical Shell", static_cast<std::uint32_t>(ShapeID::SphericalShell)},
+
+        // 中文
+        {"标准盒体", static_cast<std::uint32_t>(ShapeID::Box)},
+        {"标准圆柱体", static_cast<std::uint32_t>(ShapeID::Cylinder)},
+        {"标准圆柱面", static_cast<std::uint32_t>(ShapeID::CylindricalShell)},
+        {"标准圆盘", static_cast<std::uint32_t>(ShapeID::Disk)},
+        {"标准圆环", static_cast<std::uint32_t>(ShapeID::Ring)},
+        {"标准细杆", static_cast<std::uint32_t>(ShapeID::Rod)},
+        {"标准球体", static_cast<std::uint32_t>(ShapeID::Sphere)},
+        {"标准球壳", static_cast<std::uint32_t>(ShapeID::SphericalShell)}
+    };
+
+    const QString ModelItemData::StaticBasicRingSourceStr = "qrc:/model_3d/assets/model_3d/torus/mesh/torus_R1.mesh";
+    const QString ModelItemData::StaticBasicDiskSourceStr = "qrc:/model_3d/assets/model_3d/disk/disk.mesh";
 
 
     ModelItemDataField parseModelItemDataFromQMLJson(const QString& qmlJson)
@@ -65,8 +92,7 @@ namespace egret
                 return QVector3D(
                     arr[0].toDouble(),
                     arr[1].toDouble(),
-                    arr[2].toDouble()
-                );
+                    arr[2].toDouble());
             }
             return QVector3D();
         };
@@ -91,6 +117,38 @@ namespace egret
         data.m_mass = getDouble("entity_mass");
         data.m_loadTime = getDouble("load_time");
         data.m_restitution = getDouble("restitution");
+
+        switch (ModelItemData::ShowMatchesTypeIDMap.value(data.m_type)) {
+        case static_cast<std::uint32_t>(ShapeID::Box): {
+            data.m_boxSize = getVector3D("box_size");
+            break;
+        }
+        case static_cast<std::uint32_t>(ShapeID::Cylinder):
+            [[fallthrough]];
+        case static_cast<std::uint32_t>(ShapeID::CylindricalShell): {
+            data.m_radius = getDouble("circle_radius");
+            data.m_height = getDouble("height");
+            break;
+        }
+        case static_cast<std::uint32_t>(ShapeID::Disk):
+            [[fallthrough]];
+        case static_cast<std::uint32_t>(ShapeID::Ring): {
+            data.m_radius = getDouble("circle_radius");
+            break;
+        }
+        case static_cast<std::uint32_t>(ShapeID::Rod): {
+            data.m_length = getDouble("length");
+            break;
+        }
+        case static_cast<std::uint32_t>(ShapeID::Sphere):
+            [[fallthrough]];
+        case static_cast<std::uint32_t>(ShapeID::SphericalShell): {
+            data.m_radius = getDouble("circle_radius");
+            break;
+        }
+        default:
+            break;
+        }
 
         data.m_pos = getVector3D("position");
         data.m_scale = getVector3D("scale");
@@ -173,9 +231,7 @@ namespace egret
 
     // ModelItemData 实现
     ModelItemData::ModelItemData(QObject* parent)
-        : QObject(parent)
-          , m_materials(new MaterialData(this))
-          , m_id(QUuid::createUuid().toString(QUuid::WithoutBraces))
+        : QObject(parent), m_materials(new MaterialData(this)), m_id(QUuid::createUuid().toString(QUuid::WithoutBraces))
     {
         m_scale = QVector3D(1.0f, 1.0f, 1.0f);
         m_rotation = QQuaternion();
@@ -300,6 +356,58 @@ namespace egret
         }
     }
 
+    QVector3D ModelItemData::boxSize() const
+    {
+        return m_boxSize.value_or(QVector3D());
+    }
+
+    void ModelItemData::setBoxSize(const QVector3D& boxSize)
+    {
+        if (!m_boxSize.has_value() || m_boxSize.value() != boxSize) {
+            m_boxSize = boxSize;
+            emit boxSizeChanged();
+        }
+    }
+
+    double ModelItemData::radius() const
+    {
+        return m_radius.value_or(0.0);
+    }
+
+    void ModelItemData::setRadius(double radius)
+    {
+        if (!m_radius.has_value() || !qFuzzyCompare(m_radius.value(), radius)) {
+            m_radius = radius;
+            emit radiusChanged();
+        }
+    }
+
+    double ModelItemData::height() const
+    {
+        return m_height.value_or(0.0);
+    }
+
+    void ModelItemData::setHeight(double height)
+    {
+        if (!m_height.has_value() || !qFuzzyCompare(m_height.value(), height)) {
+            m_height = height;
+            emit heightChanged();
+        }
+    }
+
+    double ModelItemData::length() const
+    {
+        return m_length.value_or(0.0);
+    }
+
+    void ModelItemData::setLength(double length)
+    {
+        if (!m_length.has_value() || !qFuzzyCompare(m_length.value(), length)) {
+            m_length = length;
+            emit lengthChanged();
+        }
+    }
+
     void ModelItemData::matchSource()
     {
         if (StaticGeneralTypeSourceMap.contains(m_type)) {
@@ -309,12 +417,8 @@ namespace egret
                 emit sourceChanged();
             }
         }
-        else if (m_type == "Standard Ring") {
-            const QString source = StaticBasicRingSourceStr.arg("1");
-            if (m_source != source) {
-                m_source = source;
-                emit sourceChanged();
-            }
+        else {
+            LOG_FATAL_LITERAL("Known Shape");
         }
     }
 
@@ -334,16 +438,38 @@ namespace egret
             m_initialAnguVelo.x(), m_initialAnguVelo.y(), m_initialAnguVelo.z()
         };
         obj["materials"] = m_materials->toJson();
+        if (m_boxSize.has_value()) {
+            obj["box_size"] = QJsonArray{m_boxSize->x(), m_boxSize->y(), m_boxSize->z()};
+        }
+        if (m_radius.has_value()) {
+            obj["radius"] = m_radius.value();
+        }
+        if (m_height.has_value()) {
+            obj["height"] = m_height.value();
+        }
+        if (m_length.has_value()) {
+            obj["length"] = m_length.value();
+        }
         return obj;
     }
 
     bool ModelItemData::fromJson(const QJsonObject& json)
     {
-        if (json.contains("mass")) { setMass(json["mass"].toDouble()); }
-        if (json.contains("load_time")) { setLoadTime(json["load_time"].toDouble()); }
-        if (json.contains("id")) { setId(json["id"].toString()); }
-        if (json.contains("name")) { setName(json["name"].toString()); }
-        if (json.contains("source")) { setSource(json["source"].toString()); }
+        if (json.contains("mass")) {
+            setMass(json["mass"].toDouble());
+        }
+        if (json.contains("load_time")) {
+            setLoadTime(json["load_time"].toDouble());
+        }
+        if (json.contains("id")) {
+            setId(json["id"].toString());
+        }
+        if (json.contains("name")) {
+            setName(json["name"].toString());
+        }
+        if (json.contains("source")) {
+            setSource(json["source"].toString());
+        }
 
         if (json.contains("pos") && json["pos"].isArray()) {
             QJsonArray posArr = json["pos"].toArray();
@@ -391,6 +517,27 @@ namespace egret
         }
         if (json.contains("materials") && json["materials"].isObject()) {
             m_materials->fromJson(json["materials"].toObject());
+        }
+
+        if (json.contains("box_size") && json["box_size"].isArray()) {
+            QJsonArray boxSizeArr = json["box_size"].toArray();
+            if (boxSizeArr.size() >= 3) {
+                setBoxSize(QVector3D(static_cast<float>(boxSizeArr[0].toDouble()),
+                                     static_cast<float>(boxSizeArr[1].toDouble()),
+                                     static_cast<float>(boxSizeArr[2].toDouble())));
+            }
+        }
+
+        if (json.contains("radius")) {
+            setRadius(json["radius"].toDouble());
+        }
+
+        if (json.contains("height")) {
+            setHeight(json["height"].toDouble());
+        }
+
+        if (json.contains("length")) {
+            setLength(json["length"].toDouble());
         }
 
         return true;

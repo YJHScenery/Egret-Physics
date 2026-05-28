@@ -182,7 +182,7 @@ namespace egret
             // Create RigidBody
             auto entity = std::make_shared<RigidBody>(position, velocity, mass);
 
-            LOG_DEBUG(QString::number(mass));
+            // LOG_DEBUG(QString::number(mass));
 
             entity->setShape(std::move(shape));
 

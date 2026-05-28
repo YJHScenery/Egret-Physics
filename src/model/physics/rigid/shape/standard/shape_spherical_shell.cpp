@@ -9,10 +9,9 @@
 
 namespace egret
 {
-    const std::string& ShapeSphericalShell::typeId() const
+    ShapeID ShapeSphericalShell::typeId() const
     {
-        static std::string typeId {TYPE_ID_STANDARD_SPHERICAL_SHELL};
-        return typeId;
+        return ShapeID::SphericalShell;
     }
 
     Eigen::Matrix3d ShapeSphericalShell::getInertiaTensor(double mass) const
@@ -24,7 +23,7 @@ namespace egret
     SceneRenderItem ShapeSphericalShell::getBasicRenderInfo(const Eigen::Vector3d& position) const
     {
         SceneRenderItem item = ShapeSphere::getBasicRenderInfo(position);
-        item.kind = this->typeId();
+        item.kind = (std::uint32_t)this->typeId();
         return item;
     }
 

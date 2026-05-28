@@ -1,67 +1,71 @@
 import math
 
-def generate_normalized_circle_obj(filepath, radius=1.0, segments=128):
+def create_double_sided_circle_obj(filename, radius=0.5, segments=128):
     """
-    生成一个归一化圆的OBJ模型文件（位于XZ平面上的圆形面片）。
-
-    参数:
-        filepath (str): 输出OBJ文件的路径。
-        radius (float): 圆的半径，默认为1.0。
-        segments (int): 圆的细分段数（圆周上的顶点数），默认为128。
+    创建双面圆形OBJ文件（正反两面都有三角形）
     """
     vertices = []
-    texcoords = []
     faces = []
 
-    # 添加中心顶点 (索引0)
-    vertices.append((0.0, 0.0, 0.0))
-    texcoords.append((0.5, 0.5))  # 中心纹理坐标
+    # 顶层顶点（Z=0）
+    vertices.append((0.0, 0.0, 0.0))  # 顶层圆心
 
-    # 生成圆周上的顶点
     for i in range(segments):
         angle = 2 * math.pi * i / segments
         x = radius * math.cos(angle)
-        z = radius * math.sin(angle)
-        vertices.append((x, 0.0, z))
+        y = radius * math.sin(angle)
+        vertices.append((x, y, 0.0))  # 顶层圆周点
 
-        # 纹理坐标: u从0到1映射角度，v从0到1映射半径
-        # 这里使用等面积映射方式：u = (cos(angle)+1)/2, v = (sin(angle)+1)/2
-        # 但为了简单且不失一般性，使用极坐标映射：u = 0.5 + 0.5*cos(angle), v = 0.5 + 0.5*sin(angle)
-        u = 0.5 + 0.5 * math.cos(angle)
-        v = 0.5 + 0.5 * math.sin(angle)
-        texcoords.append((u, v))
+    # 底层顶点（Z=0，位置相同但独立顶点）
+    bottom_center_idx = len(vertices)
+    vertices.append((0.0, 0.0, 0.0))  # 底层圆心
 
-    # 生成三角形面（中心与相邻两个圆周顶点）
     for i in range(segments):
-        # 顶点索引（OBJ从1开始，中心为1，圆周顶点从2到segments+1）
-        center_idx = 1
-        curr_idx = i + 2  # 当前圆周顶点索引
-        next_idx = ((i + 1) % segments) + 2  # 下一个圆周顶点索引
+        angle = 2 * math.pi * i / segments
+        x = radius * math.cos(angle)
+        y = radius * math.sin(angle)
+        vertices.append((x, y, 0.0))  # 底层圆周点
 
-        # 三角形面：中心、当前顶点、下一个顶点
-        faces.append((center_idx, curr_idx, next_idx))
+    # 生成正面三角形（法线朝上）
+    for i in range(segments):
+        v1 = 1  # 顶层圆心
+        v2 = i + 2  # 当前圆周点
+        v3 = i + 3 if i < segments - 1 else 2  # 下一个圆周点
+        faces.append((v1, v2, v3, "top"))
 
-    # 写入OBJ文件
-    with open(filepath, 'w') as f:
-        f.write("# Normalized Circle (XZ Plane)\n")
-        f.write(f"# Radius: {radius}, Segments: {segments}\n")
-        f.write("o Circle\n")
+    # 生成背面三角形（法线朝下，顶点顺序相反）
+    offset = bottom_center_idx + 1
+    for i in range(segments):
+        v1 = bottom_center_idx + 1  # 底层圆心
+        v2 = offset + i  # 当前圆周点
+        v3 = offset + (i + 1 if i < segments - 1 else 0)  # 下一个圆周点
+        # 注意：背面使用相反的顶点顺序使法线朝下
+        faces.append((v1, v3, v2, "bottom"))
 
-        # 写入顶点
+    # 写入文件
+    with open(filename, 'w') as f:
+        f.write("# 双面圆形模型\n")
+        f.write(f"# 直径: {radius*2}, 分片: {segments}\n")
+        f.write("o DoubleSidedCircle\n\n")
+
+        # 写入所有顶点
         for v in vertices:
-            f.write(f"v {v[0]} {v[1]} {v[2]}\n")
+            f.write(f"v {v[0]:.6f} {v[1]:.6f} {v[2]:.6f}\n")
 
-        # 写入纹理坐标
-        for vt in texcoords:
-            f.write(f"vt {vt[0]} {vt[1]}\n")
-
-        # 写入面（使用顶点和纹理坐标索引）
+        f.write("\n# 正面 (法线朝上)\n")
         for face in faces:
-            f.write(f"f {face[0]}/{face[0]} {face[1]}/{face[1]} {face[2]}/{face[2]}\n")
+            if face[3] == "top":
+                f.write(f"f {face[0]} {face[1]} {face[2]}\n")
 
-    print(f"OBJ file generated: {filepath}")
-    print(f"Vertices: {len(vertices)}, Faces: {len(faces)}")
+        f.write("\n# 背面 (法线朝下)\n")
+        for face in faces:
+            if face[3] == "bottom":
+                f.write(f"f {face[0]} {face[1]} {face[2]}\n")
 
-if __name__ == "__main__":
-    # 生成半径1，分片128的圆OBJ文件
-    generate_normalized_circle_obj("../resources/assets/model_3d/circle_disk/circle.obj", radius=1.0, segments=128)
+    print(f"双面圆形文件已创建: {filename}")
+    print(f"分段数: {segments}")
+    print(f"总顶点数: {len(vertices)}")
+    print(f"总面数: {len(faces)}")
+
+# 创建双面圆形
+create_double_sided_circle_obj("circle_double_sided.obj", radius=0.5, segments=128)

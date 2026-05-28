@@ -166,57 +166,57 @@ Node {
         AxisLine {
             length: axisLength
             thickness: axisThickness
-            color: "#E0E7FF"
+            color: "#9CA3AF"
             axis: Qt.vector3d(1, 0, 0)
         }
         AxisLine {
             length: axisLength
             thickness: axisThickness
-            color: "#4B5563"
+            color: "#E0E7FF"
             axis: Qt.vector3d(0, 0, 1)
         }
         AxisLine {
             length: axisLength
             thickness: axisThickness
-            color: "#9CA3AF"
+            color: "#4B5563"
             axis: Qt.vector3d(0, 1, 0)
         }
 
         AxisLine {
             length: axisLength
             thickness: axisThickness
-            color: "#E0E7FF"
+            color: "#9CA3AF"
             axis: Qt.vector3d(-1, 0, 0)
         }
         AxisLine {
             length: axisLength
             thickness: axisThickness
-            color: "#4B5563"
+            color: "#E0E7FF"
             axis: Qt.vector3d(0, 0, -1)
         }
         AxisLine {
             length: axisLength
             thickness: axisThickness
-            color: "#9CA3AF"
+            color: "#4B5563"
             axis: Qt.vector3d(0, -1, 0)
         }
 
         AxisArrow {
-            color: "#E0E7FF"
+            color: "#9CA3AF"
             direction: Qt.vector3d(1, 0, 0)
             offset: Qt.vector3d(axisLength, 0, 0)
             length: arrowLength
             radius: arrowRadius
         }
         AxisArrow {
-            color: "#4B5563"
+            color: "#E0E7FF"
             direction: Qt.vector3d(0, 0, 1)
             offset: Qt.vector3d(0, 0, axisLength)
             length: arrowLength
             radius: arrowRadius
         }
         AxisArrow {
-            color: "#9CA3AF"
+            color: "#4B5563"
             direction: Qt.vector3d(0, 1, 0)
             offset: Qt.vector3d(0, axisLength, 0)
             length: arrowLength
