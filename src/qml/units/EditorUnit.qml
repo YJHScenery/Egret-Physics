@@ -1,3 +1,5 @@
+// noinspection UnnecessaryLabelJS
+
 import QtQuick 2.15
 import QtQuick.Controls 6.9
 import QtQuick.Controls.Basic 6.9 as Basic
@@ -131,15 +133,16 @@ ColumnLayout {
                         id: basicNode
 
                         property var alphaModeMap: ({
-                                "Default": PrincipledMaterial.Default,
-                                "Blend": PrincipledMaterial.Blend,
-                                "Opaque": PrincipledMaterial.Opaque,
-                                "Mask": PrincipledMaterial.Mask
-                            })
+                            "Default": PrincipledMaterial.Default,
+                            "Blend": PrincipledMaterial.Blend,
+                            "Opaque": PrincipledMaterial.Opaque,
+                            "Mask": PrincipledMaterial.Mask
+                        })
 
                         property var modelList: ModelManager.getAllModels()
                         Connections {
                             target: ModelManager
+
                             function onModelListChanged() {
                                 console.log("Model list changed, refreshing Repeater3D");
                                 basicNode.modelList = ModelManager.getAllModels();
@@ -166,6 +169,7 @@ ColumnLayout {
 
                                 property var materialAlphaMode: basicNode.alphaModeMap[modelData.materials.alphaMode]
                                 property bool isSelected: editorCanvas.selectedObjectName === objectName
+                                property var transform: ModelManager.setQuick3DRenderTransform(index)
 
                                 objectName: modelData.name ? modelData.name : ("model-" + index)
                                 source: modelData.source
@@ -173,9 +177,14 @@ ColumnLayout {
                                 // z-up 到 y-up 的交换
                                 // position: Qt.vector3d(modelData.pos.x, modelData.pos.z, -modelData.pos.y)
 
-                                position: modelData.pos
-                                scale: modelData.scale
-                                rotation: modelData.rotation
+                                position: transform["position"]
+                                scale: transform["scale"]
+                                rotation: transform["rotation"] // modelData.rotation
+
+
+                                Component.onCompleted: {
+                                    console.log(delegateModel.position)
+                                }
                                 pickable: true
 
                                 materials: PrincipledMaterial {
@@ -317,6 +326,11 @@ ColumnLayout {
                 Layout.fillHeight: true
                 title: "属性 / Inspector"
 
+                property real radius_Optional: 1.0;
+                property vector3d size_BoxOnly: Qt.vector3d(1, 1, 1);
+                property real length_RodOnly: 1.0;
+                property real height_Optional: 1.0;
+
                 property real m_mass: 0.0
                 property real m_loadTime: 0.0
                 property real m_restitution: 1.0
@@ -341,6 +355,12 @@ ColumnLayout {
                         entity_mass: inspectorPanel.m_mass,
                         load_time: inspectorPanel.m_loadTime,
                         restitution: inspectorPanel.m_restitution,
+
+                        circle_radius: inspectorPanel.radius_Optional,
+                        box_size: inspectorPanel.size_BoxOnly,
+                        length: inspectorPanel.length_RodOnly,
+                        height: inspectorPanel.height_Optional,
+
                         position: [inspectorPanel.m_pos.x, inspectorPanel.m_pos.y, inspectorPanel.m_pos.z],
                         scale: [inspectorPanel.m_scale.x, inspectorPanel.m_scale.y, inspectorPanel.m_scale.z],
                         rotation: [inspectorPanel.m_rotation.scalar, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z],
@@ -366,6 +386,8 @@ ColumnLayout {
                     }
                 }
 
+
+
                 ScrollView {
                     id: inspectorScrollView
                     anchors.fill: parent
@@ -375,7 +397,8 @@ ColumnLayout {
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                     rightPadding: inspectorScrollBar.visible ? inspectorScrollBar.width : 0
 
-                    ScrollBar.vertical: Basic.ScrollBar {
+                    ScrollBar.vertical: Basic.ScrollBar
+                    {
                         id: inspectorScrollBar
                         width: 8
                         policy: ScrollBar.AsNeeded
@@ -412,11 +435,8 @@ ColumnLayout {
                             }
                         }
 
-                        Rectangle {
+                        EgretSeparator{
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 2  // 线条高度
-                            color: theme.accent         // 淡蓝色
-                            opacity: 0.8               // 可选：稍微透明增加柔和感
                         }
 
                         Rectangle {
@@ -481,6 +501,10 @@ ColumnLayout {
                                 id: sourceComboBox
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 28
+
+                                onCurrentIndexChanged: {
+                                    basicParamsGrid.updateDynamicProperties(sourceComboBox.currentIndex)
+                                }
 
                                 // 下拉菜单样式
                                 popup.width: parent.width * 0.82
@@ -553,28 +577,7 @@ ColumnLayout {
                                 }
                                 onCurrentValueChanged: inspectorPanel.m_type = currentValue
                             }
-                            // Rectangle {
-                            //     Layout.fillWidth: true
-                            //     Layout.preferredHeight: 28
-                            //     radius: theme.radiusS
-                            //     color: theme.bg1
-                            //     border.width: 1
-                            //     border.color: typeTextField.activeFocus ? theme.accent : theme.border
-                            //
-                            //     TextField {
-                            //         id: typeTextField
-                            //         anchors.fill: parent
-                            //         text: inspectorPanel.m_type
-                            //         onTextChanged: inspectorPanel.m_type = text
-                            //         color: "#FFFFFF"
-                            //         horizontalAlignment: Text.AlignLeft
-                            //         verticalAlignment: Text.AlignVCenter
-                            //         leftPadding: 10
-                            //         rightPadding: 10
-                            //         selectByMouse: true
-                            //         background: null
-                            //     }
-                            // }
+
 
                             Label {
                                 text: "质量"
@@ -616,6 +619,10 @@ ColumnLayout {
                             }
                         }
 
+                        EgretSeparator{
+                            Layout.fillWidth: true
+                        }
+
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 28
@@ -633,10 +640,154 @@ ColumnLayout {
                         }
 
                         GridLayout {
+                            id: basicParamsGrid
                             Layout.fillWidth: true
                             columns: 2
                             columnSpacing: 10
                             rowSpacing: 8
+
+                            // 存储动态属性定义的数据模型
+                            property var dynamicProperties: []
+
+                            Component.onCompleted: {
+                                updateDynamicProperties(sourceComboBox.currentIndex)
+                            }
+
+                            function updateDynamicProperties(index) {
+                                dynamicProperties = []
+
+                                switch (index) {
+                                    case 0: {
+                                        dynamicProperties = [
+                                            {
+                                                label: "长、宽、高",
+                                                getValue: function () {
+                                                    return inspectorPanel.size_BoxOnly
+                                                },
+                                                setValue: function (val, oldVal) {
+                                                    inspectorPanel.size_BoxOnly = Qt.vector3d(val.x, oldVal.y, oldVal.z)
+                                                },
+                                                size: 3
+                                            }
+                                            // 可以添加更多属性
+                                        ]
+                                        break;
+                                    }
+                                    case 1:
+                                    case 2: {
+                                        dynamicProperties = [
+                                            {
+                                                label: "半径",
+                                                getValue: function () {
+                                                    return inspectorPanel.radius_Optional
+                                                },
+                                                setValue: function (val, oldVal) {
+                                                    inspectorPanel.radius_Optional = Qt.val
+                                                },
+                                                size: 1
+                                            },
+                                            {
+                                                label: "高",
+                                                getValue: function () {
+                                                    return inspectorPanel.height_Optional
+                                                },
+                                                setValue: function (val, oldVal) {
+                                                    inspectorPanel.height_Optional = Qt.vector3d(val.x, oldVal.y, oldVal.z)
+                                                },
+                                                size: 1
+                                            }
+                                        ]
+                                        break;
+                                    }
+                                    case 3:
+                                    case 4: {
+                                        dynamicProperties = [
+                                            {
+                                                label: "半径",
+                                                getValue: function () {
+                                                    return inspectorPanel.radius_Optional
+                                                },
+                                                setValue: function (val, oldVal) {
+                                                    inspectorPanel.radius_Optional = Qt.val
+                                                },
+                                                size: 1
+                                            }
+                                        ]
+                                        break;
+                                    }
+                                    case 5: {
+                                        dynamicProperties = [
+                                            {
+                                                label: "长度",
+                                                getValue: function () {
+                                                    return inspectorPanel.length_RodOnly
+                                                },
+                                                setValue: function (val, oldVal) {
+                                                    inspectorPanel.length_RodOnly = Qt.val
+                                                },
+                                                size: 1
+                                            }]
+                                        break;
+                                    }
+                                    case 6:
+                                    case 7: {
+                                        dynamicProperties = [
+                                            {
+                                                label: "半径",
+                                                getValue: function () {
+                                                    return inspectorPanel.radius_Optional
+                                                },
+                                                setValue: function (val, oldVal) {
+                                                    inspectorPanel.radius_Optional = Qt.val
+                                                },
+                                                size: 1
+                                            }]
+                                        break;
+                                    }
+                                    default:
+                                        break;
+                                }
+                            }
+
+
+                            Repeater {
+                                id: dynamicRepeater
+                                model: basicParamsGrid.dynamicProperties
+
+                                // 每个动态属性组
+                                Column {
+                                    width: parent.width
+                                    Layout.fillWidth: true
+                                    Layout.columnSpan: 2
+
+                                    Label {
+                                        text: modelData.label
+                                        color: "#BFD8F4"
+                                        Layout.fillWidth: true
+                                    }
+
+                                    RowLayout {
+                                        width: parent.width
+                                        spacing: 6
+                                        Repeater {
+
+                                            model: modelData.size
+
+                                            FloatField {
+                                                Layout.fillWidth: true
+                                                value: 0.0
+                                                stepSize: 0.1
+                                                onValueChanged: {
+                                                    var oldVal = modelData.getValue()
+                                                    modelData.setValue(Qt.vector3d(value, oldVal.y, oldVal.z), oldVal)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+
 
                             Label {
                                 text: "位置 (x, y, z)"
@@ -675,6 +826,7 @@ ColumnLayout {
                                 color: "#BFD8F4"
                                 Layout.columnSpan: 2
                             }
+
                             RowLayout {
                                 Layout.fillWidth: true
                                 Layout.columnSpan: 2
@@ -704,6 +856,7 @@ ColumnLayout {
                                 color: "#BFD8F4"
                                 Layout.columnSpan: 2
                             }
+
                             RowLayout {
                                 Layout.fillWidth: true
                                 Layout.columnSpan: 2
@@ -737,6 +890,10 @@ ColumnLayout {
                                 }
 
                             }
+                        }
+
+                        EgretSeparator{
+                            Layout.fillWidth: true
                         }
 
                         Rectangle {
@@ -818,6 +975,10 @@ ColumnLayout {
                                     onValueChanged: inspectorPanel.m_initialAnguVelo = Qt.vector3d(inspectorPanel.m_initialAnguVelo.x, inspectorPanel.m_initialAnguVelo.y, value)
                                 }
                             }
+                        }
+
+                        EgretSeparator{
+                            Layout.fillWidth: true
                         }
 
                         Rectangle {
@@ -909,11 +1070,8 @@ ColumnLayout {
                             }
                         }
 
-                        Rectangle {
+                        EgretSeparator{
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 2  // 线条高度
-                            color: theme.accent        // 淡蓝色
-                            opacity: 0.8               // 可选：稍微透明增加柔和感
                         }
 
                         EgretPushButton {

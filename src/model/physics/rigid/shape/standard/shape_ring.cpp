@@ -12,10 +12,9 @@ namespace egret
     {
     }
 
-    const std::string& ShapeRing::typeId() const
+    ShapeID ShapeRing::typeId() const
     {
-        static std::string typeId {TYPE_ID_STANDARD_RING};
-        return typeId;
+        return ShapeID::Ring;
     }
 
     Eigen::Matrix3d ShapeRing::getInertiaTensor(const double mass) const
@@ -26,7 +25,7 @@ namespace egret
     SceneRenderItem ShapeRing::getBasicRenderInfo(const Eigen::Vector3d& position) const
     {
         SceneRenderItem item = ShapeDisk::getBasicRenderInfo(position);
-        item.kind = this->typeId();
+        item.kind = (std::uint32_t)this->typeId();
         return item;
     }
 

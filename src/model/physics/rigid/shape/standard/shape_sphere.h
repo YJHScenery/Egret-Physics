@@ -15,7 +15,7 @@ namespace egret
 
         void setRadius(double radius);
 
-        [[nodiscard]] const std::string& typeId() const override;
+        [[nodiscard]] ShapeID typeId() const override;
 
         [[nodiscard]] double getVolume() const override;
 

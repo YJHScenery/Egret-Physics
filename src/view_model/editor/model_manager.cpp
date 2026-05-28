@@ -387,6 +387,106 @@ namespace egret
         emit operationCompleted(true, QString("Updated material for %1 models").arg(targetIds.size()));
     }
 
+    QVariantMap ModelManager::setQuick3DRenderTransform(int index)
+    {
+        ModelItemData* model(getModelAtIndex(index));
+        if (model == nullptr) {
+            return {};
+        }
+
+        qDebug() << model->boxSize();
+        qDebug() << model->scale();
+        qDebug() << model->rotation();
+        qDebug() << model->pos();
+
+        QVariantMap result;
+
+        result.insert("position", QVector3D{});
+        result.insert("scale", QVector3D{1.0, 1.0, 1.0});
+        result.insert("rotation", QQuaternion{});
+
+        const QVector3D pos{model->pos()};
+        const QVector3D scale{model->scale()};
+        const QQuaternion rotation{model->rotation()};
+        // constexpr QQuaternion qR(0.5f, 0.5f, 0.5f, 0.5f);
+
+        result["position"] = QVector3D{pos.y(), pos.z(), pos.x()};
+        result["rotation"] = QQuaternion{rotation.scalar(), rotation.y(), rotation.z(), rotation.x()};
+
+        const std::uint32_t shapeID{ModelItemData::ShowMatchesTypeIDMap.value(model->type())};
+        qDebug() << "Shape ID" << shapeID;
+        switch (shapeID) {
+        case static_cast<std::uint32_t>(ShapeID::Box): {
+            const QVector3D boxSize{model->boxSize()};
+            result["scale"] = 0.01 * QVector3D{
+                scale.y() * boxSize.y(), scale.z() * boxSize.z(), scale.x() * boxSize.x()
+            };
+            break;
+        }
+        case static_cast<std::uint32_t>(ShapeID::Cylinder):{
+            const float radius = model->radius();
+            const float height = model->height();
+            result["scale"] = 0.01 * QVector3D{scale.y() * height, scale.z() * radius, scale.x() * radius};
+            break;
+            break;
+        }
+        case static_cast<std::uint32_t>(ShapeID::CylindricalShell): {
+            const float radius = model->radius();
+            const float height = model->height();
+            result["scale"] = QVector3D{scale.y() * radius, scale.z() * height, scale.x() * radius};
+
+            break;
+        }
+
+        case static_cast<std::uint32_t>(ShapeID::Disk):{
+            const float radius = model->radius();
+            float reduce = 0.01;
+
+            if (radius > 100.f) {
+                reduce = pow(10, -log10f(radius));
+            }
+            // Disk 和 Ring 都是二维模型，其原来的 z 方向缩放被忽略。
+            result["scale"] = 0.01 * QVector3D{scale.y() * radius, reduce, scale.x() * radius};
+            break;
+        }
+        case static_cast<std::uint32_t>(ShapeID::Ring): {
+            const float radius = model->radius();
+            // Disk 和 Ring 都是二维模型，其原来的 z 方向缩放被忽略。
+            result["scale"] = QVector3D{scale.y() * radius, 1.0, scale.x() * radius};
+            break;
+        }
+
+        case static_cast<std::uint32_t>(ShapeID::Rod): {
+
+            const float length = model->length();
+            float reduce = 0.01;
+
+            if (length > 100.f) {
+                reduce = pow(10, -log10f(length));
+            }
+
+            result["scale"] = 0.01 * QVector3D{length * reduce, length, length * reduce};
+            break;
+        }
+
+        case static_cast<std::uint32_t>(ShapeID::Sphere):
+            [[fallthrough]];
+        case static_cast<std::uint32_t>(ShapeID::SphericalShell): {
+            const float radius = model->radius();
+            result["scale"] = 0.01 * QVector3D{
+                scale.y() * radius, scale.z() * radius, scale.x() * radius
+            };
+
+            break;
+        }
+
+        default:
+            break;
+        }
+
+        return result;
+    }
+
     void ModelManager::saveState()
     {
         QHash<QString, QSharedPointer<ModelItemData>> currentState;
@@ -473,8 +573,11 @@ namespace egret
         auto* cube = new ModelItemData();
         cube->setName("Default Cube");
         cube->setSource("#Cube");
-        cube->setPos(QVector3D(80, 0, 0));
-        cube->setScale(QVector3D(1.2f, 0.12f, 1.2f));
+        cube->setType("标准盒体");
+        cube->setBoxSize({10, 10, 10});
+        cube->setPos(QVector3D(300, 200, 100));
+        cube->setRotation({0.23, 1, 0, 0});
+        cube->setScale(QVector3D(1, 1, 1));
         cube->materials()->setBaseColor(QColor("#4CA3FF"));
         cube->materials()->setMetalness(0.8);
         cube->materials()->setRoughness(0.3);
@@ -485,61 +588,69 @@ namespace egret
         auto* sphere = new ModelItemData();
         sphere->setName("Default Sphere");
         sphere->setSource("#Sphere");
-        sphere->setPos(QVector3D(0, 80, 0));
+        sphere->setId("1114514");
+        sphere->setRadius(110.4);
+        sphere->setType("标准球体");
+        sphere->setPos(QVector3D(10, 0, 0));
         sphere->materials()->setBaseColor(QColor("#4CA3FF"));
+        sphere->setScale(QVector3D(1, 1, 1));
         sphere->materials()->setMetalness(0.8);
         sphere->materials()->setRoughness(0.3);
         models.append(sphere);
-
-        // 3. Default Rectangle
-        auto* rect = new ModelItemData();
-        rect->setName("Default Rectangle");
-        rect->setSource("#Rectangle");
-        rect->setPos(QVector3D(140, 80, 0));
-        rect->materials()->setBaseColor(QColor("#4CA3FF"));
-        rect->materials()->setMetalness(0.8);
-        rect->materials()->setRoughness(0.3);
-        models.append(rect);
-
-        // 4. Default Cylinder
-        auto* cylinder = new ModelItemData();
-        cylinder->setName("Default Cylinder");
-        cylinder->setSource("#Cylinder");
-        cylinder->setPos(QVector3D(-160, 80, 0));
-        cylinder->materials()->setBaseColor(QColor("#4CA3FF"));
-        cylinder->materials()->setMetalness(0.8);
-        cylinder->materials()->setRoughness(0.3);
-        models.append(cylinder);
-
-        // 5. Torus
-        auto* torus = new ModelItemData();
-        torus->setName("Default Torus");
-        torus->setSource("qrc:/model_3d/assets/model_3d/torus/mesh/torus_R1.mesh");
-        torus->setPos(QVector3D(160, 180, 160));
-        torus->setScale(QVector3D(100.0f, 100.0f, 100.0f));
-        torus->materials()->setBaseColor(QColor("#c9dff6"));
-        torus->materials()->setMetalness(0.2);
-        torus->materials()->setRoughness(0.9);
-        torus->materials()->setAlphaMode("Opaque");
-        models.append(torus);
-
+        //
+        // // 4. Default Cylinder
+        // auto* cylinder = new ModelItemData();
+        // cylinder->setName("Default Cylinder");
+        // cylinder->setRadius(10);
+        // cylinder->setHeight(30);
+        // cylinder->setSource("#Cylinder");
+        // cube->setType("标准圆柱体");
+        // cylinder->setPos(QVector3D(-160, 80, 0));
+        // cylinder->materials()->setBaseColor(QColor("#4CA3FF"));
+        // cylinder->materials()->setMetalness(0.8);
+        // cylinder->materials()->setRoughness(0.3);
+        // models.append(cylinder);
+        //
+        // // 5. Torus
+        // auto* torus = new ModelItemData();
+        // torus->setName("Default Torus");
+        // cube->setType("标准圆环");
+        // cylinder->setRadius(10000);
+        // torus->setSource("qrc:/model_3d/assets/model_3d/torus/mesh/torus_R1.mesh");
+        // torus->setPos(QVector3D(160, 180, 160));
+        // torus->setScale(QVector3D(1.0f, 1.0f, 1.0f));
+        // torus->materials()->setBaseColor(QColor("#c9dff6"));
+        // torus->materials()->setMetalness(0.2);
+        // torus->materials()->setRoughness(0.9);
+        // torus->materials()->setAlphaMode("Opaque");
+        // models.append(torus);
+        //
         auto* cylinder_side = new ModelItemData();
         cylinder_side->setName("Default Cylinder Side");
-        cylinder_side->setSource("qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh");
+        cylinder_side->setType("标准圆柱面");
+        cylinder_side->setRadius(10);
+        cylinder_side->setHeight(30);
+        // cylinder_side->setSource("qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh");
         cylinder_side->setPos(QVector3D(-160, -180, -160));
-        cylinder_side->setScale(QVector3D(100.0f, 100.0f, 100.0f));
+
+        // cylinder_side->setScale(QVector3D(1.0f, 1.0f, 1.0f));
         cylinder_side->materials()->setBaseColor(QColor("#c9dff6"));
         cylinder_side->materials()->setMetalness(0.2);
         cylinder_side->materials()->setRoughness(0.9);
         cylinder_side->materials()->setAlphaMode("Opaque");
         models.append(cylinder_side);
-
-
+        //
+        //
         auto* disk = new ModelItemData();
         disk->setName("Default Disk");
-        disk->setSource("#Cylinder");
+        // disk->setSource("#Cylinder");
+        disk->setType("标准圆盘");
+
+        disk->setRadius(100);
+
         disk->setPos(QVector3D(160, 180, 160));
-        disk->setScale(QVector3D(1.0f, 0.01f, 1.0f));
+        // disk->setScale(QVector3D(1.0f, 0.01f, 1.0f));
+        disk->setRotation({0.9239, 0.2209, 0.2209, 0.2209});
         disk->materials()->setBaseColor(QColor("#c9dff6"));
         disk->materials()->setMetalness(0.2);
         disk->materials()->setRoughness(0.9);

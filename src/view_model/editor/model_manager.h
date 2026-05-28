@@ -94,6 +94,8 @@ namespace egret
         Q_INVOKABLE void setModelsMaterialProperty(const QString& property, const QVariant& value,
                                                    const QStringList& ids = QStringList());
 
+        Q_INVOKABLE QVariantMap setQuick3DRenderTransform(int index);
+
         // 撤销/重做（可选）
         Q_INVOKABLE void saveState();
 

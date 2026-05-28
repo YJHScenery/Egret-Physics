@@ -12,10 +12,9 @@ namespace egret
     {
     }
 
-    const std::string& ShapeCylindricalShell::typeId() const
+    ShapeID ShapeCylindricalShell::typeId() const
     {
-        static std::string typeId = TYPE_ID_STANDARD_CYLINDRICAL_SHELL;
-        return typeId;
+        return ShapeID::CylindricalShell;
     }
 
     Eigen::Matrix3d ShapeCylindricalShell::getInertiaTensor(double mass) const
@@ -35,7 +34,7 @@ namespace egret
     SceneRenderItem ShapeCylindricalShell::getBasicRenderInfo(const Eigen::Vector3d& position) const
     {
         SceneRenderItem item = ShapeCylinder::getBasicRenderInfo(position);
-        item.kind = this->typeId();
+        item.kind = (std::uint32_t)this->typeId();
         return item;
     }
 } // egret

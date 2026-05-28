@@ -12,10 +12,9 @@ namespace egret
     {
     }
 
-    const std::string& ShapeRod::typeId() const
+    ShapeID ShapeRod::typeId() const
     {
-        static std::string typeId {TYPE_ID_STANDARD_ROD};
-        return typeId;
+        return ShapeID::Rod;
     }
 
     Eigen::Vector3d ShapeRod::getCenterOfMass() const
@@ -45,7 +44,7 @@ namespace egret
     {
         SceneRenderItem item{};
         constexpr double displaySize = 16.0;
-        item.kind = this->typeId();
+        item.kind = (std::uint32_t)this->typeId();
         item.width = displaySize;
         item.height = displaySize;
         item.x = position.x() - displaySize * 0.5;

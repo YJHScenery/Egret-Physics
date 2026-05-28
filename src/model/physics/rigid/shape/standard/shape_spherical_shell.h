@@ -13,7 +13,7 @@ class ShapeSphericalShell: public ShapeSphere {
 public:
     explicit ShapeSphericalShell(const double radius): ShapeSphere(radius) {}
 
-    [[nodiscard]] const std::string& typeId() const override;
+    [[nodiscard]] ShapeID typeId() const override;
 
     [[nodiscard]] Eigen::Matrix3d getInertiaTensor(double mass) const override;
 

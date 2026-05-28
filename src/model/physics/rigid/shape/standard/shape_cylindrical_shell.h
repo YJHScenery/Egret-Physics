@@ -13,7 +13,7 @@ class ShapeCylindricalShell: public ShapeCylinder {
 public:
     ShapeCylindricalShell(double radius, double mass);
 
-    [[nodiscard]] const std::string& typeId() const override;
+    [[nodiscard]] ShapeID typeId() const override;
 
     [[nodiscard]] Eigen::Matrix3d getInertiaTensor(double mass) const override;
 

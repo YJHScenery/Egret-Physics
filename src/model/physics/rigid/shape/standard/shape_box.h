@@ -15,7 +15,7 @@ namespace egret
     public:
         explicit ShapeBox(Eigen::Vector3d size);
 
-        [[nodiscard]] const std::string& typeId() const override;
+        [[nodiscard]] ShapeID typeId() const override;
 
 
         ShapeBox(double length, double width, double height);

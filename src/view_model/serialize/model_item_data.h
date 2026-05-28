@@ -12,7 +12,6 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
-
 namespace egret
 {
     class MaterialData : public QObject
@@ -24,7 +23,7 @@ namespace egret
         Q_PROPERTY(QString alphaMode READ alphaMode WRITE setAlphaMode NOTIFY alphaModeChanged)
 
     public:
-        explicit MaterialData(QObject* parent = nullptr);
+        explicit MaterialData(QObject *parent = nullptr);
 
         // Getters/Setters
         [[nodiscard]] QColor baseColor() const;
@@ -32,14 +31,14 @@ namespace egret
         [[nodiscard]] qreal roughness() const;
         [[nodiscard]] QString alphaMode() const;
 
-        void setBaseColor(const QColor& baseColor);
+        void setBaseColor(const QColor &baseColor);
         void setMetalness(qreal metalness);
         void setRoughness(qreal roughness);
-        void setAlphaMode(const QString& alphaMode);
+        void setAlphaMode(const QString &alphaMode);
 
         // 序列化
         [[nodiscard]] QJsonObject toJson() const;
-        bool fromJson(const QJsonObject& json);
+        bool fromJson(const QJsonObject &json);
 
     signals:
         void baseColorChanged();
@@ -59,6 +58,12 @@ namespace egret
         double m_mass{};
         double m_loadTime{};
         double m_restitution{1.0};
+
+        std::optional<QVector3D> m_boxSize;
+        std::optional<double> m_radius;
+        std::optional<double> m_height;
+        std::optional<double> m_length;
+
         QString m_id{};
         QString m_name{};
         QString m_source{};
@@ -75,7 +80,6 @@ namespace egret
         QString m_alphaMode{};
     };
 
-
     class ModelItemData : public QObject
     {
         Q_OBJECT
@@ -89,12 +93,16 @@ namespace egret
         Q_PROPERTY(QQuaternion rotation READ rotation WRITE setRotation NOTIFY rotationChanged)
         Q_PROPERTY(QVector3D initialVelo READ initialVelo NOTIFY initialVeloChanged)
         Q_PROPERTY(QVector3D initialAnguVelo READ initialAnguVelo NOTIFY initialAnguVeloChanged)
-        Q_PROPERTY(MaterialData* materials READ materials CONSTANT)
+        Q_PROPERTY(MaterialData *materials READ materials CONSTANT)
         Q_PROPERTY(QString type READ type WRITE setType NOTIFY typeChanged)
         Q_PROPERTY(double restitution READ restitution WRITE setRestitution NOTIFY restitutionChanged)
+        Q_PROPERTY(QVector3D boxSize READ boxSize WRITE setBoxSize NOTIFY boxSizeChanged)
+        Q_PROPERTY(double radius READ radius WRITE setRadius NOTIFY radiusChanged)
+        Q_PROPERTY(double height READ height WRITE setHeight NOTIFY heightChanged)
+        Q_PROPERTY(double length READ length WRITE setLength NOTIFY lengthChanged)
 
     public:
-        explicit ModelItemData(QObject* parent = nullptr);
+        explicit ModelItemData(QObject *parent = nullptr);
 
         // Getters/Setters
         [[nodiscard]] double mass() const;
@@ -109,30 +117,38 @@ namespace egret
         [[nodiscard]] QQuaternion rotation() const;
         [[nodiscard]] QVector3D initialVelo() const;
         [[nodiscard]] QVector3D initialAnguVelo() const;
-        [[nodiscard]] MaterialData* materials() const;
+        [[nodiscard]] MaterialData *materials() const;
+        [[nodiscard]] QVector3D boxSize() const;
+        [[nodiscard]] double radius() const;
+        [[nodiscard]] double height() const;
+        [[nodiscard]] double length() const;
 
         void setMass(double mass);
         void setLoadTime(double loadTime);
-        void setId(const QString& id);
-        void setName(const QString& name);
-        void setType(const QString& type);
-        void setSource(const QString& source);
-        void setPos(const QVector3D& pos);
-        void setScale(const QVector3D& scale);
-        void setRotation(const QQuaternion& rotation);
-        void setInitialVelo(const QVector3D& initialVelo);
-        void setInitialAnguVelo(const QVector3D& initialAnguVelo);
+        void setId(const QString &id);
+        void setName(const QString &name);
+        void setType(const QString &type);
+        void setSource(const QString &source);
+        void setPos(const QVector3D &pos);
+        void setScale(const QVector3D &scale);
+        void setRotation(const QQuaternion &rotation);
+        void setInitialVelo(const QVector3D &initialVelo);
+        void setInitialAnguVelo(const QVector3D &initialAnguVelo);
         void setRestitution(double restitution);
-
-
+        void setBoxSize(const QVector3D &boxSize);
+        void setRadius(double radius);
+        void setHeight(double height);
+        void setLength(double length);
 
         // 序列化
         [[nodiscard]] QJsonObject toJson() const;
-        bool fromJson(const QJsonObject& json);
+        bool fromJson(const QJsonObject &json);
 
         // 克隆
         [[nodiscard]] QSharedPointer<ModelItemData> clone() const;
-        static ModelItemData* createCopy(const ModelItemData& source, QObject* parent = nullptr);
+        static ModelItemData *createCopy(const ModelItemData &source, QObject *parent = nullptr);
+
+        static QMap<QString, std::uint32_t> ShowMatchesTypeIDMap;
 
     signals:
         void massChanged();
@@ -147,6 +163,10 @@ namespace egret
         void initialVeloChanged();
         void initialAnguVeloChanged();
         void restitutionChanged();
+        void boxSizeChanged();
+        void radiusChanged();
+        void heightChanged();
+        void lengthChanged();
 
     private:
         double m_mass{};
@@ -156,23 +176,30 @@ namespace egret
         QString m_name{};
         QString m_source{};
         QString m_type{};
+
+        std::optional<QVector3D> m_boxSize;
+        std::optional<double> m_radius;
+        std::optional<double> m_height;
+        std::optional<double> m_length;
+
         QVector3D m_pos{};
-        QVector3D m_scale{};
-        QQuaternion m_rotation{};
+        QVector3D m_scale{1.0f, 1.0f, 1.0f};
+        QQuaternion m_rotation{1.0f, 0, 0, 0};
 
         QVector3D m_initialVelo{};
         QVector3D m_initialAnguVelo{};
 
-        MaterialData* m_materials{};
+        MaterialData *m_materials{};
 
         // 原则上不允许外部修改 m_source。
         void matchSource();
 
         const static QMap<QString, QString> StaticGeneralTypeSourceMap;
         const static QString StaticBasicRingSourceStr;
+        const static QString StaticBasicDiskSourceStr;
     };
 
-    [[nodiscard]] ModelItemDataField parseModelItemDataFromQMLJson(const QString& qmlJson);
+    [[nodiscard]] ModelItemDataField parseModelItemDataFromQMLJson(const QString &qmlJson);
 } // egret
 
-#endif //EGRET_PHYSICS_MATERIAL_DATA_H
+#endif // EGRET_PHYSICS_MATERIAL_DATA_H

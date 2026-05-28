@@ -12,10 +12,9 @@ namespace egret
     {
     }
 
-    const std::string& ShapeDisk::typeId() const
+    ShapeID ShapeDisk::typeId() const
     {
-        static std::string typeId{TYPE_ID_STANDARD_DISK};
-        return typeId;
+        return ShapeID::Disk;
     }
 
     Eigen::Vector3d ShapeDisk::getCenterOfMass() const
@@ -50,7 +49,7 @@ namespace egret
     {
         SceneRenderItem item{};
         const double diameter = m_radius * 2.0;
-        item.kind = this->typeId();
+        item.kind = (std::uint32_t)this->typeId();
         item.width = diameter;
         item.height = diameter;
         item.x = position.x() - m_radius;

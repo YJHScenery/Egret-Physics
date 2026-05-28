@@ -12,7 +12,7 @@ namespace egret
         return registry;
     }
 
-    void ShapeFactoryRegistry::registerFactory(const std::string& typeId, ShapeFactory factory)
+    void ShapeFactoryRegistry::registerFactory(std::uint32_t typeId, ShapeFactory factory)
     {
         m_factories[typeId] = std::move(factory);
     }

@@ -12,10 +12,9 @@ namespace egret
     {
     }
 
-    const std::string& ShapeCylinder::typeId() const
+    ShapeID ShapeCylinder::typeId() const
     {
-        static std::string typeId = TYPE_ID_STANDARD_CYLINDER;
-        return typeId;
+        return ShapeID::Cylinder;
     }
 
     double ShapeCylinder::getVolume() const
@@ -79,7 +78,7 @@ namespace egret
     {
         SceneRenderItem item{};
         const double diameter = m_radius * 2.0;
-        item.kind = this->typeId();
+        item.kind = (std::uint32_t)this->typeId();
         item.width = diameter;
         item.height = diameter;
         item.x = position.x() - m_radius;
