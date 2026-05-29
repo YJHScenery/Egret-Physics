@@ -473,7 +473,7 @@ namespace egret
                 boxSizeX = diameter;
                 boxSizeY = diameter;
                 boxSizeZ = diameter;
-                modelRadius = diameter;
+                modelRadius = radius;
                 break;
             }
             case ShapeID::Cylinder:
@@ -484,7 +484,7 @@ namespace egret
                 boxSizeX = diameter;
                 boxSizeY = diameter;
                 boxSizeZ = height;
-                modelRadius = diameter;
+                modelRadius = radius;
                 modelHeight = height;
                 break;
             }
@@ -538,7 +538,7 @@ namespace egret
                                                                  modelHeight,
                                                                  modelLength);
             item.scale = renderScale;
-            item.rotation = {modelRotation.w(),  modelRotation.y(), modelRotation.z(), modelRotation.x()};
+            item.rotation = {modelRotation.w(), modelRotation.y(), modelRotation.z(), modelRotation.x()};
             item.position = {position.y(), position.z(), position.x()};
 
             items.push_back(std::move(item));
@@ -779,7 +779,6 @@ namespace egret
 
         return registerConstraint(name, simplePendulum);
     }
-
 
     ConstraintsBase* WorldSceneManager::getConstraint(const std::uint64_t id)
     {

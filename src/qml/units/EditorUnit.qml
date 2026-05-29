@@ -192,7 +192,14 @@ ColumnLayout {
                                     alphaMode: delegateModel.materialAlphaMode ? delegateModel.materialAlphaMode : PrincipledMaterial.Default
                                     cullMode: Material.NoCulling
                                 }
+
+                                Component.onCompleted: {
+                                    console.log("Body: " + delegateModel.objectName);
+                                    console.log("Scale: " + delegateModel.scale);
+                                }
                             }
+
+
                         }
                     }
                 }
