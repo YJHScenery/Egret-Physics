@@ -3,15 +3,13 @@
 //
 
 #include "scene_body_model.h"
-#include "magic_enum.hpp"
+#include <magic_enum.hpp>
 
 namespace magic_enum::customize {
-
-
     template <>
     struct enum_range<egret::SceneBodyModel::BodyRole> {
-        static constexpr int min = Qt::UserRole;  // 最小可能值（Qt::UserRole 或略小于第一个值）
-        static constexpr int max = 280;
+        static constexpr int min = Qt::UserRole;
+        static constexpr int max = 280; // 留下一定的余量
     };
 }
 
@@ -42,7 +40,7 @@ namespace egret
             return QVariant::fromValue(item.id);
         }
         case KindRole: {
-            return item.kind;
+            return QVariant::fromValue(item.kind);
         }
         case PositionRole: {
             QVariantList position;
@@ -90,27 +88,18 @@ namespace egret
         }
     }
 
-
-
     QHash<int, QByteArray> SceneBodyModel::roleNames() const
     {
         QHash<int, QByteArray> roles;
 
-        // 使用 magic_enum 遍历所有枚举值
         for (const auto role_value : magic_enum::enum_values<BodyRole>()) {
-            // 获取枚举名称（例如 "IdRole", "KindRole" 等）
             std::string_view name_view = magic_enum::enum_name(role_value);
-
-            // 转换为 QByteArray，并去掉 "Role" 后缀（可选，根据您的命名偏好）
             QString roleName{"body"};
             roleName.append(QString::fromUtf8(name_view.data(), name_view.size()));
-
-            // 去掉 "Role" 后缀
             if (roleName.endsWith("Role")) {
-                roleName.chop(4); // 去掉 "Role"
+                roleName.chop(4);
             }
 
-            // 存储映射：枚举整数值 -> 角色名称
             roles[static_cast<int>(role_value)] = roleName.toUtf8();
         }
 

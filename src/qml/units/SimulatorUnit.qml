@@ -76,6 +76,10 @@ ColumnLayout {
                         farClip: sceneCamera.clipFar
                     };
                 }
+                
+                function toRenderVector(x, y, z){
+                    return Qt.vector3d(y, z, x)
+                }
 
                 function updateCameraPose() {
                     updateGridSpacing();
@@ -86,6 +90,7 @@ ColumnLayout {
                     sceneCamera.lookAt(target);
                 }
 
+
                 function updateGridSpacing() {
                     const distance = orbitDistance;
                     const newSpacing = distance < 400 ? 20 : (distance < 1200 ? 50 : 100);
@@ -93,6 +98,7 @@ ColumnLayout {
                         gridSpacing = newSpacing;
                     }
                 }
+
 
                 function updateGridLineCount() {
                     const h = sceneView.height;
@@ -126,31 +132,6 @@ ColumnLayout {
                     return Qt.vector3d(px, py, pz);
                 }
 
-                function toRenderVector(x, y, z) {
-                    return Qt.vector3d(x, z, y);
-                }
-
-                function shapeSource(kind) {
-                    return resourceHelper.getSourceByShape(kind);
-                }
-
-                function scaleForShape(kind, sx, sy, sz) {
-                    const unit = 100.0;
-                    const safeX = Math.max(1.0, sx);
-                    const safeY = Math.max(1.0, sy);
-                    const safeZ = Math.max(1.0, sz);
-                    if (kind === "standard_sphere" || kind === "standard_spherical_shell" || kind === "standard_disk" || kind === "standard_ring") {
-                        const uniform = Math.max(safeX, safeY, safeZ) / unit;
-                        return Qt.vector3d(uniform, uniform, uniform);
-                    }
-                    if (kind === "standard_cylinder" || kind === "standard_cylinder_shell") {
-                        return Qt.vector3d(safeX / unit, safeY / unit, safeZ / unit);
-                    }
-                    if (kind === "standard_rod") {
-                        return Qt.vector3d(6 / unit, 6 / unit, safeZ / unit);
-                    }
-                    return Qt.vector3d(safeX / unit, safeY / unit, safeZ / unit);
-                }
 
                 Component.onCompleted: {
                     updateCameraPose();
@@ -204,7 +185,7 @@ ColumnLayout {
                             delegate: Model {
                                 id: modelXX
                                 objectName: "body-" + bodyId
-                                source: canvas3d.shapeSource(bodyKind)
+                                source: resourceHelper.getSourceByShape(bodyKind)
                                 property var renderCenter: bodyPosition
                                 property var renderScale: bodyScale
                                 property var renderRotation: bodyRotation
@@ -219,7 +200,14 @@ ColumnLayout {
                                     roughness: 0.18
                                     specularAmount: 0.7
                                 }
+
+                                Component.onCompleted: {
+                                    console.log("ID: " + modelXX.objectName);
+                                    console.log("Scale: " + modelXX.scale);
+                                }
                             }
+
+
                         }
                     }
                 }
