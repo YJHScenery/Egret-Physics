@@ -99,8 +99,6 @@ namespace egret
         // 形状自描述的加载信息，默认仅提供 typeId。
         [[nodiscard]] virtual ShapeLoadInfo getLoadInfo() const;
 
-        [[nodiscard]] virtual SceneRenderItem getBasicRenderInfo(const Eigen::Vector3d& position) const = 0;
-
         // GJK 算法支撑函数
         [[nodiscard]] virtual Eigen::Vector3d support(const Eigen::Vector3d& direction,
                                                       const Transform& transform) const = 0;

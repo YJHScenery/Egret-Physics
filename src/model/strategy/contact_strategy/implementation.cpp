@@ -41,10 +41,10 @@ namespace egret
                 }
                 const Eigen::Vector3d normal = rawNormal.normalized();
 
-                const Eigen::Vector3d velocityA = bodyA.entity->getSpeed();
-                const Eigen::Vector3d angularA = bodyA.entity->getAngular();
-                const Eigen::Vector3d velocityB = bodyB.entity->getSpeed();
-                const Eigen::Vector3d angularB = bodyB.entity->getAngular();
+                const Eigen::Vector3d velocityA = bodyA.entity->getVelocity();
+                const Eigen::Vector3d angularA = bodyA.entity->getAngularVelocity();
+                const Eigen::Vector3d velocityB = bodyB.entity->getVelocity();
+                const Eigen::Vector3d angularB = bodyB.entity->getAngularVelocity();
 
                 if (!velocityA.allFinite() || !velocityB.allFinite() || !angularA.allFinite() || !angularB.allFinite())
                 {

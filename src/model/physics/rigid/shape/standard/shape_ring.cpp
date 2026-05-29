@@ -30,11 +30,5 @@ namespace egret
         return info;
     }
 
-    SceneRenderItem ShapeRing::getBasicRenderInfo(const Eigen::Vector3d& position) const
-    {
-        SceneRenderItem item = ShapeDisk::getBasicRenderInfo(position);
-        item.kind = (std::uint32_t)this->typeId();
-        return item;
-    }
 
 } // egret

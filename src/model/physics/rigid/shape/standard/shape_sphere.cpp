@@ -70,17 +70,6 @@ namespace egret
         return info;
     }
 
-    SceneRenderItem ShapeSphere::getBasicRenderInfo(const Eigen::Vector3d &position) const
-    {
-        SceneRenderItem item{};
-        const double diameter = m_radius * 2.0;
-        item.kind = static_cast<std::uint32_t>(this->typeId());
-        item.width = diameter;
-        item.height = diameter;
-        item.x = position.x() - m_radius;
-        item.y = position.y() - m_radius;
-        return item;
-    }
 
     Eigen::Vector3d ShapeSphere::support(const Eigen::Vector3d &direction, const Transform &transform) const
     {

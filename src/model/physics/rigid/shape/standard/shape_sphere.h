@@ -32,8 +32,6 @@ namespace egret
 
         [[nodiscard]] ShapeLoadInfo getLoadInfo() const override;
 
-        [[nodiscard]] SceneRenderItem getBasicRenderInfo(const Eigen::Vector3d& position) const override;
-
         [[nodiscard]] Eigen::Vector3d support(const Eigen::Vector3d& direction, const Transform& transform) const override;
 
     protected:

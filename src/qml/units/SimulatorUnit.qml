@@ -131,7 +131,7 @@ ColumnLayout {
                 }
 
                 function shapeSource(kind) {
-                    return ModelManager.matchTypeToSource(kind);
+                    return resourceHelper.getSourceByShape(kind);
                 }
 
                 function scaleForShape(kind, sx, sy, sz) {
@@ -204,8 +204,8 @@ ColumnLayout {
                             delegate: Model {
                                 id: modelXX
                                 objectName: "body-" + bodyId
-                                source: canvas3d.shapeSource(shapeKind)
-                                property var renderCenter: bodyCenterPos
+                                source: canvas3d.shapeSource(bodyKind)
+                                property var renderCenter: bodyPosition
                                 property var renderScale: bodyScale
                                 property var renderRotation: bodyRotation
 
@@ -567,12 +567,12 @@ ColumnLayout {
                                 font.bold: true
                             }
                             Text {
-                                text: "速度: " + simulatorRoot.formatVec(bodySpeedX, bodySpeedY, bodySpeedZ)
+                                text: "速度: " + simulatorRoot.formatVec(bodyVelocity[0], bodyVelocity[1], bodyVelocity[2])
                                 color: "#9EC4EA"
                                 font.pixelSize: 11
                             }
                             Text {
-                                text: "位置: " + simulatorRoot.formatVec(bodyCenterPos[0], bodyCenterPos[1], bodyCenterPos[2])
+                                text: "位置: " + simulatorRoot.formatVec(bodyPosition[0], bodyPosition[1], bodyPosition[2])
                                 color: "#9EC4EA"
                                 font.pixelSize: 11
                             }

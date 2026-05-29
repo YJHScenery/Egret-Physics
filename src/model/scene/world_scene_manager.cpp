@@ -440,21 +440,15 @@ namespace egret
             }
 
             const Eigen::Vector3d position = body->entity->getPosition();
-            const Eigen::Vector3d speed = body->entity->getSpeed();
 
-            // const std::string& shapeTypeStr {body->shape->typeId()};
-
-            SceneRenderItem item{body->entity->getShape()->getBasicRenderInfo(position)};
-
+            SceneRenderItem item{};
             item.id = body->id;
+            item.kind = (std::uint32_t)body->entity->getShape()->typeId();
+            item.velocity = body->entity->getVelocity();
+            item.angularVelocity = body->entity->getAngularVelocity();
+
             item.label = body->name.empty() ? (std::string("Body ") + std::to_string(body->id)) : body->name;
             item.color = body->entity->getMass() <= 0.0 ? "#6C7A89" : "#3EC5FF";
-            item.centerPos[0] = position.y();
-            item.centerPos[1] = position.z();
-            item.centerPos[2] = position.x();
-            item.speedX = speed.x();
-            item.speedY = speed.y();
-            item.speedZ = speed.z();
 
             const Transform& transform = body->entity->getTransform();
             const Eigen::Vector3d modelScale = transform.getScale();
@@ -543,14 +537,9 @@ namespace egret
                                                                  modelRadius,
                                                                  modelHeight,
                                                                  modelLength);
-            item.scale[0] = renderScale.x();
-            item.scale[1] = renderScale.y();
-            item.scale[2] = renderScale.z();
-
-            item.rotation[0] = modelRotation.w();
-            item.rotation[1] = modelRotation.y();
-            item.rotation[2] = modelRotation.z();
-            item.rotation[3] = modelRotation.x();
+            item.scale = renderScale;
+            item.rotation = {modelRotation.w(),  modelRotation.y(), modelRotation.z(), modelRotation.x()};
+            item.position = {position.y(), position.z(), position.x()};
 
             items.push_back(std::move(item));
         }

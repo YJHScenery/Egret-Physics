@@ -49,11 +49,11 @@ namespace egret
 
         [[nodiscard]] const std::vector<Torque> &getTorquesCR() const { return m_torques; }
 
-        [[nodiscard]] Eigen::Vector3d getSpeed() const { return m_speed; }
+        [[nodiscard]] Eigen::Vector3d getVelocity() const { return m_speed; }
 
         [[nodiscard]] const Eigen::Vector3d &getSpeedCR() const { return m_speed; }
 
-        [[nodiscard]] Eigen::Vector3d getAngular() const { return m_angular; }
+        [[nodiscard]] Eigen::Vector3d getAngularVelocity() const { return m_angular; }
 
         [[nodiscard]] const Eigen::Vector3d &getAngularCR() const { return m_angular; }
 

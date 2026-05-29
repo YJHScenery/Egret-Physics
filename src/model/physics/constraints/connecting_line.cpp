@@ -98,8 +98,8 @@ namespace egret
             Eigen::Vector3d n = dp / dist;
 
             // 获取速度
-            Eigen::Vector3d v0 = m_physicalEntities[0]->getSpeed();
-            Eigen::Vector3d v1 = m_physicalEntities[1]->getSpeed();
+            Eigen::Vector3d v0 = m_physicalEntities[0]->getVelocity();
+            Eigen::Vector3d v1 = m_physicalEntities[1]->getVelocity();
 
             // 相对速度在约束方向上的分量
             // 约束方程: C = ||p1-p0|| - L = 0
@@ -161,8 +161,8 @@ namespace egret
         }
 
         Eigen::Vector3d n = dp / dist;
-        Eigen::Vector3d v0 = m_physicalEntities[0]->getSpeed();
-        Eigen::Vector3d v1 = m_physicalEntities[1]->getSpeed();
+        Eigen::Vector3d v0 = m_physicalEntities[0]->getVelocity();
+        Eigen::Vector3d v1 = m_physicalEntities[1]->getVelocity();
 
         double dv = n.dot(v1 - v0);
 

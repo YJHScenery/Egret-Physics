@@ -53,18 +53,6 @@ namespace egret
         return info;
     }
 
-    SceneRenderItem ShapeDisk::getBasicRenderInfo(const Eigen::Vector3d& position) const
-    {
-        SceneRenderItem item{};
-        const double diameter = m_radius * 2.0;
-        item.kind = (std::uint32_t)this->typeId();
-        item.width = diameter;
-        item.height = diameter;
-        item.x = position.x() - m_radius;
-        item.y = position.y() - m_radius;
-        return item;
-    }
-
     void ShapeDisk::setRadius(const double radius)
     {
         m_radius = radius;

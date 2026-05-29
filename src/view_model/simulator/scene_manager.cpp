@@ -726,7 +726,7 @@ namespace egret
             return;
         }
 
-        std::vector<SceneBodyVisualItem> items;
+        QList<SceneBodyVisualItem> items;
         const std::vector<SceneRenderItem> renderItems = m_world->buildRenderItems();
         items.reserve(renderItems.size());
 
@@ -734,24 +734,31 @@ namespace egret
             SceneBodyVisualItem item{};
             item.id = renderItem.id;
             item.kind = renderItem.kind;
-            item.x = renderItem.x;
-            item.y = renderItem.y;
-            item.width = renderItem.width;
-            item.height = renderItem.height;
-            for (int i = 0; i < 3; ++i) {
-                item.centerPos[i] = renderItem.centerPos[i];
-            }
-            item.speedX = renderItem.speedX;
-            item.speedY = renderItem.speedY;
-            item.speedZ = renderItem.speedZ;
-            for (int i = 0; i < 3; ++i) {
-                item.scale[i] = renderItem.scale[i];
-            }
-            item.color = QColor(QString::fromStdString(renderItem.color));
+
+            item.velocity[0] = (float)renderItem.velocity.x();
+            item.velocity[1] = (float)renderItem.velocity.y();
+            item.velocity[2] = (float)renderItem.velocity.z();
+
+            item.angularVelocity[0] = (float)renderItem.angularVelocity.x();
+            item.angularVelocity[1] = (float)renderItem.angularVelocity.y();
+            item.angularVelocity[2] = (float)renderItem.angularVelocity.z();
+
+            item.centerPos[0] = (float)renderItem.position.x();
+            item.centerPos[1] = (float)renderItem.position.y();
+            item.centerPos[2] = (float)renderItem.position.z();
+
+            item.scale[0] = (float)renderItem.scale.x();
+            item.scale[1] = (float)renderItem.scale.y();
+            item.scale[2] = (float)renderItem.scale.z();
+
+            item.rotation[0] = (float)renderItem.rotation.w();
+            item.rotation[1] = (float)renderItem.rotation.x();
+            item.rotation[2] = (float)renderItem.rotation.y();
+            item.rotation[3] = (float)renderItem.rotation.z();
+
+            item.color = QString::fromStdString(renderItem.color);
             item.label = QString::fromStdString(renderItem.label);
-            for (int i = 0; i < 4; ++i) {
-                item.rotation[i] = renderItem.rotation[i];
-            }
+
             items.push_back(std::move(item));
         }
 

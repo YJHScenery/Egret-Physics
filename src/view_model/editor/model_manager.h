@@ -96,8 +96,6 @@ namespace egret
 
         Q_INVOKABLE QVariantMap setQuick3DRenderTransform(int index);
 
-        Q_INVOKABLE QString matchTypeToSource(int type);
-
         // 撤销/重做（可选）
         Q_INVOKABLE void saveState();
 

@@ -121,18 +121,6 @@ namespace egret
         return info;
     }
 
-    SceneRenderItem ShapeBox::getBasicRenderInfo(const Eigen::Vector3d& position) const
-    {
-        SceneRenderItem item{};
-        const Eigen::Vector3d size {this->getSize()};
-        item.kind = (std::uint32_t)this->typeId();
-        item.width = size.x();
-        item.height = size.y();
-        item.x = position.x() - size.x() * 0.5;
-        item.y = position.y() - size.y() * 0.5;
-        return item;
-    }
-
     Eigen::Vector3d ShapeBox::support(const Eigen::Vector3d& direction, const Transform& transform) const
     {
         // 将方向转换到局部坐标系

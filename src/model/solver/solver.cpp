@@ -363,10 +363,10 @@ namespace egret
                 continue;
             }
 
-            const Eigen::Vector3d linearVelA = bodyA.entity->getSpeed();
-            const Eigen::Vector3d angularVelA = bodyA.entity->getAngular();
-            const Eigen::Vector3d linearVelB = bodyB.entity->getSpeed();
-            const Eigen::Vector3d angularVelB = bodyB.entity->getAngular();
+            const Eigen::Vector3d linearVelA = bodyA.entity->getVelocity();
+            const Eigen::Vector3d angularVelA = bodyA.entity->getAngularVelocity();
+            const Eigen::Vector3d linearVelB = bodyB.entity->getVelocity();
+            const Eigen::Vector3d angularVelB = bodyB.entity->getAngularVelocity();
 
             ContactManifold manifold;
             auto toiOpt = bodyA.entity->getShape()->continuousCollide(
@@ -441,10 +441,10 @@ namespace egret
                 continue;
             }
 
-            const Eigen::Vector3d linearVelA = bodyA.entity->getSpeed();
-            const Eigen::Vector3d angularVelA = bodyA.entity->getAngular();
-            const Eigen::Vector3d linearVelB = bodyB.entity->getSpeed();
-            const Eigen::Vector3d angularVelB = bodyB.entity->getAngular();
+            const Eigen::Vector3d linearVelA = bodyA.entity->getVelocity();
+            const Eigen::Vector3d angularVelA = bodyA.entity->getAngularVelocity();
+            const Eigen::Vector3d linearVelB = bodyB.entity->getVelocity();
+            const Eigen::Vector3d angularVelB = bodyB.entity->getAngularVelocity();
 
             ContactManifold manifold;
             auto toiOpt = bodyA.entity->getShape()->continuousCollide(
@@ -626,7 +626,7 @@ namespace egret
             }
 
             ++stats.dynamicBodyCount;
-            const Eigen::Vector3d speed = body.entity->getSpeed();
+            const Eigen::Vector3d speed = body.entity->getVelocity();
             stats.totalKineticEnergy += 0.5 * body.entity->getMass() * speed.squaredNorm();
         }
     }

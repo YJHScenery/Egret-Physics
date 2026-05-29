@@ -421,13 +421,6 @@ namespace egret
         return ModelToRenderHelper::instance().buildQuick3DRenderTransform(*model);
     }
 
-    QString ModelManager::matchTypeToSource(int type)
-    {
-        if (ModelItemData::StaticGeneralTypeSourceMap.contains(static_cast<std::uint32_t>(type))) {
-            return ModelItemData::StaticGeneralTypeSourceMap.value(static_cast<std::uint32_t>(type));
-        }
-        return "";
-    }
 
     void ModelManager::saveState()
     {
