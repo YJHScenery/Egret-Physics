@@ -72,8 +72,8 @@ namespace egret
         Eigen::Vector3d n = dp / dist;
 
         // 获取速度
-        Eigen::Vector3d vAnchor = m_anchor.getSpeed();
-        Eigen::Vector3d vEntity = m_entity->getSpeed();
+        Eigen::Vector3d vAnchor = m_anchor.getVelocity();
+        Eigen::Vector3d vEntity = m_entity->getVelocity();
 
         // 相对速度在约束方向上的分量
         // Ċ = n · (v_entity - v_anchor)

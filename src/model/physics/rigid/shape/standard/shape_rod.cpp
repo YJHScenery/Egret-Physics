@@ -48,18 +48,6 @@ namespace egret
         return info;
     }
 
-    SceneRenderItem ShapeRod::getBasicRenderInfo(const Eigen::Vector3d& position) const
-    {
-        SceneRenderItem item{};
-        constexpr double displaySize = 16.0;
-        item.kind = (std::uint32_t)this->typeId();
-        item.width = displaySize;
-        item.height = displaySize;
-        item.x = position.x() - displaySize * 0.5;
-        item.y = position.y() - displaySize * 0.5;
-        return item;
-    }
-
     void ShapeRod::setLength(const double length)
     {
         m_length = length;

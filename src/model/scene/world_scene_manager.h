@@ -108,41 +108,22 @@ namespace egret
         /** 渲染类型，例如 sphere、box、particle。 */
         std::uint32_t kind;
 
-        /** 左上角 X 坐标。 */
-        double x{0.0};
-
-        /** 左上角 Y 坐标。 */
-        double y{0.0};
-
-        /** 渲染宽度。 */
-        double width{0.0};
-
-        /** 渲染高度。 */
-        double height{0.0};
-
         /** 渲染中心位置（x, y, z）。 */
-        double centerPos[3]{0.0, 0.0, 0.0};
+        Eigen::Vector3d position{};
 
-        /** 速度 X。 */
-        double speedX{0.0};
+        Eigen::Vector3d scale{};
 
-        /** 速度 Y。 */
-        double speedY{0.0};
+        Eigen::Quaterniond rotation{};
 
-        /** 速度 Z。 */
-        double speedZ{0.0};
+        Eigen::Vector3d velocity{};
 
-        /** 渲染缩放（x, y, z）。 */
-        double scale[3]{1.0, 1.0, 1.0};
+        Eigen::Vector3d angularVelocity{};
 
         /** 十六进制颜色字符串，供 QML 直接使用。 */
         std::string color;
 
         /** 标签文本，用于调试或悬浮提示。 */
         std::string label;
-
-        /** 旋转四元数 (w, x, y, z)。 */
-        double rotation[4]{1.0, 0.0, 0.0, 0.0};
     };
 
     /**

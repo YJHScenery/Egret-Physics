@@ -27,7 +27,6 @@ namespace egret
 
         [[nodiscard]] AABB getAABB(const Transform& transform) const override;
 
-        [[nodiscard]] SceneRenderItem getBasicRenderInfo(const Eigen::Vector3d& position) const override;
         [[nodiscard]] ShapeLoadInfo getLoadInfo() const override;
 
         void setLength(double length);

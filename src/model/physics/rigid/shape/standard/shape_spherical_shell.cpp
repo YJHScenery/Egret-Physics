@@ -20,11 +20,5 @@ namespace egret
         return Eigen::Matrix3d::Identity() * inertia;
     }
 
-    SceneRenderItem ShapeSphericalShell::getBasicRenderInfo(const Eigen::Vector3d& position) const
-    {
-        SceneRenderItem item = ShapeSphere::getBasicRenderInfo(position);
-        item.kind = (std::uint32_t)this->typeId();
-        return item;
-    }
 
 } // egret

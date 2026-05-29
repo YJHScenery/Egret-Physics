@@ -3,125 +3,138 @@
 //
 
 #include "scene_body_model.h"
+#include "magic_enum.hpp"
+
+namespace magic_enum::customize {
+
+
+    template <>
+    struct enum_range<egret::SceneBodyModel::BodyRole> {
+        static constexpr int min = Qt::UserRole;  // 最小可能值（Qt::UserRole 或略小于第一个值）
+        static constexpr int max = 280;
+    };
+}
+
 
 namespace egret
 {
-    SceneBodyModel::SceneBodyModel(QObject *parent) : QAbstractListModel(parent)
+    SceneBodyModel::SceneBodyModel(QObject* parent) : QAbstractListModel(parent)
     {
     }
 
-    int SceneBodyModel::rowCount(const QModelIndex &parent) const
+    int SceneBodyModel::rowCount(const QModelIndex& parent) const
     {
-        if (parent.isValid())
-        {
+        if (parent.isValid()) {
             return 0;
         }
         return static_cast<int>(m_items.size());
     }
 
-    QVariant SceneBodyModel::data(const QModelIndex &index, const int role) const
+    QVariant SceneBodyModel::data(const QModelIndex& index, const int role) const
     {
-        if (!index.isValid() || index.row() < 0 || index.row() >= rowCount(QModelIndex()))
-        {
+        if (!index.isValid() || index.row() < 0 || index.row() >= rowCount(QModelIndex())) {
             return {};
         }
 
-        const SceneBodyVisualItem &item = m_items[static_cast<std::size_t>(index.row())];
-        switch (role)
-        {
-        case IdRole:
+        const SceneBodyVisualItem& item = m_items[static_cast<std::size_t>(index.row())];
+        switch (role) {
+        case IdRole: {
             return QVariant::fromValue(item.id);
-        case KindRole:
+        }
+        case KindRole: {
             return item.kind;
-        case XRole:
-            return item.x;
-        case YRole:
-            return item.y;
-        case WidthRole:
-            return item.width;
-        case HeightRole:
-            return item.height;
-        case CenterPosRole:
-        {
-            QVariantList list;
-            for (int i = 0; i < 3; ++i) {
-                list.append(item.centerPos[i]);
-            }
-            return list;
         }
-        case SpeedXRole:
-            return item.speedX;
-        case SpeedYRole:
-            return item.speedY;
-        case SpeedZRole:
-            return item.speedZ;
-        case ScaleRole:
-        {
-            QVariantList list;
+        case PositionRole: {
+            QVariantList position;
             for (int i = 0; i < 3; ++i) {
-                list.append(item.scale[i]);
+                position.append(item.centerPos[i]);
             }
-            return list;
+            return position;
         }
-        case ColorRole:
-            return item.color;
-        case LabelRole:
-            return item.label;
-        case RotationRole:
-        {
-            QVariantList list;
-            for (int i = 0; i < 4; ++i)
-            {
-                list.append(item.rotation[i]);
+        case ScaleRole:{
+            QVariantList scale;
+            for (int i = 0; i < 3; ++i) {
+                scale.append(item.scale[i]);
             }
-            return list;
+            return scale;
+        }
+        case RotationRole:{
+            QVariantList rotation;
+            for (int i = 0; i < 4; ++i) {
+                rotation.append(item.rotation[i]);
+            }
+            return rotation;
+        }
+        case VelocityRole:{
+            QVariantList speed;
+            for (int i = 0; i < 3; ++i) {
+                speed.append(item.velocity[i]);
+            }
+            return speed;
+        }
+        case AngularVelocityRole:{
+            QVariantList angularSpeed;
+            for (int i = 0; i < 3; ++i) {
+                angularSpeed.append(item.angularVelocity[i]);
+            }
+            return angularSpeed;
+        }
+        case ColorRole:{
+            return QVariant{item.color};
+        }
+        case LabelRole:{
+            return QVariant{item.label};
         }
         default:
             return {};
         }
     }
 
+
+
     QHash<int, QByteArray> SceneBodyModel::roleNames() const
     {
-        return {
-            {IdRole, "bodyId"},
-            {KindRole, "shapeKind"},
-            {XRole, "bodyX"},
-            {YRole, "bodyY"},
-            {WidthRole, "bodyWidth"},
-            {HeightRole, "bodyHeight"},
-            {CenterPosRole, "bodyCenterPos"},
-            {SpeedXRole, "bodySpeedX"},
-            {SpeedYRole, "bodySpeedY"},
-            {SpeedZRole, "bodySpeedZ"},
-            {ScaleRole, "bodyScale"},
-            {ColorRole, "bodyColor"},
-            {LabelRole, "bodyLabel"},
-            {RotationRole, "bodyRotation"},
-        };
+        QHash<int, QByteArray> roles;
+
+        // 使用 magic_enum 遍历所有枚举值
+        for (const auto role_value : magic_enum::enum_values<BodyRole>()) {
+            // 获取枚举名称（例如 "IdRole", "KindRole" 等）
+            std::string_view name_view = magic_enum::enum_name(role_value);
+
+            // 转换为 QByteArray，并去掉 "Role" 后缀（可选，根据您的命名偏好）
+            QString roleName{"body"};
+            roleName.append(QString::fromUtf8(name_view.data(), name_view.size()));
+
+            // 去掉 "Role" 后缀
+            if (roleName.endsWith("Role")) {
+                roleName.chop(4); // 去掉 "Role"
+            }
+
+            // 存储映射：枚举整数值 -> 角色名称
+            roles[static_cast<int>(role_value)] = roleName.toUtf8();
+        }
+
+        qDebug() << "SceneBodyModel::roleNames(): " << roles;
+
+        return roles;
     }
 
-    void SceneBodyModel::setItems(const std::vector<SceneBodyVisualItem> &items)
+    void SceneBodyModel::setItems(const QList<SceneBodyVisualItem>& items)
     {
         const bool sameSize = m_items.size() == items.size();
         bool sameIds = sameSize;
-        if (sameSize)
-        {
-            for (std::size_t i = 0; i < items.size(); ++i)
-            {
-                if (m_items[i].id != items[i].id)
-                {
+        if (sameSize) {
+            for (std::size_t i = 0; i < items.size(); ++i) {
+                if (m_items[i].id != items[i].id) {
                     sameIds = false;
                     break;
                 }
             }
         }
 
-        if (sameSize && sameIds)
-        {
+        if (sameSize && sameIds) {
             m_items = items;
-            if (!m_items.empty())
-            {
+            if (!m_items.empty()) {
                 const QModelIndex first = index(0, 0);
                 const QModelIndex last = index(static_cast<int>(m_items.size()) - 1, 0);
                 emit dataChanged(first, last);

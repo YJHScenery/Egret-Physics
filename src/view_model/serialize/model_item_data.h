@@ -194,9 +194,6 @@ namespace egret
 
         // 原则上不允许外部修改 m_source。
         void matchSource();
-
-    public:
-        const static QMap<std::uint32_t, QString> StaticGeneralTypeSourceMap;
     };
 
     [[nodiscard]] ModelItemDataField parseModelItemDataFromQMLJson(const QString &qmlJson);

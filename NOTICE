@@ -56,7 +56,23 @@ Components Used:
   - Eigen/Eigenvalues
 
 ---------------------------------------------------------------------------
-4. QT FRAMEWORK
+4. MAGIC_ENUM LIBRARY
+---------------------------------------------------------------------------
+Library Name:      magic_enum
+Version:           0.9.8
+Copyright:         Copyright (C) 2019 - 2024 Daniil Goncharov <neargye@gmail.com>
+License:           MIT License
+License File:      dependency/include/magic_enum_0.9.8/magic_enum/magic_enum.hpp
+Path:              dependency/include/magic_enum_0.9.8/
+
+Components Used:
+  - magic_enum.hpp
+  - magic_enum_all.hpp
+  - magic_enum_format.hpp
+  - magic_enum_iostream.hpp
+
+---------------------------------------------------------------------------
+5. QT FRAMEWORK
 ---------------------------------------------------------------------------
 Library Name:      Qt
 Version:           6.9.3
@@ -95,7 +111,11 @@ THIRD-PARTY LIBRARY LICENSE COMPATIBILITY:
    - MPL-2.0 is compatible with GPLv3
    - Can be distributed under GPLv3 terms as part of this project
 
-3. Qt (LGPLv3/GPL):
+3. magic_enum (MIT License):
+   - MIT License is permissive and compatible with GPLv3
+   - Redistribution permitted with proper copyright notices
+
+4. Qt (LGPLv3/GPL):
    - Qt Core, Gui, Widgets are available under LGPLv3
    - Quick, Qml, Quick3D may require GPL compliance
    - This project uses Qt under GPLv3 terms to ensure full compliance

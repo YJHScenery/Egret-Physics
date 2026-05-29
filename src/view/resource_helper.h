@@ -46,7 +46,10 @@ namespace egret
         Q_INVOKABLE static double getSunMass();
 
         Q_INVOKABLE static double getAstronomicalUnit();
-        
+
+        Q_INVOKABLE static QString getSourceByShape(quint32 type);
+
+        static const QMap<std::uint32_t, QString> StaticGeneralTypeSourceMap;
     };
 
 

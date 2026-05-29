@@ -39,11 +39,4 @@ namespace egret
         info.numberParams["height"] = std::vector<double>{getHeight()};
         return info;
     }
-
-    SceneRenderItem ShapeCylindricalShell::getBasicRenderInfo(const Eigen::Vector3d& position) const
-    {
-        SceneRenderItem item = ShapeCylinder::getBasicRenderInfo(position);
-        item.kind = (std::uint32_t)this->typeId();
-        return item;
-    }
 } // egret

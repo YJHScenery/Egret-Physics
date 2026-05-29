@@ -10,7 +10,7 @@
 #include <QHash>
 #include <QString>
 #include <QVariant>
-
+#include <magic_enum.hpp>
 #include <vector>
 
 namespace egret
@@ -28,41 +28,23 @@ namespace egret
         /** 渲染类型：sphere、box、particle。 */
         quint32 kind;
 
-        /** 左上角 X 坐标。 */
-        double x{0.0};
-
-        /** 左上角 Y 坐标。 */
-        double y{0.0};
-
-        /** 宽度。 */
-        double width{0.0};
-
-        /** 高度。 */
-        double height{0.0};
-
         /** 渲染中心位置（x, y, z）。 */
         double centerPos[3]{0.0, 0.0, 0.0};
 
-        /** 速度 X。 */
-        double speedX{0.0};
-
-        /** 速度 Y。 */
-        double speedY{0.0};
-
-        /** 速度 Z。 */
-        double speedZ{0.0};
-
-        /** 渲染缩放（x, y, z）。 */
         double scale[3]{1.0, 1.0, 1.0};
-
-        /** 颜色。 */
-        QColor color;
-
-        /** 标签。 */
-        QString label;
 
         /** 旋转四元数 (w, x, y, z)。 */
         double rotation[4]{1.0, 0.0, 0.0, 0.0};
+
+        double velocity[3]{0.0, 0.0, 0.0};
+
+        double angularVelocity[3]{0.0, 0.0, 0.0};
+
+        /** 颜色。 */
+        QString color;
+
+        /** 标签。 */
+        QString label;
     };
 
     /**
@@ -80,31 +62,28 @@ namespace egret
         {
             IdRole = Qt::UserRole + 1,
             KindRole,
-            XRole,
-            YRole,
-            WidthRole,
-            HeightRole,
-            CenterPosRole,
-            SpeedXRole,
-            SpeedYRole,
-            SpeedZRole,
+            PositionRole,
             ScaleRole,
+            RotationRole,
+            VelocityRole,
+            AngularVelocityRole,
             ColorRole,
             LabelRole,
-            RotationRole,
         };
 
+
+
         /** 默认构造。 */
-        explicit SceneBodyModel(QObject *parent = nullptr);
+        explicit SceneBodyModel(QObject* parent = nullptr);
 
         /** 默认析构。 */
         ~SceneBodyModel() override = default;
 
         /** 行数。 */ //  = QModelIndex()
-        [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
+        [[nodiscard]] int rowCount(const QModelIndex& parent) const override;
 
         /** 模型数据。 */ //  = Qt::DisplayRole
-        [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
+        [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
 
         /** 角色名称。 */
         [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
@@ -113,7 +92,7 @@ namespace egret
          * @brief 用新的数据覆盖整个模型。
          * @param items 新的实体渲染快照。
          */
-        void setItems(const std::vector<SceneBodyVisualItem> &items);
+        void setItems(const QList<SceneBodyVisualItem>& items);
 
         /**
          * @brief 清空模型。
@@ -122,8 +101,9 @@ namespace egret
 
     private:
         /** 当前模型数据。 */
-        std::vector<SceneBodyVisualItem> m_items;
+        QList<SceneBodyVisualItem> m_items;
     };
 }
+
 
 #endif // EGRET_PHYSICS_SCENE_BODY_MODEL_H
