@@ -18,6 +18,7 @@
 #include <QQuickStyle>
 #include <QStandardPaths>
 
+#include "enum_handler.h"
 #include "file_handler.h"
 
 int main(int argc, char* argv[])
@@ -47,15 +48,20 @@ int main(int argc, char* argv[])
 
     LOG_INFO_LITERAL("程序启动");
 
+    egret::EnumHandler::registerEnums();
     qmlRegisterType<egret::ModelItemData>("ModelManager", 1, 0, "ModelItem");
     qmlRegisterType<egret::MaterialData>("ModelManager", 1, 0, "MaterialData");
     qmlRegisterSingletonInstance<egret::ModelManager>("ModelManager", 1, 0, "ModelManager",
                                                       egret::ModelManager::instance());
+    qmlRegisterSingletonInstance<egret::EnumHandler>("EnumHandler", 1, 0, "EnumHandler", egret::EnumHandler::instance());
+    
+    // qmlRegisterType<egret::EnumHandler>("EnumHandler", 1, 0, "EnumHandler");
 
     egret::SceneManagerViewModel sceneController;
     egret::QtComponentHelper qtHelper;
     egret::ResourceHelper resourceHelper;
     egret::FileHandler fileHandler;
+    // egret::EnumHandler enumHandler;
 
     qmlRegisterType<egret::CoordinateGeometry>("CustomGeometry", 1, 0, "SimpleGeometry");
 
@@ -68,6 +74,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty("fileHandler", &fileHandler);
     engine.rootContext()->setContextProperty("documentsFolder",
         QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation));
+    // engine.rootContext()->setContextProperty("enumHandler", &enumHandler);
 
 
     // engine.addImportPath(QCoreApplication::applicationDirPath() + "/qml");

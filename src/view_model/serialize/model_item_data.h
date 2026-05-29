@@ -67,7 +67,7 @@ namespace egret
         QString m_id{};
         QString m_name{};
         QString m_source{};
-        QString m_type{};
+        std::uint32_t m_type{};
         QVector3D m_pos{};
         QVector3D m_scale{};
         QQuaternion m_rotation{};
@@ -94,7 +94,7 @@ namespace egret
         Q_PROPERTY(QVector3D initialVelo READ initialVelo NOTIFY initialVeloChanged)
         Q_PROPERTY(QVector3D initialAnguVelo READ initialAnguVelo NOTIFY initialAnguVeloChanged)
         Q_PROPERTY(MaterialData *materials READ materials CONSTANT)
-        Q_PROPERTY(QString type READ type WRITE setType NOTIFY typeChanged)
+        Q_PROPERTY(quint32 type READ type WRITE setType NOTIFY typeChanged)
         Q_PROPERTY(double restitution READ restitution WRITE setRestitution NOTIFY restitutionChanged)
         Q_PROPERTY(QVector3D boxSize READ boxSize WRITE setBoxSize NOTIFY boxSizeChanged)
         Q_PROPERTY(double radius READ radius WRITE setRadius NOTIFY radiusChanged)
@@ -110,7 +110,7 @@ namespace egret
         [[nodiscard]] QString id() const;
         [[nodiscard]] QString name() const;
         [[nodiscard]] QString source() const;
-        [[nodiscard]] QString type() const;
+        [[nodiscard]] std::uint32_t type() const;
         [[nodiscard]] double restitution() const;
         [[nodiscard]] QVector3D pos() const;
         [[nodiscard]] QVector3D scale() const;
@@ -127,7 +127,7 @@ namespace egret
         void setLoadTime(double loadTime);
         void setId(const QString &id);
         void setName(const QString &name);
-        void setType(const QString &type);
+        void setType(std::uint32_t type);
         void setSource(const QString &source);
         void setPos(const QVector3D &pos);
         void setScale(const QVector3D &scale);
@@ -175,7 +175,8 @@ namespace egret
         QString m_id{};
         QString m_name{};
         QString m_source{};
-        QString m_type{};
+
+        std::uint32_t m_type{};
 
         std::optional<QVector3D> m_boxSize;
         std::optional<double> m_radius;
@@ -194,9 +195,8 @@ namespace egret
         // 原则上不允许外部修改 m_source。
         void matchSource();
 
-        const static QMap<QString, QString> StaticGeneralTypeSourceMap;
-        const static QString StaticBasicRingSourceStr;
-        const static QString StaticBasicDiskSourceStr;
+    public:
+        const static QMap<std::uint32_t, QString> StaticGeneralTypeSourceMap;
     };
 
     [[nodiscard]] ModelItemDataField parseModelItemDataFromQMLJson(const QString &qmlJson);

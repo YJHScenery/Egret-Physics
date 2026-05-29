@@ -182,9 +182,6 @@ ColumnLayout {
                                 rotation: transform["rotation"] // modelData.rotation
 
 
-                                Component.onCompleted: {
-                                    console.log(delegateModel.position)
-                                }
                                 pickable: true
 
                                 materials: PrincipledMaterial {
@@ -336,7 +333,7 @@ ColumnLayout {
                 property real m_restitution: 1.0
                 property string m_name: ""
                 //  property string m_source: ""
-                property string m_type: ""
+                property int m_type: 0
                 // property color m_color: "#5CC8FF"
                 property vector3d m_pos: Qt.vector3d(0, 0, 0)
                 property vector3d m_scale: Qt.vector3d(1, 1, 1)
@@ -381,8 +378,6 @@ ColumnLayout {
                     selectedColor: inspectorPanel.m_baseColor
                     onAccepted: {
                         inspectorPanel.m_baseColor = baseColorDialog.selectedColor;
-                        console.log("color: " + baseColorDialog.selectedColor);
-                        console.log("color: " + inspectorPanel.m_baseColor);
                     }
                 }
 
@@ -504,6 +499,7 @@ ColumnLayout {
 
                                 onCurrentIndexChanged: {
                                     basicParamsGrid.updateDynamicProperties(sourceComboBox.currentIndex)
+                                    inspectorPanel.m_type = currentIndex + 1
                                 }
 
                                 // 下拉菜单样式
@@ -571,11 +567,12 @@ ColumnLayout {
                                 model: ["标准盒体", "标准圆柱体", "标准圆柱面", "标准圆盘", "标准圆环", "标准细杆", "标准球体", "标准球壳"]
 
                                 // 绑定到 inspectorPanel 的属性
-                                currentIndex: {
-                                    var idx = model.indexOf(inspectorPanel.m_type);
-                                    return idx !== -1 ? idx : 0;
-                                }
-                                onCurrentValueChanged: inspectorPanel.m_type = currentValue
+                                // currentIndex: {
+                                //     var idx = model.indexOf(inspectorPanel.m_type);
+                                //     return idx !== -1 ? idx : 0;
+                                // }
+
+                                // onCurrentValueChanged: inspectorPanel.m_type = currentIndex
                             }
 
 
@@ -665,7 +662,7 @@ ColumnLayout {
                                                     return inspectorPanel.size_BoxOnly
                                                 },
                                                 setValue: function (val, oldVal) {
-                                                    inspectorPanel.size_BoxOnly = Qt.vector3d(val.x, oldVal.y, oldVal.z)
+                                                    inspectorPanel.size_BoxOnly = val
                                                 },
                                                 size: 3
                                             }
@@ -682,7 +679,7 @@ ColumnLayout {
                                                     return inspectorPanel.radius_Optional
                                                 },
                                                 setValue: function (val, oldVal) {
-                                                    inspectorPanel.radius_Optional = Qt.val
+                                                    inspectorPanel.radius_Optional = val
                                                 },
                                                 size: 1
                                             },
@@ -692,7 +689,7 @@ ColumnLayout {
                                                     return inspectorPanel.height_Optional
                                                 },
                                                 setValue: function (val, oldVal) {
-                                                    inspectorPanel.height_Optional = Qt.vector3d(val.x, oldVal.y, oldVal.z)
+                                                    inspectorPanel.height_Optional = val
                                                 },
                                                 size: 1
                                             }
@@ -708,7 +705,7 @@ ColumnLayout {
                                                     return inspectorPanel.radius_Optional
                                                 },
                                                 setValue: function (val, oldVal) {
-                                                    inspectorPanel.radius_Optional = Qt.val
+                                                    inspectorPanel.radius_Optional = val
                                                 },
                                                 size: 1
                                             }
@@ -723,7 +720,7 @@ ColumnLayout {
                                                     return inspectorPanel.length_RodOnly
                                                 },
                                                 setValue: function (val, oldVal) {
-                                                    inspectorPanel.length_RodOnly = Qt.val
+                                                    inspectorPanel.length_RodOnly = val
                                                 },
                                                 size: 1
                                             }]
@@ -738,7 +735,7 @@ ColumnLayout {
                                                     return inspectorPanel.radius_Optional
                                                 },
                                                 setValue: function (val, oldVal) {
-                                                    inspectorPanel.radius_Optional = Qt.val
+                                                    inspectorPanel.radius_Optional = val
                                                 },
                                                 size: 1
                                             }]
@@ -756,12 +753,13 @@ ColumnLayout {
 
                                 // 每个动态属性组
                                 Column {
+                                    property var propertyData: modelData
                                     width: parent.width
                                     Layout.fillWidth: true
                                     Layout.columnSpan: 2
 
                                     Label {
-                                        text: modelData.label
+                                        text: propertyData.label
                                         color: "#BFD8F4"
                                         Layout.fillWidth: true
                                     }
@@ -771,15 +769,35 @@ ColumnLayout {
                                         spacing: 6
                                         Repeater {
 
-                                            model: modelData.size
+                                            model: propertyData.size
 
                                             FloatField {
                                                 Layout.fillWidth: true
-                                                value: 0.0
+                                                value: {
+                                                    var currentValue = propertyData.getValue();
+                                                    if (propertyData.size === 1) {
+                                                        return currentValue;
+                                                    }
+                                                    if (propertyData.size === 3) {
+                                                        if (index === 0) return currentValue.x;
+                                                        if (index === 1) return currentValue.y;
+                                                        return currentValue.z;
+                                                    }
+                                                    return 0.0;
+                                                }
                                                 stepSize: 0.1
+
                                                 onValueChanged: {
-                                                    var oldVal = modelData.getValue()
-                                                    modelData.setValue(Qt.vector3d(value, oldVal.y, oldVal.z), oldVal)
+                                                    var oldVal = propertyData.getValue();
+                                                    if (propertyData.size === 1) {
+                                                        propertyData.setValue(value, oldVal);
+                                                    } else if (propertyData.size === 3) {
+                                                        var nextVal = Qt.vector3d(oldVal.x, oldVal.y, oldVal.z);
+                                                        if (index === 0) nextVal.x = value;
+                                                        if (index === 1) nextVal.y = value;
+                                                        if (index === 2) nextVal.z = value;
+                                                        propertyData.setValue(nextVal, oldVal);
+                                                    }
                                                 }
                                             }
                                         }

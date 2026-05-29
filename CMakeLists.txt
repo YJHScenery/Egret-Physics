@@ -14,6 +14,7 @@ include_directories(
         dependency/include
         dependency/include/boost_1_90_0
         dependency/include/eigen_5_0_0
+        dependency/include/magic_enum_0.9.8/magic_enum
         src
         src/model
         src/model/physics/constraints
@@ -162,6 +163,10 @@ set(CPP_FILES
         src/model/physics/constraints/simple_pendulum.h
         src/view/file_handler.cpp
         src/view/file_handler.h
+        src/view/enum_handler.cpp
+        src/view/enum_handler.h
+        src/view_model/serialize/model_to_render_helper.cpp
+        src/view_model/serialize/model_to_render_helper.h
 
 )
 

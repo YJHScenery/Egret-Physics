@@ -7,6 +7,11 @@
 #include "shape_box.h"
 #include "shape_cylinder.h"
 #include "shape_sphere.h"
+#include "shape_spherical_shell.h"
+#include "shape_cylindrical_shell.h"
+#include "shape_disk.h"
+#include "shape_ring.h"
+#include "shape_rod.h"
 #include "world_scene_manager.h"
 
 namespace egret
@@ -33,19 +38,20 @@ namespace egret
                                          return std::make_unique<ShapeSphere>(*radius);
                                      });
 
-            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::Box), [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
-            {
-                const auto it = info.numberParams.find("size");
-                if (it == info.numberParams.end()) {
-                    return nullptr;
-                }
-                Eigen::Vector3d size;
-                if (it->second.size() >= 3) {
-                    size = Eigen::Vector3d(it->second.data());
-                }
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::Box),
+                                     [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
+                                     {
+                                         const auto it = info.numberParams.find("size");
+                                         if (it == info.numberParams.end()) {
+                                             return nullptr;
+                                         }
+                                         Eigen::Vector3d size;
+                                         if (it->second.size() >= 3) {
+                                             size = Eigen::Vector3d(it->second.data());
+                                         }
 
-                return std::make_unique<ShapeBox>(size);
-            });
+                                         return std::make_unique<ShapeBox>(size);
+                                     });
 
             registry.registerFactory(static_cast<std::uint32_t>(ShapeID::Cylinder),
                                      [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
@@ -57,12 +63,89 @@ namespace egret
                                              return nullptr;
                                          }
 
-                                         if (radiusIt->second.size() >= 1 && heightIt->second.size() >= 1) {
+                                         if (!radiusIt->second.empty() && !heightIt->second.empty()) {
+                                             const auto radius = radiusIt->second[0];
+                                             const auto height = heightIt->second[0];
+                                             return std::make_unique<ShapeCylinder>(radius, height);
+                                         }
+                                         return nullptr;
+                                     });
+
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::CylindricalShell),
+                                     [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
+                                     {
+                                         const auto radiusIt = info.numberParams.find("radius");
+                                         const auto heightIt = info.numberParams.find("height");
+                                         if (radiusIt == info.numberParams.end() || heightIt == info.numberParams.
+                                             end()) {
+                                             return nullptr;
+                                         }
+
+                                         if (!radiusIt->second.empty() && !heightIt->second.empty()) {
                                              const auto radius = radiusIt->second[0];
                                              const auto height = heightIt->second[0];
 
+                                             return std::make_unique<ShapeCylindricalShell>(radius, height);
+                                         }
+                                         return nullptr;
+                                     });
 
-                                             return std::make_unique<ShapeCylinder>(radius, height);
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::Disk),
+                                     [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
+                                     {
+                                         const auto radiusIt = info.numberParams.find("radius");
+                                         if (radiusIt == info.numberParams.end()) {
+                                             return nullptr;
+                                         }
+
+                                         if (!radiusIt->second.empty()) {
+                                             const auto radius = radiusIt->second[0];
+                                             return std::make_unique<ShapeDisk>(radius);
+                                         }
+                                         return nullptr;
+                                     });
+
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::Ring),
+                                     [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
+                                     {
+                                         const auto radiusIt = info.numberParams.find("radius");
+                                         if (radiusIt == info.numberParams.end()) {
+                                             return nullptr;
+                                         }
+
+                                         if (!radiusIt->second.empty()) {
+                                             const auto radius = radiusIt->second[0];
+                                             return std::make_unique<ShapeRing>(radius);
+                                         }
+                                         return nullptr;
+                                     });
+
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::Rod),
+                                     [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
+                                     {
+                                         const auto lengthIt = info.numberParams.find("length");
+                                         if (lengthIt == info.numberParams.end()) {
+                                             return nullptr;
+                                         }
+
+                                         if (!lengthIt->second.empty()) {
+                                             const auto length = lengthIt->second[0];
+                                             return std::make_unique<ShapeRod>(length);
+                                         }
+                                         return nullptr;
+                                     });
+
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::SphericalShell),
+                                     [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
+                                     {
+                                         const auto radiusIt = info.numberParams.find("radius");
+                                         if (radiusIt == info.numberParams.end()) {
+                                             return nullptr;
+                                         }
+
+                                         if (!radiusIt->second.empty()) {
+                                             const auto radius = radiusIt->second[0];
+                                             return std::make_unique<ShapeSphericalShell>(radius);
                                          }
                                          return nullptr;
                                      });

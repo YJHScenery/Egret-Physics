@@ -11,24 +11,15 @@
 
 namespace egret
 {
-    const QMap<QString, QString> ModelItemData::StaticGeneralTypeSourceMap = {
-        {"Standard Box", "#Cube"},
-        {"Standard Cylinder", "#Cylinder"},
-        {"Standard Cylindrical Shell", "qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh"},
-        {"Standard Disk", "#Cylinder"},
-        {"Standard Rod", "#Cylinder"},
-        {"Standard Ring", StaticBasicRingSourceStr},
-        {"Standard Sphere", "#Sphere"},
-        {"Standard Spherical Shell", "#Sphere"},
-
-        {"标准盒体", "#Cube"},
-        {"标准圆柱体", "#Cylinder"},
-        {"标准圆柱面", "qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh"},
-        {"标准圆盘", "#Cylinder"},
-        {"标准细杆", "#Cylinder"},
-        {"标准圆环", StaticBasicRingSourceStr},
-        {"标准球体", "#Sphere"},
-        {"标准球壳", "#Sphere"}
+    const QMap<std::uint32_t, QString> ModelItemData::StaticGeneralTypeSourceMap = {
+        {static_cast<std::uint32_t>(ShapeID::Box), "#Cube"},
+        {static_cast<std::uint32_t>(ShapeID::Cylinder), "#Cylinder"},
+        {static_cast<std::uint32_t>(ShapeID::CylindricalShell), "qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh"},
+        {static_cast<std::uint32_t>(ShapeID::Disk), "#Cylinder"},
+        {static_cast<std::uint32_t>(ShapeID::Rod), "#Cylinder"},
+        {static_cast<std::uint32_t>(ShapeID::Ring), "qrc:/model_3d/assets/model_3d/torus/mesh/torus_R1.mesh"},
+        {static_cast<std::uint32_t>(ShapeID::Sphere), "#Sphere"},
+        {static_cast<std::uint32_t>(ShapeID::SphericalShell), "#Sphere"},
     };
 
     QMap<QString, std::uint32_t> ModelItemData::ShowMatchesTypeIDMap = {
@@ -52,9 +43,6 @@ namespace egret
         {"标准球体", static_cast<std::uint32_t>(ShapeID::Sphere)},
         {"标准球壳", static_cast<std::uint32_t>(ShapeID::SphericalShell)}
     };
-
-    const QString ModelItemData::StaticBasicRingSourceStr = "qrc:/model_3d/assets/model_3d/torus/mesh/torus_R1.mesh";
-    const QString ModelItemData::StaticBasicDiskSourceStr = "qrc:/model_3d/assets/model_3d/disk/disk.mesh";
 
 
     ModelItemDataField parseModelItemDataFromQMLJson(const QString& qmlJson)
@@ -89,36 +77,40 @@ namespace egret
         {
             QJsonArray arr = obj[key].toArray();
             if (arr.size() >= 3) {
-                return QVector3D(
-                    arr[0].toDouble(),
-                    arr[1].toDouble(),
-                    arr[2].toDouble());
+                return {
+                    (float)arr[0].toDouble(),
+                    (float)arr[1].toDouble(),
+                    (float)arr[2].toDouble()};
             }
-            return QVector3D();
+            return {};
         };
 
         auto getQuaternion = [&](const QString& key) -> QQuaternion
         {
             QJsonArray arr = obj[key].toArray();
             if (arr.size() >= 4) {
-                return QQuaternion(
-                    arr[0].toDouble(), // w
-                    arr[1].toDouble(), // x
-                    arr[2].toDouble(), // y
-                    arr[3].toDouble() // z
-                );
+                return {
+                    (float)arr[0].toDouble(), // w
+                    (float)arr[1].toDouble(), // x
+                    (float)arr[2].toDouble(), // y
+                    (float)arr[3].toDouble() // z
+                };
             }
-            return QQuaternion();
+            return {};
         };
 
         // 3. 读取所有字段到临时变量
         data.m_name = getString("entity_name");
-        data.m_type = getString("entity_type");
+
+        data.m_type = obj["entity_type"].toInteger();
+
         data.m_mass = getDouble("entity_mass");
+
         data.m_loadTime = getDouble("load_time");
+
         data.m_restitution = getDouble("restitution");
 
-        switch (ModelItemData::ShowMatchesTypeIDMap.value(data.m_type)) {
+        switch (data.m_type) {
         case static_cast<std::uint32_t>(ShapeID::Box): {
             data.m_boxSize = getVector3D("box_size");
             break;
@@ -245,7 +237,7 @@ namespace egret
     QString ModelItemData::name() const { return m_name; }
     QString ModelItemData::source() const { return m_source; }
 
-    QString ModelItemData::type() const { return m_type; }
+    std::uint32_t ModelItemData::type() const { return m_type; }
 
     double ModelItemData::restitution() const { return m_restitution; }
 
@@ -291,7 +283,7 @@ namespace egret
         }
     }
 
-    void ModelItemData::setType(const QString& type)
+    void ModelItemData::setType(std::uint32_t type)
     {
         if (m_type != type) {
             m_type = type;
@@ -427,17 +419,12 @@ namespace egret
         QJsonObject obj;
         obj["mass"] = m_mass;
         obj["load_time"] = m_loadTime;
+        obj["restitution"] = m_restitution;
         obj["id"] = m_id;
         obj["name"] = m_name;
         obj["source"] = m_source;
-        obj["pos"] = QJsonArray{m_pos.x(), m_pos.y(), m_pos.z()};
-        obj["scale"] = QJsonArray{m_scale.x(), m_scale.y(), m_scale.z()};
-        obj["rotation"] = QJsonArray{m_rotation.scalar(), m_rotation.x(), m_rotation.y(), m_rotation.z()};
-        obj["initial_velocity"] = QJsonArray{m_initialVelo.x(), m_initialVelo.y(), m_initialVelo.z()};
-        obj["initial_angular_velocity"] = QJsonArray{
-            m_initialAnguVelo.x(), m_initialAnguVelo.y(), m_initialAnguVelo.z()
-        };
-        obj["materials"] = m_materials->toJson();
+
+        obj["type"] = QJsonValue{static_cast<std::int64_t>(m_type)};
         if (m_boxSize.has_value()) {
             obj["box_size"] = QJsonArray{m_boxSize->x(), m_boxSize->y(), m_boxSize->z()};
         }
@@ -450,6 +437,17 @@ namespace egret
         if (m_length.has_value()) {
             obj["length"] = m_length.value();
         }
+
+        obj["pos"] = QJsonArray{m_pos.x(), m_pos.y(), m_pos.z()};
+        obj["scale"] = QJsonArray{m_scale.x(), m_scale.y(), m_scale.z()};
+        obj["rotation"] = QJsonArray{m_rotation.scalar(), m_rotation.x(), m_rotation.y(), m_rotation.z()};
+
+        obj["initial_velocity"] = QJsonArray{m_initialVelo.x(), m_initialVelo.y(), m_initialVelo.z()};
+        obj["initial_angular_velocity"] = QJsonArray{
+            m_initialAnguVelo.x(), m_initialAnguVelo.y(), m_initialAnguVelo.z()
+        };
+        obj["materials"] = m_materials->toJson();
+
         return obj;
     }
 
@@ -461,6 +459,14 @@ namespace egret
         if (json.contains("load_time")) {
             setLoadTime(json["load_time"].toDouble());
         }
+
+        if (json.contains("restitution")) {
+            setRestitution(json["restitution"].toDouble());
+        }
+        if (json.contains("type")) {
+            setType(static_cast<std::uint32_t>(json["type"].toInteger()));
+        }
+
         if (json.contains("id")) {
             setId(json["id"].toString());
         }
