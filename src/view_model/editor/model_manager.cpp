@@ -10,6 +10,7 @@
 #include <QUuid>
 #include <QQmlEngine>
 #include "logger.h"
+#include "serialize/model_to_render_helper.h"
 
 
 namespace egret
@@ -153,13 +154,25 @@ namespace egret
         newModel->setType(data.m_type);
         newModel->setPos(data.m_pos);
         newModel->setScale(data.m_scale);
-
         newModel->setMass(data.m_mass);
         newModel->setLoadTime(data.m_loadTime);
         newModel->setRestitution(data.m_restitution);
         newModel->setRotation(data.m_rotation);
         newModel->setInitialVelo(data.m_initialVelo);
         newModel->setInitialAnguVelo(data.m_initialAnguVelo);
+
+        if (data.m_boxSize.has_value()) {
+            newModel->setBoxSize(data.m_boxSize.value());
+        }
+        if (data.m_radius.has_value()) {
+            newModel->setRadius(data.m_radius.value());
+        }
+        if (data.m_height.has_value()) {
+            newModel->setHeight(data.m_height.value());
+        }
+        if (data.m_length.has_value()) {
+            newModel->setLength(data.m_length.value());
+        }
 
         newModel->materials()->setBaseColor(data.m_baseColor);
         newModel->materials()->setMetalness(data.m_metalness);
@@ -168,8 +181,6 @@ namespace egret
         newModel->materials()->setAlphaMode("Opaque");
 
         qDebug() << __func__ << "Create";
-        qDebug() << m_models.size();
-        qDebug() << newModel->source();
         return addModel(newModel);
     }
 
@@ -199,6 +210,19 @@ namespace egret
         model->setRotation(data.m_rotation);
         model->setInitialVelo(data.m_initialVelo);
         model->setInitialAnguVelo(data.m_initialAnguVelo);
+
+        if (data.m_boxSize.has_value()) {
+            model->setBoxSize(data.m_boxSize.value());
+        }
+        if (data.m_radius.has_value()) {
+            model->setRadius(data.m_radius.value());
+        }
+        if (data.m_height.has_value()) {
+            model->setHeight(data.m_height.value());
+        }
+        if (data.m_length.has_value()) {
+            model->setLength(data.m_length.value());
+        }
         model->materials()->setBaseColor(data.m_baseColor);
         model->materials()->setMetalness(data.m_metalness);
         model->materials()->setRoughness(data.m_roughness);
@@ -389,102 +413,20 @@ namespace egret
 
     QVariantMap ModelManager::setQuick3DRenderTransform(int index)
     {
-        ModelItemData* model(getModelAtIndex(index));
+        ModelItemData *model = getModelAtIndex(index);
         if (model == nullptr) {
             return {};
         }
 
-        qDebug() << model->boxSize();
-        qDebug() << model->scale();
-        qDebug() << model->rotation();
-        qDebug() << model->pos();
+        return ModelToRenderHelper::instance().buildQuick3DRenderTransform(*model);
+    }
 
-        QVariantMap result;
-
-        result.insert("position", QVector3D{});
-        result.insert("scale", QVector3D{1.0, 1.0, 1.0});
-        result.insert("rotation", QQuaternion{});
-
-        const QVector3D pos{model->pos()};
-        const QVector3D scale{model->scale()};
-        const QQuaternion rotation{model->rotation()};
-        // constexpr QQuaternion qR(0.5f, 0.5f, 0.5f, 0.5f);
-
-        result["position"] = QVector3D{pos.y(), pos.z(), pos.x()};
-        result["rotation"] = QQuaternion{rotation.scalar(), rotation.y(), rotation.z(), rotation.x()};
-
-        const std::uint32_t shapeID{ModelItemData::ShowMatchesTypeIDMap.value(model->type())};
-        qDebug() << "Shape ID" << shapeID;
-        switch (shapeID) {
-        case static_cast<std::uint32_t>(ShapeID::Box): {
-            const QVector3D boxSize{model->boxSize()};
-            result["scale"] = 0.01 * QVector3D{
-                scale.y() * boxSize.y(), scale.z() * boxSize.z(), scale.x() * boxSize.x()
-            };
-            break;
+    QString ModelManager::matchTypeToSource(int type)
+    {
+        if (ModelItemData::StaticGeneralTypeSourceMap.contains(static_cast<std::uint32_t>(type))) {
+            return ModelItemData::StaticGeneralTypeSourceMap.value(static_cast<std::uint32_t>(type));
         }
-        case static_cast<std::uint32_t>(ShapeID::Cylinder):{
-            const float radius = model->radius();
-            const float height = model->height();
-            result["scale"] = 0.01 * QVector3D{scale.y() * height, scale.z() * radius, scale.x() * radius};
-            break;
-            break;
-        }
-        case static_cast<std::uint32_t>(ShapeID::CylindricalShell): {
-            const float radius = model->radius();
-            const float height = model->height();
-            result["scale"] = QVector3D{scale.y() * radius, scale.z() * height, scale.x() * radius};
-
-            break;
-        }
-
-        case static_cast<std::uint32_t>(ShapeID::Disk):{
-            const float radius = model->radius();
-            float reduce = 0.01;
-
-            if (radius > 100.f) {
-                reduce = pow(10, -log10f(radius));
-            }
-            // Disk 和 Ring 都是二维模型，其原来的 z 方向缩放被忽略。
-            result["scale"] = 0.01 * QVector3D{scale.y() * radius, reduce, scale.x() * radius};
-            break;
-        }
-        case static_cast<std::uint32_t>(ShapeID::Ring): {
-            const float radius = model->radius();
-            // Disk 和 Ring 都是二维模型，其原来的 z 方向缩放被忽略。
-            result["scale"] = QVector3D{scale.y() * radius, 1.0, scale.x() * radius};
-            break;
-        }
-
-        case static_cast<std::uint32_t>(ShapeID::Rod): {
-
-            const float length = model->length();
-            float reduce = 0.01;
-
-            if (length > 100.f) {
-                reduce = pow(10, -log10f(length));
-            }
-
-            result["scale"] = 0.01 * QVector3D{length * reduce, length, length * reduce};
-            break;
-        }
-
-        case static_cast<std::uint32_t>(ShapeID::Sphere):
-            [[fallthrough]];
-        case static_cast<std::uint32_t>(ShapeID::SphericalShell): {
-            const float radius = model->radius();
-            result["scale"] = 0.01 * QVector3D{
-                scale.y() * radius, scale.z() * radius, scale.x() * radius
-            };
-
-            break;
-        }
-
-        default:
-            break;
-        }
-
-        return result;
+        return "";
     }
 
     void ModelManager::saveState()
@@ -573,7 +515,7 @@ namespace egret
         auto* cube = new ModelItemData();
         cube->setName("Default Cube");
         cube->setSource("#Cube");
-        cube->setType("标准盒体");
+        cube->setType(static_cast<std::uint32_t>(ShapeID::Box));
         cube->setBoxSize({10, 10, 10});
         cube->setPos(QVector3D(300, 200, 100));
         cube->setRotation({0.23, 1, 0, 0});
@@ -590,7 +532,7 @@ namespace egret
         sphere->setSource("#Sphere");
         sphere->setId("1114514");
         sphere->setRadius(110.4);
-        sphere->setType("标准球体");
+        sphere->setType(static_cast<std::uint32_t>(ShapeID::Sphere));
         sphere->setPos(QVector3D(10, 0, 0));
         sphere->materials()->setBaseColor(QColor("#4CA3FF"));
         sphere->setScale(QVector3D(1, 1, 1));
@@ -627,7 +569,7 @@ namespace egret
         //
         auto* cylinder_side = new ModelItemData();
         cylinder_side->setName("Default Cylinder Side");
-        cylinder_side->setType("标准圆柱面");
+        cylinder_side->setType(static_cast<std::uint32_t>(ShapeID::CylindricalShell));
         cylinder_side->setRadius(10);
         cylinder_side->setHeight(30);
         // cylinder_side->setSource("qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh");
@@ -644,7 +586,7 @@ namespace egret
         auto* disk = new ModelItemData();
         disk->setName("Default Disk");
         // disk->setSource("#Cylinder");
-        disk->setType("标准圆盘");
+        disk->setType(static_cast<std::uint32_t>(ShapeID::Disk));
 
         disk->setRadius(100);
 

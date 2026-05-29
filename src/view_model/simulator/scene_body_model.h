@@ -26,7 +26,7 @@ namespace egret
         quint64 id{0};
 
         /** 渲染类型：sphere、box、particle。 */
-        QString kind;
+        quint32 kind;
 
         /** 左上角 X 坐标。 */
         double x{0.0};

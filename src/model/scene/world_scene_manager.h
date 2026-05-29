@@ -106,7 +106,7 @@ namespace egret
         std::uint64_t id{0};
 
         /** 渲染类型，例如 sphere、box、particle。 */
-        std::string kind;
+        std::uint32_t kind;
 
         /** 左上角 X 坐标。 */
         double x{0.0};

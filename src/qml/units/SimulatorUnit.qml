@@ -3,6 +3,9 @@ import QtQuick.Controls 2.15
 import QtQuick.Controls.Basic 2.15 as Basic
 import QtQuick.Layouts 1.15
 import QtQuick3D 6.9
+import EnumHandler 1.0
+import ModelManager 1.0
+
 import "qrc:/components/components"
 
 ColumnLayout {
@@ -12,6 +15,7 @@ ColumnLayout {
     property bool infoPanelVisible: true
     property var theme
     property alias coordinateSystem: coordinateSystem
+
 
     spacing: 14
 
@@ -127,23 +131,7 @@ ColumnLayout {
                 }
 
                 function shapeSource(kind) {
-                    if (kind === "standard_sphere" ) {
-                        return "#Sphere";
-                    }
-                    if (kind === "standard_spherical_shell")
-                    {
-                        return "qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh"
-                    }
-                    if (kind === "standard_cylinder"  || kind === "standard_disk" || kind === "standard_rod") {
-                        return "#Cylinder";
-                    }
-                    if (kind === "standard_ring"){
-                        return "qrc:/model_3d/assets/model_3d/torus/mesh/torus_R1.mesh"
-                    }
-                    if (kind === "standard_box") {
-                        return "#Cube";
-                    }
-                    return "#Cube";
+                    return ModelManager.matchTypeToSource(kind);
                 }
 
                 function scaleForShape(kind, sx, sy, sz) {
@@ -219,6 +207,7 @@ ColumnLayout {
                                 source: canvas3d.shapeSource(shapeKind)
                                 position: canvas3d.toRenderVector(bodyCenterX, bodyCenterY, bodyCenterZ)
                                 scale: canvas3d.scaleForShape(shapeKind, bodySizeX, bodySizeZ, bodySizeY)
+
                                 property var rotMatrix: bodyRotation
                                 property real angle: Math.acos(Math.min(1.0, (rotMatrix[0] + rotMatrix[4] + rotMatrix[8] - 1) * 0.5))
                                 property real qx: angle > 0.001 ? (rotMatrix[5] - rotMatrix[7]) / (4 * Math.sin(angle)) : 0

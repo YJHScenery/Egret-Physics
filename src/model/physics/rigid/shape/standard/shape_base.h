@@ -14,6 +14,33 @@
 #include "physics_utils.h"
 #include "transform.h"
 #include "shape_register.h"
+#include <magic_enum.hpp>
+
+
+namespace egret
+{
+    enum class ShapeID: std::uint8_t
+    {
+        Unknown = 0,
+
+        Box, Cylinder, CylindricalShell, Disk, Ring, Rod, Sphere, SphericalShell,
+
+        Abstract = 127,
+
+        Other = 255
+    };
+
+
+}
+
+// ReSharper disable once CppRedundantNamespaceDefinition
+namespace magic_enum::customize {
+    template <>
+    struct enum_range<egret::ShapeID> {
+        static constexpr int min = 0;
+        static constexpr int max = 255;
+    };
+}
 
 namespace egret
 {
@@ -30,16 +57,8 @@ namespace egret
         // std::unordered_map<std::string, ValueType> parameters;
     };
 
-    enum class ShapeID: std::uint8_t
-    {
-        Unknown = 0,
 
-        Box, Cylinder, CylindricalShell, Disk, Ring, Rod, Sphere, SphericalShell,
 
-        Abstract = 127,
-
-        Other = 255
-    };
 
     class ShapeBase
     {

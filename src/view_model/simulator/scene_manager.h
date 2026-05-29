@@ -9,6 +9,7 @@
 #include <QObject>
 #include <QTimer>
 #include <QVariantMap>
+#include <QVector3D>
 
 #include <Eigen/Dense>
 
@@ -16,6 +17,7 @@
 
 #include "scene_body_model.h"
 #include "world_scene_manager.h"
+#include <QQuaternion>
 
 namespace egret
 {
@@ -163,6 +165,16 @@ namespace egret
          */
         Q_INVOKABLE void endBodyDrag();
 
+        Q_INVOKABLE [[nodiscard]] QVector3D buildRenderScale(std::uint32_t type,
+                                                             const QVector3D& modelScale,
+                                                             const QVector3D& boxSize_optional,
+                                                             double radius_optional, double height_optional,
+                                                             double length_optional);
+
+        Q_INVOKABLE [[nodiscard]] QVector3D buildRenderPosition(const QVector3D& position);
+
+        Q_INVOKABLE [[nodiscard]] QQuaternion buildRenderRotation(const QQuaternion& rotation);
+
     signals:
         /** 运行状态变化。 */
         void runningChanged();
@@ -302,8 +314,6 @@ namespace egret
 
         /** 模型层世界管理器。 */
         std::unique_ptr<WorldSceneManager> m_world;
-
-
     };
 }
 
