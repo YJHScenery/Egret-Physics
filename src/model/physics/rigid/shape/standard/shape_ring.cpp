@@ -22,6 +22,14 @@ namespace egret
         return ShapeDisk::getInertiaTensor(mass) * 2.0;
     }
 
+    ShapeLoadInfo ShapeRing::getLoadInfo() const
+    {
+        ShapeLoadInfo info{};
+        info.typeId = static_cast<std::uint32_t>(typeId());
+        info.numberParams["radius"] = std::vector<double>{getRadius()};
+        return info;
+    }
+
     SceneRenderItem ShapeRing::getBasicRenderInfo(const Eigen::Vector3d& position) const
     {
         SceneRenderItem item = ShapeDisk::getBasicRenderInfo(position);

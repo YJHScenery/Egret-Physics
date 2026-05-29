@@ -41,24 +41,28 @@ namespace egret
             return item.width;
         case HeightRole:
             return item.height;
-        case CenterXRole:
-            return item.centerX;
-        case CenterYRole:
-            return item.centerY;
-        case CenterZRole:
-            return item.centerZ;
+        case CenterPosRole:
+        {
+            QVariantList list;
+            for (int i = 0; i < 3; ++i) {
+                list.append(item.centerPos[i]);
+            }
+            return list;
+        }
         case SpeedXRole:
             return item.speedX;
         case SpeedYRole:
             return item.speedY;
         case SpeedZRole:
             return item.speedZ;
-        case SizeXRole:
-            return item.sizeX;
-        case SizeYRole:
-            return item.sizeY;
-        case SizeZRole:
-            return item.sizeZ;
+        case ScaleRole:
+        {
+            QVariantList list;
+            for (int i = 0; i < 3; ++i) {
+                list.append(item.scale[i]);
+            }
+            return list;
+        }
         case ColorRole:
             return item.color;
         case LabelRole:
@@ -66,7 +70,7 @@ namespace egret
         case RotationRole:
         {
             QVariantList list;
-            for (int i = 0; i < 9; ++i)
+            for (int i = 0; i < 4; ++i)
             {
                 list.append(item.rotation[i]);
             }
@@ -86,15 +90,11 @@ namespace egret
             {YRole, "bodyY"},
             {WidthRole, "bodyWidth"},
             {HeightRole, "bodyHeight"},
-            {CenterXRole, "bodyCenterX"},
-            {CenterYRole, "bodyCenterY"},
-            {CenterZRole, "bodyCenterZ"},
+            {CenterPosRole, "bodyCenterPos"},
             {SpeedXRole, "bodySpeedX"},
             {SpeedYRole, "bodySpeedY"},
             {SpeedZRole, "bodySpeedZ"},
-            {SizeXRole, "bodySizeX"},
-            {SizeYRole, "bodySizeY"},
-            {SizeZRole, "bodySizeZ"},
+            {ScaleRole, "bodyScale"},
             {ColorRole, "bodyColor"},
             {LabelRole, "bodyLabel"},
             {RotationRole, "bodyRotation"},

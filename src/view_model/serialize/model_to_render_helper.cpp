@@ -60,56 +60,56 @@ namespace egret
                                                            const double height,
                                                            const double length)
     {
+        double unitScale = 0.01;
+        switch (shapeId) {
+        case static_cast<std::uint32_t>(ShapeID::CylindricalShell):
+        case static_cast<std::uint32_t>(ShapeID::Ring):
+            unitScale = 1.0;
+            break;
+        default:
+            break;
+        }
+
         switch (shapeId) {
         case static_cast<std::uint32_t>(ShapeID::Box):
-            return 0.01 * QVector3D{
+            return unitScale * QVector3D{
                 (scale.y() * boxSize.y()),
                 (scale.z() * boxSize.z()),
                 (scale.x() * boxSize.x())
             };
         case static_cast<std::uint32_t>(ShapeID::Cylinder):
-            return 0.01 * QVector3D{
+            return unitScale * QVector3D{
                 static_cast<float>(scale.y() * height),
                 static_cast<float>(scale.z() * radius),
                 static_cast<float>(scale.x() * radius)
             };
         case static_cast<std::uint32_t>(ShapeID::CylindricalShell):
-            return QVector3D{
+            return unitScale * QVector3D{
                 static_cast<float>(scale.y() * radius),
                 static_cast<float>(scale.z() * height),
                 static_cast<float>(scale.x() * radius)
             };
-        case static_cast<std::uint32_t>(ShapeID::Disk): {
-            double reduce = 0.01;
-            if (radius > 100.0) {
-                reduce = std::pow(10.0, -std::log10(radius));
-            }
-            return 0.01 * QVector3D{
+        case static_cast<std::uint32_t>(ShapeID::Disk):
+            return unitScale * QVector3D{
                 static_cast<float>(scale.y() * radius),
-                static_cast<float>(reduce),
+                1.0f,
                 static_cast<float>(scale.x() * radius)
             };
-        }
         case static_cast<std::uint32_t>(ShapeID::Ring):
-            return QVector3D{
+            return unitScale * QVector3D{
                 static_cast<float>(scale.y() * radius),
-                static_cast<float>(1.0),
+                1.0f,
                 static_cast<float>(scale.x() * radius)
             };
-        case static_cast<std::uint32_t>(ShapeID::Rod): {
-            double reduce = 0.01;
-            if (length > 100.0) {
-                reduce = std::pow(10.0, -std::log10(length));
-            }
-            return 0.01 * QVector3D{
-                static_cast<float>(length * reduce),
-                static_cast<float>(length),
-                static_cast<float>(length * reduce)
+        case static_cast<std::uint32_t>(ShapeID::Rod):
+            return unitScale * QVector3D{
+                1.0f,
+                static_cast<float>(scale.y() * length),
+                1.0f
             };
-        }
         case static_cast<std::uint32_t>(ShapeID::Sphere):
         case static_cast<std::uint32_t>(ShapeID::SphericalShell):
-            return 0.01 * QVector3D{
+            return unitScale * QVector3D{
                 static_cast<float>(scale.y() * radius),
                 static_cast<float>(scale.z() * radius),
                 static_cast<float>(scale.x() * radius)

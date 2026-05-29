@@ -537,6 +537,9 @@ namespace egret
         if (json.contains("radius")) {
             setRadius(json["radius"].toDouble());
         }
+        else if (json.contains("circle_radius")) {
+            setRadius(json["circle_radius"].toDouble());
+        }
 
         if (json.contains("height")) {
             setHeight(json["height"].toDouble());

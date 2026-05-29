@@ -182,8 +182,6 @@ namespace egret
             const Eigen::Vector3d initialAngularVelocity = readVector3(obj.value("initial_angular_velocity"),
                                                                        Eigen::Vector3d::Zero());
 
-            const QString source = obj.value("source").toString();
-
             const bool hasBoxSize = obj.contains("box_size");
             const bool hasRadius = obj.contains("radius") || obj.contains("circle_radius");
             const bool hasHeight = obj.contains("height");
@@ -199,35 +197,58 @@ namespace egret
                 LOG_WARN_LITERAL("Unknown Shape ID");
             }
 
-            if (hasBoxSize) {
-                // shapeInfo.typeId = static_cast<std::uint32_t>(ShapeID::Box);
+            const auto readRadius = [&]()
+            {
+                return obj.contains("radius")
+                           ? obj.value("radius").toDouble()
+                           : obj.value("circle_radius").toDouble();
+            };
+
+            switch (static_cast<ShapeID>(type)) {
+            case ShapeID::Box: {
+                if (!hasBoxSize) {
+                    LOG_WARN_LITERAL("Missing box_size for Box");
+                    continue;
+                }
                 const Eigen::Vector3d size = readVector3(obj.value("box_size"), Eigen::Vector3d(1.0, 1.0, 1.0));
                 shapeInfo.numberParams["size"] = {size.x(), size.y(), size.z()};
+                break;
             }
-
-            if (hasRadius && hasHeight) {
-                // shapeInfo.typeId = static_cast<std::uint32_t>(ShapeID::Cylinder);
-                const double radius = obj.contains("radius")
-                                          ? obj.value("radius").toDouble()
-                                          : obj.value("circle_radius").toDouble();
+            case ShapeID::Cylinder:
+            case ShapeID::CylindricalShell: {
+                if (!hasRadius || !hasHeight) {
+                    LOG_WARN_LITERAL("Missing radius/height for Cylinder");
+                    continue;
+                }
+                const double radius = readRadius();
                 const double height = obj.value("height").toDouble();
                 shapeInfo.numberParams["radius"] = {radius};
                 shapeInfo.numberParams["height"] = {height};
+                break;
             }
-
-            if (hasLength) {
-                // shapeInfo.typeId = static_cast<std::uint32_t>(ShapeID::Rod);
+            case ShapeID::Disk:
+            case ShapeID::Ring:
+            case ShapeID::Sphere:
+            case ShapeID::SphericalShell: {
+                if (!hasRadius) {
+                    LOG_WARN_LITERAL("Missing radius for round shape");
+                    continue;
+                }
+                const double radius = readRadius();
+                shapeInfo.numberParams["radius"] = {radius};
+                break;
+            }
+            case ShapeID::Rod: {
+                if (!hasLength) {
+                    LOG_WARN_LITERAL("Missing length for Rod");
+                    continue;
+                }
                 const double length = obj.value("length").toDouble();
                 shapeInfo.numberParams["length"] = {length};
+                break;
             }
-
-            if (hasRadius) {
-                const double radius = obj.contains("radius")
-                                          ? obj.value("radius").toDouble()
-                                          : obj.value("circle_radius").toDouble();
-                shapeInfo.numberParams["radius"] = {radius};
-            }
-            else {
+            default:
+                LOG_WARN_LITERAL("Unknown Shape ID");
                 continue;
             }
 
@@ -717,18 +738,18 @@ namespace egret
             item.y = renderItem.y;
             item.width = renderItem.width;
             item.height = renderItem.height;
-            item.centerX = renderItem.centerX;
-            item.centerY = renderItem.centerY;
-            item.centerZ = renderItem.centerZ;
+            for (int i = 0; i < 3; ++i) {
+                item.centerPos[i] = renderItem.centerPos[i];
+            }
             item.speedX = renderItem.speedX;
             item.speedY = renderItem.speedY;
             item.speedZ = renderItem.speedZ;
-            item.sizeX = renderItem.sizeX;
-            item.sizeY = renderItem.sizeY;
-            item.sizeZ = renderItem.sizeZ;
+            for (int i = 0; i < 3; ++i) {
+                item.scale[i] = renderItem.scale[i];
+            }
             item.color = QColor(QString::fromStdString(renderItem.color));
             item.label = QString::fromStdString(renderItem.label);
-            for (int i = 0; i < 9; ++i) {
+            for (int i = 0; i < 4; ++i) {
                 item.rotation[i] = renderItem.rotation[i];
             }
             items.push_back(std::move(item));

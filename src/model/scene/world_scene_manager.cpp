@@ -8,9 +8,12 @@
 #include <cmath>
 #include <unordered_map>
 
+#include <QVector3D>
+
 #include "constants.h"
 #include "gravity_field.h"
 #include "field_base.h"
+#include "model_to_render_helper.h"
 #include "shape_factory_registry.h"
 #include "shape_box.h"
 #include "shape_cylinder.h"
@@ -76,6 +79,33 @@ namespace egret
 
             // 未找到参数或数据不足，返回 fallback
             return fallback;
+        }
+
+        [[nodiscard]] Eigen::Vector3d buildRenderScale(const std::uint32_t shapeId,
+                                                       const Eigen::Vector3d& modelScale,
+                                                       const Eigen::Vector3d& boxSize,
+                                                       const double radius,
+                                                       const double height,
+                                                       const double length)
+        {
+            const QVector3D modelScaleVec{
+                static_cast<float>(modelScale.x()),
+                static_cast<float>(modelScale.y()),
+                static_cast<float>(modelScale.z())
+            };
+            const QVector3D boxSizeVec{
+                static_cast<float>(boxSize.x()),
+                static_cast<float>(boxSize.y()),
+                static_cast<float>(boxSize.z())
+            };
+            const QVector3D renderScale = ModelToRenderHelper::instance().buildQuick3DRenderScale(
+                shapeId,
+                modelScaleVec,
+                boxSizeVec,
+                radius,
+                height,
+                length);
+            return {renderScale.x(), renderScale.y(), renderScale.z()};
         }
 
         // [[nodiscard]] Eigen::Vector3d readShapeParamAsVector3(const ShapeLoadInfo &info,
@@ -419,50 +449,70 @@ namespace egret
             item.id = body->id;
             item.label = body->name.empty() ? (std::string("Body ") + std::to_string(body->id)) : body->name;
             item.color = body->entity->getMass() <= 0.0 ? "#6C7A89" : "#3EC5FF";
-            item.centerX = position.x();
-            item.centerY = position.y();
-            item.centerZ = position.z();
+            item.centerPos[0] = position.y();
+            item.centerPos[1] = position.z();
+            item.centerPos[2] = position.x();
             item.speedX = speed.x();
             item.speedY = speed.y();
             item.speedZ = speed.z();
 
-            const ShapeLoadInfo shapeInfo = body->entity->getShape()->getLoadInfo();
-            item.sizeX = std::max(1.0, item.width);
-            item.sizeY = std::max(1.0, item.height);
-            item.sizeZ = std::max(1.0, std::min(item.sizeX, item.sizeY));
+            const Transform& transform = body->entity->getTransform();
+            const Eigen::Vector3d modelScale = transform.getScale();
+            const Eigen::Quaterniond modelRotation = transform.getRotation();
 
-            if (shapeInfo.typeId == (std::uint32_t)ShapeID::Sphere || shapeInfo.typeId == (std::uint32_t)ShapeID::Disk
-                || shapeInfo.typeId == (std::uint32_t)ShapeID::Ring || shapeInfo.typeId == (std::uint32_t)
-                ShapeID::SphericalShell) {
-                const double radius = std::max(0.5, readShapeParamAsDouble(shapeInfo, "radius", item.sizeX * 0.5));
+            double boxSizeX = 1.0;
+            double boxSizeY = 1.0;
+            double boxSizeZ = 1.0;
+            double modelRadius = 1.0;
+            double modelLength = 1.0;
+            double modelHeight = 1.0;
+
+            const auto shape = body->entity->getShape();
+            const ShapeLoadInfo shapeInfo = shape->getLoadInfo();
+            switch (shape->typeId()) {
+            case ShapeID::Sphere:
+            case ShapeID::Disk:
+            case ShapeID::Ring:
+            case ShapeID::SphericalShell: {
+                const double radius = readShapeParamAsDouble(shapeInfo, "radius", 1.0);
                 const double diameter = radius * 2.0;
-                item.sizeX = diameter;
-                item.sizeY = diameter;
-                item.sizeZ = diameter;
+                boxSizeX = diameter;
+                boxSizeY = diameter;
+                boxSizeZ = diameter;
+                modelRadius = diameter;
+                break;
             }
-            else if (shapeInfo.typeId == (std::uint32_t)ShapeID::Cylinder || shapeInfo.typeId ==
-                (std::uint32_t)ShapeID::CylindricalShell) {
-                const double radius = std::max(0.5, readShapeParamAsDouble(shapeInfo, "radius", item.sizeX * 0.5));
-                const double height = std::max(1.0, readShapeParamAsDouble(shapeInfo, "height", item.sizeZ));
+            case ShapeID::Cylinder:
+            case ShapeID::CylindricalShell: {
+                const double radius = readShapeParamAsDouble(shapeInfo, "radius", 1.0);
+                const double height = readShapeParamAsDouble(shapeInfo, "height", 1.0);
                 const double diameter = radius * 2.0;
-                item.sizeX = diameter;
-                item.sizeY = diameter;
-                item.sizeZ = height;
+                boxSizeX = diameter;
+                boxSizeY = diameter;
+                boxSizeZ = height;
+                modelRadius = diameter;
+                modelHeight = height;
+                break;
             }
-            else if (shapeInfo.typeId == (std::uint32_t)ShapeID::Box) {
+            case ShapeID::Box: {
                 const Eigen::Vector3d size = readShapeParamAsVector3(shapeInfo,
                                                                      "size",
-                                                                     Eigen::Vector3d(
-                                                                         item.sizeX, item.sizeY, item.sizeZ));
-                item.sizeX = std::max(1.0, std::abs(size.x()));
-                item.sizeY = std::max(1.0, std::abs(size.y()));
-                item.sizeZ = std::max(1.0, std::abs(size.z()));
+                                                                     Eigen::Vector3d::Ones());
+                boxSizeX = std::abs(size.x());
+                boxSizeY = std::abs(size.y());
+                boxSizeZ = std::abs(size.z());
+                break;
             }
-            else if (shapeInfo.typeId == (std::uint32_t)ShapeID::Rod) {
-                const double length = std::max(1.0, readShapeParamAsDouble(shapeInfo, "length", item.sizeZ));
-                item.sizeX = 6.0;
-                item.sizeY = 6.0;
-                item.sizeZ = length;
+            case ShapeID::Rod: {
+                const double length = readShapeParamAsDouble(shapeInfo, "length", 1.0);
+                boxSizeX = 6.0;
+                boxSizeY = 6.0;
+                boxSizeZ = length;
+                modelLength = length;
+                break;
+            }
+            default:
+                break;
             }
 
             // if (const auto* sphere = dynamic_cast<const ShapeSphere*>(body->shape.get()); sphere != nullptr) {
@@ -487,13 +537,20 @@ namespace egret
             //     item.y = position.y() - 8.0;
             // }
 
-            // 获取旋转矩阵并填充到渲染项
-            const Eigen::Matrix3d rotationMat = body->entity->getTransform().getRotationMatrix();
-            for (int i = 0; i < 3; ++i) {
-                for (int j = 0; j < 3; ++j) {
-                    item.rotation[i * 3 + j] = rotationMat(i, j);
-                }
-            }
+            const Eigen::Vector3d renderScale = buildRenderScale(item.kind,
+                                                                 modelScale,
+                                                                 Eigen::Vector3d{boxSizeX, boxSizeY, boxSizeZ},
+                                                                 modelRadius,
+                                                                 modelHeight,
+                                                                 modelLength);
+            item.scale[0] = renderScale.x();
+            item.scale[1] = renderScale.y();
+            item.scale[2] = renderScale.z();
+
+            item.rotation[0] = modelRotation.w();
+            item.rotation[1] = modelRotation.y();
+            item.rotation[2] = modelRotation.z();
+            item.rotation[3] = modelRotation.x();
 
             items.push_back(std::move(item));
         }

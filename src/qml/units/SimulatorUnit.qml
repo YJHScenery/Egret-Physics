@@ -205,17 +205,14 @@ ColumnLayout {
                                 id: modelXX
                                 objectName: "body-" + bodyId
                                 source: canvas3d.shapeSource(shapeKind)
-                                position: canvas3d.toRenderVector(bodyCenterX, bodyCenterY, bodyCenterZ)
-                                scale: canvas3d.scaleForShape(shapeKind, bodySizeX, bodySizeZ, bodySizeY)
+                                property var renderCenter: bodyCenterPos
+                                property var renderScale: bodyScale
+                                property var renderRotation: bodyRotation
 
-                                property var rotMatrix: bodyRotation
-                                property real angle: Math.acos(Math.min(1.0, (rotMatrix[0] + rotMatrix[4] + rotMatrix[8] - 1) * 0.5))
-                                property real qx: angle > 0.001 ? (rotMatrix[5] - rotMatrix[7]) / (4 * Math.sin(angle)) : 0
-                                property real qy: angle > 0.001 ? (rotMatrix[6] - rotMatrix[2]) / (4 * Math.sin(angle)) : 0
-                                property real qz: angle > 0.001 ? (rotMatrix[1] - rotMatrix[3]) / (4 * Math.sin(angle)) : 0
-                                property real qw: Math.cos(angle * 0.5)
-                                property variant quaternion: Qt.quaternion(qw, qx, qy, qz)
-                                rotation: quaternion
+                                position: Qt.vector3d(renderCenter[0], renderCenter[1], renderCenter[2])
+                                scale: Qt.vector3d(renderScale[0], renderScale[1], renderScale[2])
+                                // scale: Qt.vector3d(renderScale[0], renderScale[1], renderScale[2])
+                                rotation: Qt.quaternion(renderRotation[0], renderRotation[1], renderRotation[2], renderRotation[3])
 
                                 materials: PrincipledMaterial {
                                     baseColor: bodyColor
@@ -575,7 +572,7 @@ ColumnLayout {
                                 font.pixelSize: 11
                             }
                             Text {
-                                text: "位置: " + simulatorRoot.formatVec(bodyCenterX, bodyCenterY, bodyCenterZ)
+                                text: "位置: " + simulatorRoot.formatVec(bodyCenterPos[0], bodyCenterPos[1], bodyCenterPos[2])
                                 color: "#9EC4EA"
                                 font.pixelSize: 11
                             }
