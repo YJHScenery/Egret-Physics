@@ -74,6 +74,15 @@ namespace egret
         return AABB{minVec, maxVec};
     }
 
+    ShapeLoadInfo ShapeCylinder::getLoadInfo() const
+    {
+        ShapeLoadInfo info{};
+        info.typeId = static_cast<std::uint32_t>(typeId());
+        info.numberParams["radius"] = std::vector<double>{m_radius};
+        info.numberParams["height"] = std::vector<double>{m_height};
+        return info;
+    }
+
     SceneRenderItem ShapeCylinder::getBasicRenderInfo(const Eigen::Vector3d& position) const
     {
         SceneRenderItem item{};

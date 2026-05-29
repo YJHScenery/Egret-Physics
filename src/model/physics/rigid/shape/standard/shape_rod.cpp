@@ -40,6 +40,14 @@ namespace egret
         return {center - halfExtent, center + halfExtent};
     }
 
+    ShapeLoadInfo ShapeRod::getLoadInfo() const
+    {
+        ShapeLoadInfo info{};
+        info.typeId = static_cast<std::uint32_t>(typeId());
+        info.numberParams["length"] = std::vector<double>{m_length};
+        return info;
+    }
+
     SceneRenderItem ShapeRod::getBasicRenderInfo(const Eigen::Vector3d& position) const
     {
         SceneRenderItem item{};

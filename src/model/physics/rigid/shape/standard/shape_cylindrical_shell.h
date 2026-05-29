@@ -17,6 +17,8 @@ public:
 
     [[nodiscard]] Eigen::Matrix3d getInertiaTensor(double mass) const override;
 
+    [[nodiscard]] ShapeLoadInfo getLoadInfo() const override;
+
     [[nodiscard]] SceneRenderItem getBasicRenderInfo(const Eigen::Vector3d& position) const override;
 
 

@@ -31,6 +31,15 @@ namespace egret
         return inertiaTensor;
     }
 
+    ShapeLoadInfo ShapeCylindricalShell::getLoadInfo() const
+    {
+        ShapeLoadInfo info{};
+        info.typeId = static_cast<std::uint32_t>(typeId());
+        info.numberParams["radius"] = std::vector<double>{getRadius()};
+        info.numberParams["height"] = std::vector<double>{getHeight()};
+        return info;
+    }
+
     SceneRenderItem ShapeCylindricalShell::getBasicRenderInfo(const Eigen::Vector3d& position) const
     {
         SceneRenderItem item = ShapeCylinder::getBasicRenderInfo(position);

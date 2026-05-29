@@ -539,34 +539,7 @@ namespace egret
         sphere->materials()->setMetalness(0.8);
         sphere->materials()->setRoughness(0.3);
         models.append(sphere);
-        //
-        // // 4. Default Cylinder
-        // auto* cylinder = new ModelItemData();
-        // cylinder->setName("Default Cylinder");
-        // cylinder->setRadius(10);
-        // cylinder->setHeight(30);
-        // cylinder->setSource("#Cylinder");
-        // cube->setType("标准圆柱体");
-        // cylinder->setPos(QVector3D(-160, 80, 0));
-        // cylinder->materials()->setBaseColor(QColor("#4CA3FF"));
-        // cylinder->materials()->setMetalness(0.8);
-        // cylinder->materials()->setRoughness(0.3);
-        // models.append(cylinder);
-        //
-        // // 5. Torus
-        // auto* torus = new ModelItemData();
-        // torus->setName("Default Torus");
-        // cube->setType("标准圆环");
-        // cylinder->setRadius(10000);
-        // torus->setSource("qrc:/model_3d/assets/model_3d/torus/mesh/torus_R1.mesh");
-        // torus->setPos(QVector3D(160, 180, 160));
-        // torus->setScale(QVector3D(1.0f, 1.0f, 1.0f));
-        // torus->materials()->setBaseColor(QColor("#c9dff6"));
-        // torus->materials()->setMetalness(0.2);
-        // torus->materials()->setRoughness(0.9);
-        // torus->materials()->setAlphaMode("Opaque");
-        // models.append(torus);
-        //
+
         auto* cylinder_side = new ModelItemData();
         cylinder_side->setName("Default Cylinder Side");
         cylinder_side->setType(static_cast<std::uint32_t>(ShapeID::CylindricalShell));

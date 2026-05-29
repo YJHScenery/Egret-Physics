@@ -40,14 +40,8 @@ namespace egret
         /** 高度。 */
         double height{0.0};
 
-        /** 世界坐标中心 X。 */
-        double centerX{0.0};
-
-        /** 世界坐标中心 Y。 */
-        double centerY{0.0};
-
-        /** 世界坐标中心 Z（z-up）。 */
-        double centerZ{0.0};
+        /** 渲染中心位置（x, y, z）。 */
+        double centerPos[3]{0.0, 0.0, 0.0};
 
         /** 速度 X。 */
         double speedX{0.0};
@@ -58,14 +52,8 @@ namespace egret
         /** 速度 Z。 */
         double speedZ{0.0};
 
-        /** 世界尺寸 X。 */
-        double sizeX{0.0};
-
-        /** 世界尺寸 Y。 */
-        double sizeY{0.0};
-
-        /** 世界尺寸 Z。 */
-        double sizeZ{0.0};
+        /** 渲染缩放（x, y, z）。 */
+        double scale[3]{1.0, 1.0, 1.0};
 
         /** 颜色。 */
         QColor color;
@@ -73,8 +61,8 @@ namespace egret
         /** 标签。 */
         QString label;
 
-        /** 旋转矩阵元素 (row-major)：m11, m12, m13, m21, m22, m23, m31, m32, m33。 */
-        double rotation[9]{1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
+        /** 旋转四元数 (w, x, y, z)。 */
+        double rotation[4]{1.0, 0.0, 0.0, 0.0};
     };
 
     /**
@@ -96,15 +84,11 @@ namespace egret
             YRole,
             WidthRole,
             HeightRole,
-            CenterXRole,
-            CenterYRole,
-            CenterZRole,
+            CenterPosRole,
             SpeedXRole,
             SpeedYRole,
             SpeedZRole,
-            SizeXRole,
-            SizeYRole,
-            SizeZRole,
+            ScaleRole,
             ColorRole,
             LabelRole,
             RotationRole,
