@@ -10,19 +10,19 @@
 #include <QVector3D>
 #include <cstdint>
 
+#include <Eigen/Dense>
+
 namespace egret
 {
     class ModelItemData;
 
-    class ModelToRenderHelper
+    class TransformTransformer
     {
     public:
-        static ModelToRenderHelper &instance();
+        static TransformTransformer &instance();
 
         [[nodiscard]] static QVariantMap buildQuick3DRenderTransform(const ModelItemData &model);
 
-        [[nodiscard]] static QVector3D buildQuick3DRenderScaleFromWorldSize(std::uint32_t shapeId,
-                                                                            const QVector3D &size);
         [[nodiscard]] static QVector3D buildQuick3DRenderScale(std::uint32_t shapeId,
                                                                const QVector3D &scale,
                                                                const QVector3D &boxSize,
@@ -33,8 +33,22 @@ namespace egret
         [[nodiscard]] static QVector3D buildQuick3DRenderPosition(const QVector3D& position);
 
         [[nodiscard]] static QQuaternion buildQuick3DRenderRotation(const QQuaternion& rotation);
+
+        [[nodiscard]] static Eigen::Vector3d buildQuick3DRenderScale(std::uint32_t shapeId,
+                                                               const Eigen::Vector3d &scale,
+                                                               const Eigen::Vector3d &boxSize,
+                                                               double radius,
+                                                               double height,
+                                                               double length);
+
+        [[nodiscard]] static Eigen::Vector3d buildQuick3DRenderPosition(const Eigen::Vector3d& position);
+
+        [[nodiscard]] static Eigen::Quaterniond buildQuick3DRenderRotation(const Eigen::Quaterniond& rotation);
+
+
+
     private:
-        ModelToRenderHelper() = default;
+        TransformTransformer() = default;
 
     };
 } // egret

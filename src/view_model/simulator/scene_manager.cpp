@@ -41,7 +41,7 @@
 #include "gravitational_field.h"
 #include "logger.h"
 #include "model_item_data.h"
-#include "model_to_render_helper.h"
+#include "transform_transformer.h"
 #include "magic_enum.hpp"
 
 namespace egret
@@ -189,11 +189,11 @@ namespace egret
 
             ShapeLoadInfo shapeInfo{};
 
-            if (magic_enum::enum_contains<ShapeID>(type) || type != static_cast<std::uint32_t>(ShapeID::Unknown)) {
+            if (magic_enum::enum_contains<ShapeType>(type) || type != static_cast<std::uint32_t>(ShapeType::Unknown)) {
                 shapeInfo.typeId = type;
             }
             else {
-                shapeInfo.typeId = static_cast<std::uint32_t>(ShapeID::Unknown);
+                shapeInfo.typeId = static_cast<std::uint32_t>(ShapeType::Unknown);
                 LOG_WARN_LITERAL("Unknown Shape ID");
             }
 
@@ -204,8 +204,8 @@ namespace egret
                            : obj.value("circle_radius").toDouble();
             };
 
-            switch (static_cast<ShapeID>(type)) {
-            case ShapeID::Box: {
+            switch (static_cast<ShapeType>(type)) {
+            case ShapeType::Box: {
                 if (!hasBoxSize) {
                     LOG_WARN_LITERAL("Missing box_size for Box");
                     continue;
@@ -214,8 +214,8 @@ namespace egret
                 shapeInfo.numberParams["size"] = {size.x(), size.y(), size.z()};
                 break;
             }
-            case ShapeID::Cylinder:
-            case ShapeID::CylindricalShell: {
+            case ShapeType::Cylinder:
+            case ShapeType::CylindricalShell: {
                 if (!hasRadius || !hasHeight) {
                     LOG_WARN_LITERAL("Missing radius/height for Cylinder");
                     continue;
@@ -226,10 +226,10 @@ namespace egret
                 shapeInfo.numberParams["height"] = {height};
                 break;
             }
-            case ShapeID::Disk:
-            case ShapeID::Ring:
-            case ShapeID::Sphere:
-            case ShapeID::SphericalShell: {
+            case ShapeType::Disk:
+            case ShapeType::Ring:
+            case ShapeType::Sphere:
+            case ShapeType::SphericalShell: {
                 if (!hasRadius) {
                     LOG_WARN_LITERAL("Missing radius for round shape");
                     continue;
@@ -238,7 +238,7 @@ namespace egret
                 shapeInfo.numberParams["radius"] = {radius};
                 break;
             }
-            case ShapeID::Rod: {
+            case ShapeType::Rod: {
                 if (!hasLength) {
                     LOG_WARN_LITERAL("Missing length for Rod");
                     continue;
@@ -265,6 +265,9 @@ namespace egret
             auto entity = std::make_shared<RigidBody>(position, initialVelocity, mass);
             entity->setRotation(rotation);
             entity->setScale(scale);
+
+
+            qDebug() << __func__ << scale.x() << scale.y() << scale.z();
             entity->setRestitution(restitution);
             entity->setAngular(initialAngularVelocity);
             entity->setShape(std::shared_ptr<ShapeBase>(std::move(shape)));
@@ -553,19 +556,19 @@ namespace egret
                                                       const QVector3D& boxSize_optional, double radius_optional,
                                                       double height_optional, double length_optional)
     {
-        return ModelToRenderHelper::instance().buildQuick3DRenderScale(type, modelScale, boxSize_optional,
+        return TransformTransformer::instance().buildQuick3DRenderScale(type, modelScale, boxSize_optional,
                                                                        radius_optional, height_optional,
                                                                        length_optional);
     }
 
     QVector3D SceneManagerViewModel::buildRenderPosition(const QVector3D& position)
     {
-        return ModelToRenderHelper::instance().buildQuick3DRenderPosition(position);
+        return TransformTransformer::instance().buildQuick3DRenderPosition(position);
     }
 
     QQuaternion SceneManagerViewModel::buildRenderRotation(const QQuaternion& rotation)
     {
-        return ModelToRenderHelper::instance().buildQuick3DRenderRotation(rotation);
+        return TransformTransformer::instance().buildQuick3DRenderRotation(rotation);
     }
 
 

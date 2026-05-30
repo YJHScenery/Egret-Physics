@@ -15,9 +15,9 @@ namespace egret
     {
     }
 
-    ShapeID ShapeBox::typeId() const
+    ShapeType ShapeBox::typeId() const
     {
-        return ShapeID::Box;
+        return ShapeType::Box;
     }
 
     ShapeBox::ShapeBox(const double length, const double width, const double height) : m_size(length, width, height)

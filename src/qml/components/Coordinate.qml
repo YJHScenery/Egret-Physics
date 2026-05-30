@@ -1,6 +1,5 @@
 import QtQuick 2.15
 import QtQuick3D 6.5
-import CustomGeometry 1.0
 
 Node {
     id: root
@@ -23,10 +22,15 @@ Node {
     property bool gridVisible: true
 
     signal axisOn(bool on)
+
     signal gridOn(bool on)
 
-    onAxisOn: function(on) { axisVisible = on; }
-    onGridOn: function(on) { gridVisible = on; }
+    onAxisOn: function (on) {
+        axisVisible = on;
+    }
+    onGridOn: function (on) {
+        gridVisible = on;
+    }
 
     function unitsPerPixel(distance) {
         var h = viewportHeight;
@@ -102,13 +106,11 @@ Node {
         Repeater3D {
             model: lineCount
             delegate: Model {
+                source: "#Cube"
+
                 property real offset: (index - Math.floor(lineCount / 2)) * step
                 property bool major: planeRoot.isMajor(offset)
-                geometry: SimpleGeometry {
-                    shape: SimpleGeometry.Cube
-                    size: 1.0
-                }
-                scale: Qt.vector3d(extent * 2, major ? majorThickness : minorThickness, major ? majorThickness : minorThickness)
+                scale: Qt.vector3d(extent * 0.02, 0.01 * (major ? majorThickness : minorThickness), 0.01 * (major ? majorThickness : minorThickness))
                 position: Qt.vector3d(0, 0, offset)
                 materials: DefaultMaterial {
                     diffuseColor: major ? planeRoot.majorColor : planeRoot.minorColor
@@ -123,13 +125,11 @@ Node {
         Repeater3D {
             model: lineCount
             delegate: Model {
+                source: "#Cube"
+
                 property real offset: (index - Math.floor(lineCount / 2)) * step
                 property bool major: planeRoot.isMajor(offset)
-                geometry: SimpleGeometry {
-                    shape: SimpleGeometry.Cube
-                    size: 1.0
-                }
-                scale: Qt.vector3d(major ? majorThickness : minorThickness, major ? majorThickness : minorThickness, extent * 2)
+                scale: Qt.vector3d(0.01 * (major ? majorThickness : minorThickness), 0.01 * (major ? majorThickness : minorThickness), extent * 0.02)
                 position: Qt.vector3d(offset, 0, 0)
                 materials: DefaultMaterial {
                     diffuseColor: major ? planeRoot.majorColor : planeRoot.minorColor
@@ -142,11 +142,9 @@ Node {
         }
 
         Model {
-            geometry: SimpleGeometry {
-                shape: SimpleGeometry.Cube
-                size: 1.0
-            }
-            scale: Qt.vector3d(extent * 2, extent * 2, 0.02)
+            source: "#Cube"
+
+            scale: Qt.vector3d(extent * 0.02, extent * 0.02, 0.0002)
             materials: DefaultMaterial {
                 diffuseColor: "#0c1220"
                 lighting: DefaultMaterial.NoLighting
@@ -194,6 +192,7 @@ Node {
             color: "#E0E7FF"
             axis: Qt.vector3d(0, 0, -1)
         }
+
         AxisLine {
             length: axisLength
             thickness: axisThickness
@@ -208,6 +207,7 @@ Node {
             length: arrowLength
             radius: arrowRadius
         }
+
         AxisArrow {
             color: "#E0E7FF"
             direction: Qt.vector3d(0, 0, 1)
@@ -215,6 +215,7 @@ Node {
             length: arrowLength
             radius: arrowRadius
         }
+
         AxisArrow {
             color: "#4B5563"
             direction: Qt.vector3d(0, 1, 0)
@@ -232,11 +233,8 @@ Node {
         property real thickness: 0.06
 
         Model {
-            geometry: SimpleGeometry {
-                shape: SimpleGeometry.Cube
-                size: 1.0
-            }
-            scale: Qt.vector3d(Math.abs(axis.x) > 0 ? length : thickness, Math.abs(axis.y) > 0 ? length : thickness, Math.abs(axis.z) > 0 ? length : thickness)
+            source: "#Cube"
+            scale: Qt.vector3d(0.01 * (Math.abs(axis.x) > 0 ? length : thickness), 0.01 * (Math.abs(axis.y) > 0 ? length : thickness), 0.01 * (Math.abs(axis.z) > 0 ? length : thickness))
             position: Qt.vector3d(axis.x * length / 2, axis.y * length / 2, axis.z * length / 2)
             materials: DefaultMaterial {
                 diffuseColor: axisLineRoot.color
@@ -255,33 +253,21 @@ Node {
         property real length: 1.2
         property real radius: 0.22
 
-        function rotationForDirection() {
-            if (direction.x === 1) {
-                return Qt.vector3d(0, 0, -90);
-            }
-            if (direction.x === -1) {
-                return Qt.vector3d(0, 0, 90);
-            }
-            if (direction.z === 1) {
-                return Qt.vector3d(-90, 0, 0);
-            }
-            if (direction.z === -1) {
-                return Qt.vector3d(90, 0, 0);
-            }
-            if (direction.y === -1) {
-                return Qt.vector3d(180, 0, 0);
-            }
-            return Qt.vector3d(0, 0, 0);
+        property quaternion rotation: {
+            if (direction.y === 1) return Qt.quaternion(1, 0, 0, 0)  // 单位旋转
+            if (direction.y === -1) return Qt.quaternion(0, 1, 0, 0) // 绕 X 轴 180°
+            if (direction.x === 1) return Qt.quaternion(0.7071068, 0, 0, -0.7071068)  // 绕 Z 轴 -90°
+            if (direction.x === -1) return Qt.quaternion(0.7071068, 0, 0, 0.7071068)   // 绕 Z 轴 +90°
+            if (direction.z === 1) return Qt.quaternion(0.7071068, 0.7071068, 0, 0)    // 绕 X 轴 +90°
+            if (direction.z === -1) return Qt.quaternion(0.7071068, -0.7071068, 0, 0)   // 绕 X 轴 -90°
+            return Qt.quaternion(1, 0, 0, 0)
         }
 
         Model {
-            geometry: SimpleGeometry {
-                shape: SimpleGeometry.Cube
-                size: 1.0
-            }
+            source: "#Cone"
             position: offset
-            scale: Qt.vector3d(radius * 1.8, length, radius * 1.8)
-            eulerRotation: rotationForDirection()
+            scale: Qt.vector3d(radius * 0.8, length, radius * 0.8)
+            rotation: axisArrowRoot.rotation
             materials: DefaultMaterial {
                 diffuseColor: axisArrowRoot.color
                 lighting: DefaultMaterial.NoLighting

@@ -22,7 +22,7 @@ namespace egret
         {
             auto& registry = ShapeFactoryRegistry::instance();
 
-            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::Sphere),
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeType::Sphere),
                                      [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
                                      {
                                          const auto it = info.numberParams.find("radius");
@@ -38,7 +38,7 @@ namespace egret
                                          return std::make_unique<ShapeSphere>(*radius);
                                      });
 
-            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::Box),
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeType::Box),
                                      [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
                                      {
                                          const auto it = info.numberParams.find("size");
@@ -47,13 +47,13 @@ namespace egret
                                          }
                                          Eigen::Vector3d size;
                                          if (it->second.size() >= 3) {
-                                             size = Eigen::Vector3d(it->second.data());
+                                             size = Eigen::Vector3d(it->second[0], it->second[1], it->second[2]);
                                          }
 
                                          return std::make_unique<ShapeBox>(size);
                                      });
 
-            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::Cylinder),
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeType::Cylinder),
                                      [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
                                      {
                                          const auto radiusIt = info.numberParams.find("radius");
@@ -71,7 +71,7 @@ namespace egret
                                          return nullptr;
                                      });
 
-            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::CylindricalShell),
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeType::CylindricalShell),
                                      [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
                                      {
                                          const auto radiusIt = info.numberParams.find("radius");
@@ -90,7 +90,7 @@ namespace egret
                                          return nullptr;
                                      });
 
-            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::Disk),
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeType::Disk),
                                      [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
                                      {
                                          const auto radiusIt = info.numberParams.find("radius");
@@ -105,7 +105,7 @@ namespace egret
                                          return nullptr;
                                      });
 
-            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::Ring),
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeType::Ring),
                                      [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
                                      {
                                          const auto radiusIt = info.numberParams.find("radius");
@@ -120,7 +120,7 @@ namespace egret
                                          return nullptr;
                                      });
 
-            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::Rod),
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeType::Rod),
                                      [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
                                      {
                                          const auto lengthIt = info.numberParams.find("length");
@@ -135,7 +135,7 @@ namespace egret
                                          return nullptr;
                                      });
 
-            registry.registerFactory(static_cast<std::uint32_t>(ShapeID::SphericalShell),
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeType::SphericalShell),
                                      [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
                                      {
                                          const auto radiusIt = info.numberParams.find("radius");

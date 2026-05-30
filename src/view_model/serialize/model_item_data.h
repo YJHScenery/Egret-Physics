@@ -12,6 +12,8 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
+#include "shape_base.h"
+
 namespace egret
 {
     class MaterialData : public QObject
@@ -128,6 +130,7 @@ namespace egret
         void setId(const QString &id);
         void setName(const QString &name);
         void setType(std::uint32_t type);
+        void setType(ShapeType type);
         void setSource(const QString &source);
         void setPos(const QVector3D &pos);
         void setScale(const QVector3D &scale);

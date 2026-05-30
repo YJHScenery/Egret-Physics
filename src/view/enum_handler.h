@@ -33,14 +33,14 @@ namespace egret
 
         static EnumHandler *instance();
 
-        static ShapeIDQml toQmlShapeId(ShapeID shapeID);
-        static ShapeID toShapeId(ShapeIDQml shapeID);
+        static ShapeIDQml toQmlShapeId(ShapeType shapeID);
+        static ShapeType toShapeId(ShapeIDQml shapeID);
 
-        Q_INVOKABLE static QString shapeToString(ShapeID shapeID);
+        Q_INVOKABLE static QString shapeToString(ShapeType shapeID);
 
         Q_INVOKABLE static QString shapeToString(ShapeIDQml shapeID);
 
-        Q_INVOKABLE static ShapeID stringToShape(const QString& str);
+        Q_INVOKABLE static ShapeType stringToShape(const QString& str);
 
         Q_INVOKABLE static ShapeIDQml stringToShapeQml(const QString& str);
 

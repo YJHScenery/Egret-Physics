@@ -12,9 +12,9 @@ namespace egret
     {
     }
 
-    ShapeID ShapeRing::typeId() const
+    ShapeType ShapeRing::typeId() const
     {
-        return ShapeID::Ring;
+        return ShapeType::Ring;
     }
 
     Eigen::Matrix3d ShapeRing::getInertiaTensor(const double mass) const

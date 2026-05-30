@@ -22,7 +22,7 @@ static bool registerContinuousStandardShape()
 {
     auto& reg = ShapeRegister::instance();
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Box, (std::uint32_t)ShapeID::Box,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Box,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
@@ -43,7 +43,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Box, (std::uint32_t)ShapeID::Sphere,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Sphere,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
@@ -76,7 +76,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Sphere, (std::uint32_t)ShapeID::Sphere,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Sphere, (std::uint32_t)ShapeType::Sphere,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -97,7 +97,7 @@ static bool registerContinuousStandardShape()
                                 });
 
     // Box 与 其他形状
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Box, (std::uint32_t)ShapeID::Cylinder,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Cylinder,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -127,7 +127,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Box, (std::uint32_t)ShapeID::CylindricalShell,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::CylindricalShell,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -157,7 +157,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Box, (std::uint32_t)ShapeID::Disk,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Disk,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -187,7 +187,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Box, (std::uint32_t)ShapeID::Ring,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Ring,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -217,7 +217,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Box, (std::uint32_t)ShapeID::Rod,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Rod,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -247,7 +247,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Box, (std::uint32_t)ShapeID::SphericalShell,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::SphericalShell,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -278,7 +278,7 @@ static bool registerContinuousStandardShape()
                                 });
 
     // Cylinder 开头的组合
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Cylinder, (std::uint32_t)ShapeID::Cylinder,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::Cylinder,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -298,7 +298,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Cylinder, (std::uint32_t)ShapeID::CylindricalShell,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::CylindricalShell,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -328,7 +328,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Cylinder, (std::uint32_t)ShapeID::Disk,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::Disk,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -358,7 +358,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Cylinder, (std::uint32_t)ShapeID::Ring,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::Ring,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -388,7 +388,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Cylinder, (std::uint32_t)ShapeID::Rod,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::Rod,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -418,7 +418,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Cylinder, (std::uint32_t)ShapeID::Sphere,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::Sphere,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -448,7 +448,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Cylinder, (std::uint32_t)ShapeID::SphericalShell,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::SphericalShell,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -479,7 +479,7 @@ static bool registerContinuousStandardShape()
                                 });
 
     // Cylindrical shell 开头的组合
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::CylindricalShell, (std::uint32_t)ShapeID::CylindricalShell,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::CylindricalShell,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -499,7 +499,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::CylindricalShell, (std::uint32_t)ShapeID::Disk,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::Disk,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -529,7 +529,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::CylindricalShell, (std::uint32_t)ShapeID::Ring,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::Ring,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -559,7 +559,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::CylindricalShell, (std::uint32_t)ShapeID::Rod,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::Rod,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -589,7 +589,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::CylindricalShell, (std::uint32_t)ShapeID::Sphere,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::Sphere,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -619,7 +619,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::CylindricalShell, (std::uint32_t)ShapeID::SphericalShell,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::SphericalShell,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -650,7 +650,7 @@ static bool registerContinuousStandardShape()
                                 });
 
     // Disk 开头
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Disk, (std::uint32_t)ShapeID::Disk,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Disk, (std::uint32_t)ShapeType::Disk,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -670,7 +670,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Disk, (std::uint32_t)ShapeID::Ring,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Disk, (std::uint32_t)ShapeType::Ring,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -700,7 +700,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Disk, (std::uint32_t)ShapeID::Rod,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Disk, (std::uint32_t)ShapeType::Rod,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -730,7 +730,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Disk, (std::uint32_t)ShapeID::Sphere,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Disk, (std::uint32_t)ShapeType::Sphere,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -760,7 +760,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Disk, (std::uint32_t)ShapeID::SphericalShell,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Disk, (std::uint32_t)ShapeType::SphericalShell,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -791,7 +791,7 @@ static bool registerContinuousStandardShape()
                                 });
 
     // Ring 开头
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Ring, (std::uint32_t)ShapeID::Ring,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Ring, (std::uint32_t)ShapeType::Ring,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -811,7 +811,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Ring, (std::uint32_t)ShapeID::Rod,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Ring, (std::uint32_t)ShapeType::Rod,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -841,7 +841,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Ring, (std::uint32_t)ShapeID::Sphere,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Ring, (std::uint32_t)ShapeType::Sphere,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -871,7 +871,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Ring, (std::uint32_t)ShapeID::SphericalShell,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Ring, (std::uint32_t)ShapeType::SphericalShell,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -902,7 +902,7 @@ static bool registerContinuousStandardShape()
                                 });
 
     // Rod 开头
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Rod, (std::uint32_t)ShapeID::Rod,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Rod, (std::uint32_t)ShapeType::Rod,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -922,7 +922,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Rod, (std::uint32_t)ShapeID::Sphere,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Rod, (std::uint32_t)ShapeType::Sphere,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -952,7 +952,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Rod, (std::uint32_t)ShapeID::SphericalShell,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Rod, (std::uint32_t)ShapeType::SphericalShell,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -983,7 +983,7 @@ static bool registerContinuousStandardShape()
                                 });
 
     // Sphere 与 Spherical shell 的组合
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::Sphere, (std::uint32_t)ShapeID::SphericalShell,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::Sphere, (std::uint32_t)ShapeType::SphericalShell,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,
@@ -1013,7 +1013,7 @@ static bool registerContinuousStandardShape()
                                     return std::nullopt;
                                 });
 
-    reg.registerContinuousJudge((std::uint32_t)ShapeID::SphericalShell, (std::uint32_t)ShapeID::SphericalShell,
+    reg.registerContinuousJudge((std::uint32_t)ShapeType::SphericalShell, (std::uint32_t)ShapeType::SphericalShell,
                                 [](const ShapeBase* shapeA, const Transform& initTransA,
                                    const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                    const ShapeBase* shapeB, const Transform& initTransB,

@@ -12,9 +12,9 @@ namespace egret
     {
     }
 
-    ShapeID ShapeCylinder::typeId() const
+    ShapeType ShapeCylinder::typeId() const
     {
-        return ShapeID::Cylinder;
+        return ShapeType::Cylinder;
     }
 
     double ShapeCylinder::getVolume() const

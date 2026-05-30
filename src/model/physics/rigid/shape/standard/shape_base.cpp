@@ -13,9 +13,9 @@ namespace egret
         return info;
     }
 
-    ShapeID ShapeBase::typeId() const
+    ShapeType ShapeBase::typeId() const
     {
-        return ShapeID::Abstract;
+        return ShapeType::Abstract;
     }
 
     bool ShapeBase::collide(const ShapeBase* other,

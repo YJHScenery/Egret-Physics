@@ -16,9 +16,9 @@ namespace egret
         m_radius = radius;
     }
 
-    ShapeID ShapeSphere::typeId() const
+    ShapeType ShapeSphere::typeId() const
     {
-        return ShapeID::Sphere;
+        return ShapeType::Sphere;
     }
 
     double ShapeSphere::getVolume() const

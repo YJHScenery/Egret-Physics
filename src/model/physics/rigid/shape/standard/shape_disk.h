@@ -12,7 +12,7 @@ class ShapeDisk: public ShapeBase {
 public:
     explicit ShapeDisk(double radius);
 
-    [[nodiscard]] ShapeID typeId() const override;
+    [[nodiscard]] ShapeType typeId() const override;
 
     [[nodiscard]] double getRadius() const { return m_radius; }
 

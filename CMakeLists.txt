@@ -152,8 +152,6 @@ set(CPP_FILES
         src/view_model/serialize/model_item_data.cpp
         src/view_model/serialize/model_item_data.h
 
-        src/view/coordinate.cpp
-        src/view/coordinate.h
         src/view/qt_component_helper.cpp
         src/view/qt_component_helper.h
 
@@ -165,8 +163,8 @@ set(CPP_FILES
         src/view/file_handler.h
         src/view/enum_handler.cpp
         src/view/enum_handler.h
-        src/view_model/serialize/model_to_render_helper.cpp
-        src/view_model/serialize/model_to_render_helper.h
+        src/view_model/serialize/transform_transformer.cpp
+        src/view_model/serialize/transform_transformer.h
 
 )
 

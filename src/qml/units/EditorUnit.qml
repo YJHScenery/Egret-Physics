@@ -7,6 +7,7 @@ import QtQuick.Layouts 1.15
 import QtQuick3D 6.9
 import QtQuick.Dialogs 6.9
 import ModelManager 1.0
+import EnumHandler 1.0
 
 import "qrc:/components/components"
 import "qrc:/components/components/theme"
@@ -133,11 +134,11 @@ ColumnLayout {
                         id: basicNode
 
                         property var alphaModeMap: ({
-                            "Default": PrincipledMaterial.Default,
-                            "Blend": PrincipledMaterial.Blend,
-                            "Opaque": PrincipledMaterial.Opaque,
-                            "Mask": PrincipledMaterial.Mask
-                        })
+                                "Default": PrincipledMaterial.Default,
+                                "Blend": PrincipledMaterial.Blend,
+                                "Opaque": PrincipledMaterial.Opaque,
+                                "Mask": PrincipledMaterial.Mask
+                            })
 
                         property var modelList: ModelManager.getAllModels()
                         Connections {
@@ -181,7 +182,6 @@ ColumnLayout {
                                 scale: transform["scale"]
                                 rotation: transform["rotation"] // modelData.rotation
 
-
                                 pickable: true
 
                                 materials: PrincipledMaterial {
@@ -198,8 +198,6 @@ ColumnLayout {
                                     console.log("Scale: " + delegateModel.scale);
                                 }
                             }
-
-
                         }
                     }
                 }
@@ -330,10 +328,10 @@ ColumnLayout {
                 Layout.fillHeight: true
                 title: "属性 / Inspector"
 
-                property real radius_Optional: 1.0;
-                property vector3d size_BoxOnly: Qt.vector3d(1, 1, 1);
-                property real length_RodOnly: 1.0;
-                property real height_Optional: 1.0;
+                property real radius_Optional: 1.0
+                property vector3d size_BoxOnly: Qt.vector3d(1, 1, 1)
+                property real length_RodOnly: 1.0
+                property real height_Optional: 1.0
 
                 property real m_mass: 0.0
                 property real m_loadTime: 0.0
@@ -359,12 +357,10 @@ ColumnLayout {
                         entity_mass: inspectorPanel.m_mass,
                         load_time: inspectorPanel.m_loadTime,
                         restitution: inspectorPanel.m_restitution,
-
                         circle_radius: inspectorPanel.radius_Optional,
-                        box_size: inspectorPanel.size_BoxOnly,
+                        box_size: [inspectorPanel.size_BoxOnly.x, inspectorPanel.size_BoxOnly.y, inspectorPanel.size_BoxOnly.z],
                         length: inspectorPanel.length_RodOnly,
                         height: inspectorPanel.height_Optional,
-
                         position: [inspectorPanel.m_pos.x, inspectorPanel.m_pos.y, inspectorPanel.m_pos.z],
                         scale: [inspectorPanel.m_scale.x, inspectorPanel.m_scale.y, inspectorPanel.m_scale.z],
                         rotation: [inspectorPanel.m_rotation.scalar, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z],
@@ -376,6 +372,9 @@ ColumnLayout {
                     };
 
                     var jsonData = JSON.stringify(data);
+                    console.log("____________________________________");
+                    console.log(jsonData);
+                    console.log("____________________________________");
                     return jsonData;
                 }
 
@@ -388,8 +387,6 @@ ColumnLayout {
                     }
                 }
 
-
-
                 ScrollView {
                     id: inspectorScrollView
                     anchors.fill: parent
@@ -399,8 +396,7 @@ ColumnLayout {
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                     rightPadding: inspectorScrollBar.visible ? inspectorScrollBar.width : 0
 
-                    ScrollBar.vertical: Basic.ScrollBar
-                    {
+                    ScrollBar.vertical: Basic.ScrollBar {
                         id: inspectorScrollBar
                         width: 8
                         policy: ScrollBar.AsNeeded
@@ -428,16 +424,38 @@ ColumnLayout {
                         width: Math.max(0, inspectorScrollView.availableWidth - inspectorScrollView.rightPadding)
                         spacing: 10
 
-                        EgretPushButton {
-                            id: createNewButton
-                            text: "+"
-                            pixelSize: 16
-                            onClicked: {
-                                operatingButton.isCreateMode = true;
+                        RowLayout {
+                            width: parent.width
+
+                            EgretPushButton {
+                                id: createNewEntityButton
+                                text: "添加实体"
+                                pixelSize: 12
+                                onClicked: {
+                                    operatingButton.isCreateMode = true;
+                                }
+                            }
+
+                            EgretPushButton {
+                                id: createNewFieldButton
+                                text: "添加场"
+                                pixelSize: 12
+                                onClicked:
+                                // operatingButton.isCreateMode = true;
+                                {}
+                            }
+
+                            EgretPushButton {
+                                id: createNewConstraintButton
+                                text: "添加约束器"
+                                pixelSize: 12
+                                onClicked:
+                                // operatingButton.isCreateMode = true;
+                                {}
                             }
                         }
 
-                        EgretSeparator{
+                        EgretSeparator {
                             Layout.fillWidth: true
                         }
 
@@ -505,8 +523,8 @@ ColumnLayout {
                                 Layout.preferredHeight: 28
 
                                 onCurrentIndexChanged: {
-                                    basicParamsGrid.updateDynamicProperties(sourceComboBox.currentIndex)
-                                    inspectorPanel.m_type = currentIndex + 1
+                                    basicParamsGrid.updateDynamicProperties(sourceComboBox.currentIndex);
+                                    inspectorPanel.m_type = currentIndex + 1;
                                 }
 
                                 // 下拉菜单样式
@@ -582,7 +600,6 @@ ColumnLayout {
                                 // onCurrentValueChanged: inspectorPanel.m_type = currentIndex
                             }
 
-
                             Label {
                                 text: "质量"
                                 color: "#BFD8F4"
@@ -623,7 +640,7 @@ ColumnLayout {
                             }
                         }
 
-                        EgretSeparator{
+                        EgretSeparator {
                             Layout.fillWidth: true
                         }
 
@@ -654,113 +671,82 @@ ColumnLayout {
                             property var dynamicProperties: []
 
                             Component.onCompleted: {
-                                updateDynamicProperties(sourceComboBox.currentIndex)
+                                updateDynamicProperties(sourceComboBox.currentIndex);
                             }
 
                             function updateDynamicProperties(index) {
-                                dynamicProperties = []
-
                                 switch (index) {
-                                    case 0: {
+                                case 0:
+                                    {
                                         dynamicProperties = [
                                             {
                                                 label: "长、宽、高",
-                                                getValue: function () {
-                                                    return inspectorPanel.size_BoxOnly
-                                                },
-                                                setValue: function (val, oldVal) {
-                                                    inspectorPanel.size_BoxOnly = val
-                                                },
                                                 size: 3
                                             }
                                             // 可以添加更多属性
-                                        ]
+                                        ];
                                         break;
                                     }
-                                    case 1:
-                                    case 2: {
+                                case 1:
+                                case 2:
+                                    {
                                         dynamicProperties = [
                                             {
                                                 label: "半径",
-                                                getValue: function () {
-                                                    return inspectorPanel.radius_Optional
-                                                },
-                                                setValue: function (val, oldVal) {
-                                                    inspectorPanel.radius_Optional = val
-                                                },
                                                 size: 1
                                             },
                                             {
                                                 label: "高",
-                                                getValue: function () {
-                                                    return inspectorPanel.height_Optional
-                                                },
-                                                setValue: function (val, oldVal) {
-                                                    inspectorPanel.height_Optional = val
-                                                },
                                                 size: 1
                                             }
-                                        ]
+                                        ];
                                         break;
                                     }
-                                    case 3:
-                                    case 4: {
+                                case 3:
+                                case 4:
+                                    {
                                         dynamicProperties = [
                                             {
                                                 label: "半径",
-                                                getValue: function () {
-                                                    return inspectorPanel.radius_Optional
-                                                },
-                                                setValue: function (val, oldVal) {
-                                                    inspectorPanel.radius_Optional = val
-                                                },
                                                 size: 1
                                             }
-                                        ]
+                                        ];
                                         break;
                                     }
-                                    case 5: {
+                                case 5:
+                                    {
                                         dynamicProperties = [
                                             {
                                                 label: "长度",
-                                                getValue: function () {
-                                                    return inspectorPanel.length_RodOnly
-                                                },
-                                                setValue: function (val, oldVal) {
-                                                    inspectorPanel.length_RodOnly = val
-                                                },
                                                 size: 1
-                                            }]
+                                            }
+                                        ];
                                         break;
                                     }
-                                    case 6:
-                                    case 7: {
+                                case 6:
+                                case 7:
+                                    {
                                         dynamicProperties = [
                                             {
                                                 label: "半径",
-                                                getValue: function () {
-                                                    return inspectorPanel.radius_Optional
-                                                },
-                                                setValue: function (val, oldVal) {
-                                                    inspectorPanel.radius_Optional = val
-                                                },
                                                 size: 1
-                                            }]
+                                            }
+                                        ];
                                         break;
                                     }
-                                    default:
-                                        break;
+                                default:
+                                    break;
                                 }
                             }
-
 
                             Repeater {
                                 id: dynamicRepeater
                                 model: basicParamsGrid.dynamicProperties
 
-                                // 每个动态属性组
                                 Column {
+                                    id: repeaterColumn
                                     property var propertyData: modelData
+                                    property int outerIndex: index  // 直接获取外层Repeater的索引
                                     width: parent.width
                                     Layout.fillWidth: true
                                     Layout.columnSpan: 2
@@ -771,39 +757,109 @@ ColumnLayout {
                                         Layout.fillWidth: true
                                     }
 
+                                    /*
+                                    *                 property real radius_Optional: 1.0
+                property vector3d size_BoxOnly: Qt.vector3d(1, 1, 1)
+                property real length_RodOnly: 1.0
+                property real height_Optional: 1.0
+                                    * */
                                     RowLayout {
                                         width: parent.width
                                         spacing: 6
                                         Repeater {
-
                                             model: propertyData.size
 
                                             FloatField {
                                                 Layout.fillWidth: true
-                                                value: {
-                                                    var currentValue = propertyData.getValue();
-                                                    if (propertyData.size === 1) {
-                                                        return currentValue;
-                                                    }
-                                                    if (propertyData.size === 3) {
-                                                        if (index === 0) return currentValue.x;
-                                                        if (index === 1) return currentValue.y;
-                                                        return currentValue.z;
-                                                    }
-                                                    return 0.0;
-                                                }
                                                 stepSize: 0.1
 
+                                                value: {
+                                                    switch (sourceComboBox.currentIndex + 1) {
+                                                    case EnumHandler.Box:
+                                                        {
+                                                            switch (index) {
+                                                            case 0:
+                                                                return inspectorPanel.size_BoxOnly.x;
+                                                            case 1:
+                                                                return inspectorPanel.size_BoxOnly.y;
+                                                            case 2:
+                                                                return inspectorPanel.size_BoxOnly.z;
+                                                            default:
+                                                                return 0;
+                                                            }
+                                                        }
+                                                    case EnumHandler.Cylinder:
+                                                    case EnumHandler.CylindericalShell:
+                                                        {
+                                                            if (repeaterColumn.outerIndex === 0) {
+                                                                return inspectorPanel.radius_Optional;
+                                                            } else {
+                                                                return inspectorPanel.height_Optional;
+                                                            }
+                                                        }
+                                                    case EnumHandler.Disk:
+                                                    case EnumHandler.Ring:
+                                                        {
+                                                            return inspectorPanel.radius_Optional;
+                                                        }
+                                                    case EnumHandler.Rod:
+                                                        {
+                                                            return inspectorPanel.length_RodOnly;
+                                                        }
+                                                    case EnumHandler.Sphere:
+                                                    case EnumHandler.SphericalShell:
+                                                        {
+                                                            return inspectorPanel.radius_Optional;
+                                                        }
+                                                    default:
+                                                        return 0;
+                                                    }
+                                                }
+
                                                 onValueChanged: {
-                                                    var oldVal = propertyData.getValue();
-                                                    if (propertyData.size === 1) {
-                                                        propertyData.setValue(value, oldVal);
-                                                    } else if (propertyData.size === 3) {
-                                                        var nextVal = Qt.vector3d(oldVal.x, oldVal.y, oldVal.z);
-                                                        if (index === 0) nextVal.x = value;
-                                                        if (index === 1) nextVal.y = value;
-                                                        if (index === 2) nextVal.z = value;
-                                                        propertyData.setValue(nextVal, oldVal);
+                                                    switch (sourceComboBox.currentIndex + 1) {
+                                                    case EnumHandler.Box:
+                                                        {
+                                                            switch (index) {
+                                                            case 0:
+                                                                inspectorPanel.size_BoxOnly = Qt.vector3d(value, inspectorPanel.size_BoxOnly.y, inspectorPanel.size_BoxOnly.z);
+                                                                break;
+                                                            case 1:
+                                                                inspectorPanel.size_BoxOnly = Qt.vector3d(inspectorPanel.size_BoxOnly.x, value, inspectorPanel.size_BoxOnly.z);
+                                                                break;
+                                                            case 2:
+                                                                inspectorPanel.size_BoxOnly = Qt.vector3d(inspectorPanel.size_BoxOnly.x, inspectorPanel.size_BoxOnly.y, value);
+                                                                break;
+                                                            }
+                                                            break;
+                                                        }
+                                                    case EnumHandler.Cylinder:
+                                                    case EnumHandler.CylindericalShell:
+                                                        {
+                                                            if (repeaterColumn.outerIndex === 0) {
+                                                                inspectorPanel.radius_Optional = value;
+                                                            } else {
+                                                                inspectorPanel.height_Optional = value;
+                                                            }
+                                                            break;
+                                                        }
+                                                    case EnumHandler.Disk:
+                                                    case EnumHandler.Ring:
+                                                        {
+                                                            inspectorPanel.radius_Optional = value;
+                                                            break;
+                                                        }
+                                                    case EnumHandler.Rod:
+                                                        {
+                                                            inspectorPanel.length_RodOnly = value;
+                                                            break;
+                                                        }
+                                                    case EnumHandler.Sphere:
+                                                    case EnumHandler.SphericalShell:
+                                                        {
+                                                            inspectorPanel.radius_Optional = value;
+                                                            break;
+                                                        }
                                                     }
                                                 }
                                             }
@@ -811,8 +867,6 @@ ColumnLayout {
                                     }
                                 }
                             }
-
-
 
                             Label {
                                 text: "位置 (x, y, z)"
@@ -913,11 +967,10 @@ ColumnLayout {
                                     stepSize: 0.05
                                     onValueChanged: inspectorPanel.m_rotation = Qt.quaternion(inspectorPanel.m_rotation.scalar, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, value)
                                 }
-
                             }
                         }
 
-                        EgretSeparator{
+                        EgretSeparator {
                             Layout.fillWidth: true
                         }
 
@@ -1002,7 +1055,7 @@ ColumnLayout {
                             }
                         }
 
-                        EgretSeparator{
+                        EgretSeparator {
                             Layout.fillWidth: true
                         }
 
@@ -1095,7 +1148,7 @@ ColumnLayout {
                             }
                         }
 
-                        EgretSeparator{
+                        EgretSeparator {
                             Layout.fillWidth: true
                         }
 

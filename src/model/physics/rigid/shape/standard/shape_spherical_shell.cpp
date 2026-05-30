@@ -9,9 +9,9 @@
 
 namespace egret
 {
-    ShapeID ShapeSphericalShell::typeId() const
+    ShapeType ShapeSphericalShell::typeId() const
     {
-        return ShapeID::SphericalShell;
+        return ShapeType::SphericalShell;
     }
 
     Eigen::Matrix3d ShapeSphericalShell::getInertiaTensor(double mass) const
