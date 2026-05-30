@@ -1,0 +1,286 @@
+:root {
+    --bg0: #050B1E;
+    --bg1: #0A1738;
+    --bg2: #0F2A59;
+    --panel: #10294CB8;
+    --panelStrong: #143663E6;
+    --border: #4F8AC0;
+    --accent: #27B5FF;
+    --accentSoft: #2B6DE0;
+    --success: #34D5C9;
+    --warning: #FFB84D;
+    --danger: #FF6D8A;
+    --textPrimary: #DCEAFF;
+    --textSecondary: #8DB3D9;
+    --textDim: #5F84AD;
+    --textUnenabled: #C0C0C0;
+    --radiusL: 18px;
+    --radiusM: 12px;
+    --radiusS: 8px;
+}
+
+body {
+    background-color: var(--bg0) !important;
+    color: var(--textPrimary) !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+div.header, div.footer {
+    background: linear-gradient(180deg, var(--bg1) 0%, var(--bg0) 100%) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+div.contents {
+    background-color: var(--bg0) !important;
+}
+
+div.tabs, div.tablist {
+    background-color: var(--bg1) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+div.tablist li {
+    background-color: transparent !important;
+}
+
+div.tablist li a {
+    color: var(--textSecondary) !important;
+    border-radius: var(--radiusS) var(--radiusS) 0 0 !important;
+}
+
+div.tablist li a:hover {
+    background-color: var(--bg2) !important;
+    color: var(--accent) !important;
+}
+
+div.tablist li.current a {
+    background-color: var(--bg0) !important;
+    color: var(--accent) !important;
+    border-color: var(--border) var(--border) transparent !important;
+}
+
+div.navpath {
+    background: linear-gradient(90deg, var(--bg1) 0%, var(--bg0) 100%) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+div.navpath ul li {
+    color: var(--textSecondary) !important;
+}
+
+div.navpath ul li.navelem a {
+    color: var(--accent) !important;
+}
+
+div.navpath ul li.navelem a:hover {
+    color: var(--accentSoft) !important;
+}
+
+div.sidebar {
+    background-color: var(--bg1) !important;
+    border-right: 1px solid var(--border) !important;
+}
+
+div.sidebar h3 {
+    color: var(--textPrimary) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+div.sidebar a {
+    color: var(--textSecondary) !important;
+}
+
+div.sidebar a:hover {
+    color: var(--accent) !important;
+    background-color: var(--bg2) !important;
+}
+
+div.sidebar a.current {
+    color: var(--accent) !important;
+    background-color: var(--bg2) !important;
+}
+
+div.contents div.textblock {
+    color: var(--textPrimary) !important;
+}
+
+div.contents h1, div.contents h2, div.contents h3, 
+div.contents h4, div.contents h5, div.contents h6 {
+    color: var(--textPrimary) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+div.contents a {
+    color: var(--accent) !important;
+}
+
+div.contents a:hover {
+    color: var(--accentSoft) !important;
+}
+
+div.contents code, div.contents pre {
+    background-color: var(--bg1) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radiusS) !important;
+    color: var(--textPrimary) !important;
+}
+
+div.contents pre {
+    border-radius: var(--radiusM) !important;
+}
+
+table {
+    border-collapse: collapse !important;
+    background-color: var(--bg1) !important;
+    border-radius: var(--radiusM) !important;
+    overflow: hidden !important;
+}
+
+table th {
+    background-color: var(--bg2) !important;
+    color: var(--textPrimary) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+table td {
+    color: var(--textSecondary) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+table tr:hover {
+    background-color: var(--bg2) !important;
+}
+
+div.summary {
+    background-color: var(--bg1) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radiusM) !important;
+}
+
+div.summary a {
+    color: var(--accent) !important;
+}
+
+div.section {
+    background-color: var(--bg1) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radiusM) !important;
+    padding: 16px !important;
+    margin-bottom: 16px !important;
+}
+
+div.memproto {
+    background: linear-gradient(90deg, var(--bg2) 0%, var(--bg1) 100%) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radiusS) var(--radiusS) 0 0 !important;
+}
+
+div.memdoc {
+    background-color: var(--bg1) !important;
+    border: 1px solid var(--border) !important;
+    border-top: none !important;
+    border-radius: 0 0 var(--radiusS) var(--radiusS) !important;
+}
+
+div.memproto span.memname {
+    color: var(--accent) !important;
+}
+
+div.memproto span.memtype {
+    color: var(--textSecondary) !important;
+}
+
+div.dynheader {
+    background-color: var(--bg2) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+div.classindex dl dd {
+    color: var(--textSecondary) !important;
+}
+
+div.classindex dl dt a {
+    color: var(--accent) !important;
+}
+
+div.glow {
+    box-shadow: 0 0 10px rgba(39, 181, 255, 0.3) !important;
+}
+
+span.keyword {
+    color: var(--accent) !important;
+}
+
+span.keywordtype {
+    color: var(--success) !important;
+}
+
+span.keywordflow {
+    color: var(--warning) !important;
+}
+
+span.comment {
+    color: var(--textDim) !important;
+}
+
+span.stringliteral {
+    color: var(--danger) !important;
+}
+
+div.fragment {
+    background-color: var(--bg1) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radiusM) !important;
+}
+
+div.line {
+    color: var(--textPrimary) !important;
+}
+
+div.line span {
+    color: inherit !important;
+}
+
+.search {
+    background-color: var(--bg1) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radiusM) !important;
+    color: var(--textPrimary) !important;
+}
+
+.search:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 10px rgba(39, 181, 255, 0.3) !important;
+}
+
+select {
+    background-color: var(--bg1) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radiusS) !important;
+    color: var(--textPrimary) !important;
+}
+
+div.header img {
+    filter: brightness(1.2);
+}
+
+#MSearchBox {
+    background-color: var(--bg1) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radiusM) !important;
+}
+
+#MSearchField {
+    background-color: transparent !important;
+    color: var(--textPrimary) !important;
+}
+
+#MSearchBox span {
+    color: var(--textSecondary) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: var(--bg0) !important;
+    }
+}

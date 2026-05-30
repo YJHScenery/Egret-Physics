@@ -1,6 +1,19 @@
-//
-// 由 GitHub Copilot 于 2026/4/25 创建。
-//
+/**
+ * @file        solver_scene_snapshot.h
+ * @brief       求解器场景快照头文件，定义场景数据的只读快照结构。
+ * @details     定义 SceneSnapshot 类及其相关结构，提供场景数据的只读快照，
+ *              用于在物理模拟过程中传递场景状态。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-04-27
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Solver
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #ifndef EGRET_PHYSICS_SOLVER_SCENE_SNAPSHOT_H
 #define EGRET_PHYSICS_SOLVER_SCENE_SNAPSHOT_H
@@ -13,10 +26,18 @@
 namespace egret
 {
     /**
-     * @brief 求解器层使用的非拥有式场景适配接口。
-     *
-     * 该接口将求解器与具体场景存储解耦。模型层的场景管理器可以通过
-     * 暴露 body/field 缓冲区的临时 span 来实现它，供一次固定步长使用。
+     * @brief       求解器层使用的非拥有式场景适配接口。
+     * @details     SolverSceneSnapshotBase 是求解器与具体场景存储解耦的接口。
+     *              该接口将求解器与具体场景存储解耦。模型层的场景管理器可以通过
+     *              暴露 body/field 缓冲区的临时 span 来实现它，供一次固定步长使用。
+     *              提供实体句柄、场、约束的可变/只读视图。
+     *              支持仿真时间的查询和推进。
+     * 
+     * @invariant   getBodies() 返回有效的实体句柄视图
+     * @invariant   getFields() 返回有效的场指针视图
+     * @invariant   getConstraints() 返回有效的约束指针视图
+     * @remark      SolverSceneSnapshotBase 是抽象接口，不能直接实例化
+     * @see         SolverBodyHandle, FieldBase, ConstraintsBase
      */
     class SolverSceneSnapshotBase
     {

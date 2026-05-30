@@ -1,11 +1,22 @@
+/**
+* @file        implementation.cpp
+ * @brief       宽相碰撞检测策略实现文件
+ * @details     实现宽相碰撞检测策略的各项成员函数。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-05-04
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Strategy
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
+
 #include "brute_force_broad_phase.h"
 #include "standard/shape_base.h"
 #include "physical_entity.h"
-
-#include <cmath>
-//
-// Created by jehor on 2026/4/25.
-//
 
 
 namespace egret

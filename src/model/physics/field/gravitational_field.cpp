@@ -1,6 +1,18 @@
-//
-// Created by jehor on 2026/4/25.
-//
+/**
+* @file        gravitational_field.cpp
+ * @brief       引力场实现文件
+ * @details     实现GravitationalField类的各项成员函数。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-04-26
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Physics
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #include "gravitational_field.h"
 #include "physical_entity.h"
@@ -13,14 +25,14 @@ namespace egret
     {
     }
 
-    GravitationalField::GravitationalField(Eigen::Vector3d position,
-                                           Eigen::Vector3d speed,
-                                           double mass,
-                                           double coupling,
-                                           bool fixed)
+    GravitationalField::GravitationalField(const Eigen::Vector3d& position,
+                                           const Eigen::Vector3d& speed,
+                                           const double mass,
+                                           const double coupling,
+                                           const bool fixed)
         : FieldBase(generateID(FieldType::Gravitation)),
           Particle(position, speed, mass),
-            m_coupling(coupling),
+          m_coupling(coupling),
           m_fixed(fixed)
     {
     }
@@ -42,7 +54,7 @@ namespace egret
         return fieldMagnitude * direction;
     }
 
-    void GravitationalField::setMinDistanceSquared(double minDistance)
+    void GravitationalField::setMinDistanceSquared(const double minDistance)
     {
         static_minDistanceSquared = minDistance;
     }

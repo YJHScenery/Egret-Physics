@@ -1,6 +1,19 @@
-//
-// Created by jehor on 2026/4/25.
-//
+/**
+* @file        constraints_base.h
+ * @brief       约束器基类头文件
+ * @details     定义ConstraintsBase类，作为所有约束器的基类，
+ *              提供速度约束、位置约束、角速度约束等接口。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-04-26
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Physics
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #ifndef EGRET_PHYSICS_CONSTRAINTS_BASE_H
 #define EGRET_PHYSICS_CONSTRAINTS_BASE_H
@@ -19,10 +32,20 @@ enum class ConstraintType : std::uint64_t
 
 namespace egret {
 
-    // 我们约定使用一个数组存放约束器的施加对象列表。
     class PhysicalEntity;
-
-    // 约束器抽象基类
+    /**
+     * @brief       约束器抽象基类，定义所有约束器的公共接口。
+     * @details     ConstraintsBase 是所有约束器（连接线、单摆、连接杆、滑轨等）的抽象基类，
+     *              提供速度约束、位置约束、角速度约束等接口。
+     *              约束器用于限制物理实体的运动自由度，如保持距离、限制角度等。
+     *              采用策略模式，派生类实现具体的约束逻辑。
+     * 
+     * @invariant   m_id 是唯一的约束器标识符
+     * @invariant   m_physicalEntities 列表中的实体指针有效
+     * @invariant   m_enabled 表示约束器是否激活
+     * @remark      约束器不是线程安全的，多线程访问需要外部同步
+     * @see         ConnectingLine, SimplePendulum, ConnectingRod, SlidingRail, PhysicalEntity
+     */
     class ConstraintsBase {
     public:
         ConstraintsBase();

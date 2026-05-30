@@ -1,6 +1,18 @@
-//
-// Created by jehor on 2026/5/29.
-//
+/**
+ * @file        transform_transformer.cpp
+ * @brief       变换转换器实现文件，提供模型数据到渲染层的变换转换功能。
+ * @details     实现 TransformTransformer 类的各项成员函数。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-04-23
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     ViewModel
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #include "transform_transformer.h"
 
@@ -15,13 +27,13 @@
 
 namespace egret
 {
-    TransformTransformer& TransformTransformer::instance()
+    TransformTransformer &TransformTransformer::instance()
     {
         static TransformTransformer helper;
         return helper;
     }
 
-    QVariantMap TransformTransformer::buildQuick3DRenderTransform(const ModelItemData& model)
+    QVariantMap TransformTransformer::buildQuick3DRenderTransform(const ModelItemData &model)
     {
         QVariantMap result;
         result.insert("position", QVector3D{});
@@ -46,10 +58,9 @@ namespace egret
         return result;
     }
 
-
     QVector3D TransformTransformer::buildQuick3DRenderScale(const std::uint32_t shapeId,
-                                                            const QVector3D& scale,
-                                                            const QVector3D& boxSize,
+                                                            const QVector3D &scale,
+                                                            const QVector3D &boxSize,
                                                             const double radius,
                                                             const double height,
                                                             const double length)
@@ -57,113 +68,109 @@ namespace egret
         const Eigen::Vector3d scaleEigen{scale.x(), scale.y(), scale.z()};
         const Eigen::Vector3d boxSizeEigen{boxSize.x(), boxSize.y(), boxSize.z()};
         const Eigen::Vector3d result{
-            buildQuick3DRenderScale(shapeId, scaleEigen, boxSizeEigen, radius, height, length)
-        };
+            buildQuick3DRenderScale(shapeId, scaleEigen, boxSizeEigen, radius, height, length)};
         return {static_cast<float>(result.x()), static_cast<float>(result.y()), static_cast<float>(result.z())};
     }
 
-    QVector3D TransformTransformer::buildQuick3DRenderPosition(const QVector3D& position)
+    QVector3D TransformTransformer::buildQuick3DRenderPosition(const QVector3D &position)
     {
         const Eigen::Vector3d positionEigen{position.x(), position.y(), position.z()};
         const Eigen::Vector3d result{buildQuick3DRenderPosition(positionEigen)};
         return {static_cast<float>(result.x()), static_cast<float>(result.y()), static_cast<float>(result.z())};
     }
 
-    QQuaternion TransformTransformer::buildQuick3DRenderRotation(const QQuaternion& rotation)
+    QQuaternion TransformTransformer::buildQuick3DRenderRotation(const QQuaternion &rotation)
     {
         const Eigen::Quaterniond rotationEigen{rotation.scalar(), rotation.x(), rotation.y(), rotation.z()};
         const Eigen::Quaterniond result{buildQuick3DRenderRotation(rotationEigen)};
         return {
             static_cast<float>(result.w()), static_cast<float>(result.x()), static_cast<float>(result.y()),
-            static_cast<float>(result.z())
-        };
+            static_cast<float>(result.z())};
     }
 
     Eigen::Vector3d TransformTransformer::buildQuick3DRenderScale(const std::uint32_t shapeId,
-                                                                  const Eigen::Vector3d& scale,
-                                                                  const Eigen::Vector3d& boxSize, const double radius,
+                                                                  const Eigen::Vector3d &scale,
+                                                                  const Eigen::Vector3d &boxSize, const double radius,
                                                                   const double height, const double length)
     {
         double unitScale = 0.01;
         const std::optional<ShapeType> shape{magic_enum::enum_cast<ShapeType>(shapeId)};
-        if (!shape.has_value()) {
+        if (!shape.has_value())
+        {
             LOG_WARN_LITERAL("Unknown Shape ID");
             return {};
         }
 
-
-        switch (shape.value()) {
-        case ShapeType::Box:{
+        switch (shape.value())
+        {
+        case ShapeType::Box:
+        {
             std::ignore = radius;
             std::ignore = height;
             std::ignore = length;
 
-            const Eigen::Vector3d result {unitScale * Eigen::Vector3d{
-                (scale.y() * boxSize.y()),
-                (scale.z() * boxSize.z()),
-                (scale.x() * boxSize.x())
-            }};
+            const Eigen::Vector3d result{unitScale * Eigen::Vector3d{
+                                                         (scale.y() * boxSize.y()),
+                                                         (scale.z() * boxSize.z()),
+                                                         (scale.x() * boxSize.x())}};
             return result;
         }
-        case ShapeType::Cylinder:{
+        case ShapeType::Cylinder:
+        {
             std::ignore = boxSize;
             std::ignore = length;
             return unitScale * Eigen::Vector3d{
-                (scale.y() * height),
-                (scale.z() * radius),
-                (scale.x() * radius)
-            };
+                                   (scale.y() * height),
+                                   (scale.z() * radius),
+                                   (scale.x() * radius)};
         }
-        case ShapeType::CylindricalShell:{
+        case ShapeType::CylindricalShell:
+        {
             std::ignore = boxSize;
             std::ignore = length;
             return Eigen::Vector3d{
                 (scale.y() * radius),
                 (scale.z() * height),
-                (scale.x() * radius)
-            };
+                (scale.x() * radius)};
         }
-        case ShapeType::Disk:{
+        case ShapeType::Disk:
+        {
             std::ignore = boxSize;
             std::ignore = length;
             std::ignore = height;
             return unitScale * Eigen::Vector3d{
-                (scale.y() * radius),
-                0.01 * (scale.z() * radius),
-                (scale.x() * radius)
-            };
+                                   (scale.y() * radius),
+                                   0.01 * (scale.z() * radius),
+                                   (scale.x() * radius)};
         }
-        case ShapeType::Ring:{
+        case ShapeType::Ring:
+        {
             std::ignore = boxSize;
             std::ignore = length;
             std::ignore = height;
             return Eigen::Vector3d{
                 (scale.y() * radius),
                 (scale.z() * radius),
-                (scale.x() * radius)
-            };
+                (scale.x() * radius)};
         }
-        case ShapeType::Rod:{
+        case ShapeType::Rod:
+        {
             std::ignore = boxSize;
             std::ignore = height;
             std::ignore = radius;
             return unitScale * Eigen::Vector3d{
-                1.0f,
-                (scale.y() * length),
-                1.0f
-            };
+                                   1.0f,
+                                   (scale.y() * length),
+                                   1.0f};
         }
         case ShapeType::Sphere:
             [[fallthrough]];
-        case ShapeType::SphericalShell:{
+        case ShapeType::SphericalShell:
+        {
             std::ignore = boxSize;
             std::ignore = length;
             std::ignore = height;
-            return 2 * unitScale * Eigen::Vector3d{
-                (scale.y() * radius),
-                (scale.z() * radius),
-                (scale.x() * radius)
-            };
+            return 2 * unitScale * Eigen::Vector3d{(scale.y() * radius), (scale.z() * radius), (scale.x() * radius)};
         }
         default:
             break;
@@ -171,12 +178,12 @@ namespace egret
         return Eigen::Vector3d{1.0, 1.0, 1.0};
     }
 
-    Eigen::Vector3d TransformTransformer::buildQuick3DRenderPosition(const Eigen::Vector3d& position)
+    Eigen::Vector3d TransformTransformer::buildQuick3DRenderPosition(const Eigen::Vector3d &position)
     {
         return {position.y(), position.z(), position.x()};
     }
 
-    Eigen::Quaterniond TransformTransformer::buildQuick3DRenderRotation(const Eigen::Quaterniond& rotation)
+    Eigen::Quaterniond TransformTransformer::buildQuick3DRenderRotation(const Eigen::Quaterniond &rotation)
     {
         return {rotation.w(), rotation.y(), rotation.z(), rotation.x()};
     }

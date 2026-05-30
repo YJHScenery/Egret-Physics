@@ -1,6 +1,19 @@
-//
-// 由 GitHub Copilot 于 2026/4/25 创建。
-//
+/**
+ * @file        solver.h
+ * @brief       物理求解器基类头文件，定义求解器的抽象接口。
+ * @details     定义 SolverBase 类，作为物理模拟固定步长求解器的抽象接口，
+ *              接收场景快照和固定 dt 进行物理计算。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-05-04
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Solver
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #ifndef EGRET_PHYSICS_SOLVER_H
 #define EGRET_PHYSICS_SOLVER_H
@@ -17,12 +30,19 @@ namespace egret
     class ContactResolverStrategy;
 
     /**
-     * @brief 模型层固定步长求解器的抽象接口。
+     * @brief       模型层固定步长求解器的抽象接口。
+     * @details     SolverBase 是物理模拟固定步长求解器的抽象接口，
+     *              接收场景快照和固定 dt 进行物理计算。
+     *              约定：
+     *              1. 接收一个场景快照和一个固定 dt。
+     *              2. 通过非拥有式句柄原地修改场景状态。
+     *              3. 返回本帧统计信息。
+     *              采用策略模式，派生类实现具体的求解逻辑。
      *
-     * 约定：
-     * 1. 接收一个场景快照和一个固定 dt。
-     * 2. 通过非拥有式句柄原地修改场景状态。
-     * 3. 返回本帧统计信息。
+     * @invariant   step() 方法在每次调用后更新场景状态
+     * @invariant   setConfig() 方法更新求解器配置
+     * @remark      SolverBase 是抽象接口，不能直接实例化
+     * @see         Solver, SolverSceneSnapshotBase, SolverConfig, SolverStepResult
      */
     class SolverBase
     {
@@ -52,10 +72,19 @@ namespace egret
     };
 
     /**
-     * @brief 带策略扩展点的流水线式求解器声明。
+     * @brief       带策略扩展点的流水线式求解器类。
+     * @details     Solver 继承自 SolverBase，实现带策略扩展点的流水线式求解器。
+     *              该类先给出第一版实现所需的具体 API 形状。
+     *              采用策略模式，通过 IntegratorStrategy、BroadPhaseStrategy、
+     *              ContactResolverStrategy 等策略组合实现求解流水线。
+     *              支持运行时替换策略，灵活调整求解行为。
      *
-     * 该类先给出第一版实现所需的具体 API 形状。方法体可以放到 .cpp 文件中实现，
-     * 而不改变对外契约。
+     * @invariant   m_integrator 是积分策略实例
+     * @invariant   m_broadPhase 是广相位策略实例
+     * @invariant   m_contactResolver 是接触解算策略实例
+     * @invariant   m_config 是求解器配置
+     * @remark      Solver 是具体实现类，可以直接实例化
+     * @see         SolverBase, IntegratorStrategy, BroadPhaseStrategy, ContactResolverStrategy
      */
     class Solver final : public SolverBase
     {

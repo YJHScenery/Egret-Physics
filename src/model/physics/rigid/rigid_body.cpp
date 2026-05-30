@@ -1,6 +1,18 @@
-//
-// Created by jehor on 2026/4/23.
-//
+/**
+* @file        rigid_body.cpp
+ * @brief       刚体实现文件，定义具有转动惯性的物理实体。
+ * @details     实现 RigidBody 类的各项成员函数。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-05-30
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Physics
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #include "rigid_body.h"
 

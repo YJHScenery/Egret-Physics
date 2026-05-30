@@ -1,6 +1,18 @@
-//
-// Created by jehor on 2026/4/24.
-//
+/**
+ * @file        shape_box.cpp
+ * @brief       盒形刚体形状实现文件，定义长方体形状。
+ * @details     实现 ShapeBox 类的各项成员函数。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-04-26
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Physics
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #include "shape_box.h"
 
@@ -101,7 +113,7 @@ namespace egret
     //     return false;
     // }
 
-    AABB ShapeBox::getAABB(const Transform& transform) const
+    AABB ShapeBox::getAABB(const Transform &transform) const
     {
         const Eigen::Matrix3d linear = transform.getLocalToWorldMatrix().topLeftCorner<3, 3>();
         const Eigen::Vector3d center = transform.getTranslation();
@@ -121,7 +133,7 @@ namespace egret
         return info;
     }
 
-    Eigen::Vector3d ShapeBox::support(const Eigen::Vector3d& direction, const Transform& transform) const
+    Eigen::Vector3d ShapeBox::support(const Eigen::Vector3d &direction, const Transform &transform) const
     {
         // 将方向转换到局部坐标系
         Eigen::Vector3d localDir = transform.getRotation().conjugate() * direction;
@@ -130,15 +142,14 @@ namespace egret
         const Eigen::Vector3d localSupport(
             (localDir.x() > 0 ? 1 : -1) * (m_size.x() / 2.0),
             (localDir.y() > 0 ? 1 : -1) * (m_size.y() / 2.0),
-            (localDir.z() > 0 ? 1 : -1) * (m_size.z() / 2.0)
-        );
+            (localDir.z() > 0 ? 1 : -1) * (m_size.z() / 2.0));
 
         // 变换回世界坐标系
         return transform.localToWorld(localSupport);
     }
 
-    void ShapeBox::getLocalAxes(const Transform& trans, Eigen::Vector3d& axisX, Eigen::Vector3d& axisY,
-                                Eigen::Vector3d& axisZ)
+    void ShapeBox::getLocalAxes(const Transform &trans, Eigen::Vector3d &axisX, Eigen::Vector3d &axisY,
+                                Eigen::Vector3d &axisZ)
     {
         axisX = trans.getRotation() * Eigen::Vector3d::UnitX();
         axisY = trans.getRotation() * Eigen::Vector3d::UnitY();

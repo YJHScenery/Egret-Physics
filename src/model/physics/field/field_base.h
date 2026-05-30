@@ -1,6 +1,19 @@
-//
-// Created by jehor on 2026/4/25.
-//
+/**
+* @file        field_base.h
+ * @brief       物理场基类头文件
+ * @details     定义FieldBase类，作为所有物理场（重力场、引力场等）的基类，
+ *              提供场向量采样、势能计算、施力到实体等接口。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-04-26
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Physics
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #ifndef EGRET_PHYSICS_FIELD_BASE_H
 #define EGRET_PHYSICS_FIELD_BASE_H
@@ -9,7 +22,7 @@
 namespace egret
 {
     class PhysicalEntity;
-
+    
     enum class FieldType : std::uint64_t
     {
         Base = 0xFFFFFFFF00000000,
@@ -17,6 +30,18 @@ namespace egret
         Gravitation = 0xFFFFFFBB00000000,
     };
 
+    /**
+     * @brief       物理场抽象基类，定义所有物理场的公共接口。
+     * @details     FieldBase 是所有物理场（重力场、引力场等）的抽象基类，
+     *              提供场向量采样、势能计算、施力到实体等接口。
+     *              物理场用于模拟环境中的力场，如重力场、引力场、电磁场等。
+     *              采用策略模式，派生类实现具体的场逻辑。
+     * 
+     * @invariant   m_id 是唯一的场标识符
+     * @invariant   m_enabled 表示场是否激活
+     * @remark      场不是线程安全的，多线程访问需要外部同步
+     * @see         GravityField, GravitationalField, PhysicalEntity
+     */
     class FieldBase
     {
     public:
@@ -44,11 +69,7 @@ namespace egret
         inline static std::uint32_t m_createCount_static{0};
 
         static std::uint64_t generateID(FieldType fieldType);
-
-        // static constexpr char FIELD_FLAG_BASE[] {"FIELD_BASE_"};
     };
-
-
 } // egret
 
 #endif //EGRET_PHYSICS_FIELD_BASE_H

@@ -1,14 +1,28 @@
+/**
+* @file        implementation.cpp
+ * @brief       积分器策略实现文件
+ * @details     实现积分器策略的各项成员函数。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-05-04
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Strategy
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
+
 #include "physical_entity.h"
 #include "semi_implicit_euler_integrator.h"
-//
-// Created by jehor on 2026/4/25.
-//
+
 namespace egret
 {
     void SemiImplicitEulerIntegratorStrategy::integrate(SolverSceneSnapshotBase& scene,
-                                                    const double dt,
-                                                    const SolverConfig& config,
-                                                    SolverStats& stats) const
+                                                        const double dt,
+                                                        const SolverConfig& config,
+                                                        SolverStats& stats) const
     {
         auto bodies = scene.getBodies();
 
@@ -36,5 +50,4 @@ namespace egret
 
         stats.resolvedContactCount += 0;
     }
-
 }

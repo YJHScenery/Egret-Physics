@@ -1,7 +1,19 @@
-﻿//
-// Created by jehor on 2026/4/23.
-//
-
+/**
+ * @file        constants.h
+ * @brief       物理引擎常量定义文件，提供圆周率、万有引力常数等基础物理常量。
+ * @details     定义物理引擎中使用的国际单位制常量，包括圆周率、重力加速度、
+ *              万有引力常数等，供全系统共享使用。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-04-23
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Utils
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 #ifndef EGRET_PHYSICS_CONSTANTS_H
 #define EGRET_PHYSICS_CONSTANTS_H
 #include <numbers>
@@ -68,4 +80,4 @@ namespace egret
     constexpr double G_FORCE_1KG = STANDARD_GRAVITY; // = 9.80665 N
 }
 
-#endif //EGRET_PHYSICS_CONSTANTS_H
+#endif // EGRET_PHYSICS_CONSTANTS_H

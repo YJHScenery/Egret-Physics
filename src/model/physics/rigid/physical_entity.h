@@ -1,6 +1,19 @@
-//
-// Created by jehor on 2026/4/23.
-//
+/**
+ * @file        physical_entity.h
+ * @brief       物理实体基类头文件，定义所有物理实体的公共接口。
+ * @details     定义 PhysicalEntity 类，作为所有物理实体（刚体、粒子等）的基类，
+ *              提供位置、速度、质量等通用属性和接口。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-05-30
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Physics
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #ifndef EGRET_PHYSICS_RIGID_OBJECT_BASE_H
 #define EGRET_PHYSICS_RIGID_OBJECT_BASE_H
@@ -18,6 +31,19 @@
 
 namespace egret
 {
+    /**
+     * @brief       物理实体基类，定义所有物理实体的公共接口。
+     * @details     PhysicalEntity 是所有物理实体（刚体、粒子等）的抽象基类，
+     *              提供位置、速度、质量、受力、力矩等通用属性和接口。
+     *              采用组合模式，通过 Transform 管理空间变换，通过 ShapeBase 管理碰撞形状。
+     *              支持多态继承，派生类需要实现 applyForce、movePosition 等虚函数。
+     *
+     * @invariant   m_mass >= 0，质量为0表示静态体（不参与积分）
+     * @invariant   m_restitution 在 [0, 1] 范围内，表示碰撞恢复系数
+     * @invariant   m_forces 和 m_torques 列表中的元素 ID 不重复
+     * @remark      该类不是线程安全的，多线程访问需要外部同步
+     * @see         Particle, RigidBody, Transform, ShapeBase, Force, Torque
+     */
     class PhysicalEntity
     {
     public:
@@ -59,7 +85,7 @@ namespace egret
 
         [[nodiscard]] double getMass() const { return m_mass; }
 
-        [[nodiscard]] bool isFixed() const { return m_mass <= 0; }
+        [[nodiscard]] virtual bool isFixed() const { return m_mass <= 0; }
 
         [[nodiscard]] double getRestitution() const { return m_restitution; }
 
@@ -133,9 +159,9 @@ namespace egret
         virtual Force getJoinForce() = 0;
 
     protected:
-        Transform m_transform{};     // 世界变换（包含位置、旋转、缩放）
+        Transform m_transform{}; // 世界变换（包含位置、旋转、缩放）
 
-        Eigen::Vector3d m_speed{};   // 参考点的速度
+        Eigen::Vector3d m_speed{}; // 参考点的速度
 
         Eigen::Vector3d m_angular{}; // 参考点的角速度
 
@@ -145,7 +171,7 @@ namespace egret
 
         std::shared_ptr<ShapeBase> m_shape;
 
-        double m_mass{};           // 质量/kg
+        double m_mass{}; // 质量/kg
 
         double m_restitution{1.0}; // 碰撞恢复系数
     };

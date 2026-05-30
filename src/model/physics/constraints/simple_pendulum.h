@@ -1,7 +1,19 @@
-//
-// Created by jehor on 2026/5/23.
-//
-
+/**
+* @file        simple_pendulum.h
+ * @brief       单摆约束器头文件
+ * @details     定义SimplePendulum类，提供单摆约束功能，
+ *              包括锚点和摆动物体之间的距离约束。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-04-26
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Physics
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 #ifndef EGRET_PHYSICS_SIMPLE_PENDULUM_H
 #define EGRET_PHYSICS_SIMPLE_PENDULUM_H
 #include "connecting_line.h"
@@ -12,18 +24,17 @@ namespace egret
     class Particle;
 
     /**
-     * @brief 单摆约束器
+     * @brief       单摆约束器类，实现锚点与摆动物体间的距离约束。
+     * @details     SimplePendulum 继承自 ConnectingLine，提供锚点（固定点）与
+     *              摆动物体之间的距离约束功能，用于模拟单摆运动。
+     *              锚点是质量为0的固定点，摆动物体是质量大于0的运动物体。
+     *              支持路径点用于处理绳子遇到阻碍物的情况。
      * 
-     * 单摆约束器用于模拟绳子/摆链等只能被拉伸而不能被压缩的约束。
-     * 特点：
-     * 1. 锚点（anchor）是质量为0的固定点
-     * 2. 摆动物体（entity）是质量大于0的运动物体
-     * 3. 支持路径点（用于处理绳子遇到阻碍的情况）
-     * 
-     * 使用场景：
-     * - 悬挂物体（吊灯、摆钟等）
-     * - 绳子连接的场景
-     * - 摆动过程中遇到阻碍物的情况
+     * @invariant   m_anchor 是质量为0的固定粒子（锚点）
+     * @invariant   m_entity 是质量大于0的摆动物体
+     * @invariant   m_length > 0，摆长必须为正值
+     * @remark      单摆是特殊的连接线约束，一端固定，适合模拟悬挂物体
+     * @see         ConnectingLine, Particle, PhysicalEntity
      */
     class SimplePendulum : public ConnectingLine
     {

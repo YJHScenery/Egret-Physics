@@ -8,7 +8,26 @@ set(CMAKE_AUTOUIC ON)
 
 set(CMAKE_PREFIX_PATH "D:/Qt/6.9.3/msvc2022_64")
 
-option(DEBUG_SIMULATE_RELEASE "Simulate Release behavior in Debug build" OFF)
+option(BUILD_DOCS "Build documentation with Doxygen" ON)
+
+if (BUILD_DOCS)
+    find_package(Doxygen)
+    if (DOXYGEN_FOUND)
+        set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/doxygen/Doxyfile)
+        set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/docs)
+
+        add_custom_target(doc_doxygen ALL
+                COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_IN}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/doxygen
+                COMMENT "Generating API documentation with Doxygen"
+                VERBATIM)
+
+        install(DIRECTORY ${DOXYGEN_OUT}/html
+                DESTINATION share/doc/${PROJECT_NAME})
+    else ()
+        message(WARNING "Doxygen not found, documentation will not be built")
+    endif ()
+endif ()
 
 include_directories(
         dependency/include

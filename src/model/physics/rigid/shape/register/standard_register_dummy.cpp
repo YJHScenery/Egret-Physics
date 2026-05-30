@@ -1,6 +1,18 @@
-//
-// Created by jehor on 2026/5/6.
-//
+/**
+* @file        standard_register_dummy.cpp
+ * @brief       标准注册器占位文件
+ * @details     标准形状碰撞检测函数的注册占位文件。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-04-26
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Physics
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 #include <array>
 
 #include "shape_base.h"
