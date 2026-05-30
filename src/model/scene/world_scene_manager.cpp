@@ -13,7 +13,7 @@
 #include "constants.h"
 #include "gravity_field.h"
 #include "field_base.h"
-#include "model_to_render_helper.h"
+#include "transform_transformer.h"
 #include "shape_factory_registry.h"
 #include "shape_box.h"
 #include "shape_cylinder.h"
@@ -81,32 +81,32 @@ namespace egret
             return fallback;
         }
 
-        [[nodiscard]] Eigen::Vector3d buildRenderScale(const std::uint32_t shapeId,
-                                                       const Eigen::Vector3d& modelScale,
-                                                       const Eigen::Vector3d& boxSize,
-                                                       const double radius,
-                                                       const double height,
-                                                       const double length)
-        {
-            const QVector3D modelScaleVec{
-                static_cast<float>(modelScale.x()),
-                static_cast<float>(modelScale.y()),
-                static_cast<float>(modelScale.z())
-            };
-            const QVector3D boxSizeVec{
-                static_cast<float>(boxSize.x()),
-                static_cast<float>(boxSize.y()),
-                static_cast<float>(boxSize.z())
-            };
-            const QVector3D renderScale = ModelToRenderHelper::instance().buildQuick3DRenderScale(
-                shapeId,
-                modelScaleVec,
-                boxSizeVec,
-                radius,
-                height,
-                length);
-            return {renderScale.x(), renderScale.y(), renderScale.z()};
-        }
+        // [[nodiscard]] Eigen::Vector3d buildRenderScale(const std::uint32_t shapeId,
+        //                                                const Eigen::Vector3d& modelScale,
+        //                                                const Eigen::Vector3d& boxSize,
+        //                                                const double radius,
+        //                                                const double height,
+        //                                                const double length)
+        // {
+        //     const QVector3D modelScaleVec{
+        //         static_cast<float>(modelScale.x()),
+        //         static_cast<float>(modelScale.y()),
+        //         static_cast<float>(modelScale.z())
+        //     };
+        //     const QVector3D boxSizeVec{
+        //         static_cast<float>(boxSize.x()),
+        //         static_cast<float>(boxSize.y()),
+        //         static_cast<float>(boxSize.z())
+        //     };
+        //     const QVector3D renderScale = ModelToRenderHelper::instance().buildQuick3DRenderScale(
+        //         shapeId,
+        //         modelScaleVec,
+        //         boxSizeVec,
+        //         radius,
+        //         height,
+        //         length);
+        //     return {renderScale.x(), renderScale.y(), renderScale.z()};
+        // }
 
         // [[nodiscard]] Eigen::Vector3d readShapeParamAsVector3(const ShapeLoadInfo &info,
         //                                                       const std::string &key,
@@ -443,7 +443,7 @@ namespace egret
 
             SceneRenderItem item{};
             item.id = body->id;
-            item.kind = (std::uint32_t)body->entity->getShape()->typeId();
+            item.kind = static_cast<std::uint32_t>(body->entity->getShape()->typeId());
             item.velocity = body->entity->getVelocity();
             item.angularVelocity = body->entity->getAngularVelocity();
 
@@ -464,31 +464,24 @@ namespace egret
             const auto shape = body->entity->getShape();
             const ShapeLoadInfo shapeInfo = shape->getLoadInfo();
             switch (shape->typeId()) {
-            case ShapeID::Sphere:
-            case ShapeID::Disk:
-            case ShapeID::Ring:
-            case ShapeID::SphericalShell: {
-                const double radius = readShapeParamAsDouble(shapeInfo, "radius", 1.0);
-                const double diameter = radius * 2.0;
-                boxSizeX = diameter;
-                boxSizeY = diameter;
-                boxSizeZ = diameter;
-                modelRadius = radius;
+            case ShapeType::Sphere:
+                [[fallthrough]];
+            case ShapeType::Disk:
+                [[fallthrough]];
+            case ShapeType::Ring:
+                [[fallthrough]];
+            case ShapeType::SphericalShell: {
+                modelRadius = readShapeParamAsDouble(shapeInfo, "radius", 1.0);
                 break;
             }
-            case ShapeID::Cylinder:
-            case ShapeID::CylindricalShell: {
-                const double radius = readShapeParamAsDouble(shapeInfo, "radius", 1.0);
-                const double height = readShapeParamAsDouble(shapeInfo, "height", 1.0);
-                const double diameter = radius * 2.0;
-                boxSizeX = diameter;
-                boxSizeY = diameter;
-                boxSizeZ = height;
-                modelRadius = radius;
-                modelHeight = height;
+            case ShapeType::Cylinder:
+                [[fallthrough]];
+            case ShapeType::CylindricalShell: {
+                modelRadius = readShapeParamAsDouble(shapeInfo, "radius", 1.0);
+                modelHeight = readShapeParamAsDouble(shapeInfo, "height", 1);
                 break;
             }
-            case ShapeID::Box: {
+            case ShapeType::Box: {
                 const Eigen::Vector3d size = readShapeParamAsVector3(shapeInfo,
                                                                      "size",
                                                                      Eigen::Vector3d::Ones());
@@ -497,46 +490,18 @@ namespace egret
                 boxSizeZ = std::abs(size.z());
                 break;
             }
-            case ShapeID::Rod: {
-                const double length = readShapeParamAsDouble(shapeInfo, "length", 1.0);
-                boxSizeX = 6.0;
-                boxSizeY = 6.0;
-                boxSizeZ = length;
-                modelLength = length;
+            case ShapeType::Rod: {
+                modelLength = readShapeParamAsDouble(shapeInfo, "length", 1.0);
                 break;
             }
             default:
                 break;
             }
 
-            // if (const auto* sphere = dynamic_cast<const ShapeSphere*>(body->shape.get()); sphere != nullptr) {
-            //     const double diameter = sphere->getRadius() * 2.0;
-            //     item.kind = "sphere";
-            //     item.width = diameter;
-            //     item.height = diameter;
-            //     item.x = position.x() - sphere->getRadius();
-            //     item.y = position.y() - sphere->getRadius();
-            // } else if (const auto* box = dynamic_cast<const ShapeBox*>(body->shape.get()); box != nullptr) {
-            //     const Eigen::Vector3d size = box->getSize();
-            //     item.kind = "box";
-            //     item.width = size.x();
-            //     item.height = size.y();
-            //     item.x = position.x() - size.x() * 0.5;
-            //     item.y = position.y() - size.y() * 0.5;
-            // } else {
-            //     item.kind = "particle";
-            //     item.width = 16.0;
-            //     item.height = 16.0;
-            //     item.x = position.x() - 8.0;
-            //     item.y = position.y() - 8.0;
-            // }
-
-            const Eigen::Vector3d renderScale = buildRenderScale(item.kind,
-                                                                 modelScale,
-                                                                 Eigen::Vector3d{boxSizeX, boxSizeY, boxSizeZ},
-                                                                 modelRadius,
-                                                                 modelHeight,
-                                                                 modelLength);
+            const Eigen::Vector3d scale = {modelScale.x(), modelScale.y(), modelScale.z()};
+            const Eigen::Vector3d boxSize = {boxSizeX, boxSizeY, boxSizeZ};
+            const Eigen::Vector3d renderScale = TransformTransformer::buildQuick3DRenderScale(item.kind, scale
+                ,boxSize,modelRadius,modelHeight, modelLength);
             item.scale = renderScale;
             item.rotation = {modelRotation.w(), modelRotation.y(), modelRotation.z(), modelRotation.x()};
             item.position = {position.y(), position.z(), position.x()};

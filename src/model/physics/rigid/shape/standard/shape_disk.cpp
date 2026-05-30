@@ -12,9 +12,9 @@ namespace egret
     {
     }
 
-    ShapeID ShapeDisk::typeId() const
+    ShapeType ShapeDisk::typeId() const
     {
-        return ShapeID::Disk;
+        return ShapeType::Disk;
     }
 
     Eigen::Vector3d ShapeDisk::getCenterOfMass() const

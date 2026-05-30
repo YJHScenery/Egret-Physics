@@ -10,7 +10,7 @@
 #include <QUuid>
 #include <QQmlEngine>
 #include "logger.h"
-#include "serialize/model_to_render_helper.h"
+#include "serialize/transform_transformer.h"
 
 
 namespace egret
@@ -154,6 +154,8 @@ namespace egret
         newModel->setType(data.m_type);
         newModel->setPos(data.m_pos);
         newModel->setScale(data.m_scale);
+
+        qDebug() << "New Model: " << newModel->scale();
         newModel->setMass(data.m_mass);
         newModel->setLoadTime(data.m_loadTime);
         newModel->setRestitution(data.m_restitution);
@@ -413,12 +415,15 @@ namespace egret
 
     QVariantMap ModelManager::setQuick3DRenderTransform(int index)
     {
-        ModelItemData *model = getModelAtIndex(index);
+        qDebug() << __func__ << index;
+        const ModelItemData *model = getModelAtIndex(index);
         if (model == nullptr) {
             return {};
         }
 
-        return ModelToRenderHelper::instance().buildQuick3DRenderTransform(*model);
+        auto val = TransformTransformer::buildQuick3DRenderTransform(*model);
+        qDebug() << __func__ << val;
+        return val;
     }
 
 
@@ -507,63 +512,51 @@ namespace egret
         // 1. Default Cube
         auto* cube = new ModelItemData();
         cube->setName("Default Cube");
-        cube->setSource("#Cube");
-        cube->setType(static_cast<std::uint32_t>(ShapeID::Box));
-        cube->setBoxSize({10, 10, 10});
-        cube->setPos(QVector3D(300, 200, 100));
-        cube->setRotation({0.23, 1, 0, 0});
-        cube->setScale(QVector3D(1, 1, 1));
+        cube->setType(ShapeType::Box);
+        cube->setMass(0);
+        cube->setBoxSize({600, 600, 10});
+        cube->setPos(QVector3D(0, 0, -100));
         cube->materials()->setBaseColor(QColor("#4CA3FF"));
         cube->materials()->setMetalness(0.8);
         cube->materials()->setRoughness(0.3);
         cube->materials()->setAlphaMode("Opaque");
         models.append(cube);
 
-        // 2. Default Sphere
+        auto* cube2 = new ModelItemData();
+        cube2->setName("Default Cube 2");
+        cube2->setType(ShapeType::Box);
+        cube2->setMass(100);
+        cube2->setBoxSize({10, 10, 10});
+        cube2->setPos(QVector3D(0, 100, 100));
+        cube2->materials()->setBaseColor(QColor("#4CA3FF"));
+        cube2->materials()->setMetalness(0.8);
+        cube2->materials()->setRoughness(0.3);
+        cube2->materials()->setAlphaMode("Opaque");
+        models.append(cube2);
+
         auto* sphere = new ModelItemData();
         sphere->setName("Default Sphere");
-        sphere->setSource("#Sphere");
-        sphere->setId("1114514");
-        sphere->setRadius(110.4);
-        sphere->setType(static_cast<std::uint32_t>(ShapeID::Sphere));
-        sphere->setPos(QVector3D(10, 0, 0));
+        sphere->setType(ShapeType::Sphere);
+        sphere->setMass(100);
+        sphere->setRadius(10);
+        sphere->setPos(QVector3D(0, 0, 100));
         sphere->materials()->setBaseColor(QColor("#4CA3FF"));
-        sphere->setScale(QVector3D(1, 1, 1));
         sphere->materials()->setMetalness(0.8);
         sphere->materials()->setRoughness(0.3);
+        sphere->materials()->setAlphaMode("Opaque");
         models.append(sphere);
 
-        auto* cylinder_side = new ModelItemData();
-        cylinder_side->setName("Default Cylinder Side");
-        cylinder_side->setType(static_cast<std::uint32_t>(ShapeID::CylindricalShell));
-        cylinder_side->setRadius(10);
-        cylinder_side->setHeight(30);
-        // cylinder_side->setSource("qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh");
-        cylinder_side->setPos(QVector3D(-160, -180, -160));
-
-        // cylinder_side->setScale(QVector3D(1.0f, 1.0f, 1.0f));
-        cylinder_side->materials()->setBaseColor(QColor("#c9dff6"));
-        cylinder_side->materials()->setMetalness(0.2);
-        cylinder_side->materials()->setRoughness(0.9);
-        cylinder_side->materials()->setAlphaMode("Opaque");
-        models.append(cylinder_side);
-        //
-        //
-        auto* disk = new ModelItemData();
-        disk->setName("Default Disk");
-        // disk->setSource("#Cylinder");
-        disk->setType(static_cast<std::uint32_t>(ShapeID::Disk));
-
-        disk->setRadius(100);
-
-        disk->setPos(QVector3D(160, 180, 160));
-        // disk->setScale(QVector3D(1.0f, 0.01f, 1.0f));
-        disk->setRotation({0.9239, 0.2209, 0.2209, 0.2209});
-        disk->materials()->setBaseColor(QColor("#c9dff6"));
-        disk->materials()->setMetalness(0.2);
-        disk->materials()->setRoughness(0.9);
-        disk->materials()->setAlphaMode("Opaque");
-        models.append(disk);
+        auto* sphere2 = new ModelItemData();
+        sphere2->setName("Default Sphere");
+        sphere2->setType(ShapeType::Sphere);
+        sphere2->setMass(10);
+        sphere2->setRadius(10);
+        sphere2->setPos(QVector3D(0, 0, 300));
+        sphere2->materials()->setBaseColor(QColor("#4CA3FF"));
+        sphere2->materials()->setMetalness(0.8);
+        sphere2->materials()->setRoughness(0.3);
+        sphere2->materials()->setAlphaMode("Opaque");
+        models.append(sphere2);
 
         return models;
     }

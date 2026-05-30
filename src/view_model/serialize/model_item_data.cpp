@@ -14,24 +14,24 @@ namespace egret
 {
     QMap<QString, std::uint32_t> ModelItemData::ShowMatchesTypeIDMap = {
         // 英文
-        {"Standard Box", static_cast<std::uint32_t>(ShapeID::Box)},
-        {"Standard Cylinder", static_cast<std::uint32_t>(ShapeID::Cylinder)},
-        {"Standard Cylindrical Shell", static_cast<std::uint32_t>(ShapeID::CylindricalShell)},
-        {"Standard Disk", static_cast<std::uint32_t>(ShapeID::Disk)},
-        {"Standard Ring", static_cast<std::uint32_t>(ShapeID::Ring)},
-        {"Standard Rod", static_cast<std::uint32_t>(ShapeID::Rod)},
-        {"Standard Sphere", static_cast<std::uint32_t>(ShapeID::Sphere)},
-        {"Standard Spherical Shell", static_cast<std::uint32_t>(ShapeID::SphericalShell)},
+        {"Standard Box", static_cast<std::uint32_t>(ShapeType::Box)},
+        {"Standard Cylinder", static_cast<std::uint32_t>(ShapeType::Cylinder)},
+        {"Standard Cylindrical Shell", static_cast<std::uint32_t>(ShapeType::CylindricalShell)},
+        {"Standard Disk", static_cast<std::uint32_t>(ShapeType::Disk)},
+        {"Standard Ring", static_cast<std::uint32_t>(ShapeType::Ring)},
+        {"Standard Rod", static_cast<std::uint32_t>(ShapeType::Rod)},
+        {"Standard Sphere", static_cast<std::uint32_t>(ShapeType::Sphere)},
+        {"Standard Spherical Shell", static_cast<std::uint32_t>(ShapeType::SphericalShell)},
 
         // 中文
-        {"标准盒体", static_cast<std::uint32_t>(ShapeID::Box)},
-        {"标准圆柱体", static_cast<std::uint32_t>(ShapeID::Cylinder)},
-        {"标准圆柱面", static_cast<std::uint32_t>(ShapeID::CylindricalShell)},
-        {"标准圆盘", static_cast<std::uint32_t>(ShapeID::Disk)},
-        {"标准圆环", static_cast<std::uint32_t>(ShapeID::Ring)},
-        {"标准细杆", static_cast<std::uint32_t>(ShapeID::Rod)},
-        {"标准球体", static_cast<std::uint32_t>(ShapeID::Sphere)},
-        {"标准球壳", static_cast<std::uint32_t>(ShapeID::SphericalShell)}
+        {"标准盒体", static_cast<std::uint32_t>(ShapeType::Box)},
+        {"标准圆柱体", static_cast<std::uint32_t>(ShapeType::Cylinder)},
+        {"标准圆柱面", static_cast<std::uint32_t>(ShapeType::CylindricalShell)},
+        {"标准圆盘", static_cast<std::uint32_t>(ShapeType::Disk)},
+        {"标准圆环", static_cast<std::uint32_t>(ShapeType::Ring)},
+        {"标准细杆", static_cast<std::uint32_t>(ShapeType::Rod)},
+        {"标准球体", static_cast<std::uint32_t>(ShapeType::Sphere)},
+        {"标准球壳", static_cast<std::uint32_t>(ShapeType::SphericalShell)}
     };
 
 
@@ -68,9 +68,9 @@ namespace egret
             QJsonArray arr = obj[key].toArray();
             if (arr.size() >= 3) {
                 return {
-                    (float)arr[0].toDouble(),
-                    (float)arr[1].toDouble(),
-                    (float)arr[2].toDouble()};
+                    static_cast<float>(arr[0].toDouble()),
+                    static_cast<float>(arr[1].toDouble()),
+                    static_cast<float>(arr[2].toDouble())};
             }
             return {};
         };
@@ -80,10 +80,10 @@ namespace egret
             QJsonArray arr = obj[key].toArray();
             if (arr.size() >= 4) {
                 return {
-                    (float)arr[0].toDouble(), // w
-                    (float)arr[1].toDouble(), // x
-                    (float)arr[2].toDouble(), // y
-                    (float)arr[3].toDouble() // z
+                    static_cast<float>(arr[0].toDouble()), // w
+                    static_cast<float>(arr[1].toDouble()), // x
+                    static_cast<float>(arr[2].toDouble()), // y
+                    static_cast<float>(arr[3].toDouble()) // z
                 };
             }
             return {};
@@ -101,30 +101,30 @@ namespace egret
         data.m_restitution = getDouble("restitution");
 
         switch (data.m_type) {
-        case static_cast<std::uint32_t>(ShapeID::Box): {
+        case static_cast<std::uint32_t>(ShapeType::Box): {
             data.m_boxSize = getVector3D("box_size");
             break;
         }
-        case static_cast<std::uint32_t>(ShapeID::Cylinder):
+        case static_cast<std::uint32_t>(ShapeType::Cylinder):
             [[fallthrough]];
-        case static_cast<std::uint32_t>(ShapeID::CylindricalShell): {
+        case static_cast<std::uint32_t>(ShapeType::CylindricalShell): {
             data.m_radius = getDouble("circle_radius");
             data.m_height = getDouble("height");
             break;
         }
-        case static_cast<std::uint32_t>(ShapeID::Disk):
+        case static_cast<std::uint32_t>(ShapeType::Disk):
             [[fallthrough]];
-        case static_cast<std::uint32_t>(ShapeID::Ring): {
+        case static_cast<std::uint32_t>(ShapeType::Ring): {
             data.m_radius = getDouble("circle_radius");
             break;
         }
-        case static_cast<std::uint32_t>(ShapeID::Rod): {
+        case static_cast<std::uint32_t>(ShapeType::Rod): {
             data.m_length = getDouble("length");
             break;
         }
-        case static_cast<std::uint32_t>(ShapeID::Sphere):
+        case static_cast<std::uint32_t>(ShapeType::Sphere):
             [[fallthrough]];
-        case static_cast<std::uint32_t>(ShapeID::SphericalShell): {
+        case static_cast<std::uint32_t>(ShapeType::SphericalShell): {
             data.m_radius = getDouble("circle_radius");
             break;
         }
@@ -134,6 +134,9 @@ namespace egret
 
         data.m_pos = getVector3D("position");
         data.m_scale = getVector3D("scale");
+
+        qDebug() << data.m_scale;
+
         data.m_rotation = getQuaternion("rotation");
         data.m_initialVelo = getVector3D("initial_velocity");
         data.m_initialAnguVelo = getVector3D("initial_angular_velocity");
@@ -282,6 +285,11 @@ namespace egret
         }
     }
 
+    void ModelItemData::setType(ShapeType type)
+    {
+        setType(static_cast<std::uint32_t>(type));
+    }
+
     void ModelItemData::setSource(const QString& source)
     {
         if (m_source != source) {
@@ -340,12 +348,12 @@ namespace egret
 
     QVector3D ModelItemData::boxSize() const
     {
-        return m_boxSize.value_or(QVector3D());
+        return m_boxSize.value_or(QVector3D(1.0, 1.0, 1.0));
     }
 
     void ModelItemData::setBoxSize(const QVector3D& boxSize)
     {
-        if (!m_boxSize.has_value() || m_boxSize.value() != boxSize) {
+        if (!m_boxSize.has_value() || qFuzzyCompare(m_boxSize.value(), boxSize)) {
             m_boxSize = boxSize;
             emit boxSizeChanged();
         }

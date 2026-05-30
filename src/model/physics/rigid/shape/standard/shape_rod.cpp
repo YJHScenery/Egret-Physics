@@ -12,9 +12,9 @@ namespace egret
     {
     }
 
-    ShapeID ShapeRod::typeId() const
+    ShapeType ShapeRod::typeId() const
     {
-        return ShapeID::Rod;
+        return ShapeType::Rod;
     }
 
     Eigen::Vector3d ShapeRod::getCenterOfMass() const

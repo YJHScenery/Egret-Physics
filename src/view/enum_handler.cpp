@@ -12,22 +12,23 @@ namespace egret
     EnumHandler* EnumHandler::instance()
     {
         static EnumHandler inst;
+        registerEnums();
         return &inst;
     }
 
-    EnumHandler::ShapeIDQml EnumHandler::toQmlShapeId(ShapeID shapeID)
+    EnumHandler::ShapeIDQml EnumHandler::toQmlShapeId(ShapeType shapeID)
     {
         return static_cast<ShapeIDQml>(shapeID);
     }
 
-    ShapeID EnumHandler::toShapeId(ShapeIDQml shapeID)
+    ShapeType EnumHandler::toShapeId(ShapeIDQml shapeID)
     {
-        return static_cast<ShapeID>(shapeID);
+        return static_cast<ShapeType>(shapeID);
     }
 
-    QString EnumHandler::shapeToString(ShapeID shapeID)
+    QString EnumHandler::shapeToString(ShapeType shapeID)
     {
-        const std::string_view view {magic_enum::enum_name<ShapeID>(shapeID)};
+        const std::string_view view {magic_enum::enum_name<ShapeType>(shapeID)};
         return QString::fromUtf8(view.data(), view.size());
     }
 
@@ -36,13 +37,13 @@ namespace egret
         return shapeToString(toShapeId(shapeID));
     }
 
-    ShapeID EnumHandler::stringToShape(const QString& str)
+    ShapeType EnumHandler::stringToShape(const QString& str)
     {
-        auto result{magic_enum::enum_cast<ShapeID>(str.toStdString())};
+        auto result{magic_enum::enum_cast<ShapeType>(str.toStdString())};
         if (result.has_value()) {
             return result.value();
         }
-        return ShapeID::Unknown;
+        return ShapeType::Unknown;
     }
 
     EnumHandler::ShapeIDQml EnumHandler::stringToShapeQml(const QString& str)
@@ -52,7 +53,7 @@ namespace egret
 
     void EnumHandler::registerEnums()
     {
-        qRegisterMetaType<ShapeID>("egret::ShapeID");
+        qRegisterMetaType<ShapeType>("egret::ShapeID");
         qmlRegisterUncreatableType<EnumHandler>(
             "EnumHandler",
             1,

@@ -14,17 +14,17 @@
 namespace egret
 {
     const QMap<std::uint32_t, QString> ResourceHelper::StaticGeneralTypeSourceMap = {
-        {static_cast<std::uint32_t>(ShapeID::Box), "#Cube"},
-        {static_cast<std::uint32_t>(ShapeID::Cylinder), "#Cylinder"},
+        {static_cast<std::uint32_t>(ShapeType::Box), "#Cube"},
+        {static_cast<std::uint32_t>(ShapeType::Cylinder), "#Cylinder"},
         {
-            static_cast<std::uint32_t>(ShapeID::CylindricalShell),
+            static_cast<std::uint32_t>(ShapeType::CylindricalShell),
             "qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh"
         },
-        {static_cast<std::uint32_t>(ShapeID::Disk), "#Cylinder"},
-        {static_cast<std::uint32_t>(ShapeID::Rod), "#Cylinder"},
-        {static_cast<std::uint32_t>(ShapeID::Ring), "qrc:/model_3d/assets/model_3d/torus/mesh/torus_R1.mesh"},
-        {static_cast<std::uint32_t>(ShapeID::Sphere), "#Sphere"},
-        {static_cast<std::uint32_t>(ShapeID::SphericalShell), "#Sphere"},
+        {static_cast<std::uint32_t>(ShapeType::Disk), "#Cylinder"},
+        {static_cast<std::uint32_t>(ShapeType::Rod), "#Cylinder"},
+        {static_cast<std::uint32_t>(ShapeType::Ring), "qrc:/model_3d/assets/model_3d/torus/mesh/torus_R1.mesh"},
+        {static_cast<std::uint32_t>(ShapeType::Sphere), "#Sphere"},
+        {static_cast<std::uint32_t>(ShapeType::SphericalShell), "#Sphere"},
     };
 
     ResourceHelper::ResourceHelper(QObject* parent) : QObject(parent)

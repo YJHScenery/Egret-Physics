@@ -19,7 +19,7 @@
 
 namespace egret
 {
-    enum class ShapeID: std::uint8_t
+    enum class ShapeType: std::uint8_t
     {
         Unknown = 0,
 
@@ -36,7 +36,7 @@ namespace egret
 // ReSharper disable once CppRedundantNamespaceDefinition
 namespace magic_enum::customize {
     template <>
-    struct enum_range<egret::ShapeID> {
+    struct enum_range<egret::ShapeType> {
         static constexpr int min = 0;
         static constexpr int max = 255;
     };
@@ -65,7 +65,7 @@ namespace egret
     public:
         virtual ~ShapeBase() = default;
 
-        [[nodiscard]] virtual ShapeID typeId() const;
+        [[nodiscard]] virtual ShapeType typeId() const;
 
         [[nodiscard]] virtual double getVolume() const = 0; // 计算体积
 

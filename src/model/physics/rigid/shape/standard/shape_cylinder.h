@@ -13,7 +13,7 @@ public:
     // 构造函数
     ShapeCylinder(double radius, double height);
 
-    [[nodiscard]] ShapeID typeId() const override;
+    [[nodiscard]] ShapeType typeId() const override;
 
     // 获取几何属性
     [[nodiscard]] double getRadius() const { return m_radius; }

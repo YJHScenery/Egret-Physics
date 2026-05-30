@@ -9,7 +9,6 @@
 #include "view_model/simulator/scene_manager.h"
 #include "basic_utils.h"
 #include "logger.h"
-#include "coordinate.h"
 #include "qt_component_helper.h"
 #include "os/windows/windows_config.h"
 #include "resource_helper.h"
@@ -63,7 +62,7 @@ int main(int argc, char* argv[])
     egret::FileHandler fileHandler;
     // egret::EnumHandler enumHandler;
 
-    qmlRegisterType<egret::CoordinateGeometry>("CustomGeometry", 1, 0, "SimpleGeometry");
+    // qmlRegisterType<egret::CoordinateGeometry>("CustomGeometry", 1, 0, "SimpleGeometry");
 
     QQmlApplicationEngine engine;
     egret::ModelManager::instance()->addModels(egret::createDefaultModels());

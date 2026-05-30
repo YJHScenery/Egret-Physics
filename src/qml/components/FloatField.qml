@@ -76,8 +76,8 @@ Item {
     }
 
     onValueChanged: {
-
+        if (!field.activeFocus) {
             field.text = formatValue(value);
-
+        }
     }
 }
