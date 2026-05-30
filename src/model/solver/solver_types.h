@@ -1,7 +1,19 @@
-//
-// 由 GitHub Copilot 于 2026/4/25 创建。
-//
-
+/**
+ * @file        solver_types.h
+ * @brief       求解器类型定义头文件，定义求解器中使用的数据结构。
+ * @details     定义 SolverBodyHandle、SolverFieldHandle 等数据结构，
+ *              用于在求解器流水线中表示物理体的可变视图。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-05-04
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Solver
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 #ifndef EGRET_PHYSICS_SOLVER_TYPES_H
 #define EGRET_PHYSICS_SOLVER_TYPES_H
 
@@ -20,10 +32,18 @@ namespace egret
     class Transform;
 
     /**
-     * @brief 求解器流水线中单个物理体的可变视图。
+     * @brief       求解器流水线中单个物理体的可变视图。
+     * @details     SolverBodyHandle 是求解器流水线中单个物理体的可变视图结构体。
+     *              场景层拥有所有被指向的对象。求解器只会在一次步进过程中借用它们，
+     *              不能在当前步之外长期保存这些指针。
+     *              包含实体ID、实体指针、变换指针、逆质量、逆转动惯量等。
      *
-     * 场景层拥有所有被指向的对象。求解器只会在一次步进过程中借用它们，
-     * 不能在当前步之外长期保存这些指针。
+     * @invariant   id 是稳定的实体标识符
+     * @invariant   entity 指针在一次步进过程中有效
+     * @invariant   transform 指针在一次步进过程中有效
+     * @invariant   inverseMass >= 0，静态体为0
+     * @invariant   restitution 在 [0, 1] 范围内
+     * @see         SolverSceneSnapshotBase, PhysicalEntity, Transform
      */
     struct SolverBodyHandle
     {
@@ -56,9 +76,14 @@ namespace egret
     };
 
     /**
-     * @brief 广相位生成的候选碰撞对。
+     * @brief       广相位生成的候选碰撞对。
+     * @details     SolverBodyPair 是广相位生成的候选碰撞对结构体。
+     *              这里保存的是当前实体数组中的索引，而不是稳定的场景 ID。
+     *              用于窄相位碰撞检测的输入。
      *
-     * 这里保存的是当前实体数组中的索引，而不是稳定的场景 ID。
+     * @invariant   bodyAIndex < bodyBIndex（可选约定）
+     * @invariant   bodyAIndex 和 bodyBIndex 是有效的实体数组索引
+     * @see         BroadPhaseStrategy, SolverBodyHandle
      */
     struct SolverBodyPair
     {
@@ -70,7 +95,16 @@ namespace egret
     };
 
     /**
-     * @brief 当前步需要解算的窄相位接触约束。
+     * @brief       当前步需要解算的窄相位接触约束。
+     * @details     SolverContactConstraint 是当前步需要解算的窄相位接触约束结构体。
+     *              包含碰撞的两个实体索引、接触点数据、恢复系数和碰撞时间（TOI）。
+     *              用于接触解算器的输入。
+     *
+     * @invariant   bodyAIndex 和 bodyBIndex 是有效的实体数组索引
+     * @invariant   contact 包含有效的接触点数据
+     * @invariant   restitution 在 [0, 1] 范围内
+     * @invariant   toi 在 [0, dt] 范围内
+     * @see         ContactResolverStrategy, ContactPoint
      */
     struct SolverContactConstraint
     {
@@ -91,9 +125,15 @@ namespace egret
     };
 
     /**
-     * @brief CCD碰撞事件，包含碰撞时间和接触信息。
+     * @brief       CCD碰撞事件，包含碰撞时间和接触信息。
+     * @details     CcdCollisionEvent 是CCD碰撞事件结构体，用于TOI事件队列。
+     *              包含碰撞发生的时间（TOI）、碰撞的两个实体索引、接触流形和恢复系数。
+     *              支持时间步进处理多个碰撞。
      *
-     * 用于TOI事件队列，支持时间步进处理多个碰撞。
+     * @invariant   toi 在 [0, dt] 范围内
+     * @invariant   bodyAIndex 和 bodyBIndex 是有效的实体数组索引
+     * @invariant   manifold 包含有效的接触点数据
+     * @see         SolverContactConstraint, ContactManifold
      */
     struct CcdCollisionEvent
     {
@@ -124,7 +164,16 @@ namespace egret
     };
 
     /**
-     * @brief 控制一次固定步长求解的运行时选项。
+     * @brief       控制一次固定步长求解的运行时选项。
+     * @details     SolverConfig 是控制一次固定步长求解的运行时选项结构体。
+     *              包含速度迭代次数、位置迭代次数、穿透容差、修正强度等参数。
+     *              用于配置求解器的行为。
+     *
+     * @invariant   velocityIterations > 0
+     * @invariant   positionIterations > 0
+     * @invariant   penetrationSlop >= 0
+     * @invariant   positionCorrectionBeta 在 [0, 1] 范围内
+     * @see         Solver, SolverBase
      */
     struct SolverConfig
     {
@@ -161,13 +210,21 @@ namespace egret
         /** 若为真，则在外力/接触处理后积分实体状态。 */
         bool enableIntegration{true};
 
-
         /** 若为真，则使用TOI事件队列进行时间步进的CCD碰撞检测。 */
         bool enableToiQueue{true};
     };
 
     /**
-     * @brief 每一步的统计信息，用于调试、测试和界面展示。
+     * @brief       每一步的统计信息，用于调试、测试和界面展示。
+     * @details     SolverStats 是每一步的统计信息结构体，用于调试、测试和界面展示。
+     *              包含实体数量、候选对数量、接触约束数量、动能等统计数据。
+     *              用于监控求解器的性能和行为。
+     *
+     * @invariant   bodyCount >= 0
+     * @invariant   dynamicBodyCount >= 0
+     * @invariant   broadPhasePairCount >= 0
+     * @invariant   totalKineticEnergy >= 0
+     * @see         SolverStepResult, Solver
      */
     struct SolverStats
     {
@@ -197,7 +254,13 @@ namespace egret
     };
 
     /**
-     * @brief 一次求解步的结构化结果。
+     * @brief       一次求解步的结构化结果。
+     * @details     SolverStepResult 是一次求解步的结构化结果结构体。
+     *              包含汇总后的每步统计信息和本次求解消耗的固定时间步长。
+     *              用于返回求解器的执行结果。
+     *
+     * @invariant   dt > 0
+     * @see         SolverBase, SolverStats
      */
     struct SolverStepResult
     {

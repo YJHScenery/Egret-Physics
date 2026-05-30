@@ -1,3 +1,18 @@
+/**
+* @file        implementation.cpp
+ * @brief       接触求解器策略实现文件
+ * @details     实现接触求解器策略的各项成员函数。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-05-04
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Strategy
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 #include "frictionless_contact_resolver.h"
 #include "physical_entity.h"
 #include <cmath>

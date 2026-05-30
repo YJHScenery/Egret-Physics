@@ -1,6 +1,18 @@
-//
-// Created by jehor on 2026/5/25.
-//
+/**
+ * @file        model_item_data.cpp
+ * @brief       模型数据项实现文件，定义编辑器和序列化使用的模型数据结构。
+ * @details     实现 MaterialData 和 ModelItemData 类的各项成员函数。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-04-23
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     ViewModel
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #include "model_item_data.h"
 #include <QUuid>
@@ -31,42 +43,43 @@ namespace egret
         {"标准圆环", static_cast<std::uint32_t>(ShapeType::Ring)},
         {"标准细杆", static_cast<std::uint32_t>(ShapeType::Rod)},
         {"标准球体", static_cast<std::uint32_t>(ShapeType::Sphere)},
-        {"标准球壳", static_cast<std::uint32_t>(ShapeType::SphericalShell)}
-    };
+        {"标准球壳", static_cast<std::uint32_t>(ShapeType::SphericalShell)}};
 
-
-    ModelItemDataField parseModelItemDataFromQMLJson(const QString& qmlJson)
+    ModelItemDataField parseModelItemDataFromQMLJson(const QString &qmlJson)
     {
         qDebug() << qmlJson;
         ModelItemDataField data;
         QJsonParseError parseError;
         QJsonDocument doc = QJsonDocument::fromJson(qmlJson.toUtf8(), &parseError);
 
-        if (parseError.error != QJsonParseError::NoError) {
+        if (parseError.error != QJsonParseError::NoError)
+        {
             qDebug() << "JSON解析失败:" << parseError.errorString();
             return {};
         }
 
-        if (!doc.isObject()) {
+        if (!doc.isObject())
+        {
             qDebug() << "JSON不是对象格式";
             return {};
         }
 
         QJsonObject obj = doc.object();
-        auto getString = [&](const QString& key) -> QString
+        auto getString = [&](const QString &key) -> QString
         {
             return obj[key].toString();
         };
 
-        auto getDouble = [&](const QString& key) -> double
+        auto getDouble = [&](const QString &key) -> double
         {
             return obj[key].toDouble();
         };
 
-        auto getVector3D = [&](const QString& key) -> QVector3D
+        auto getVector3D = [&](const QString &key) -> QVector3D
         {
             QJsonArray arr = obj[key].toArray();
-            if (arr.size() >= 3) {
+            if (arr.size() >= 3)
+            {
                 return {
                     static_cast<float>(arr[0].toDouble()),
                     static_cast<float>(arr[1].toDouble()),
@@ -75,15 +88,16 @@ namespace egret
             return {};
         };
 
-        auto getQuaternion = [&](const QString& key) -> QQuaternion
+        auto getQuaternion = [&](const QString &key) -> QQuaternion
         {
             QJsonArray arr = obj[key].toArray();
-            if (arr.size() >= 4) {
+            if (arr.size() >= 4)
+            {
                 return {
                     static_cast<float>(arr[0].toDouble()), // w
                     static_cast<float>(arr[1].toDouble()), // x
                     static_cast<float>(arr[2].toDouble()), // y
-                    static_cast<float>(arr[3].toDouble()) // z
+                    static_cast<float>(arr[3].toDouble())  // z
                 };
             }
             return {};
@@ -100,31 +114,37 @@ namespace egret
 
         data.m_restitution = getDouble("restitution");
 
-        switch (data.m_type) {
-        case static_cast<std::uint32_t>(ShapeType::Box): {
+        switch (data.m_type)
+        {
+        case static_cast<std::uint32_t>(ShapeType::Box):
+        {
             data.m_boxSize = getVector3D("box_size");
             break;
         }
         case static_cast<std::uint32_t>(ShapeType::Cylinder):
             [[fallthrough]];
-        case static_cast<std::uint32_t>(ShapeType::CylindricalShell): {
+        case static_cast<std::uint32_t>(ShapeType::CylindricalShell):
+        {
             data.m_radius = getDouble("circle_radius");
             data.m_height = getDouble("height");
             break;
         }
         case static_cast<std::uint32_t>(ShapeType::Disk):
             [[fallthrough]];
-        case static_cast<std::uint32_t>(ShapeType::Ring): {
+        case static_cast<std::uint32_t>(ShapeType::Ring):
+        {
             data.m_radius = getDouble("circle_radius");
             break;
         }
-        case static_cast<std::uint32_t>(ShapeType::Rod): {
+        case static_cast<std::uint32_t>(ShapeType::Rod):
+        {
             data.m_length = getDouble("length");
             break;
         }
         case static_cast<std::uint32_t>(ShapeType::Sphere):
             [[fallthrough]];
-        case static_cast<std::uint32_t>(ShapeType::SphericalShell): {
+        case static_cast<std::uint32_t>(ShapeType::SphericalShell):
+        {
             data.m_radius = getDouble("circle_radius");
             break;
         }
@@ -150,7 +170,7 @@ namespace egret
     }
 
     // MaterialData 实现
-    MaterialData::MaterialData(QObject* parent) : QObject(parent)
+    MaterialData::MaterialData(QObject *parent) : QObject(parent)
     {
     }
 
@@ -159,9 +179,10 @@ namespace egret
     qreal MaterialData::roughness() const { return m_roughness; }
     QString MaterialData::alphaMode() const { return m_alphaMode; }
 
-    void MaterialData::setBaseColor(const QColor& baseColor)
+    void MaterialData::setBaseColor(const QColor &baseColor)
     {
-        if (m_baseColor != baseColor) {
+        if (m_baseColor != baseColor)
+        {
             m_baseColor = baseColor;
             emit baseColorChanged();
         }
@@ -169,7 +190,8 @@ namespace egret
 
     void MaterialData::setMetalness(qreal metalness)
     {
-        if (!qFuzzyCompare(m_metalness, metalness)) {
+        if (!qFuzzyCompare(m_metalness, metalness))
+        {
             m_metalness = metalness;
             emit metalnessChanged();
         }
@@ -177,15 +199,17 @@ namespace egret
 
     void MaterialData::setRoughness(qreal roughness)
     {
-        if (!qFuzzyCompare(m_roughness, roughness)) {
+        if (!qFuzzyCompare(m_roughness, roughness))
+        {
             m_roughness = roughness;
             emit roughnessChanged();
         }
     }
 
-    void MaterialData::setAlphaMode(const QString& alphaMode)
+    void MaterialData::setAlphaMode(const QString &alphaMode)
     {
-        if (m_alphaMode != alphaMode) {
+        if (m_alphaMode != alphaMode)
+        {
             m_alphaMode = alphaMode;
             emit alphaModeChanged();
         }
@@ -201,7 +225,7 @@ namespace egret
         return obj;
     }
 
-    bool MaterialData::fromJson(const QJsonObject& json)
+    bool MaterialData::fromJson(const QJsonObject &json)
     {
         if (json.contains("baseColor"))
             setBaseColor(QColor(json["baseColor"].toString()));
@@ -215,7 +239,7 @@ namespace egret
     }
 
     // ModelItemData 实现
-    ModelItemData::ModelItemData(QObject* parent)
+    ModelItemData::ModelItemData(QObject *parent)
         : QObject(parent), m_materials(new MaterialData(this)), m_id(QUuid::createUuid().toString(QUuid::WithoutBraces))
     {
         m_scale = QVector3D(1.0f, 1.0f, 1.0f);
@@ -242,11 +266,12 @@ namespace egret
 
     QVector3D ModelItemData::initialAnguVelo() const { return m_initialAnguVelo; }
 
-    MaterialData* ModelItemData::materials() const { return m_materials; }
+    MaterialData *ModelItemData::materials() const { return m_materials; }
 
     void ModelItemData::setMass(double mass)
     {
-        if (m_mass != mass) {
+        if (m_mass != mass)
+        {
             m_mass = mass;
             emit massChanged();
         }
@@ -254,23 +279,26 @@ namespace egret
 
     void ModelItemData::setLoadTime(double loadTime)
     {
-        if (m_loadTime != loadTime) {
+        if (m_loadTime != loadTime)
+        {
             m_loadTime = loadTime;
             emit loadTimeChanged();
         }
     }
 
-    void ModelItemData::setId(const QString& id)
+    void ModelItemData::setId(const QString &id)
     {
-        if (m_id != id) {
+        if (m_id != id)
+        {
             m_id = id;
             emit idChanged();
         }
     }
 
-    void ModelItemData::setName(const QString& name)
+    void ModelItemData::setName(const QString &name)
     {
-        if (m_name != name) {
+        if (m_name != name)
+        {
             m_name = name;
             emit nameChanged();
         }
@@ -278,7 +306,8 @@ namespace egret
 
     void ModelItemData::setType(std::uint32_t type)
     {
-        if (m_type != type) {
+        if (m_type != type)
+        {
             m_type = type;
             matchSource();
             emit typeChanged();
@@ -290,49 +319,55 @@ namespace egret
         setType(static_cast<std::uint32_t>(type));
     }
 
-    void ModelItemData::setSource(const QString& source)
+    void ModelItemData::setSource(const QString &source)
     {
-        if (m_source != source) {
+        if (m_source != source)
+        {
             m_source = source;
             emit sourceChanged();
         }
     }
 
-    void ModelItemData::setPos(const QVector3D& pos)
+    void ModelItemData::setPos(const QVector3D &pos)
     {
-        if (m_pos != pos) {
+        if (m_pos != pos)
+        {
             m_pos = pos;
             emit posChanged();
         }
     }
 
-    void ModelItemData::setScale(const QVector3D& scale)
+    void ModelItemData::setScale(const QVector3D &scale)
     {
-        if (m_scale != scale) {
+        if (m_scale != scale)
+        {
             m_scale = scale;
             emit scaleChanged();
         }
     }
 
-    void ModelItemData::setRotation(const QQuaternion& rotation)
+    void ModelItemData::setRotation(const QQuaternion &rotation)
     {
-        if (m_rotation != rotation) {
+        if (m_rotation != rotation)
+        {
             m_rotation = rotation;
             emit rotationChanged();
         }
     }
 
-    void ModelItemData::setInitialVelo(const QVector3D& initialVelo)
+    void ModelItemData::setInitialVelo(const QVector3D &initialVelo)
     {
-        if (m_initialVelo != initialVelo) {
+        if (m_initialVelo != initialVelo)
+        {
             m_initialVelo = initialVelo;
             emit initialAnguVeloChanged();
         }
     }
 
-    void ModelItemData::setInitialAnguVelo(const QVector3D& initialAnguVelo)
+    void ModelItemData::setInitialAnguVelo(const QVector3D &initialAnguVelo)
     {
-        if (m_initialAnguVelo != initialAnguVelo) {
+        if (m_initialAnguVelo != initialAnguVelo)
+        {
             m_initialAnguVelo = initialAnguVelo;
             emit initialAnguVeloChanged();
         }
@@ -340,7 +375,8 @@ namespace egret
 
     void ModelItemData::setRestitution(double restitution)
     {
-        if (m_restitution != restitution) {
+        if (m_restitution != restitution)
+        {
             m_restitution = restitution;
             emit restitutionChanged();
         }
@@ -351,9 +387,10 @@ namespace egret
         return m_boxSize.value_or(QVector3D(1.0, 1.0, 1.0));
     }
 
-    void ModelItemData::setBoxSize(const QVector3D& boxSize)
+    void ModelItemData::setBoxSize(const QVector3D &boxSize)
     {
-        if (!m_boxSize.has_value() || qFuzzyCompare(m_boxSize.value(), boxSize)) {
+        if (!m_boxSize.has_value() || qFuzzyCompare(m_boxSize.value(), boxSize))
+        {
             m_boxSize = boxSize;
             emit boxSizeChanged();
         }
@@ -366,7 +403,8 @@ namespace egret
 
     void ModelItemData::setRadius(double radius)
     {
-        if (!m_radius.has_value() || !qFuzzyCompare(m_radius.value(), radius)) {
+        if (!m_radius.has_value() || !qFuzzyCompare(m_radius.value(), radius))
+        {
             m_radius = radius;
             emit radiusChanged();
         }
@@ -379,7 +417,8 @@ namespace egret
 
     void ModelItemData::setHeight(double height)
     {
-        if (!m_height.has_value() || !qFuzzyCompare(m_height.value(), height)) {
+        if (!m_height.has_value() || !qFuzzyCompare(m_height.value(), height))
+        {
             m_height = height;
             emit heightChanged();
         }
@@ -392,7 +431,8 @@ namespace egret
 
     void ModelItemData::setLength(double length)
     {
-        if (!m_length.has_value() || !qFuzzyCompare(m_length.value(), length)) {
+        if (!m_length.has_value() || !qFuzzyCompare(m_length.value(), length))
+        {
             m_length = length;
             emit lengthChanged();
         }
@@ -400,14 +440,17 @@ namespace egret
 
     void ModelItemData::matchSource()
     {
-        const QString source {ResourceHelper::getSourceByShape(m_type)};
-        if (!source.isEmpty()) {
-            if (m_source != source) {
+        const QString source{ResourceHelper::getSourceByShape(m_type)};
+        if (!source.isEmpty())
+        {
+            if (m_source != source)
+            {
                 m_source = source;
                 emit sourceChanged();
             }
         }
-        else {
+        else
+        {
             LOG_FATAL_LITERAL("Known Shape");
         }
     }
@@ -423,16 +466,20 @@ namespace egret
         obj["source"] = m_source;
 
         obj["type"] = QJsonValue{static_cast<std::int64_t>(m_type)};
-        if (m_boxSize.has_value()) {
+        if (m_boxSize.has_value())
+        {
             obj["box_size"] = QJsonArray{m_boxSize->x(), m_boxSize->y(), m_boxSize->z()};
         }
-        if (m_radius.has_value()) {
+        if (m_radius.has_value())
+        {
             obj["radius"] = m_radius.value();
         }
-        if (m_height.has_value()) {
+        if (m_height.has_value())
+        {
             obj["height"] = m_height.value();
         }
-        if (m_length.has_value()) {
+        if (m_length.has_value())
+        {
             obj["length"] = m_length.value();
         }
 
@@ -442,59 +489,71 @@ namespace egret
 
         obj["initial_velocity"] = QJsonArray{m_initialVelo.x(), m_initialVelo.y(), m_initialVelo.z()};
         obj["initial_angular_velocity"] = QJsonArray{
-            m_initialAnguVelo.x(), m_initialAnguVelo.y(), m_initialAnguVelo.z()
-        };
+            m_initialAnguVelo.x(), m_initialAnguVelo.y(), m_initialAnguVelo.z()};
         obj["materials"] = m_materials->toJson();
 
         return obj;
     }
 
-    bool ModelItemData::fromJson(const QJsonObject& json)
+    bool ModelItemData::fromJson(const QJsonObject &json)
     {
-        if (json.contains("mass")) {
+        if (json.contains("mass"))
+        {
             setMass(json["mass"].toDouble());
         }
-        if (json.contains("load_time")) {
+        if (json.contains("load_time"))
+        {
             setLoadTime(json["load_time"].toDouble());
         }
 
-        if (json.contains("restitution")) {
+        if (json.contains("restitution"))
+        {
             setRestitution(json["restitution"].toDouble());
         }
-        if (json.contains("type")) {
+        if (json.contains("type"))
+        {
             setType(static_cast<std::uint32_t>(json["type"].toInteger()));
         }
 
-        if (json.contains("id")) {
+        if (json.contains("id"))
+        {
             setId(json["id"].toString());
         }
-        if (json.contains("name")) {
+        if (json.contains("name"))
+        {
             setName(json["name"].toString());
         }
-        if (json.contains("source")) {
+        if (json.contains("source"))
+        {
             setSource(json["source"].toString());
         }
 
-        if (json.contains("pos") && json["pos"].isArray()) {
+        if (json.contains("pos") && json["pos"].isArray())
+        {
             QJsonArray posArr = json["pos"].toArray();
-            if (posArr.size() >= 3) {
+            if (posArr.size() >= 3)
+            {
                 setPos(QVector3D(static_cast<float>(posArr[0].toDouble()), static_cast<float>(posArr[1].toDouble()),
                                  static_cast<float>(posArr[2].toDouble())));
             }
         }
 
-        if (json.contains("scale") && json["scale"].isArray()) {
+        if (json.contains("scale") && json["scale"].isArray())
+        {
             QJsonArray scaleArr = json["scale"].toArray();
-            if (scaleArr.size() >= 3) {
+            if (scaleArr.size() >= 3)
+            {
                 setScale(QVector3D(static_cast<float>(scaleArr[0].toDouble()),
                                    static_cast<float>(scaleArr[1].toDouble()),
                                    static_cast<float>(scaleArr[2].toDouble())));
             }
         }
 
-        if (json.contains("rotation") && json["rotation"].isArray()) {
+        if (json.contains("rotation") && json["rotation"].isArray())
+        {
             QJsonArray rotArr = json["rotation"].toArray();
-            if (rotArr.size() >= 4) {
+            if (rotArr.size() >= 4)
+            {
                 setRotation(QQuaternion(static_cast<float>(rotArr[0].toDouble()),
                                         static_cast<float>(rotArr[1].toDouble()),
                                         static_cast<float>(rotArr[2].toDouble()),
@@ -502,48 +561,59 @@ namespace egret
             }
         }
 
-        if (json.contains("initial_velocity") && json["initial_velocity"].isArray()) {
+        if (json.contains("initial_velocity") && json["initial_velocity"].isArray())
+        {
             QJsonArray initialVelArr = json["initial_velocity"].toArray();
-            if (initialVelArr.size() >= 3) {
+            if (initialVelArr.size() >= 3)
+            {
                 setInitialVelo(QVector3D(static_cast<float>(initialVelArr[0].toDouble()),
                                          static_cast<float>(initialVelArr[1].toDouble()),
                                          static_cast<float>(initialVelArr[2].toDouble())));
             }
         }
 
-        if (json.contains("initial_angular_velocity") && json["initial_angular_velocity"].isArray()) {
+        if (json.contains("initial_angular_velocity") && json["initial_angular_velocity"].isArray())
+        {
             QJsonArray initialAngularVelArr = json["initial_angular_velocity"].toArray();
-            if (initialAngularVelArr.size() >= 3) {
+            if (initialAngularVelArr.size() >= 3)
+            {
                 setInitialAnguVelo(QVector3D(static_cast<float>(initialAngularVelArr[0].toDouble()),
                                              static_cast<float>(initialAngularVelArr[1].toDouble()),
                                              static_cast<float>(initialAngularVelArr[2].toDouble())));
             }
         }
-        if (json.contains("materials") && json["materials"].isObject()) {
+        if (json.contains("materials") && json["materials"].isObject())
+        {
             m_materials->fromJson(json["materials"].toObject());
         }
 
-        if (json.contains("box_size") && json["box_size"].isArray()) {
+        if (json.contains("box_size") && json["box_size"].isArray())
+        {
             QJsonArray boxSizeArr = json["box_size"].toArray();
-            if (boxSizeArr.size() >= 3) {
+            if (boxSizeArr.size() >= 3)
+            {
                 setBoxSize(QVector3D(static_cast<float>(boxSizeArr[0].toDouble()),
                                      static_cast<float>(boxSizeArr[1].toDouble()),
                                      static_cast<float>(boxSizeArr[2].toDouble())));
             }
         }
 
-        if (json.contains("radius")) {
+        if (json.contains("radius"))
+        {
             setRadius(json["radius"].toDouble());
         }
-        else if (json.contains("circle_radius")) {
+        else if (json.contains("circle_radius"))
+        {
             setRadius(json["circle_radius"].toDouble());
         }
 
-        if (json.contains("height")) {
+        if (json.contains("height"))
+        {
             setHeight(json["height"].toDouble());
         }
 
-        if (json.contains("length")) {
+        if (json.contains("length"))
+        {
             setLength(json["length"].toDouble());
         }
 
@@ -555,9 +625,9 @@ namespace egret
         return QSharedPointer<ModelItemData>(createCopy(*this));
     }
 
-    ModelItemData* ModelItemData::createCopy(const ModelItemData& source, QObject* parent)
+    ModelItemData *ModelItemData::createCopy(const ModelItemData &source, QObject *parent)
     {
-        auto* copy = new ModelItemData(parent);
+        auto *copy = new ModelItemData(parent);
         copy->setMass(source.mass());
         copy->setLoadTime(source.loadTime());
         copy->setId(source.id());
@@ -569,9 +639,10 @@ namespace egret
         copy->setInitialVelo(source.initialVelo());
         copy->setInitialAnguVelo(source.initialAnguVelo());
 
-        MaterialData* sourceMaterials = source.materials();
-        if (sourceMaterials) {
-            MaterialData* targetMaterials = copy->materials();
+        MaterialData *sourceMaterials = source.materials();
+        if (sourceMaterials)
+        {
+            MaterialData *targetMaterials = copy->materials();
             targetMaterials->setBaseColor(sourceMaterials->baseColor());
             targetMaterials->setMetalness(sourceMaterials->metalness());
             targetMaterials->setRoughness(sourceMaterials->roughness());

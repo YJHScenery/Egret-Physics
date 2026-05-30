@@ -1,86 +1,116 @@
-//
-// 由 GitHub Copilot 于 2026/4/25 创建。
-//
+/**
+ * @file        scene_body_model.cpp
+ * @brief       场景实体数据模型实现文件，提供可渲染实体的 Qt 数据模型。
+ * @details     实现 SceneBodyModel 类的各项成员函数。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-05-04
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     ViewModel
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #include "scene_body_model.h"
 #include <magic_enum.hpp>
 
-namespace magic_enum::customize {
+namespace magic_enum::customize
+{
     template <>
-    struct enum_range<egret::SceneBodyModel::BodyRole> {
+    struct enum_range<egret::SceneBodyModel::BodyRole>
+    {
         static constexpr int min = Qt::UserRole;
         static constexpr int max = 280; // 留下一定的余量
     };
 }
 
-
 namespace egret
 {
-    SceneBodyModel::SceneBodyModel(QObject* parent) : QAbstractListModel(parent)
+    SceneBodyModel::SceneBodyModel(QObject *parent) : QAbstractListModel(parent)
     {
     }
 
-    int SceneBodyModel::rowCount(const QModelIndex& parent) const
+    int SceneBodyModel::rowCount(const QModelIndex &parent) const
     {
-        if (parent.isValid()) {
+        if (parent.isValid())
+        {
             return 0;
         }
         return static_cast<int>(m_items.size());
     }
 
-    QVariant SceneBodyModel::data(const QModelIndex& index, const int role) const
+    QVariant SceneBodyModel::data(const QModelIndex &index, const int role) const
     {
-        if (!index.isValid() || index.row() < 0 || index.row() >= rowCount(QModelIndex())) {
+        if (!index.isValid() || index.row() < 0 || index.row() >= rowCount(QModelIndex()))
+        {
             return {};
         }
 
-        const SceneBodyVisualItem& item = m_items[static_cast<std::size_t>(index.row())];
-        switch (role) {
-        case IdRole: {
+        const SceneBodyVisualItem &item = m_items[static_cast<std::size_t>(index.row())];
+        switch (role)
+        {
+        case IdRole:
+        {
             return QVariant::fromValue(item.id);
         }
-        case KindRole: {
+        case KindRole:
+        {
             return QVariant::fromValue(item.kind);
         }
-        case PositionRole: {
+        case PositionRole:
+        {
             QVariantList position;
-            for (int i = 0; i < 3; ++i) {
+            for (int i = 0; i < 3; ++i)
+            {
                 position.append(item.centerPos[i]);
             }
             return position;
         }
-        case ScaleRole:{
+        case ScaleRole:
+        {
             QVariantList scale;
-            for (int i = 0; i < 3; ++i) {
+            for (int i = 0; i < 3; ++i)
+            {
                 scale.append(item.scale[i]);
             }
             return scale;
         }
-        case RotationRole:{
+        case RotationRole:
+        {
             QVariantList rotation;
-            for (int i = 0; i < 4; ++i) {
+            for (int i = 0; i < 4; ++i)
+            {
                 rotation.append(item.rotation[i]);
             }
             return rotation;
         }
-        case VelocityRole:{
+        case VelocityRole:
+        {
             QVariantList speed;
-            for (int i = 0; i < 3; ++i) {
+            for (int i = 0; i < 3; ++i)
+            {
                 speed.append(item.velocity[i]);
             }
             return speed;
         }
-        case AngularVelocityRole:{
+        case AngularVelocityRole:
+        {
             QVariantList angularSpeed;
-            for (int i = 0; i < 3; ++i) {
+            for (int i = 0; i < 3; ++i)
+            {
                 angularSpeed.append(item.angularVelocity[i]);
             }
             return angularSpeed;
         }
-        case ColorRole:{
+        case ColorRole:
+        {
             return QVariant{item.color};
         }
-        case LabelRole:{
+        case LabelRole:
+        {
             return QVariant{item.label};
         }
         default:
@@ -92,11 +122,13 @@ namespace egret
     {
         QHash<int, QByteArray> roles;
 
-        for (const auto role_value : magic_enum::enum_values<BodyRole>()) {
+        for (const auto role_value : magic_enum::enum_values<BodyRole>())
+        {
             std::string_view name_view = magic_enum::enum_name(role_value);
             QString roleName{"body"};
             roleName.append(QString::fromUtf8(name_view.data(), name_view.size()));
-            if (roleName.endsWith("Role")) {
+            if (roleName.endsWith("Role"))
+            {
                 roleName.chop(4);
             }
 
@@ -108,22 +140,27 @@ namespace egret
         return roles;
     }
 
-    void SceneBodyModel::setItems(const QList<SceneBodyVisualItem>& items)
+    void SceneBodyModel::setItems(const QList<SceneBodyVisualItem> &items)
     {
         const bool sameSize = m_items.size() == items.size();
         bool sameIds = sameSize;
-        if (sameSize) {
-            for (std::size_t i = 0; i < items.size(); ++i) {
-                if (m_items[i].id != items[i].id) {
+        if (sameSize)
+        {
+            for (std::size_t i = 0; i < items.size(); ++i)
+            {
+                if (m_items[i].id != items[i].id)
+                {
                     sameIds = false;
                     break;
                 }
             }
         }
 
-        if (sameSize && sameIds) {
+        if (sameSize && sameIds)
+        {
             m_items = items;
-            if (!m_items.empty()) {
+            if (!m_items.empty())
+            {
                 const QModelIndex first = index(0, 0);
                 const QModelIndex last = index(static_cast<int>(m_items.size()) - 1, 0);
                 emit dataChanged(first, last);

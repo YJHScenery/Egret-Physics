@@ -1,6 +1,18 @@
-//
-// Created by jehor on 2026/4/25.
-//
+/**
+ * @file        transform.cpp
+ * @brief       刚体变换数据类实现文件，提供平移、旋转、缩放及矩阵缓存功能。
+ * @details     实现 Transform 类的各项成员函数，包括矩阵更新、坐标变换等。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-05-04
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Utils
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 #include "transform.h"
 #include "basic_utils.h"
 
@@ -24,26 +36,26 @@ namespace egret
         return rotationMat;
     }
 
-    void Transform::setTranslation(const Eigen::Vector3d& translation)
+    void Transform::setTranslation(const Eigen::Vector3d &translation)
     {
         m_translation = translation;
         updateMatrix();
     }
 
-    void Transform::setRotation(const Eigen::Quaterniond& rotation)
+    void Transform::setRotation(const Eigen::Quaterniond &rotation)
     {
         m_rotation = rotation.normalized();
         updateMatrix();
     }
 
-    void Transform::setScale(const Eigen::Vector3d& scale)
+    void Transform::setScale(const Eigen::Vector3d &scale)
     {
         m_scale = scale;
         updateMatrix();
     }
 
-    void Transform::setTRS(const Eigen::Vector3d& translation, const Eigen::Quaterniond& rotation,
-        const Eigen::Vector3d& scale)
+    void Transform::setTRS(const Eigen::Vector3d &translation, const Eigen::Quaterniond &rotation,
+                           const Eigen::Vector3d &scale)
     {
         m_translation = translation;
         m_rotation = rotation.normalized();
@@ -51,23 +63,23 @@ namespace egret
         updateMatrix();
     }
 
-    Eigen::Vector3d Transform::localToWorld(const Eigen::Vector3d& localPoint) const
+    Eigen::Vector3d Transform::localToWorld(const Eigen::Vector3d &localPoint) const
     {
         return m_translation + m_rotation * localPoint;
     }
 
-    Eigen::Vector3d Transform::worldToLocal(const Eigen::Vector3d& point) const
+    Eigen::Vector3d Transform::worldToLocal(const Eigen::Vector3d &point) const
     {
         return m_rotation.conjugate() * (point - m_translation);
     }
 
-    Eigen::Vector3d Transform::transformPointToWorld(const Eigen::Vector3d& localPoint) const
+    Eigen::Vector3d Transform::transformPointToWorld(const Eigen::Vector3d &localPoint) const
     {
         const Eigen::Vector4d local(localPoint.x(), localPoint.y(), localPoint.z(), 1.0);
         return (m_localToWorld * local).head<3>();
     }
 
-    Eigen::Vector3d Transform::transformPointToLocal(const Eigen::Vector3d& worldPoint) const
+    Eigen::Vector3d Transform::transformPointToLocal(const Eigen::Vector3d &worldPoint) const
     {
         const Eigen::Vector4d world(worldPoint.x(), worldPoint.y(), worldPoint.z(), 1.0);
         return (m_worldToLocal * world).head<3>();
@@ -88,7 +100,7 @@ namespace egret
         T(1, 3) = m_translation.y();
         T(2, 3) = m_translation.z();
 
-        m_localToWorld = T * R * S;  // 顺序：缩放 -> 旋转 -> 平移
+        m_localToWorld = T * R * S; // 顺序：缩放 -> 旋转 -> 平移
         m_worldToLocal = m_localToWorld.inverse();
     }
 }

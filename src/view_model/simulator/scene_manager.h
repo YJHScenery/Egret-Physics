@@ -1,6 +1,19 @@
-//
-// 由 GitHub Copilot 于 2026/4/23 创建。
-//
+/**
+ * @file        scene_manager.h
+ * @brief       场景管理器视图模型头文件，提供场景交互的 QML 接口。
+ * @details     定义 SceneManagerViewModel 类，作为 UI 与模型层之间的交互入口，
+ *              使用 QTimer 驱动物理模拟，并处理固定步长累积。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-05-04
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     ViewModel
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #ifndef EGRET_PHYSICS_SCENE_MANAGER_VIEWMODEL_H
 #define EGRET_PHYSICS_SCENE_MANAGER_VIEWMODEL_H
@@ -31,14 +44,21 @@ namespace egret
 
     struct SceneRecord;
 
-
     /**
-     * @brief Qt / ViewModel 层的场景门面对象。
+     * @brief       Qt / ViewModel 层的场景门面对象。
+     * @details     SceneManagerViewModel 是 Qt / ViewModel 层的场景门面对象。
+     *              该对象直接暴露给 QML，负责：
+     *              1. 作为 UI 与模型层之间的唯一交互入口。
+     *              2. 使用 QTimer 驱动模型层 tick，并处理固定步长累积。
+     *              3. 将模型层输出的轻量化渲染快照转换为 QML 可绑定模型。
+     *              采用门面模式，封装模型层的复杂性。
+     *              支持 QML 属性绑定和信号通知。
      *
-     * 该对象直接暴露给 QML，负责：
-     * 1. 作为 UI 与模型层之间的唯一交互入口。
-     * 2. 使用 QTimer 驱动模型层 tick，并处理固定步长累积。
-     * 3. 将模型层输出的轻量化渲染快照转换为 QML 可绑定模型。
+     * @invariant   running 属性表示仿真是否运行
+     * @invariant   simTime 属性表示当前仿真时间
+     * @invariant   stepCount 属性表示当前步数
+     * @remark      SceneManagerViewModel 是 QObject，支持 QML 属性绑定
+     * @see         WorldSceneManager, SceneBodyModel, QTimer
      */
     class SceneManagerViewModel final : public QObject
     {
@@ -58,20 +78,19 @@ namespace egret
 
         Q_PROPERTY(bool dragActive READ isDragActive NOTIFY dragActiveChanged)
 
-        Q_PROPERTY(SceneBodyModel* bodyModel READ bodyModel CONSTANT)
+        Q_PROPERTY(SceneBodyModel *bodyModel READ bodyModel CONSTANT)
 
     public:
         /** 默认构造。 */
-        explicit SceneManagerViewModel(QObject* parent = nullptr);
+        explicit SceneManagerViewModel(QObject *parent = nullptr);
 
         /** 默认析构。 */
         ~SceneManagerViewModel() override = default;
 
         // 从 json 创建 PhysicalEntity 等实例以供仿真器使用
-        static SceneRecord createSceneFromJsonString(const QString& jsonString);
+        static SceneRecord createSceneFromJsonString(const QString &jsonString);
 
-        static SceneRecord createSceneFromJsonFile(const QString& fileName);
-
+        static SceneRecord createSceneFromJsonFile(const QString &fileName);
 
         /** 当前是否运行。 */
         [[nodiscard]] bool isRunning() const;
@@ -95,7 +114,7 @@ namespace egret
         [[nodiscard]] bool isDragActive() const;
 
         /** QML 直接使用的实体列表模型。 */
-        [[nodiscard]] SceneBodyModel* bodyModel();
+        [[nodiscard]] SceneBodyModel *bodyModel();
 
         /** 开始运行。 */
         Q_INVOKABLE void play();
@@ -113,9 +132,9 @@ namespace egret
         Q_INVOKABLE void reset();
 
         /** 从 JSON 文件中加载新的场景 */
-        Q_INVOKABLE void loadSceneFronJsonFile(const QString& fileName);
+        Q_INVOKABLE void loadSceneFronJsonFile(const QString &fileName);
 
-        Q_INVOKABLE void loadSceneFromJsonString(const QString& jsonString);
+        Q_INVOKABLE void loadSceneFromJsonString(const QString &jsonString);
 
         // /** 生成一个默认球体。 */
         // Q_INVOKABLE void spawnSphere();
@@ -137,7 +156,7 @@ namespace egret
                                                                       double screenY,
                                                                       double viewportWidth,
                                                                       double viewportHeight,
-                                                                      const QVariantMap& cameraState,
+                                                                      const QVariantMap &cameraState,
                                                                       double planeZ) const;
 
         /**
@@ -148,8 +167,8 @@ namespace egret
                                        double screenY,
                                        double viewportWidth,
                                        double viewportHeight,
-                                       const QVariantMap& cameraState,
-                                       const QString& mode = "xy_plane");
+                                       const QVariantMap &cameraState,
+                                       const QString &mode = "xy_plane");
 
         /**
          * @brief 更新当前拖拽。
@@ -158,7 +177,7 @@ namespace egret
                                         double screenY,
                                         double viewportWidth,
                                         double viewportHeight,
-                                        const QVariantMap& cameraState);
+                                        const QVariantMap &cameraState);
 
         /**
          * @brief 结束拖拽。
@@ -166,14 +185,14 @@ namespace egret
         Q_INVOKABLE void endBodyDrag();
 
         Q_INVOKABLE [[nodiscard]] QVector3D buildRenderScale(std::uint32_t type,
-                                                             const QVector3D& modelScale,
-                                                             const QVector3D& boxSize_optional,
+                                                             const QVector3D &modelScale,
+                                                             const QVector3D &boxSize_optional,
                                                              double radius_optional, double height_optional,
                                                              double length_optional);
 
-        Q_INVOKABLE [[nodiscard]] QVector3D buildRenderPosition(const QVector3D& position);
+        Q_INVOKABLE [[nodiscard]] QVector3D buildRenderPosition(const QVector3D &position);
 
-        Q_INVOKABLE [[nodiscard]] QQuaternion buildRenderRotation(const QQuaternion& rotation);
+        Q_INVOKABLE [[nodiscard]] QQuaternion buildRenderRotation(const QQuaternion &rotation);
 
     signals:
         /** 运行状态变化。 */
@@ -249,17 +268,17 @@ namespace egret
                                         double screenY,
                                         double viewportWidth,
                                         double viewportHeight,
-                                        const QVariantMap& cameraState,
-                                        Eigen::Vector3d* origin,
-                                        Eigen::Vector3d* direction,
-                                        QString* error = nullptr) const;
+                                        const QVariantMap &cameraState,
+                                        Eigen::Vector3d *origin,
+                                        Eigen::Vector3d *direction,
+                                        QString *error = nullptr) const;
 
         /** 射线与 z=planeZ 平面的交点。 */
-        [[nodiscard]] static bool intersectRayWithPlaneZ(const Eigen::Vector3d& rayOrigin,
-                                                         const Eigen::Vector3d& rayDirection,
+        [[nodiscard]] static bool intersectRayWithPlaneZ(const Eigen::Vector3d &rayOrigin,
+                                                         const Eigen::Vector3d &rayDirection,
                                                          double planeZ,
-                                                         Eigen::Vector3d* hitPoint,
-                                                         QString* error = nullptr);
+                                                         Eigen::Vector3d *hitPoint,
+                                                         QString *error = nullptr);
 
         /** 更新拖拽状态并发信号。 */
         void setDragActive(bool active);

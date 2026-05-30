@@ -1,7 +1,18 @@
-//
-// Created by jehor on 2026/5/25.
-//
-
+/**
+ * @file        model_manager.cpp
+ * @brief       编辑器模型管理器实现文件，提供编辑器层的数据模型管理功能。
+ * @details     实现 ModelManager 类的各项成员函数。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-04-23
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     ViewModel
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 #include "model_manager.h"
 // ModelManager.cpp
 #include <QFile>
@@ -12,13 +23,11 @@
 #include "logger.h"
 #include "serialize/transform_transformer.h"
 
-
 namespace egret
 {
     ModelManager::ModelManager(QObject* parent) : QObject(parent)
     {
     }
-
 
     ModelManager* ModelManager::instance()
     {
@@ -28,7 +37,8 @@ namespace egret
 
     bool ModelManager::addModel(ModelItemData* model)
     {
-        if (!validateModel(model)) return false;
+        if (!validateModel(model))
+            return false;
 
         QString id = model->id().isEmpty() ? generateUniqueId() : model->id();
         model->setId(id);
@@ -138,7 +148,6 @@ namespace egret
         return m_models.keys();
     }
 
-
     bool ModelManager::addModelByJsonString(const QString& jsonString)
     {
         const auto data = parseModelItemDataFromQMLJson(jsonString);
@@ -182,7 +191,7 @@ namespace egret
 
         newModel->materials()->setAlphaMode("Opaque");
 
-        qDebug() << __func__ << "Create";
+        // qDebug() << __func__ << "Create";
         return addModel(newModel);
     }
 
@@ -228,7 +237,6 @@ namespace egret
         model->materials()->setBaseColor(data.m_baseColor);
         model->materials()->setMetalness(data.m_metalness);
         model->materials()->setRoughness(data.m_roughness);
-
 
         emit modelListChanged();
         return true;
@@ -397,7 +405,8 @@ namespace egret
 
         for (const QString& id : targetIds) {
             QSharedPointer<ModelItemData> model = m_models.value(id);
-            if (!model) continue;
+            if (!model)
+                continue;
 
             if (property == "baseColor" && value.canConvert<QColor>())
                 model->materials()->setBaseColor(value.value<QColor>());
@@ -415,17 +424,16 @@ namespace egret
 
     QVariantMap ModelManager::setQuick3DRenderTransform(int index)
     {
-        qDebug() << __func__ << index;
-        const ModelItemData *model = getModelAtIndex(index);
+        // qDebug() << __func__ << index;
+        const ModelItemData* model = getModelAtIndex(index);
         if (model == nullptr) {
             return {};
         }
 
         auto val = TransformTransformer::buildQuick3DRenderTransform(*model);
-        qDebug() << __func__ << val;
+        // qDebug() << __func__ << val;
         return val;
     }
-
 
     void ModelManager::saveState()
     {
@@ -497,13 +505,11 @@ namespace egret
         return QUuid::createUuid().toString(QUuid::WithoutBraces);
     }
 
-
     void ModelManager::emitModelListChanged()
     {
         emit modelListChanged();
         emit countChanged();
     }
-
 
     QList<ModelItemData*> createDefaultModels()
     {

@@ -1,6 +1,18 @@
-//
-// Created by jehor on 2026/4/23.
-//
+/**
+* @file        physical_entity.cpp
+ * @brief       物理实体基类实现文件
+ * @details     实现PhysicalEntity类的各项成员函数，包括力和力矩的管理。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-05-04
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Physics
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #include "physical_entity.h"
 

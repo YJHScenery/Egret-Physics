@@ -1,6 +1,18 @@
-//
-// Created by jehor on 2026/4/24.
-//
+/**
+* @file        shape_cylindrical_shell.cpp
+ * @brief       圆柱壳形刚体形状实现文件，定义圆柱壳形状。
+ * @details     实现 ShapeCylindricalShell 类的各项成员函数。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-05-30
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Physics
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #include "shape_cylindrical_shell.h"
 

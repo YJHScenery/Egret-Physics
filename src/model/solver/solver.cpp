@@ -1,6 +1,18 @@
-//
-// 由 GitHub Copilot 于 2026/4/25 创建。
-//
+/**
+ * @file        solver.cpp
+ * @brief       物理求解器基类实现文件，定义求解器的抽象接口。
+ * @details     实现 SolverBase 类的各项成员函数。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-05-04
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Solver
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #include "solver.h"
 

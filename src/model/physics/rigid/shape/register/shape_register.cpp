@@ -1,6 +1,18 @@
-//
-// Created by jehor on 2026/5/6.
-//
+/**
+* @file        shape_register.cpp
+ * @brief       形状注册器实现文件
+ * @details     实现ShapeRegister类的各项成员函数。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-04-26
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Physics
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #include "shape_register.h"
 #include "shape_base.h"

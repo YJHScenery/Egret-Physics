@@ -1,6 +1,18 @@
-//
-// Created by jehor on 2026/5/25.
-//
+/**
+ * @file        model_item_data.h
+ * @brief       模型数据项头文件，定义编辑器和序列化使用的模型数据结构。
+ * @details     定义 MaterialData 和 ModelItemData 类，用于存储物理实体的材质和变换等数据。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-04-23
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     ViewModel
+ * @defgroup    组名 (如果文件定义了一个模块组)
+ */
 
 #ifndef EGRET_PHYSICS_MATERIAL_DATA_H
 #define EGRET_PHYSICS_MATERIAL_DATA_H
@@ -16,6 +28,20 @@
 
 namespace egret
 {
+    /**
+     * @brief       材质数据类，存储物理实体的材质属性。
+     * @details     MaterialData 继承自 QObject，是材质数据类，
+     *              用于存储物理实体的材质属性（颜色、金属度、粗糙度、透明模式等）。
+     *              支持 QML 属性绑定和信号通知。
+     *              提供 JSON 序列化和反序列化功能。
+     *              用于 PBR（基于物理的渲染）材质系统。
+     *
+     * @invariant   baseColor 是有效的颜色值
+     * @invariant   metalness 在 [0, 1] 范围内
+     * @invariant   roughness 在 [0, 1] 范围内
+     * @remark      MaterialData 是 QObject，支持 QML 属性绑定
+     * @see         ModelItemData, QObject
+     */
     class MaterialData : public QObject
     {
         Q_OBJECT
@@ -55,6 +81,17 @@ namespace egret
         QString m_alphaMode{};
     };
 
+    /**
+     * @brief       模型数据项字段结构体，存储物理实体的完整数据。
+     * @details     ModelItemDataField 是模型数据项字段结构体，
+     *              存储物理实体的完整数据（质量、形状参数、位置、速度等）。
+     *              用于序列化和反序列化。
+     *              包含所有物理属性和渲染属性。
+     *
+     * @invariant   m_mass >= 0，质量为非负值
+     * @invariant   m_restitution 在 [0, 1] 范围内
+     * @see         ModelItemData
+     */
     struct ModelItemDataField
     {
         double m_mass{};
@@ -82,6 +119,21 @@ namespace egret
         QString m_alphaMode{};
     };
 
+    /**
+     * @brief       模型数据项类，存储编辑器和序列化使用的模型数据。
+     * @details     ModelItemData 继承自 QObject，是模型数据项类，
+     *              用于存储编辑器和序列化使用的模型数据。
+     *              包含质量、形状参数、位置、旋转、速度、材质等属性。
+     *              支持 QML 属性绑定和信号通知。
+     *              提供 JSON 序列化和反序列化功能。
+     *              支持克隆和复制功能。
+     *
+     * @invariant   mass >= 0，质量为非负值
+     * @invariant   restitution 在 [0, 1] 范围内
+     * @invariant   type 是有效的形状类型枚举
+     * @remark      ModelItemData 是 QObject，支持 QML 属性绑定
+     * @see         MaterialData, ModelItemDataField, ShapeType
+     */
     class ModelItemData : public QObject
     {
         Q_OBJECT
