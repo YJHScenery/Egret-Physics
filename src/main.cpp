@@ -34,6 +34,7 @@
 #include <QQuickStyle>
 #include <QStandardPaths>
 
+#include "egret_version.h"
 #include "enum_handler.h"
 #include "file_handler.h"
 
@@ -52,7 +53,7 @@ int main(int argc, char *argv[])
 
     app.setApplicationName(EGRET_PHYSICS_APPLICATION_NAME);                 // NOLINT(*-static-accessed-through-instance)
     app.setApplicationDisplayName(EGRET_PHYSICS_APPLICATION_DISPLAY_NAME);  // NOLINT(*-static-accessed-through-instance)
-    app.setApplicationVersion(EGRET_PHYSICS_VERSION_STRING);                // NOLINT(*-static-accessed-through-instance)
+    app.setApplicationVersion(egret::EGRET_VERSION_STRING.data());                // NOLINT(*-static-accessed-through-instance)
     app.setWindowIcon(QIcon(":/app_icon/assets/favicon/favicon_1024.png")); // NOLINT(*-static-accessed-through-instance)
 
     egret::AsyncLogger &logger{egret::AsyncLogger::instance()};

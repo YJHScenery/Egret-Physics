@@ -23,11 +23,15 @@ namespace egret
 {
     class PhysicalEntity;
     
-    enum class FieldType : std::uint64_t
+    enum class FieldType : std::uint32_t
     {
-        Base = 0xFFFFFFFF00000000,
-        Gravity = 0xFFFFFFDD00000000,
-        Gravitation = 0xFFFFFFBB00000000,
+        Unknown = 0,
+
+        Gravity, Gravitation,
+
+        Abstract = 127,
+
+        Other = 255,
     };
 
     /**

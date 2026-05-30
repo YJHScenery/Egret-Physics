@@ -184,6 +184,7 @@ set(CPP_FILES
         src/view/enum_handler.h
         src/view_model/serialize/transform_transformer.cpp
         src/view_model/serialize/transform_transformer.h
+        src/utils/egret_version.h
 
 )
 

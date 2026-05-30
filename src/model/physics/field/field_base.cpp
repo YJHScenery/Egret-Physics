@@ -18,7 +18,7 @@
 
 namespace egret
 {
-    FieldBase::FieldBase(): m_id(generateID(FieldType::Base))
+    FieldBase::FieldBase(): m_id(generateID(FieldType::Abstract))
     {
         ++m_createCount_static;
     }
@@ -35,6 +35,6 @@ namespace egret
 
     std::uint64_t FieldBase::generateID(FieldType fieldType)
     {
-        return static_cast<std::uint64_t>(fieldType) | m_createCount_static;
+        return static_cast<std::uint64_t>(fieldType) << 16 | m_createCount_static;
     }
 } // egret

@@ -203,8 +203,6 @@ namespace egret
         [[nodiscard]] QSharedPointer<ModelItemData> clone() const;
         static ModelItemData *createCopy(const ModelItemData &source, QObject *parent = nullptr);
 
-        static QMap<QString, std::uint32_t> ShowMatchesTypeIDMap;
-
     signals:
         void massChanged();
         void loadTimeChanged();

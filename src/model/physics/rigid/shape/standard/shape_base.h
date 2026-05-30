@@ -31,7 +31,7 @@
 
 namespace egret
 {
-    enum class ShapeType : std::uint8_t
+    enum class ShapeType : std::uint32_t
     {
         Unknown = 0,
 
@@ -48,6 +48,8 @@ namespace egret
 
         Other = 255
     };
+
+    [[nodiscard]] std::string reflectShapeToString(const ShapeType type);
 
 }
 
@@ -68,13 +70,9 @@ namespace egret
 
     struct ShapeLoadInfo
     {
-        // using ValueType = std::variant<double, std::int64_t, bool, std::string, Eigen::Vector3d, Eigen::Quaterniond>;
-
         std::uint32_t typeId;
         std::map<std::string, std::string> strParams;
         std::map<std::string, std::vector<double>> numberParams;
-
-        // std::unordered_map<std::string, ValueType> parameters;
     };
 
     /**

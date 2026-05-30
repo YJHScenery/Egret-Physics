@@ -1,17 +1,16 @@
 /**
- * @file        filename.h
- * @brief       一句话概述文件的主要功能
- * @details     详细描述文件的用途、设计思路、使用注意事项等。
- *              可以写多行，说明模块在整个系统中的位置。
+ * @file        Coordinate.qml
+ * @brief       坐标系组件文件
+ * @details     定义3D场景中的坐标系可视化，包含网格、坐标轴和刻度显示。
  *
  * @author      作者姓名 <作者邮箱>
- * @date        创建日期 (如 2025-03-15)
- * @version     版本号 (如 1.0.0)
+ * @date        2026-05-28
+ * @version     1.0.0
  *
  * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
- * @license     许可证 (如 GPL, MIT, BSD 等)
+ * @license     GPL v3.0
  *
- * @ingroup     所属模块组 (可选，用于分组)
+ * @ingroup     View
  * @defgroup    组名 (如果文件定义了一个模块组)
  */
 
@@ -271,13 +270,19 @@ Node {
         property real radius: 0.22
 
         property quaternion rotation: {
-            if (direction.y === 1) return Qt.quaternion(1, 0, 0, 0)  // 单位旋转
-            if (direction.y === -1) return Qt.quaternion(0, 1, 0, 0) // 绕 X 轴 180°
-            if (direction.x === 1) return Qt.quaternion(0.7071068, 0, 0, -0.7071068)  // 绕 Z 轴 -90°
-            if (direction.x === -1) return Qt.quaternion(0.7071068, 0, 0, 0.7071068)   // 绕 Z 轴 +90°
-            if (direction.z === 1) return Qt.quaternion(0.7071068, 0.7071068, 0, 0)    // 绕 X 轴 +90°
-            if (direction.z === -1) return Qt.quaternion(0.7071068, -0.7071068, 0, 0)   // 绕 X 轴 -90°
-            return Qt.quaternion(1, 0, 0, 0)
+            if (direction.y === 1)
+                return Qt.quaternion(1, 0, 0, 0);  // 单位旋转
+            if (direction.y === -1)
+                return Qt.quaternion(0, 1, 0, 0); // 绕 X 轴 180°
+            if (direction.x === 1)
+                return Qt.quaternion(0.7071068, 0, 0, -0.7071068);  // 绕 Z 轴 -90°
+            if (direction.x === -1)
+                return Qt.quaternion(0.7071068, 0, 0, 0.7071068);   // 绕 Z 轴 +90°
+            if (direction.z === 1)
+                return Qt.quaternion(0.7071068, 0.7071068, 0, 0);    // 绕 X 轴 +90°
+            if (direction.z === -1)
+                return Qt.quaternion(0.7071068, -0.7071068, 0, 0);   // 绕 X 轴 -90°
+            return Qt.quaternion(1, 0, 0, 0);
         }
 
         Model {

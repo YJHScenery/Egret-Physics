@@ -24,27 +24,6 @@
 
 namespace egret
 {
-    QMap<QString, std::uint32_t> ModelItemData::ShowMatchesTypeIDMap = {
-        // 英文
-        {"Standard Box", static_cast<std::uint32_t>(ShapeType::Box)},
-        {"Standard Cylinder", static_cast<std::uint32_t>(ShapeType::Cylinder)},
-        {"Standard Cylindrical Shell", static_cast<std::uint32_t>(ShapeType::CylindricalShell)},
-        {"Standard Disk", static_cast<std::uint32_t>(ShapeType::Disk)},
-        {"Standard Ring", static_cast<std::uint32_t>(ShapeType::Ring)},
-        {"Standard Rod", static_cast<std::uint32_t>(ShapeType::Rod)},
-        {"Standard Sphere", static_cast<std::uint32_t>(ShapeType::Sphere)},
-        {"Standard Spherical Shell", static_cast<std::uint32_t>(ShapeType::SphericalShell)},
-
-        // 中文
-        {"标准盒体", static_cast<std::uint32_t>(ShapeType::Box)},
-        {"标准圆柱体", static_cast<std::uint32_t>(ShapeType::Cylinder)},
-        {"标准圆柱面", static_cast<std::uint32_t>(ShapeType::CylindricalShell)},
-        {"标准圆盘", static_cast<std::uint32_t>(ShapeType::Disk)},
-        {"标准圆环", static_cast<std::uint32_t>(ShapeType::Ring)},
-        {"标准细杆", static_cast<std::uint32_t>(ShapeType::Rod)},
-        {"标准球体", static_cast<std::uint32_t>(ShapeType::Sphere)},
-        {"标准球壳", static_cast<std::uint32_t>(ShapeType::SphericalShell)}};
-
     ModelItemDataField parseModelItemDataFromQMLJson(const QString &qmlJson)
     {
         qDebug() << qmlJson;
@@ -158,6 +137,14 @@ namespace egret
         qDebug() << data.m_scale;
 
         data.m_rotation = getQuaternion("rotation");
+
+        if (data.m_rotation.length() != 0) {
+            data.m_rotation.normalize();
+        }else {
+            LOG_WARN_LITERAL("Invalid Rotation Info (Cannot be 0)");
+            data.m_rotation = QQuaternion{1.0, 0.0, 0.0, 0.0};
+        }
+
         data.m_initialVelo = getVector3D("initial_velocity");
         data.m_initialAnguVelo = getVector3D("initial_angular_velocity");
 
