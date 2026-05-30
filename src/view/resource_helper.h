@@ -42,8 +42,7 @@ namespace egret
     public:
         explicit ResourceHelper(QObject *parent = nullptr);
 
-        Q_INVOKABLE static QString getVersionString(const QString &prefix, const QString &suffix,
-                                                    const QString &sep = " ");
+        Q_INVOKABLE static QString getWholeVersionString();
 
         Q_INVOKABLE static int getMajorVersion();
 

@@ -43,30 +43,24 @@ namespace egret
     {
     }
 
-    QString ResourceHelper::getVersionString(const QString &prefix, const QString &suffix, const QString &sep)
+    QString ResourceHelper::getWholeVersionString()
     {
-        QString result{};
-        result += prefix;
-        result += sep;
-        result += QString::fromUtf8(EGRET_VERSION_STRING.data(), EGRET_VERSION_STRING.size());
-        result += sep;
-        result += suffix;
-        return result;
+        return QString::fromUtf8(WHOLE_EGRET_VERSION_STRING.data(), WHOLE_EGRET_VERSION_STRING.size());
     }
 
     int ResourceHelper::getMajorVersion()
     {
-        return EGRET_PHYSICS_VERSION_MAJOR_INT;
+        return EGRET_PHYSICS_VERSION_MAJOR_UINT;
     }
 
     int ResourceHelper::getMinorVersion()
     {
-        return EGRET_PHYSICS_VERSION_MINOR_INT;
+        return EGRET_PHYSICS_VERSION_MINOR_UINT;
     }
 
     int ResourceHelper::getPatchVersion()
     {
-        return EGRET_PHYSICS_VERSION_PATCH_INT;
+        return EGRET_PHYSICS_VERSION_PATCH_UINT;
     }
 
     double ResourceHelper::getG()
