@@ -246,6 +246,7 @@ if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
         message(WARNING "windeployqt not found under '${QT_INSTALL_PATH}/bin'. QML modules (QtQuick/Controls/Layouts) may fail to load at runtime.")
     endif ()
 
+
     # 设置调试工作目录
     set_target_properties(${PROJECT_NAME} PROPERTIES
             VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
