@@ -21,7 +21,7 @@
 
 namespace egret
 {
-    ShapeType ShapeSphericalShell::typeId() const
+    ShapeType ShapeSphericalShell::getType() const
     {
         return ShapeType::SphericalShell;
     }

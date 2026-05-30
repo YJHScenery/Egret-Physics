@@ -18,23 +18,21 @@
 
 namespace egret
 {
-    FieldBase::FieldBase(): m_id(generateID(FieldType::Abstract))
+    FieldBase::FieldBase(): PhysicsAbstract(0)
     {
-        ++m_createCount_static;
     }
 
-    FieldBase::FieldBase(const std::uint64_t id): m_id(id)
+    FieldBase::FieldBase(const std::uint64_t id): PhysicsAbstract(id)
     {
-        ++m_createCount_static;
     }
-
     void FieldBase::setEnabled(const bool enable)
     {
         m_enabled = enable;
     }
 
-    std::uint64_t FieldBase::generateID(FieldType fieldType)
+
+    FieldType FieldBase::getType() const
     {
-        return static_cast<std::uint64_t>(fieldType) << 16 | m_createCount_static;
+        return FieldType::Abstract;
     }
 } // egret

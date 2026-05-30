@@ -24,7 +24,7 @@ namespace egret
     {
     }
 
-    ShapeType ShapeDisk::typeId() const
+    ShapeType ShapeDisk::getType() const
     {
         return ShapeType::Disk;
     }
@@ -61,7 +61,7 @@ namespace egret
     ShapeLoadInfo ShapeDisk::getLoadInfo() const
     {
         ShapeLoadInfo info{};
-        info.typeId = static_cast<std::uint32_t>(typeId());
+        info.typeId = static_cast<std::uint32_t>(getType());
         info.numberParams["radius"] = std::vector<double>{m_radius};
         return info;
     }

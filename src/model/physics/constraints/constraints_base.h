@@ -18,8 +18,9 @@
 #ifndef EGRET_PHYSICS_CONSTRAINTS_BASE_H
 #define EGRET_PHYSICS_CONSTRAINTS_BASE_H
 #include <cstdint>
+#include <memory>
 #include <vector>
-
+#include "physics_abstract.h"
 
 enum class ConstraintType : std::uint64_t
 {
@@ -46,13 +47,15 @@ namespace egret {
      * @remark      约束器不是线程安全的，多线程访问需要外部同步
      * @see         ConnectingLine, SimplePendulum, ConnectingRod, SlidingRail, PhysicalEntity
      */
-    class ConstraintsBase {
+    class ConstraintsBase: virtual public PhysicsAbstract {
     public:
-        ConstraintsBase();
-
         explicit ConstraintsBase(std::uint64_t id);
 
-        virtual ~ConstraintsBase() = default;
+        ~ConstraintsBase() override = default;
+
+        ConstraintsBase(ConstraintsBase&& other) = default;
+
+        ConstraintsBase& operator=(ConstraintsBase&& other) = default;
 
         // 返回约束类型
         [[nodiscard]] virtual ConstraintType getType() const;
@@ -79,19 +82,19 @@ namespace egret {
 
         [[nodiscard]] bool isEnabled() const;
 
-        // 获取约束ID
-        [[nodiscard]] uint64_t getId() const;
-
     protected:
+
+        ConstraintsBase(const ConstraintsBase& other) = default;
+
+        ConstraintsBase& operator=(const ConstraintsBase& other) = default;
+
+        ConstraintsBase();
+
         std::vector<PhysicalEntity*> m_physicalEntities{};
 
         bool m_enabled{true};
 
         std::uint64_t m_id;
-        
-        inline static std::uint32_t m_createCount_static{0};
-
-        static std::uint64_t generateID(ConstraintType type);
     };
 
 } // egret

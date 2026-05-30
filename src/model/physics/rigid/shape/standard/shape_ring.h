@@ -42,7 +42,7 @@ namespace egret
     public:
         explicit ShapeRing(double radius);
 
-        [[nodiscard]] ShapeType typeId() const override;
+        [[nodiscard]] ShapeType getType() const override;
 
         [[nodiscard]] Eigen::Matrix3d getInertiaTensor(double mass) const override;
 

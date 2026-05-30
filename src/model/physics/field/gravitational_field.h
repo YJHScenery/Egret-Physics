@@ -23,6 +23,9 @@
 
 namespace egret
 {
+
+
+
     /**
      * @brief       引力场类，实现质点间的万有引力场。
      * @details     GravitationalField 继承自 FieldBase 和 Particle，提供质点间的
@@ -37,16 +40,14 @@ namespace egret
      * @remark      引力场是非均匀场，场向量随距离变化，适合模拟天体运动
      * @see         FieldBase, Particle, PhysicalEntity
      */
-    class GravitationalField : public FieldBase, public Particle
+    class GravitationalField : virtual public FieldBase, virtual public Particle
     {
     public:
-        GravitationalField();
-
         GravitationalField(const Eigen::Vector3d& position,
                            const Eigen::Vector3d& speed,
                            double mass,
-                           double coupling = G,
-                           bool fixed = false);
+                           double coupling,
+                           bool fixed, std::uint64_t id);
 
         Eigen::Vector3d sample(const Eigen::Vector3d& position) override;
 
@@ -68,7 +69,19 @@ namespace egret
 
         [[nodiscard]] double getCouplingCoefficient() const;
 
+        FieldType getTypeId() const;
+
+        std::unique_ptr<PhysicsAbstract> clone(std::uint64_t id) const override;
+
+        std::unique_ptr<FieldBase> cloneAsField(std::uint64_t id);
+
+        std::unique_ptr<PhysicalEntity> cloneAsPhysicalEntity(std::uint64_t id);
+
+        std::unique_ptr<Particle> cloneAsParticle(std::uint64_t id);
+
     private:
+        GravitationalField();
+
         double m_coupling{G};
 
         bool m_fixed{false};

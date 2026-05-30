@@ -39,11 +39,9 @@ namespace egret
     class SimplePendulum : public ConnectingLine
     {
     public:
-        SimplePendulum();
+        SimplePendulum(double length, const Eigen::Vector3d& anchorPos, PhysicalEntity* entity, std::uint64_t id);
 
-        SimplePendulum(double length, const Eigen::Vector3d& anchorPos, PhysicalEntity* entity);
-
-        SimplePendulum(double length, const Eigen::Vector3d& anchorPos, PhysicalEntity* entity,
+        SimplePendulum(double length, const Eigen::Vector3d& anchorPos, PhysicalEntity* entity, std::uint64_t id,
                        const std::initializer_list<Eigen::Vector3d>& turningPositions);
 
         ~SimplePendulum() override = default;
@@ -58,8 +56,12 @@ namespace egret
 
         void applyPositionConstraint(double dt) override;
 
+        std::unique_ptr<PhysicsAbstract> clone(std::uint64_t id) const override;
+
     private:
-        Particle m_anchor{}; // 锚点（固定点）
+        SimplePendulum();
+
+        Particle m_anchor{{}, {}, 0, 0}; // 锚点（固定点）
         PhysicalEntity* m_entity{nullptr}; // 摆动物体
     };
 } // egret

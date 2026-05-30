@@ -185,6 +185,10 @@ set(CPP_FILES
         src/view_model/serialize/transform_transformer.cpp
         src/view_model/serialize/transform_transformer.h
         src/utils/egret_version.h
+        src/utils/uuid_generator.cpp
+        src/utils/uuid_generator.h
+        src/model/physics/physics_abstract.cpp
+        src/model/physics/physics_abstract.h
 
 )
 

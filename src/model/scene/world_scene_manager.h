@@ -47,9 +47,6 @@ namespace egret
      */
     struct BodyRecord
     {
-        /** 实体 ID。 */
-        std::uint64_t id{0};
-
         /** 实体名称。 */
         std::string name;
 
@@ -65,8 +62,6 @@ namespace egret
         /** 是否参与积分。 */
         bool enableIntegration{true};
 
-        /** 恢复系数。 */
-        double restitution{0.2};
     };
 
     /**
@@ -81,9 +76,6 @@ namespace egret
      */
     struct FieldRecord
     {
-        /** 场 ID。 */
-        std::uint64_t id{0};
-
         /** 场名称。 */
         std::string name;
 
@@ -103,9 +95,6 @@ namespace egret
      */
     struct ConstraintRecord
     {
-        /** 约束 ID。 */
-        std::uint64_t id{0};
-
         /** 约束名称。 */
         std::string name;
 
@@ -608,11 +597,6 @@ namespace egret
          */
         void rebuildSolverConstraintCache() const;
 
-        /**
-         * @brief 生成新的世界唯一 ID。
-         * @return 新 ID。
-         */
-        std::uint64_t nextId();
 
         /**
          * @brief 查找实体记录。

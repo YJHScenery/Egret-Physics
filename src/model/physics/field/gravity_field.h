@@ -36,13 +36,11 @@ namespace egret {
  */
 class GravityField: public FieldBase {
 public:
-    GravityField();
-
     ~GravityField() override = default;
 
-    explicit GravityField(Eigen::Vector3d  gravity, Eigen::Vector3d  referencePoint);
+    explicit GravityField(Eigen::Vector3d gravity, Eigen::Vector3d referencePoint, std::uint64_t id);
 
-    explicit GravityField(double gravity, double referenceZ);
+    explicit GravityField(double gravity, double referenceZ, std::uint64_t id);
 
     Eigen::Vector3d sample(const Eigen::Vector3d& position) override;
 
@@ -50,7 +48,14 @@ public:
 
     void applyToEntity(PhysicalEntity* entity) override;
 
+    FieldType getType() const override;
+
+    std::unique_ptr<PhysicsAbstract> clone(std::uint64_t id) const override;
+
 private:
+
+    GravityField();
+
     // static constexpr char FIELD_FLAG_GRAVITY[] {"FIELD_BASE"};
 
     Eigen::Vector3d m_gravity{0, 0, -STANDARD_GRAVITY};

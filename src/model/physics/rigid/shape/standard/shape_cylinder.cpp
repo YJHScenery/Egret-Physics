@@ -24,7 +24,7 @@ namespace egret
     {
     }
 
-    ShapeType ShapeCylinder::typeId() const
+    ShapeType ShapeCylinder::getType() const
     {
         return ShapeType::Cylinder;
     }
@@ -90,7 +90,7 @@ namespace egret
     ShapeLoadInfo ShapeCylinder::getLoadInfo() const
     {
         ShapeLoadInfo info{};
-        info.typeId = static_cast<std::uint32_t>(typeId());
+        info.typeId = static_cast<std::uint32_t>(getType());
         info.numberParams["radius"] = std::vector<double>{m_radius};
         info.numberParams["height"] = std::vector<double>{m_height};
         return info;

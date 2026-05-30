@@ -58,5 +58,7 @@ namespace egret
     {
         return quickPower<Base, int, 2>(x);
     };
+
+
 }
 #endif // EGRET_PHYSICS_GEOMETRY_H

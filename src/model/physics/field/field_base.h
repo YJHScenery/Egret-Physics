@@ -18,6 +18,7 @@
 #ifndef EGRET_PHYSICS_FIELD_BASE_H
 #define EGRET_PHYSICS_FIELD_BASE_H
 #include "Eigen/Dense"
+#include "physics_abstract.h"
 
 namespace egret
 {
@@ -46,14 +47,16 @@ namespace egret
      * @remark      场不是线程安全的，多线程访问需要外部同步
      * @see         GravityField, GravitationalField, PhysicalEntity
      */
-    class FieldBase
+    class FieldBase: virtual public PhysicsAbstract
     {
     public:
-        FieldBase();
-
         explicit FieldBase(std::uint64_t id);
 
-        virtual ~FieldBase() = default;
+        FieldBase(FieldBase&& other) = default;
+
+        FieldBase& operator=(FieldBase&& other) = default;
+
+        ~FieldBase() override = default;
         // 返回此位置的场向量
         virtual Eigen::Vector3d sample(const Eigen::Vector3d& position) = 0;
 
@@ -65,14 +68,17 @@ namespace egret
 
         virtual void setEnabled(bool enable);
 
+        virtual FieldType getType() const;
+
+
     protected:
+        FieldBase();
+
+        FieldBase(const FieldBase& other) = default;
+
+        FieldBase& operator=(const FieldBase& other) = default;
+
         bool m_enabled{true};
-
-        std::uint64_t m_id;
-
-        inline static std::uint32_t m_createCount_static{0};
-
-        static std::uint64_t generateID(FieldType fieldType);
     };
 } // egret
 

@@ -18,18 +18,18 @@
 
 namespace egret
 {
-    PhysicalEntity::PhysicalEntity(const double mass): m_mass(mass)
+    PhysicalEntity::PhysicalEntity(const double mass, const std::uint64_t id): m_mass(mass), m_id(id)
     {
     }
 
-    PhysicalEntity::PhysicalEntity(Eigen::Vector3d position, Eigen::Vector3d speed, const double mass):
-        m_speed(std::move(speed)), m_mass(mass)
+    PhysicalEntity::PhysicalEntity(const Eigen::Vector3d& position, Eigen::Vector3d speed, const double mass, std::uint64_t id):
+        m_speed(std::move(speed)), m_mass(mass), m_id(id)
     {
         m_transform.setTranslation(position);
     }
 
     PhysicalEntity::PhysicalEntity(const Eigen::Vector3d& position, const Eigen::Vector3d& speed, const double mass,
-        std::vector<Force> forces): PhysicalEntity(position, speed, mass)
+        std::vector<Force> forces, std::uint64_t id): PhysicalEntity(position, speed, mass, id)
     {
         m_forces = std::move(forces);
     }
@@ -108,4 +108,6 @@ namespace egret
             m_torques.erase(iter);
         }
     }
+
+
 }

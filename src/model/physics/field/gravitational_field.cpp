@@ -19,9 +19,7 @@
 
 namespace egret
 {
-    GravitationalField::GravitationalField()
-        : FieldBase(generateID(FieldType::Gravitation)),
-          Particle()
+    GravitationalField::GravitationalField() : Particle()
     {
     }
 
@@ -29,11 +27,10 @@ namespace egret
                                            const Eigen::Vector3d& speed,
                                            const double mass,
                                            const double coupling,
-                                           const bool fixed)
-        : FieldBase(generateID(FieldType::Gravitation)),
-          Particle(position, speed, mass),
-          m_coupling(coupling),
-          m_fixed(fixed)
+                                           const bool fixed, const std::uint64_t id)
+        : FieldBase(id), Particle(position, speed, mass, id),
+        m_coupling(coupling),
+        m_fixed(fixed)
     {
     }
 
@@ -119,5 +116,38 @@ namespace egret
     double GravitationalField::getCouplingCoefficient() const
     {
         return m_coupling;
+    }
+
+    FieldType GravitationalField::getTypeId() const
+    {
+        return FieldType::Gravitation;
+    }
+
+    std::unique_ptr<PhysicsAbstract> GravitationalField::clone(const std::uint64_t id) const
+    {
+        auto field = std::make_unique<GravitationalField>(*this);
+        field->setId(id);
+        return field;
+    }
+
+    std::unique_ptr<FieldBase> GravitationalField::cloneAsField(const std::uint64_t id)
+    {
+        auto field = std::make_unique<GravitationalField>(*this);
+        field->setId(id);
+        return field;
+    }
+
+    std::unique_ptr<PhysicalEntity> GravitationalField::cloneAsPhysicalEntity(const std::uint64_t id)
+    {
+        auto field = std::make_unique<GravitationalField>(*this);
+        field->setId(id);
+        return field;
+    }
+
+    std::unique_ptr<Particle> GravitationalField::cloneAsParticle(const std::uint64_t id)
+    {
+        auto field = std::make_unique<GravitationalField>(*this);
+        field->setId(id);
+        return field;
     }
 } // egret

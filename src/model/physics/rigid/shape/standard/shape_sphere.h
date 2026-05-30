@@ -40,7 +40,7 @@ namespace egret
 
         void setRadius(double radius);
 
-        [[nodiscard]] ShapeType typeId() const override;
+        [[nodiscard]] ShapeType getType() const override;
 
         [[nodiscard]] double getVolume() const override;
 

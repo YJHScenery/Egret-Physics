@@ -18,14 +18,14 @@
 
 namespace egret
 {
-    SimplePendulum::SimplePendulum() : ConnectingLine(generateID(ConstraintType::SimplePendulum))
+    SimplePendulum::SimplePendulum()
     {
     }
 
-    SimplePendulum::SimplePendulum(double length, const Eigen::Vector3d& anchorPos, PhysicalEntity* entity)
-        : ConnectingLine(generateID(ConstraintType::SimplePendulum))
-          , m_anchor(anchorPos, Eigen::Vector3d{0, 0, 0}, 0.0) // 锚点质量为0（固定点）
-          , m_entity(entity)
+    SimplePendulum::SimplePendulum(double length, const Eigen::Vector3d& anchorPos, PhysicalEntity* entity,
+                                   std::uint64_t id)
+        : ConnectingLine(id) // 锚点质量为0（固定点）
+          , m_anchor(anchorPos, Eigen::Vector3d{0, 0, 0}, 0.0, id), m_entity(entity)
     {
         // 将锚点和摆动物体加入到约束实体列表
         m_physicalEntities.reserve(2);
@@ -36,9 +36,10 @@ namespace egret
     }
 
     SimplePendulum::SimplePendulum(double length, const Eigen::Vector3d& anchorPos, PhysicalEntity* entity,
+                                   const std::uint64_t id,
                                    const std::initializer_list<Eigen::Vector3d>& turningPositions)
-        : ConnectingLine(generateID(ConstraintType::SimplePendulum))
-          , m_anchor(anchorPos, Eigen::Vector3d{0, 0, 0}, 0.0) // 锚点质量为0（固定点）
+        : ConnectingLine(id)
+          , m_anchor(anchorPos, Eigen::Vector3d{0, 0, 0}, 0.0, id) // 锚点质量为0（固定点）
           , m_entity(entity)
     {
         // 将锚点和摆动物体加入到约束实体列表
@@ -145,5 +146,12 @@ namespace egret
         // 修正摆动物体的位置（锚点不能移动）
         Eigen::Vector3d newEntityPos = entityPos - n * error;
         m_entity->setPosition(newEntityPos);
+    }
+
+    std::unique_ptr<PhysicsAbstract> SimplePendulum::clone(const std::uint64_t id) const
+    {
+        auto pendulum = std::make_unique<SimplePendulum>(*this);
+        pendulum->setId(id);
+        return pendulum;
     }
 } // egret

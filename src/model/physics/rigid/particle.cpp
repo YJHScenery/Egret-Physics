@@ -20,7 +20,7 @@
 
 namespace egret
 {
-    Particle::Particle(const Eigen::Vector3d &position, const Eigen::Vector3d &speed, double mass) : PhysicalEntity(position, speed, mass),
+    Particle::Particle(const Eigen::Vector3d &position, const Eigen::Vector3d &speed, double mass, std::uint64_t id) : PhysicalEntity(position, speed, mass, id),
                                                                                                      m_mass(mass)
     {
     }
@@ -99,5 +99,12 @@ namespace egret
     {
         // 质点不存在转动，返回零向量
         return Eigen::Vector3d::Zero();
+    }
+
+    std::unique_ptr<PhysicsAbstract> Particle::clone(std::uint64_t id) const
+    {
+        auto entity = std::make_unique<Particle>(*this);
+        entity->setId(id);
+        return entity;
     }
 } // egret

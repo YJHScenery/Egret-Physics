@@ -94,7 +94,7 @@ namespace egret
     public:
         virtual ~ShapeBase() = default;
 
-        [[nodiscard]] virtual ShapeType typeId() const;
+        [[nodiscard]] virtual ShapeType getType() const;
 
         [[nodiscard]] virtual double getVolume() const = 0; // 计算体积
 

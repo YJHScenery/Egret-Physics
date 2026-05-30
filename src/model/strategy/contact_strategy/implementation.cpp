@@ -44,7 +44,7 @@ namespace egret
                 SolverBodyHandle &bodyA = bodies[constraint.bodyAIndex];
                 SolverBodyHandle &bodyB = bodies[constraint.bodyBIndex];
 
-                if (bodyA.entity == nullptr || bodyB.entity == nullptr || bodyA.transform == nullptr || bodyB.transform == nullptr)
+                if (bodyA.entity == nullptr || bodyB.entity == nullptr)
                 {
                     continue;
                 }
@@ -146,7 +146,7 @@ namespace egret
                 SolverBodyHandle &bodyA = bodies[constraint.bodyAIndex];
                 SolverBodyHandle &bodyB = bodies[constraint.bodyBIndex];
 
-                if (bodyA.entity == nullptr || bodyB.entity == nullptr || bodyA.transform == nullptr || bodyB.transform == nullptr)
+                if (bodyA.entity == nullptr || bodyB.entity == nullptr)
                 {
                     continue;
                 }
@@ -185,7 +185,6 @@ namespace egret
                         if (correctedPosition.allFinite())
                         {
                             bodyA.entity->setPosition(correctedPosition);
-                            bodyA.transform->setTranslation(correctedPosition);
                         }
                     }
 
@@ -196,7 +195,6 @@ namespace egret
                         if (correctedPosition.allFinite())
                         {
                             bodyB.entity->setPosition(correctedPosition);
-                            bodyB.transform->setTranslation(correctedPosition);
                         }
                     }
                 }

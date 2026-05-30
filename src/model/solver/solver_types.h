@@ -47,14 +47,8 @@ namespace egret
      */
     struct SolverBodyHandle
     {
-        /** 来自场景层/模型层的稳定实体 ID，用于映射与调试。 */
-        std::uint64_t id{0};
-
         /** 指向仿真实体状态的非拥有指针（质量、速度、外力等）。 */
         PhysicalEntity *entity{nullptr};
-
-        /** 指向世界变换的非拥有指针，用于形状碰撞与渲染桥接。 */
-        Transform *transform{nullptr};
 
         /** 指向碰撞形状的非拥有指针，在窄相位中使用。 */
         // ShapeBase *shape{nullptr};
@@ -64,9 +58,6 @@ namespace egret
 
         /** 世界坐标系下的逆转动惯量矩阵，用于碰撞角动量传递。 */
         Eigen::Matrix3d inverseInertiaTensor{Eigen::Matrix3d::Zero()};
-
-        /** 恢复系数，范围为 [0, 1]，用于无摩擦法向冲量。 */
-        double restitution{0.2};
 
         /** 当前实体是否参与广相位/窄相位碰撞检测。 */
         bool enableCollision{true};

@@ -42,7 +42,7 @@ namespace egret
     public:
         ShapeCylindricalShell(double radius, double mass);
 
-        [[nodiscard]] ShapeType typeId() const override;
+        [[nodiscard]] ShapeType getType() const override;
 
         [[nodiscard]] Eigen::Matrix3d getInertiaTensor(double mass) const override;
 

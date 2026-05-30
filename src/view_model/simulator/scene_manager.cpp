@@ -55,6 +55,7 @@
 #include "model_item_data.h"
 #include "transform_transformer.h"
 #include "magic_enum.hpp"
+#include "uuid_generator.h"
 
 namespace egret
 {
@@ -293,9 +294,8 @@ namespace egret
                 continue;
             }
 
-            auto id{QString::number(static_cast<std::uint32_t>(shape->typeId()))};
 
-            auto entity = std::make_shared<RigidBody>(position, initialVelocity, mass);
+            auto entity = std::make_shared<RigidBody>(position, initialVelocity, mass, UuidGenerator::instance().generate());
             entity->setRotation(rotation);
             entity->setScale(scale);
 
@@ -317,7 +317,6 @@ namespace egret
             }
             usedIds.insert(bodyId);
 
-            body.id = bodyId;
             body.name = name.toStdString();
             body.entity = std::move(entity);
             record.bodies.push_back(std::move(body));
@@ -725,19 +724,21 @@ namespace egret
                     [&](const Eigen::Vector3d &position, const Eigen::Vector3d &speed, double mass,
                         double coupling_G = G)
                     {
+                        static int i = 0;
+                        i++;
                         auto gravitationalField = std::make_shared<GravitationalField>(
                             position,
                             speed,
                             mass, coupling_G,
-                            false);
+                            false, i);
 
                         GravitationalField::setMinDistanceSquared(1600);
 
                         // gravitationalField->setCouplingCoefficient(1.0);
                         auto gravFieldEntity = std::static_pointer_cast<PhysicalEntity>(gravitationalField);
                         auto gravFieldBase = std::static_pointer_cast<FieldBase>(gravitationalField);
-                        static int i = 0;
-                        i++;
+                        static int id = 0;
+                        id++;
                         QString bodyName{"测试引力源"};
                         bodyName += QString::number(i);
                         QString fieldName{"引力场"};
