@@ -3,37 +3,43 @@
 ![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
 ![License](https://img.shields.io/badge/license-GPLv3-green.svg)
 
-A modern physics simulation engine with rigid body dynamics, collision detection, and constraint solving.
+一个现代化的物理模拟引擎，支持刚体动力学、碰撞检测和约束求解。
 
 ![program_screenshot_v0.0.1](./README.assets/program_screenshot_v0.0.1.png)
 
-## Features
+## 特性
 
-- **Rigid Body Dynamics**: Support for various rigid body shapes including spheres, boxes, cylinders, rings, disks, rods, and shells
-- **Collision Detection**: Comprehensive collision detection system with multiple shape combinations
-- **Constraint Solving**: Support for constraints including support surfaces, sliding rails, connecting lines, and connecting rods
-- **Physics Fields**: Gravity and gravitational field support
-- **Simulation Strategy**: Configurable broad-phase strategy, contact resolver, and integrator strategy
-- **Qt-based UI**: Modern QML-based user interface with 3D visualization support
+- **刚体动力学**：支持多种刚体形状，包括球体、立方体、圆柱体、圆环、圆盘、杆和壳体
+- **碰撞检测**：全面的碰撞检测系统，支持多种形状组合
+- **约束求解**：支持约束包括支撑面、滑轨、连接线和连接杆
+- **物理场**：支持重力和质心引力场
+- **模拟策略**：可配置的宽阶段策略、接触求解器和积分器策略
+- **Qt 界面**：现代化的 QML 用户界面，支持 3D 可视化
 
-## Dependencies
+## 物理模型架构
 
-| Library | Version | License |
+以下是物理引擎的核心类继承关系图：
+
+![物理模型继承链](./README.assets/PhysicsModel_InheritanceChain.png)
+
+## 依赖
+
+| 库 | 版本 | 许可证 |
 |---------|---------|---------|
 | Boost | 1.90.0 | Boost Software License 1.0 |
 | Eigen | 5.0.0 | Mozilla Public License 2.0 |
 | magic_enum | 0.9.8 | MIT License |
 | Qt | 6.9.3 | LGPLv3/GPLv3 |
 
-## Quick Start
+## 快速开始
 
-### Prerequisites
+### 前提条件
 
-- CMake 3.30.1 or later
-- Qt 6.9.3 (with Core, Gui, Widgets, Quick, Qml, Quick3D, Sql modules)
-- MSVC 2022 (Windows) or compatible C++ compiler
+- CMake 3.30.1 或更高版本
+- Qt 6.9.3（需包含 Core、Gui、Widgets、Quick、Qml、Quick3D、Sql 模块）
+- MSVC 2022（Windows）或兼容的 C++ 编译器
 
-### Build Instructions
+### 构建说明
 
 ```bash
 mkdir build
@@ -42,52 +48,52 @@ cmake ..
 cmake --build . --config Release
 ```
 
-### Build Options
+### 构建选项
 
-| Option | Description | Default |
+| 选项 | 描述 | 默认值 |
 |--------|-------------|---------|
-| `BUILD_TESTS` | Build unit tests | ON |
-| `DEBUG_SIMULATE_RELEASE` | Simulate Release behavior in Debug build | OFF |
+| `BUILD_TESTS` | 构建单元测试 | ON |
+| `DEBUG_SIMULATE_RELEASE` | 在 Debug 构建中模拟 Release 行为 | OFF |
 
-### Running the Application
+### 运行应用
 
-After building, run the executable from the build directory:
+构建完成后，从构建目录运行可执行文件：
 
 ```bash
 # Windows
 ./Release/Egret_Physics.exe
 
-# Linux (if applicable)
+# Linux（如适用）
 ./Egret_Physics
 ```
 
-## Project Structure
+## 项目结构
 
 ```
 Egret Physics/
-├── src/                    # Source code
-│   ├── main.cpp            # Application entry point
-│   ├── model/              # Core physics model
-│   │   ├── physics/        # Physics engine components
-│   │   │   ├── rigid/      # Rigid body systems
-│   │   │   ├── field/      # Physics fields
-│   │   │   └── constraints/# Constraints
-│   │   ├── solver/         # Simulation solver
-│   │   ├── scene/          # Scene management
-│   │   └── strategy/       # Simulation strategies
-│   ├── view_model/         # View models for UI
-│   ├── view/               # UI views
-│   └── utils/              # Utility functions
-├── dependency/             # Third-party dependencies
-│   └── include/            # Header-only libraries
-├── resources/              # Resources (icons, RC files)
-├── tests/                  # Unit tests
-└── CMakeLists.txt          # Build configuration
+├── src/                    # 源代码
+│   ├── main.cpp            # 应用入口点
+│   ├── model/              # 核心物理模型
+│   │   ├── physics/        # 物理引擎组件
+│   │   │   ├── rigid/      # 刚体系统
+│   │   │   ├── field/      # 物理场
+│   │   │   └── constraints/# 约束
+│   │   ├── solver/         # 模拟求解器
+│   │   ├── scene/          # 场景管理
+│   │   └── strategy/       # 模拟策略
+│   ├── view_model/         # UI 视图模型
+│   ├── view/               # UI 视图
+│   └── utils/              # 工具函数
+├── dependency/             # 第三方依赖
+│   └── include/            # 头文件库
+├── resources/              # 资源（图标、RC 文件）
+├── tests/                  # 单元测试
+└── CMakeLists.txt          # 构建配置
 ```
 
-## Usage
+## 使用方法
 
-### Creating a Physics Scene
+### 创建物理场景
 
 ```cpp
 #include "model/scene/world_scene_manager.h"
@@ -96,7 +102,7 @@ Egret Physics/
 #include "model/strategy/broad_phase_strategy/brute_force_broad_phase.h"
 #include "model/strategy/contact_strategy/frictionless_contact_resolver.h"
 
-// Create solver with default configuration
+// 使用默认配置创建求解器
 egret::SolverConfig config{};
 auto integrator = std::make_unique<egret::SemiImplicitEulerIntegrator>();
 auto broadPhase = std::make_unique<egret::BruteForceBroadPhase>();
@@ -109,88 +115,88 @@ auto solver = std::make_unique<egret::Solver>(
     std::move(contactResolver)
 );
 
-// Create scene manager
+// 创建场景管理器
 auto scene = std::make_unique<egret::WorldSceneManager>(std::move(solver));
 
-// Add a gravity field
+// 添加重力场
 scene->addGravityField({0, -9.81, 0}, {0, 0, 0}, "Gravity");
 
-// Spawn a sphere at position (0, 10, 0) with radius 1.0 and mass 1.0
+// 在位置 (0, 10, 0) 生成一个半径为 1.0、质量为 1.0 的球体
 std::uint64_t sphereId = scene->spawnSphere("Sphere", {0, 10, 0}, {0, 0, 0}, 1.0, 1.0);
 
-// Spawn a ground box (mass = 0 means static)
+// 生成地面盒子（质量为 0 表示静态）
 std::uint64_t groundId = scene->spawnBox("Ground", {0, -1, 0}, {0, 0, 0}, {10, 1, 10}, 0.0);
 
-// Run simulation (10 seconds at 60 FPS)
+// 运行模拟（10 秒，60 FPS）
 for (int i = 0; i < 600; ++i) {
     egret::SolverStepResult result = scene->tick(1.0 / 60.0);
-    // Access simulation stats if needed
+    // 如有需要可访问模拟统计数据
     // std::cout << "Bodies: " << result.stats.bodyCount << std::endl;
 }
 ```
 
-### Adding Constraints
+### 添加约束
 
 ```cpp
-// Create a simple pendulum constraint
-// Anchor position at (0, 5, 0), connecting to the sphere
+// 创建单摆约束
+// 锚点位置在 (0, 5, 0)，连接到球体
 std::uint64_t pendulumId = scene->createSimplePendulum("Pendulum", 3.0, {0, 5, 0}, sphereId);
 
-// Create two spheres connected by a line
+// 创建两个由线连接的球体
 std::uint64_t bodyA = scene->spawnSphere("Ball A", {-2, 5, 0}, {0, 0, 0}, 0.5, 1.0);
 std::uint64_t bodyB = scene->spawnSphere("Ball B", {2, 5, 0}, {0, 0, 0}, 0.5, 1.0);
 std::uint64_t lineId = scene->createConnectingLine("Connector", 5.0, bodyA, bodyB);
 
-// Enable/disable constraints
+// 启用/禁用约束
 scene->setConstraintEnabled(pendulumId, false);
 ```
 
-### Working with Entity Properties
+### 处理实体属性
 
 ```cpp
-// Get and set body position
+// 获取和设置物体位置
 Eigen::Vector3d pos = scene->getBodyPosition(sphereId).value_or({0, 0, 0});
 scene->setBodyPosition(sphereId, {0, 20, 0});
 
-// Get simulation time and step count
+// 获取模拟时间和步数
 double simTime = scene->getSimulationTime();
 std::size_t stepCount = scene->getStepCount();
 
-// Clear the scene
+// 清空场景
 scene->clear();
 ```
 
-## Running Tests
+## 运行测试
 
-To run the unit tests:
+运行单元测试：
 
 ```bash
 cd build
 ctest -C Release
 ```
 
-## License
+## 许可证
 
-This project is licensed under the GNU General Public License v3.0. See [GPL_V3.0.md](GPL_V3.0.md) for details.
+本项目采用 GNU General Public License v3.0 许可。详情请参见 [GPL_V3.0.md](GPL_V3.0.md)。
 
-For third-party library licenses, see [NOTICE](NOTICE).
+第三方库许可证请参见 [NOTICE](NOTICE)。
 
-## Contributing
+## 贡献
 
-Contributions are welcome! Please follow these guidelines:
+欢迎贡献！请遵循以下指南：
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/my-feature`)
-3. Make your changes and add tests
-4. Ensure all tests pass
-5. Submit a pull request
+1. Fork 仓库
+2. 创建特性分支（`git checkout -b feature/my-feature`）
+3. 进行修改并添加测试
+4. 确保所有测试通过
+5. 提交拉取请求
 
-## Code Style
+## 代码风格
 
-This project follows the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html) with the following exceptions:
-- Use 4 spaces for indentation (not tabs)
-- Line length limit is 120 characters
+本项目遵循 [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)，以下是例外情况：
+- 使用 4 个空格进行缩进（不使用制表符）
+- 行长度限制为 120 字符
 
-## Contact
+## 联系方式
 
-For questions or issues, please open an issue in the repository.
+如有问题或建议，请在仓库中提交 issue。
