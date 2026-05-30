@@ -23,6 +23,8 @@
 #include <QVariant>
 #include <QVariantMap>
 
+#include "egret_version.h"
+
 namespace egret
 {
     const QMap<std::uint32_t, QString> ResourceHelper::StaticGeneralTypeSourceMap = {
@@ -46,7 +48,7 @@ namespace egret
         QString result{};
         result += prefix;
         result += sep;
-        result += EGRET_PHYSICS_VERSION_STRING;
+        result += QString::fromUtf8(EGRET_VERSION_STRING.data(), EGRET_VERSION_STRING.size());
         result += sep;
         result += suffix;
         return result;
@@ -54,17 +56,17 @@ namespace egret
 
     int ResourceHelper::getMajorVersion()
     {
-        return EGRET_PHYSICS_VERSION_MAJOR;
+        return EGRET_PHYSICS_VERSION_MAJOR_INT;
     }
 
     int ResourceHelper::getMinorVersion()
     {
-        return EGRET_PHYSICS_VERSION_MINOR;
+        return EGRET_PHYSICS_VERSION_MINOR_INT;
     }
 
     int ResourceHelper::getPatchVersion()
     {
-        return EGRET_PHYSICS_VERSION_PATCH;
+        return EGRET_PHYSICS_VERSION_PATCH_INT;
     }
 
     double ResourceHelper::getG()

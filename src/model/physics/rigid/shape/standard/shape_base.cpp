@@ -61,4 +61,10 @@ namespace egret
         // 未注册的类对 → 可返回 nullopt / 抛异常 / 默认处理
         return std::nullopt;
     }
+
+    std::string reflectShapeToString(const ShapeType type)
+    {
+        const std::string_view view {magic_enum::enum_name(type)};
+        return std::string(view);
+    }
 } // egret

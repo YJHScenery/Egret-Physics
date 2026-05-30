@@ -27,12 +27,12 @@ namespace egret
         return &inst;
     }
 
-    EnumHandler::ShapeIDQml EnumHandler::toQmlShapeId(ShapeType shapeID)
+    EnumHandler::ShapeTypeQml EnumHandler::toQmlShapeId(ShapeType shapeID)
     {
-        return static_cast<ShapeIDQml>(shapeID);
+        return static_cast<ShapeTypeQml>(shapeID);
     }
 
-    ShapeType EnumHandler::toShapeId(ShapeIDQml shapeID)
+    ShapeType EnumHandler::toShapeId(ShapeTypeQml shapeID)
     {
         return static_cast<ShapeType>(shapeID);
     }
@@ -43,7 +43,7 @@ namespace egret
         return QString::fromUtf8(view.data(), view.size());
     }
 
-    QString EnumHandler::shapeToString(ShapeIDQml shapeID)
+    QString EnumHandler::shapeToString(ShapeTypeQml shapeID)
     {
         return shapeToString(toShapeId(shapeID));
     }
@@ -58,7 +58,7 @@ namespace egret
         return ShapeType::Unknown;
     }
 
-    EnumHandler::ShapeIDQml EnumHandler::stringToShapeQml(const QString &str)
+    EnumHandler::ShapeTypeQml EnumHandler::stringToShapeQml(const QString &str)
     {
         return toQmlShapeId(stringToShape(str));
     }

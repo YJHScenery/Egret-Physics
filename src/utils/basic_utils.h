@@ -17,19 +17,14 @@
 #ifndef EGRET_PHYSICS_GEOMETRY_H
 #define EGRET_PHYSICS_GEOMETRY_H
 
-#define EGRET_PHYSICS_VERSION_MAJOR 0
-#define EGRET_PHYSICS_VERSION_MINOR 0
-#define EGRET_PHYSICS_VERSION_PATCH 1
-
-#define EGRET_PHYSICS_VERSION_STRING "0.0.1"
-
-#define EGRET_PHYSICS_APPLICATION_DISPLAY_NAME "Egret Physics Studio"
-
-#define EGRET_PHYSICS_APPLICATION_NAME "EgretPhysicsStudio"
 
 #include <type_traits>
 #include <concepts>
 #include <type_traits>
+
+#define EGRET_PHYSICS_APPLICATION_DISPLAY_NAME "Egret Physics Studio"
+
+#define EGRET_PHYSICS_APPLICATION_NAME "EgretPhysicsStudio"
 
 namespace egret
 {

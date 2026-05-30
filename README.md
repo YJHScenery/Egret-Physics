@@ -1,6 +1,6 @@
 # Egret Physics
 
-![Version](https://img.shields.io/badge/version-0.0.1-blue.svg)
+![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
 ![License](https://img.shields.io/badge/license-GPLv3-green.svg)
 
 A modern physics simulation engine with rigid body dynamics, collision detection, and constraint solving.

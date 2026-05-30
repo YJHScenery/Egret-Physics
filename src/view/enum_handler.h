@@ -42,7 +42,7 @@ namespace egret
         QML_ELEMENT
 
     public:
-        enum class ShapeIDQml : int
+        enum class ShapeTypeQml : int
         {
             Unknown = 0,
 
@@ -59,22 +59,22 @@ namespace egret
 
             Other = 255
         };
-        Q_ENUM(ShapeIDQml)
+        Q_ENUM(ShapeTypeQml)
 
         explicit EnumHandler(QObject *parent = nullptr) : QObject(parent) {}
 
         static EnumHandler *instance();
 
-        static ShapeIDQml toQmlShapeId(ShapeType shapeID);
-        static ShapeType toShapeId(ShapeIDQml shapeID);
+        static ShapeTypeQml toQmlShapeId(ShapeType shapeID);
+        static ShapeType toShapeId(ShapeTypeQml shapeID);
 
         Q_INVOKABLE static QString shapeToString(ShapeType shapeID);
 
-        Q_INVOKABLE static QString shapeToString(ShapeIDQml shapeID);
+        Q_INVOKABLE static QString shapeToString(ShapeTypeQml shapeID);
 
         Q_INVOKABLE static ShapeType stringToShape(const QString &str);
 
-        Q_INVOKABLE static ShapeIDQml stringToShapeQml(const QString &str);
+        Q_INVOKABLE static ShapeTypeQml stringToShapeQml(const QString &str);
 
         static void registerEnums();
     };
