@@ -19,3 +19,7 @@ count.py
 /doxygen/docs/
 
 /docs/*.bkp
+
+/.reasonix/
+
+/logs/
