@@ -1,174 +1,90 @@
 # AGENTS.md
 
-## General Guidelines
+## 通用规则
 
-- **Environment**: This project runs on **Windows**. All commands must be written in **PowerShell** and executed only
-  via PowerShell.
-- **Language for Responses and Comments**: Use **Chinese** for all responses, explanations, and code comments.
-- **Code Naming**: Use **English** for naming classes, functions, objects, and files.
-- **Documentation**: Every newly created class, function, or file **must** include Doxygen comments. Write the comment
-  content in Chinese as required above.
+- **环境**：本项目运行在 **Windows** 上。所有命令必须使用 **PowerShell** 执行。
+- **回答与注释语言**：所有回答、解释、代码注释均使用 **中文**。
+- **代码命名**：类、函数、对象、文件的命名使用 **英文**。
+- **文档注释**：每个新创建的类、函数、文件 **必须** 包含 Doxygen 注释，注释内容用中文书写。
 
-## Build Instructions (CMake with Visual Studio 2026)
+## 构建与运行
 
-### Build Environment Setup
-
-Execute the following command in **cmd** (NOT PowerShell) to configure Visual Studio 2026 environment:
+**工具链**：Visual Studio 2026 + CMake
 
 ```
+# 配置（仅首次执行，在 cmd 中运行），操作目录应为 CMakeLists.txt 所在文件夹
+
+cmd
+
 %comspec% /k "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\VsDevCmd.bat"
-```
 
-After the environment is configured, ensure you are in the folder containing `CMakeLists.txt`.
-
-### Initial CMake Configuration (First Time Only)
-
-Use **cmd** instead of PowerShell in this step, based on the last step which configure the Visual Studio 2026
-environment.
-
-Run this command only if the `build` folder does not exist or is empty:
-
-```
 cmake -S . -B build -G "Visual Studio 18 2026" -A x64
-```
 
-### Build the Main Target
-
-```
+# 构建（PowerShell 中执行）
 cmake --build build --config Release --target Egret_Physics
-```
 
-### Run the Executable
-
-```
+# 运行
 ./build/Release/Egret_Physics.exe
 ```
 
-## Project Overview
+**日志文件位置**：
+- AI 构建时：`build/Release/logs/` 或 项目根目录下的 `logs/`（与 `CMakeLists.txt` 同级）
+- 用户构建时：`cmake-release-build/logs`（大多数）或 `cmake-debug-build/logs`（较少数）
 
-The project directory structure is organized as follows:
+## 目录职责（简表）
 
-### Code Folder Descriptions
+| 目录 | 用途 |
+|------|------|
+| `src/model/physics/rigid/` | 刚体动力学、质量、惯性、碰撞检测 |
+| `src/model/physics/field/` | 力场（重力、电磁、自定义力场） |
+| `src/model/physics/constraints/` | 关节、弹簧、刚体之间的约束 |
+| `src/model/solver/` | 数值积分器 |
+| `src/model/scene/` | 场景图、对象管理、空间划分 |
+| `src/model/strategy/` | 可插拔的模拟策略 |
+| `src/view_model/` | 连接物理模拟与 UI 的数据模型 |
+| `src/view/` | QML 视图、UI 组件、可视化器 |
+| `src/utils/` | 日志、数学辅助、内存工具、平台辅助 |
+| `tests/` | 所有核心组件的单元测试 |
 
-| Folder                           | Purpose                                                   |
-|----------------------------------|-----------------------------------------------------------|
-| `src/model/physics/rigid/`       | Rigid body dynamics, mass, inertia, collision detection   |
-| `src/model/physics/field/`       | Force fields (gravity, electromagnetic, custom fields)    |
-| `src/model/physics/constraints/` | Joints, springs, constraints between bodies               |
-| `src/model/solver/`              | Numerical integrators                                     |
-| `src/model/scene/`               | Scene graph, object management, spatial partitioning      |
-| `src/model/strategy/`            | Pluggable simulation strategies                           |
-| `src/view_model/`                | Data models that bridge physics simulation and UI         |
-| `src/view/`                      | QML views, UI components, visualizers                     |
-| `src/utils/`                     | Logging, math helpers, memory utilities, platform helpers |
-| `tests/`                         | Unit tests for all core components                        |
-| `dependency/include/`            | External header-only libraries                            |
 
-## Logging System
+## 日志系统
 
-The project uses a **dual logging system** for debugging and analysis.
+- **主日志（优先查看）**：`logs/qdebug_output.log`
+  - 包含 C++ 中 `qDebug()` 和 QML 中 `console.log()` 的输出。
+- **辅助日志**：`logs/async_logger.log`
+  - 自定义异步日志系统的输出，仅在主日志信息不足时查阅。
 
-### Log File Locations
+## 问题诊断流程（必须严格遵守）
 
-Log files are stored in the `logs/` directory located in the same folder as the executable:
+遇到任何崩溃、错误或行为异常时，**按以下顺序执行，不得跳步**：
 
-- **If AI builds the project**: `build/Release/logs/`
-- **If user builds the project**: `cmake-build-release/logs/`
+1. **定位并阅读主日志**  
+   打开 `logs/qdebug_output.log`，搜索 `DEBUG`、`ERROR`、`FATAL`、`WARN`、`CRITICAL` 等关键词。  
+   提取**最后 50 行**日志（不要全部粘贴）。
 
-### Log Files
+2. **确认复现条件**  
+   记录触发错误时的输入参数、操作步骤、运行时长。 
+   由于本项目是 GUI 项目，因此输入参数一般将由我来提供。
+   判断问题是偶发还是必现。
 
-| Log File                 | Output Source                             | Priority                      |
-|--------------------------|-------------------------------------------|-------------------------------|
-| `logs/qdebug_output.log` | `qDebug()` in C++, `console.log()` in QML | **Primary** - read this first |
-| `logs/async_logger.log`  | Custom asynchronous logging system        | Secondary                     |
+3. **定位到代码**  
+   根据日志中的文件名和行号（例如 `rigid_body.cpp:142`），在对应目录中找到源文件。
 
-### Logging Usage Guidelines
+4. **分析根因**  
+   追溯变量状态、初始化顺序、逻辑错误等深层原因。
 
-1. **When debugging issues**, always check `logs/qdebug_output.log` first
-2. If relevant information is not found there, then check `logs/async_logger.log`
-3. Both log files are created automatically when the application runs
-4. The `logs/` directory is created automatically if it does not exist
+5. **输出修复方案**  
+   先描述修改思路，等待确认后再动手改代码。
 
-### Implementation Notes
+6. **验证修复**  
+   一般情况下，你无法直接获取此项目的运行状态，最终将会由我来确认日志中不再出现新错误，且原问题已解决。
 
-- The custom async logger is non-blocking and suitable for performance-critical simulation code
-- `qDebug()` output is automatically redirected to `qdebug_output.log` on Windows
-- QML's `console.log()` output is also captured in the same `qdebug_output.log` file
+**禁止行为**：
+- 在我未曾明确指定的情况下构建项目：这会浪费太多的时间和上下文，这是 GUI 项目，由你来构建运行本质上没有任何意义。
+- 跳过日志直接猜测问题原因：优先调取日志，但有些问题无法通过日志反映，这需要我来向你描述。
+- 不分析根因就随意修改代码。 
 
-## Code Formatting and Style Rules
+## 限制
 
-1. **File names**
-
-- C++ files (`.h`, `.cpp`, `.hpp`, etc.): `snake_case`
-- QML files: `PascalCase` (e.g., `MainWindow.qml`)
-
-2. **Type names** (class, struct, enum, enum class, union): `PascalCase`
-
-3. **Function names and local variables**: `camelCase` (lowercase first letter, e.g., `getValue`)
-
-4. **Non‑compile‑time static variables** (both constant and non‑constant, e.g., `static int s_counter`):  
-   Prefix `s_` + `PascalCase` (e.g., `s_MyStaticVar`)
-
-5. **Compile‑time constants or Macro Identifier** (`constexpr` or `#define` macros): `UPPER_SNAKE_CASE`
-
-6. **Class member variables**: Prefix `m_` + `camelCase` (e.g., `m_myMember`)
-
-7. **Class static member variables**: Prefix `s_` + `PascalCase` (e.g., `s_MyStaticVar`)
-
-8. **Braces for class, struct, enum, union, and function definitions**
-
-- Opening brace on a new line
-- Closing brace on a new line
-  ```
-  class MyClass
-  {
-  // ...
-  };
-  ```
-
-9. **Braces for control flow statements** (`if`, `while`, `do‑while`, `for`, `range‑for`, `switch‑case`)
-
-- Opening brace after the construct, preceded by a space, same line
-- Closing brace on its own line
-  ```
-  if (condition) {
-  // ...
-  }
-  ```
-
-10. **Always use braces** for control flow statements, even if the body contains only one line.
-
-11. **Variable initialization**
-
-- Use brace initialization (`{}`) instead of the assignment operator to avoid implicit conversions.
-  ```
-  int x{42};        // Good
-  int y = 42;       // Not allowed
-  ```
-
-12. **Narrowing conversions**
-
-- Must be performed explicitly using `static_cast`.
-
-13. **Memory management – `new` and `delete`**
-
-- **Prohibited**, including when constructing standard library smart pointers (`std::unique_ptr`, `std::shared_ptr`),
-  when you should use `std::make_shared` or `std::make_unique` instead.
-- **Exceptions** allowed only in the following cases:
-    1. Creating `QSharedPointer` or `QScopedPointer` instances.
-    2. When Qt's object tree mechanism guarantees safe release (e.g., parent‑child ownership).
-    3. When a third‑party library explicitly requires a pointer created by `new`.
-    4. When unavoidable in QML – in such cases, call `QQmlEngine::setObjectOwnership(..., QQmlEngine::CppOwnership)` to
-       transfer ownership to C++.
-
-14. **Compile‑time evaluation**
-
-- Use `constexpr` or C++20 metaprogramming techniques for compile‑time constants and functions.
-- **Do not use `#define` to define constants.**
-
-15. **Preprocessor directives (`#define`, etc.)**
-
-- May only be used for **compilation control** (e.g., header guards, platform‑specific code) and **platform management
-  **.
-
----
+- **除非我明确指定，否则禁止执行任何 Git 命令**（`commit`、`push`、`branch` 等），查询操作除外。
+- **除非我明确指定，禁止修改 `.git/` 目录下的任何文件**。

@@ -163,7 +163,7 @@ Dialog {
             }
 
             Text {
-                text: resourceHelper.getVersionString("Version", "")
+                text: resourceHelper.getWholeVersionString()
                 // text: "Version 0.0.1"
                 color: "#8DB3D9"
                 font.pixelSize: 12
