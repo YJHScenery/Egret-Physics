@@ -24,7 +24,7 @@ namespace egret
     {
     }
 
-    ShapeType ShapeRing::typeId() const
+    ShapeType ShapeRing::getType() const
     {
         return ShapeType::Ring;
     }
@@ -37,7 +37,7 @@ namespace egret
     ShapeLoadInfo ShapeRing::getLoadInfo() const
     {
         ShapeLoadInfo info{};
-        info.typeId = static_cast<std::uint32_t>(typeId());
+        info.typeId = static_cast<std::uint32_t>(getType());
         info.numberParams["radius"] = std::vector<double>{getRadius()};
         return info;
     }

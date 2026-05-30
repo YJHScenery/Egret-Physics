@@ -27,7 +27,7 @@ namespace egret
     {
     }
 
-    ShapeType ShapeBox::typeId() const
+    ShapeType ShapeBox::getType() const
     {
         return ShapeType::Box;
     }
@@ -128,7 +128,7 @@ namespace egret
     ShapeLoadInfo ShapeBox::getLoadInfo() const
     {
         ShapeLoadInfo info{};
-        info.typeId = (std::uint32_t)typeId();
+        info.typeId = (std::uint32_t)getType();
         info.numberParams["size"] = std::vector<double>{m_size.data(), m_size.data() + m_size.size()};
         return info;
     }

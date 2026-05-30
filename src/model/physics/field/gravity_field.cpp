@@ -21,19 +21,17 @@
 
 namespace egret
 {
-    GravityField::GravityField(): FieldBase(generateID(FieldType::Gravity))
+    GravityField::GravityField()
     {
     }
 
-    GravityField::GravityField(Eigen::Vector3d  gravity, Eigen::Vector3d  referencePoint) :
-        FieldBase(generateID(FieldType::Gravity)),
-        m_gravity(std::move(gravity)), m_zeroReferencePoint(std::move(referencePoint))
+    GravityField::GravityField(Eigen::Vector3d  gravity, Eigen::Vector3d  referencePoint, const std::uint64_t id) :
+        FieldBase(id), m_gravity(std::move(gravity)), m_zeroReferencePoint(std::move(referencePoint))
     {
     }
 
-    GravityField::GravityField(const double gravity, const double referenceZ) :
-        FieldBase(generateID(FieldType::Gravity)),
-        m_gravity({0, 0, -gravity}), m_zeroReferencePoint({0, 0, referenceZ})
+    GravityField::GravityField(const double gravity, const double referenceZ, const std::uint64_t id) :
+        FieldBase(id), m_gravity({0, 0, -gravity}), m_zeroReferencePoint({0, 0, referenceZ})
     {
     }
 
@@ -56,6 +54,17 @@ namespace egret
 
         const Force gravityForce{.force = entity->getMass() * m_gravity, .id = m_id};
         entity->upsertForce(gravityForce);
+    }
 
+    FieldType GravityField::getType() const
+    {
+        return FieldType::Gravity;
+    }
+
+    std::unique_ptr<PhysicsAbstract> GravityField::clone(std::uint64_t id) const
+    {
+        auto field = std::make_unique<GravityField>(*this);
+        field->setId(id);
+        return field;
     }
 } // egret

@@ -23,7 +23,7 @@ namespace egret
     {
     }
 
-    ShapeType ShapeRod::typeId() const
+    ShapeType ShapeRod::getType() const
     {
         return ShapeType::Rod;
     }
@@ -54,7 +54,7 @@ namespace egret
     ShapeLoadInfo ShapeRod::getLoadInfo() const
     {
         ShapeLoadInfo info{};
-        info.typeId = static_cast<std::uint32_t>(typeId());
+        info.typeId = static_cast<std::uint32_t>(getType());
         info.numberParams["length"] = std::vector<double>{m_length};
         return info;
     }

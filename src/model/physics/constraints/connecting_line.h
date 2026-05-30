@@ -38,11 +38,9 @@ namespace egret
     class ConnectingLine : public ConstraintsBase
     {
     public:
-        ConnectingLine();
+        ConnectingLine(double length, PhysicalEntity* entityStart, PhysicalEntity* entityEnd, std::uint64_t id);
 
-        ConnectingLine(double length, PhysicalEntity* entityStart, PhysicalEntity* entityEnd);
-
-        ConnectingLine(double length, PhysicalEntity* entityStart, PhysicalEntity* entityEnd,
+        ConnectingLine(double length, PhysicalEntity* entityStart, PhysicalEntity* entityEnd, std::uint64_t id,
                        const std::initializer_list<Eigen::Vector3d>& turningPositions);
 
         ~ConnectingLine() override = default;
@@ -69,11 +67,12 @@ namespace egret
 
         void applyAngularVelocityConstraint(double dt) override;
 
+        std::unique_ptr<PhysicsAbstract> clone(std::uint64_t id) const override;
+
     protected:
+        ConnectingLine();
+
         explicit ConnectingLine(std::uint64_t id);
-
-
-
 
         // 始末会由 Physical Entity 的 Position 给出，此处不会储存此二者。
         std::vector<Eigen::Vector3d> m_pathPositions;

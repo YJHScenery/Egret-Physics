@@ -27,7 +27,7 @@ namespace egret
         auto bodies = scene.getBodies();
 
         for (SolverBodyHandle& body : bodies) {
-            if (body.entity == nullptr || body.transform == nullptr || !body.enableIntegration) {
+            if (body.entity == nullptr || !body.enableIntegration) {
                 continue;
             }
 
@@ -36,16 +36,9 @@ namespace egret
             }
 
             body.entity->applyForce(dt);
-            body.entity->applyTorque(dt, body.transform->getLocalToWorldMatrix());
-            body.entity->rotate(dt, body.transform->getLocalToWorldMatrix());
+            body.entity->applyTorque(dt, body.entity->getTransformCR().getLocalToWorldMatrix());
+            body.entity->rotate(dt, body.entity->getTransformCR().getLocalToWorldMatrix());
 
-            // Eigen::Vector3d position = body.entity->getPosition();
-            // Eigen::Vector3d speed = body.entity->getSpeed();
-            // position.z() = 0.0;
-            // speed.z() = 0.0;
-            // body.entity->setPosition(position);
-            // body.entity->setSpeed(speed);
-            // body.transform->setTranslation(position);
         }
 
         stats.resolvedContactCount += 0;

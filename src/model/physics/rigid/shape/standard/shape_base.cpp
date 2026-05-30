@@ -20,11 +20,11 @@ namespace egret
     ShapeLoadInfo ShapeBase::getLoadInfo() const
     {
         ShapeLoadInfo info{};
-        info.typeId = (std::uint32_t)typeId();
+        info.typeId = (std::uint32_t)getType();
         return info;
     }
 
-    ShapeType ShapeBase::typeId() const
+    ShapeType ShapeBase::getType() const
     {
         return ShapeType::Abstract;
     }
@@ -32,8 +32,8 @@ namespace egret
     bool ShapeBase::collide(const ShapeBase *other,
                             const Transform &thisTrans, const Transform &otherTrans, ContactManifold &manifold) const
     {
-        const auto &myId = (std::uint32_t)this->typeId();
-        const auto &otherId = (std::uint32_t)other->typeId();
+        const auto &myId = (std::uint32_t)this->getType();
+        const auto &otherId = (std::uint32_t)other->getType();
         const auto func = ShapeRegister::instance().findJudge(myId, otherId);
         if (func)
             return (*func)(this, thisTrans, other, otherTrans, manifold);
@@ -48,8 +48,8 @@ namespace egret
                                                        const Eigen::Vector3d &otherLinearVel, const Eigen::Vector3d &otherAngularVel, double dt,
                                                        ContactManifold &manifold) const
     {
-        const auto &myId = (std::uint32_t)this->typeId();
-        const auto &otherId = (std::uint32_t)other->typeId();
+        const auto &myId = (std::uint32_t)this->getType();
+        const auto &otherId = (std::uint32_t)other->getType();
         const auto func = ShapeRegister::instance().findContinuousJudge(myId, otherId);
         if (func)
         {

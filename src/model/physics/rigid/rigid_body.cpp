@@ -127,4 +127,11 @@ namespace egret
 		Eigen::Matrix3d I_world = R * I_local * R.transpose();
 		return I_world * m_angular;
 	}
+
+	std::unique_ptr<PhysicsAbstract> RigidBody::clone(std::uint64_t id) const
+	{
+		auto entity = std::make_unique<RigidBody>(*this);
+		entity->setId(id);
+		return entity;
+	}
 } // egret

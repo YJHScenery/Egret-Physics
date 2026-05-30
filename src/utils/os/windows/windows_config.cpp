@@ -21,6 +21,11 @@ void setWindowsTerminalUtf8()
 {
     SetConsoleOutputCP(CP_UTF8);
 }
+
+std::uint64_t getWindowsCurrentProcessId()
+{
+    return GetCurrentProcessId();
+}
 #else
 void setWindowsTerminalUtf8()
 {

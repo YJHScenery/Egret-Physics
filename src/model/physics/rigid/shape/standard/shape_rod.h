@@ -41,7 +41,7 @@ namespace egret
     {
     public:
         explicit ShapeRod(double length);
-        [[nodiscard]] ShapeType typeId() const override;
+        [[nodiscard]] ShapeType getType() const override;
 
         [[nodiscard]] double getLength() const { return m_length; }
 

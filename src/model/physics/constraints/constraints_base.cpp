@@ -18,14 +18,12 @@
 
 namespace egret
 {
-    ConstraintsBase::ConstraintsBase()
+    ConstraintsBase::ConstraintsBase() : m_id(0)
     {
-        ++m_createCount_static;
     }
 
     ConstraintsBase::ConstraintsBase(std::uint64_t id) : m_id(id)
     {
-        ++m_createCount_static;
     }
 
     ConstraintType ConstraintsBase::getType() const
@@ -53,13 +51,4 @@ namespace egret
         return m_enabled;
     }
 
-    uint64_t ConstraintsBase::getId() const
-    {
-        return m_id;
-    }
-
-    std::uint64_t ConstraintsBase::generateID(ConstraintType type)
-    {
-        return static_cast<std::uint64_t>(type) | m_createCount_static;
-    }
 } // egret

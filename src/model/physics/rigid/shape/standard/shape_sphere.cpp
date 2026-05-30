@@ -28,7 +28,7 @@ namespace egret
         m_radius = radius;
     }
 
-    ShapeType ShapeSphere::typeId() const
+    ShapeType ShapeSphere::getType() const
     {
         return ShapeType::Sphere;
     }
@@ -77,7 +77,7 @@ namespace egret
     ShapeLoadInfo ShapeSphere::getLoadInfo() const
     {
         ShapeLoadInfo info{};
-        info.typeId = static_cast<std::uint32_t>(typeId());
+        info.typeId = static_cast<std::uint32_t>(getType());
         info.numberParams["radius"] = std::vector<double>{m_radius};
         return info;
     }

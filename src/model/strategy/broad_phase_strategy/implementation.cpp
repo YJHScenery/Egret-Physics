@@ -33,28 +33,28 @@ namespace egret
 
         for (std::size_t i = 0; i < bodies.size(); ++i) {
             const SolverBodyHandle& bodyA = bodies[i];
-            if (!bodyA.enableCollision || bodyA.entity->getShape() == nullptr || bodyA.transform == nullptr) {
+            if (!bodyA.enableCollision || bodyA.entity->getShape() == nullptr) {
                 continue;
             }
-            if (!bodyA.transform->getTranslation().allFinite()) {
+            if (!bodyA.entity->getTransformCR().getTranslation().allFinite()) {
                 continue;
             }
 
-            const AABB aabbA = bodyA.entity->getShape()->getAABB(*bodyA.transform);
+            const AABB aabbA = bodyA.entity->getShape()->getAABB(bodyA.entity->getTransformCR());
             if (!aabbA.min.allFinite() || !aabbA.max.allFinite()) {
                 continue;
             }
 
             for (std::size_t j = i + 1; j < bodies.size(); ++j) {
                 const SolverBodyHandle& bodyB = bodies[j];
-                if (!bodyB.enableCollision || bodyB.entity->getShape() == nullptr || bodyB.transform == nullptr) {
+                if (!bodyB.enableCollision || bodyB.entity->getShape() == nullptr) {
                     continue;
                 }
-                if (!bodyB.transform->getTranslation().allFinite()) {
+                if (!bodyB.entity->getTransformCR().getTranslation().allFinite()) {
                     continue;
                 }
 
-                const AABB aabbB = bodyB.entity->getShape()->getAABB(*bodyB.transform);
+                const AABB aabbB = bodyB.entity->getShape()->getAABB(bodyB.entity->getTransformCR());
                 if (!aabbB.min.allFinite() || !aabbB.max.allFinite()) {
                     continue;
                 }

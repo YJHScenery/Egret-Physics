@@ -21,7 +21,7 @@ namespace egret
 {
     // static_assert(sizeof(PhysicalEntity) > 0, "PhysicalEntity must be complete");
 
-    ConnectingLine::ConnectingLine() : ConstraintsBase(generateID(ConstraintType::ConnectingLine))
+    ConnectingLine::ConnectingLine() : ConstraintsBase()
     {
     }
 
@@ -29,7 +29,7 @@ namespace egret
     {
     }
 
-    ConnectingLine::ConnectingLine(double length, PhysicalEntity* entityStart, PhysicalEntity* entityEnd) : m_length(
+    ConnectingLine::ConnectingLine(double length, PhysicalEntity* entityStart, PhysicalEntity* entityEnd, const std::uint64_t id) : ConstraintsBase(id), m_length(
         length)
     {
         m_physicalEntities.reserve(2);
@@ -37,9 +37,9 @@ namespace egret
         m_physicalEntities.push_back(entityEnd);
     }
 
-    ConnectingLine::ConnectingLine(double length, PhysicalEntity* entityStart, PhysicalEntity* entityEnd,
+    ConnectingLine::ConnectingLine(double length, PhysicalEntity* entityStart, PhysicalEntity* entityEnd, const std::uint64_t id,
                                    const std::initializer_list<Eigen::Vector3d>& turningPositions) : ConnectingLine(
-        length, entityStart, entityEnd)
+        length, entityStart, entityEnd, id)
     {
         m_pathPositions = turningPositions;
     }
@@ -343,5 +343,12 @@ namespace egret
     {
         std::ignore = dt;
         // 不参与角速度变化。
+    }
+
+    std::unique_ptr<PhysicsAbstract> ConnectingLine::clone(const std::uint64_t id) const
+    {
+        auto constraint = std::make_unique<ConnectingLine>(*this);
+        constraint->setId(id);
+        return constraint;
     }
 } // egret

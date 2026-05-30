@@ -19,6 +19,9 @@
 #include "Eigen/Dense"
 #include <utility>
 #include <optional>
+#include <memory>
+
+#include "logger.h"
 
 namespace egret
 {
@@ -130,5 +133,20 @@ namespace egret
         Eigen::Vector3d max;
     };
 
+    template <typename Derived, typename Base>
+        requires(std::is_base_of_v<Base, Derived>)
+    std::unique_ptr<Derived> unique_ptr_cast(std::unique_ptr<Base>&& ptr)
+    {
+        // 使用 dynamic_cast 进行安全检查（需要多态类型）
+        Derived* d = dynamic_cast<Derived*>(ptr.get());
+        if (!d) {
+            LOG_FATAL_LITERAL("Cannot Cast This Pointer");
+            return nullptr; // 或者抛出异常
+        }
+
+        // 释放原指针的所有权
+        ptr.release();
+        return std::unique_ptr<Derived>(d);
+    }
 }
 #endif // EGRET_PHYSICS_PHYSICS_UTILS_H

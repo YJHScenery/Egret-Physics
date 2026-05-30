@@ -41,7 +41,7 @@ namespace egret
     public:
         explicit ShapeDisk(double radius);
 
-        [[nodiscard]] ShapeType typeId() const override;
+        [[nodiscard]] ShapeType getType() const override;
 
         [[nodiscard]] double getRadius() const { return m_radius; }
 

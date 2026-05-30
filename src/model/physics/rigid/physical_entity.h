@@ -28,6 +28,7 @@
 #include <memory>
 #include "physics_utils.h"
 #include "transform.h"
+#include "physics_abstract.h"
 
 namespace egret
 {
@@ -44,20 +45,19 @@ namespace egret
      * @remark      该类不是线程安全的，多线程访问需要外部同步
      * @see         Particle, RigidBody, Transform, ShapeBase, Force, Torque
      */
-    class PhysicalEntity
+    class PhysicalEntity: virtual public PhysicsAbstract
     {
     public:
         PhysicalEntity() = default;
-        explicit PhysicalEntity(double mass);
-        PhysicalEntity(Eigen::Vector3d position, Eigen::Vector3d speed, double mass);
-        PhysicalEntity(const Eigen::Vector3d &position, const Eigen::Vector3d &speed, double mass, std::vector<Force> forces);
+        explicit PhysicalEntity(double mass, std::uint64_t id);
+        PhysicalEntity(const Eigen::Vector3d& position, Eigen::Vector3d speed, double mass, std::uint64_t id);
+        PhysicalEntity(const Eigen::Vector3d &position, const Eigen::Vector3d &speed, double mass, std::vector<Force> forces, std::uint64_t id);
 
-        PhysicalEntity(const PhysicalEntity &) = default;
+
         PhysicalEntity(PhysicalEntity &&) = default;
-        PhysicalEntity &operator=(const PhysicalEntity &) = default;
         PhysicalEntity &operator=(PhysicalEntity &&) = default;
 
-        virtual ~PhysicalEntity() = default;
+        ~PhysicalEntity() override = default;
 
         [[nodiscard]] Eigen::Vector3d getPosition() const { return m_transform.getTranslation(); }
 
@@ -159,6 +159,10 @@ namespace egret
         virtual Force getJoinForce() = 0;
 
     protected:
+        PhysicalEntity(const PhysicalEntity &) = default;
+
+        PhysicalEntity &operator=(const PhysicalEntity &) = default;
+
         Transform m_transform{}; // 世界变换（包含位置、旋转、缩放）
 
         Eigen::Vector3d m_speed{}; // 参考点的速度
@@ -174,6 +178,8 @@ namespace egret
         double m_mass{}; // 质量/kg
 
         double m_restitution{1.0}; // 碰撞恢复系数
+
+        std::uint64_t m_id{};
     };
 }
 
