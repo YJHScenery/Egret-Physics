@@ -189,6 +189,8 @@ set(CPP_FILES
         src/utils/uuid_generator.h
         src/model/physics/physics_abstract.cpp
         src/model/physics/physics_abstract.h
+        src/utils/io/qdebug_handler.h
+        src/utils/io/qdebug_handler.cpp
 
 )
 

@@ -22,7 +22,8 @@
 #include <unordered_map>
 #include <variant>
 
-#include "Eigen/Dense"
+#include <Eigen/Dense>
+
 #include "basic_utils.h"
 #include "physics_utils.h"
 #include "transform.h"

@@ -37,6 +37,7 @@
 #include "egret_version.h"
 #include "enum_handler.h"
 #include "file_handler.h"
+#include "qdebug_handler.h"
 
 int main(int argc, char *argv[])
 {
@@ -51,17 +52,21 @@ int main(int argc, char *argv[])
 
     setWindowsTerminalUtf8();
 
-    app.setApplicationName(EGRET_PHYSICS_APPLICATION_NAME);                 // NOLINT(*-static-accessed-through-instance)
-    app.setApplicationDisplayName(EGRET_PHYSICS_APPLICATION_DISPLAY_NAME);  // NOLINT(*-static-accessed-through-instance)
-    app.setApplicationVersion(egret::EGRET_VERSION_STRING.data());                // NOLINT(*-static-accessed-through-instance)
-    app.setWindowIcon(QIcon(":/app_icon/assets/favicon/favicon_1024.png")); // NOLINT(*-static-accessed-through-instance)
-
+    CustomMessageHandler::setOutputTarget("./logs/qdebug_output.log");
+    CustomMessageHandler::install();
     egret::AsyncLogger &logger{egret::AsyncLogger::instance()};
-    logger.setLogFilePath("./logs/egret_physics_debug.log");
+    logger.setLogFilePath("./logs/async_logger.log");
     logger.setMaxFileSize(20 * 1024 * 1024); // 20 MB
     logger.setMaxBackupFiles(10);
     logger.setOutputToConsole(true);
     logger.setOutputToFile(true);
+
+
+    app.setApplicationName(EGRET_PHYSICS_APPLICATION_NAME);                 // NOLINT(*-static-accessed-through-instance)
+    app.setApplicationDisplayName(EGRET_PHYSICS_APPLICATION_DISPLAY_NAME);  // NOLINT(*-static-accessed-through-instance)
+    app.setApplicationVersion(egret::EGRET_VERSION_STRING.data());                // NOLINT(*-static-accessed-through-instance)
+    app.setWindowIcon(QIcon(":/app_icon/assets/favicon/favicon_1024.png")); // NOLINT(*-static-accessed-through-instance)
+    
 
     LOG_INFO_LITERAL("程序启动");
 
