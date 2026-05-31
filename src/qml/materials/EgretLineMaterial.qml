@@ -1,5 +1,5 @@
 /**
- * @file        SpringLineMaterial.qml
+ * @file        EgretLineMaterial.qml
  * @brief       弹簧螺旋线条自定义材质
  * @details     使用 Unshaded 模式渲染 LineStrip 图元，避免标准材质对线图元的错误光照计算。
  *              通过 lineColor 属性控制线条颜色。
