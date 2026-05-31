@@ -43,6 +43,12 @@ namespace egret
         return m_physicalEntities;
     }
 
+    void ConstraintsBase::applyConstraintForces(double dt)
+    {
+        std::ignore = dt;
+        // 默认空实现，力型约束（如 Spring）重写此方法
+    }
+
     void ConstraintsBase::setEnabled(bool enabled)
     {
         m_enabled = enabled;

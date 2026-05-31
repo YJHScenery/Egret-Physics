@@ -320,12 +320,6 @@ ColumnLayout {
                                     ? Math.max(40, Math.min(15, Math.ceil(entityDist * 0.05)))
                                     : 0
 
-                                Component.onCompleted: {
-                                    console.log(curveOffset);
-                                    console.log(constraintConstraintLength);
-                                    console.log(slackRatio);
-                                    console.log(slackCurve)
-                                }
 
                                 Repeater3D {
                                     model: constraintNode.sphereCount
@@ -348,11 +342,6 @@ ColumnLayout {
                                         // （内层 delegate 的作用域中无法访问外层模型的角色属性）
                                         property real curveOffset: constraintNode.curveOffset
 
-                                        Component.onCompleted: {
-                                            console.log("inner curveOffset =", curveOffset);
-                                            console.log("inner t =", t);
-                                            console.log("inner sphereCount =", constraintNode.sphereCount);
-                                        }
 
                                         property var controlPt: midPt.plus(
                                             perpDir.times(curveOffset))

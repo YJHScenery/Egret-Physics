@@ -145,6 +145,17 @@ namespace egret
         void updateExternalForces(SolverSceneSnapshotBase &scene) const;
 
         /**
+         * @brief 第 1.5 阶段：应用约束力（如弹簧力）到实体力累加器。
+         * @details 在 updateExternalForces 之后、积分之前调用。
+         *          力型约束（Spring 等）通过此接口将约束力注入实体，
+         *          与场的力一起在积分阶段被处理。
+         * @param scene 可变场景快照。
+         * @param dt 固定步长。
+         * @param stats 可变步骤统计。
+         */
+        void applyConstraintForces(SolverSceneSnapshotBase &scene, double dt, SolverStats &stats) const;
+
+        /**
          * @brief 第 2 阶段：生成广相位候选对。
          * @param scene 场景快照。
          * @param pairs 输出候选对。

@@ -34,6 +34,7 @@
 #include "uuid_generator.h"
 #include "constraints/connecting_line.h"
 #include "constraints/simple_pendulum.h"
+#include "constraints/spring.h"
 
 namespace egret
 {
@@ -494,16 +495,12 @@ namespace egret
             item.positionA = {posA.y(), posA.z(), posA.x()};
             item.positionB = {posB.y(), posB.z(), posB.x()};
 
-            // 通过 dynamic_cast 获取 ConnectingLine 的约束长度
-            // 对于其他约束类型，计算两端实体之间的实际距离作为回退
-            const auto* connectingLine = dynamic_cast<const ConnectingLine*>(constraint);
-            if (connectingLine != nullptr)
+            // 通过基类虚函数 getReferenceLength() 获取约束参考长度
+            // ConnectingLine 返回 m_length，Spring 返回 m_restLength
+            // 若无参考长度（=0），用两端实际距离作为回退
+            item.constraintLength = constraint->getReferenceLength();
+            if (item.constraintLength <= 0.0)
             {
-                item.constraintLength = connectingLine->getLength();
-            }
-            else
-            {
-                // 其他约束类型：用两端实际距离作为长度
                 item.constraintLength = (posB - posA).norm();
             }
 
@@ -763,6 +760,28 @@ namespace egret
         };
 
         return registerConstraint(name, simplePendulum);
+    }
+
+    std::uint64_t WorldSceneManager::createSpring(const std::string& name,
+                                                  const double stiffness, const double restLength,
+                                                  const std::uint64_t entityAId,
+                                                  const std::uint64_t entityBId)
+    {
+        BodyRecord* bodyA = findBody(entityAId);
+        BodyRecord* bodyB = findBody(entityBId);
+
+        if (bodyA == nullptr || bodyB == nullptr ||
+            bodyA->entity == nullptr || bodyB->entity == nullptr)
+        {
+            return 0;
+        }
+
+        auto spring = std::make_shared<Spring>(stiffness, restLength,
+                                               bodyA->entity.get(),
+                                               bodyB->entity.get(),
+                                               UuidGenerator::instance().generate());
+
+        return registerConstraint(name, spring);
     }
 
     ConstraintsBase* WorldSceneManager::getConstraint(const std::uint64_t id)

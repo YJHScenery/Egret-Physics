@@ -111,6 +111,7 @@ namespace egret
 
         updateBodyInertiaCache(scene);
         updateExternalForces(scene);
+        applyConstraintForces(scene, dt, result.stats);
 
         std::vector<SolverBodyPair> pairs;
         std::vector<SolverContactConstraint> constraints;
@@ -228,6 +229,23 @@ namespace egret
                 //     qDebug() << "Position: " << pos.x() << pos.y() << pos.z();
                 // }
             }
+        }
+    }
+
+    void Solver::applyConstraintForces(SolverSceneSnapshotBase& scene,
+                                       const double dt, SolverStats& stats) const
+    {
+        std::ignore = stats;
+        const auto constraints = scene.getConstraints();
+
+        for (ConstraintsBase* constraint : constraints)
+        {
+            if (constraint == nullptr || !constraint->isEnabled())
+            {
+                continue;
+            }
+
+            constraint->applyConstraintForces(dt);
         }
     }
 
