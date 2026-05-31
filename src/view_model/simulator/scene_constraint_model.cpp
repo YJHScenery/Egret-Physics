@@ -23,7 +23,7 @@ namespace magic_enum::customize
     struct enum_range<egret::SceneConstraintModel::ConstraintRole>
     {
         static constexpr int min = Qt::UserRole;
-        static constexpr int max = 290;
+        static constexpr int max = Qt::UserRole + 16;
     };
 }
 

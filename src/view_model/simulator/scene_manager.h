@@ -30,6 +30,7 @@
 
 #include "scene_body_model.h"
 #include "scene_constraint_model.h"
+#include "scene_surface_model.h"
 #include "world_scene_manager.h"
 #include <QQuaternion>
 
@@ -83,6 +84,8 @@ namespace egret
 
         Q_PROPERTY(SceneConstraintModel *constraintModel READ constraintModel CONSTANT)
 
+        Q_PROPERTY(SceneSurfaceModel *surfaceModel READ surfaceModel CONSTANT)
+
     public:
         /** 默认构造。 */
         explicit SceneManagerViewModel(QObject* parent = nullptr);
@@ -122,6 +125,9 @@ namespace egret
         /** QML 直接使用的约束列表模型。 */
         [[nodiscard]] SceneConstraintModel* constraintModel();
 
+        /** QML 直接使用的曲面列表模型。 */
+        [[nodiscard]] SceneSurfaceModel* surfaceModel();
+
         /** 开始运行。 */
         Q_INVOKABLE void play();
 
@@ -158,12 +164,12 @@ namespace egret
          * @param planeZ 目标平面 z 值。
          * @return 包含 ok/x/y/z/error 的映射结果。
          */
-        Q_INVOKABLE [[nodiscard]] QVariantMap mapScreenToWorldOnPlane(double screenX,
-                                                                      double screenY,
-                                                                      double viewportWidth,
-                                                                      double viewportHeight,
-                                                                      const QVariantMap& cameraState,
-                                                                      double planeZ) const;
+        Q_INVOKABLE [[nodiscard]] static QVariantMap mapScreenToWorldOnPlane(double screenX,
+                                                                             double screenY,
+                                                                             double viewportWidth,
+                                                                             double viewportHeight,
+                                                                             const QVariantMap& cameraState,
+                                                                             double planeZ);
 
         /**
          * @brief 开始拖拽指定实体。
@@ -261,6 +267,11 @@ namespace egret
         void refreshConstraintModel();
 
         /**
+         * @brief 将模型层曲面快照刷新到 Qt 列表模型。
+         */
+        void refreshSurfaceModel();
+
+        /**
          * @brief 执行单次固定步长推进的内部函数。
          * @param emitFrameSignal 是否在完成后发出 frameAdvanced 信号。
          */
@@ -279,14 +290,14 @@ namespace egret
         void setRunning(bool running);
 
         /** 从相机状态构建拾取射线。 */
-        [[nodiscard]] bool buildPickRay(double screenX,
+        static [[nodiscard]] bool buildPickRay(double screenX,
                                         double screenY,
                                         double viewportWidth,
                                         double viewportHeight,
                                         const QVariantMap& cameraState,
                                         Eigen::Vector3d* origin,
                                         Eigen::Vector3d* direction,
-                                        QString* error = nullptr) const;
+                                        QString* error = nullptr) ;
 
         /** 射线与 z=planeZ 平面的交点。 */
         [[nodiscard]] static bool intersectRayWithPlaneZ(const Eigen::Vector3d& rayOrigin,
@@ -348,6 +359,9 @@ namespace egret
 
         /** QML 可直接使用的约束模型。 */
         SceneConstraintModel m_constraintModel;
+
+        /** QML 可直接使用的曲面模型。 */
+        SceneSurfaceModel m_surfaceModel;
 
         /** 模型层世界管理器。 */
         std::unique_ptr<WorldSceneManager> m_world;

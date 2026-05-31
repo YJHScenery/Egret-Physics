@@ -117,6 +117,7 @@ namespace egret
         rebuildDemoWorld();
         refreshBodyModel();
         refreshConstraintModel();
+        refreshSurfaceModel();
         m_frameClock.start();
     }
 
@@ -363,6 +364,11 @@ namespace egret
         return &m_constraintModel;
     }
 
+    SceneSurfaceModel* SceneManagerViewModel::surfaceModel()
+    {
+        return &m_surfaceModel;
+    }
+
     void SceneManagerViewModel::play()
     {
         if (m_running) {
@@ -406,6 +412,7 @@ namespace egret
         rebuildDemoWorld();
         refreshBodyModel();
         refreshConstraintModel();
+        refreshSurfaceModel();
 
         m_simTime = 0.0;
         m_stepCount = 0;
@@ -432,7 +439,7 @@ namespace egret
                                                                const double viewportWidth,
                                                                const double viewportHeight,
                                                                const QVariantMap& cameraState,
-                                                               const double planeZ) const
+                                                               const double planeZ)
     {
         QVariantMap result{};
         Eigen::Vector3d rayOrigin{};
@@ -656,7 +663,7 @@ namespace egret
             {id1, id2, id3} // 初始实体
         );
 
-
+        m_surfaceModel.setPlaneExtent(2000.0);
         m_entityCount = static_cast<int>(m_world->getBodyCount());
     }
 
@@ -669,7 +676,7 @@ namespace egret
 
         QList<SceneBodyVisualItem> items;
         const std::vector<SceneRenderItem> renderItems = m_world->buildRenderItems();
-        items.reserve(renderItems.size());
+        items.reserve(static_cast<qsizetype>(renderItems.size()));
 
         for (const SceneRenderItem& renderItem : renderItems) {
             SceneBodyVisualItem item{};
@@ -756,7 +763,7 @@ namespace egret
 
         QList<SceneConstraintVisualItem> items;
         const std::vector<SceneConstraintRenderItem> renderItems = m_world->buildConstraintRenderItems();
-        items.reserve(renderItems.size());
+        items.reserve(static_cast<qsizetype>(renderItems.size()));
 
         for (const SceneConstraintRenderItem& renderItem : renderItems) {
             SceneConstraintVisualItem item{};
@@ -785,6 +792,18 @@ namespace egret
         m_constraintModel.setItems(items);
     }
 
+    void SceneManagerViewModel::refreshSurfaceModel()
+    {
+        if (m_world == nullptr) {
+            m_surfaceModel.clear();
+            return;
+        }
+
+        const std::vector<SceneSurfaceRenderItem> renderItems =
+            m_world->buildSurfaceRenderItems();
+        m_surfaceModel.setItems(renderItems);
+    }
+
     void SceneManagerViewModel::advanceFixedStep(const bool emitFrameSignal)
     {
         if (m_world == nullptr) {
@@ -800,6 +819,7 @@ namespace egret
 
         refreshBodyModel();
         refreshConstraintModel();
+        refreshSurfaceModel();
         emit simTimeChanged();
         emit stepCountChanged();
         emit entityCountChanged();
@@ -837,7 +857,7 @@ namespace egret
                                              const QVariantMap& cameraState,
                                              Eigen::Vector3d* origin,
                                              Eigen::Vector3d* direction,
-                                             QString* error) const
+                                             QString* error)
     {
         if (origin == nullptr || direction == nullptr) {
             if (error != nullptr) {
