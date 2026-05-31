@@ -363,9 +363,11 @@ ColumnLayout {
                                     visible: constraintKind === 1 && slackRatio < 0.9
 
                                     geometry: BezierCurveGeometry {
-                                        pointA: constraintNode.renderPosA
-                                        controlPoint: constraintNode.controlPt
-                                        pointB: constraintNode.renderPosB
+                                        controlPoints: [
+                                            constraintNode.renderPosA,
+                                            constraintNode.controlPt,
+                                            constraintNode.renderPosB
+                                        ]
                                         segments: constraintNode.curveSegments
                                     }
 

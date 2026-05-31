@@ -40,8 +40,9 @@ include_directories(
         src/model/solver
         src/model/scene
         src/model/physics
-        src/model/physics/surface
-        src/model/physics/curve
+        src/model/geometry
+        src/model/geometry/surface
+        src/model/geometry/curve
         src/model/physics/rigid
         src/model/physics/field
         src/model/physics/rigid/shape
@@ -91,21 +92,23 @@ set(CPP_FILES
         src/utils/io/logger.h
         src/utils/language/cpp_property.cpp
 
-        src/model/physics/surface/surface_base.h
-        src/model/physics/surface/surface_base.cpp
-        src/model/physics/surface/surface_plane.h
-        src/model/physics/surface/surface_plane.cpp
-        src/model/physics/surface/surface_bezier.h
-        src/model/physics/surface/surface_bezier.cpp
-        src/model/physics/surface/surface_cylindrical.h
-        src/model/physics/surface/surface_cylindrical.cpp
+        src/model/geometry/surface/surface_base.h
+        src/model/geometry/surface/surface_base.cpp
+        src/model/geometry/surface/surface_plane.h
+        src/model/geometry/surface/surface_plane.cpp
+        src/model/geometry/surface/surface_bezier.h
+        src/model/geometry/surface/surface_bezier.cpp
+        src/model/geometry/surface/surface_cylindrical.h
+        src/model/geometry/surface/surface_cylindrical.cpp
 
-        src/model/physics/curve/curve_base.h
-        src/model/physics/curve/curve_base.cpp
-        src/model/physics/curve/curve_bezier.h
-        src/model/physics/curve/curve_bezier.cpp
-        src/model/physics/curve/curve_elliptical_arc.h
-        src/model/physics/curve/curve_elliptical_arc.cpp
+        src/model/geometry/curve/curve_base.h
+        src/model/geometry/curve/curve_base.cpp
+        src/model/geometry/curve/curve_bezier.h
+        src/model/geometry/curve/curve_bezier.cpp
+        src/model/geometry/curve/curve_conic_section.h
+        src/model/geometry/curve/curve_conic_section.cpp
+        src/model/geometry/curve/curve_helix.h
+        src/model/geometry/curve/curve_helix.cpp
 
         src/model/physics/physics_utils.h
         src/model/physics/rigid/particle.cpp

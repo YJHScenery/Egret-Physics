@@ -62,7 +62,7 @@
 #include "surface_bezier.h"
 #include "surface_cylindrical.h"
 #include "curve_bezier.h"
-#include "curve_elliptical_arc.h"
+#include "curve_conic_section.h"
 #include "constants.h"
 
 #include "uuid_generator.h"
@@ -699,16 +699,17 @@ namespace egret
         // 贝塞尔曲线在 XY 平面内画弧，方向沿 Z 轴挤压
         // 法线 N = C'(t) × Z 将指向 XY 平面的外侧
         std::vector<Eigen::Vector3d> bezierCPs2 = {
-            {400,   0, 0},
-            {500,  80, 0},
-            {600, -80, 0},
-            {700,   0, 0}
+            {400,   10, 10},
+            {500,  80, 10},
+            {600, -80, 10},
+            {700,   10, 10}
         };
         auto bezierCurve2 = std::make_unique<CurveBezier>(bezierCPs2);
         auto bezierCyl = std::make_unique<SurfaceCylindrical>(
             std::move(bezierCurve2),
-            Eigen::Vector3d{0, 100, 30});  // 沿 Z 方向挤压 100 个单位
+            Eigen::Vector3d{10, 100, 30});  // 沿 Z 方向挤压 100 个单位
 
+        
         // 在贝塞尔柱面上方生成测试球体
         std::uint64_t id8 = m_world->spawnSphere("bc_b1", {450, 10, 400}, {0, 0, 0}, 10, 10);
         std::uint64_t id9 = m_world->spawnSphere("bc_b2", {550, 10, 350}, {0, 0, 0}, 10, 10);
@@ -725,10 +726,11 @@ namespace egret
         // ============================================================
         // 创建一个半椭圆弧：中心在 (750, 0, 0)，半长轴 80 沿 X 方向，半短轴 60 沿 Y 方向
         // 起始角 0，扫略角 π（半椭圆）
-        auto ellArc = std::make_unique<CurveEllipticalArc>(
-            Eigen::Vector3d{750, 0, 0},        // 中心
-            Eigen::Vector3d{80, 0, 0},         // 半长轴（X 方向，长度 80）
-            Eigen::Vector3d{0, 60, 0},         // 半短轴（Y 方向，长度 60）
+        auto ellArc = std::make_unique<CurveConicSection>(
+            ConicType::Ellipse,
+            Eigen::Vector3d{750, 10, 10},        // 中心
+            Eigen::Vector3d{80, 10, 10},         // 半长轴（X 方向，长度 80）
+            Eigen::Vector3d{10, 60, 10},         // 半短轴（Y 方向，长度 60）
             0.0,                               // 起始角
             egret::PI                          // 扫略角（半椭圆）
         );
