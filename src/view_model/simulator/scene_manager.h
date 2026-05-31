@@ -28,9 +28,9 @@
 
 #include <memory>
 
-#include "scene_body_model.h"
-#include "scene_constraint_model.h"
-#include "scene_surface_model.h"
+#include "visual_item/scene_body_model.h"
+#include "visual_item/scene_constraint_model.h"
+#include "visual_item/scene_surface_model.h"
 #include "world_scene_manager.h"
 #include <QQuaternion>
 

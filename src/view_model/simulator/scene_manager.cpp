@@ -59,6 +59,9 @@
 #include "magic_enum.hpp"
 #include "surface_plane.h"
 #include "support_surface.h"
+#include "surface_bezier.h"
+#include "surface_cylinder.h"
+#include "surface_sphere.h"
 
 #include "uuid_generator.h"
 
@@ -664,6 +667,80 @@ namespace egret
         );
 
         m_surfaceModel.setPlaneExtent(2000.0);
+
+        // === 创建 Bezier 曲面 SupportSurface 用于测试 ===
+        // 4x4 控制点网格，形成一个中心隆起的缓坡曲面
+        // 偏移到 (300, -150, 0) 处，避免与地面平面重叠
+        using CP = std::array<std::array<Eigen::Vector3d, 4>, 4>;
+        CP bezierCP = {{
+            {{Eigen::Vector3d{  0,   0, 0}, Eigen::Vector3d{100,   0, 10},
+              Eigen::Vector3d{200,   0, 10}, Eigen::Vector3d{300,   0,  0}}},
+            {{Eigen::Vector3d{  0, 100, 10}, Eigen::Vector3d{100, 100, 60},
+              Eigen::Vector3d{200, 100, 80}, Eigen::Vector3d{300, 100, 10}}},
+            {{Eigen::Vector3d{  0, 200, 10}, Eigen::Vector3d{100, 200, 80},
+              Eigen::Vector3d{200, 200, 60}, Eigen::Vector3d{300, 200, 10}}},
+            {{Eigen::Vector3d{  0, 300,  0}, Eigen::Vector3d{100, 300, 10},
+              Eigen::Vector3d{200, 300, 10}, Eigen::Vector3d{300, 300,  0}}}
+        }};
+
+        // 整体偏移到场景中的目标位置
+        const Eigen::Vector3d bezierOffset{200, -150, 100};
+        for (auto& row : bezierCP) {
+            for (auto& cp : row) {
+                cp += bezierOffset;
+            }
+        }
+
+        // 在 Bezier 曲面上方生成两个测试球体
+        std::uint64_t id4 = m_world->spawnSphere("b1", {300, -50, 500}, {0, 0, 0}, 10, 10);
+        std::uint64_t id5 = m_world->spawnSphere("b2", {250, 100, 450}, {0, 0, 0}, 10, 10);
+
+        auto bezier = std::make_unique<SurfaceBezier>(bezierCP);
+        m_world->createSupportSurface(
+            "BezierHill",
+            std::move(bezier),
+            0.6,            // 恢复系数 0.6
+            {id4, id5}      // 注册到这个曲面的实体
+        );
+
+        // === 创建球面 SupportSurface 用于测试 ===
+        // 位于 (-400, 300, 0)，半径 120
+        const Eigen::Vector3d sphereCenter{-400, 300, 0};
+        auto sphereSurf = std::make_unique<SurfaceSphere>(
+            120.0,
+            Transform(sphereCenter));
+
+        // 在球面上方生成两个测试球体
+        std::uint64_t id6 = m_world->spawnSphere("s1", {-400, 300, 400}, {0, 0, 0}, 10, 10);
+        std::uint64_t id7 = m_world->spawnSphere("s2", {-340, 400, 350}, {0, 0, 0}, 10, 10);
+
+        m_world->createSupportSurface(
+            "SphereSurface",
+            std::move(sphereSurf),
+            0.8,            // 恢复系数 0.8
+            {id6, id7}
+        );
+
+        // === 创建圆柱面 SupportSurface 用于测试 ===
+        // 位于 (400, 300, 0)，半径 80，高度 200，完整圆柱
+        const Eigen::Vector3d cylinderCenter{400, 300, 0};
+        auto cylinderSurf = std::make_unique<SurfaceCylinder>(
+            80.0,
+            200.0,
+            2.0 * egret::PI,
+            Transform(cylinderCenter));
+
+        // 在圆柱面上方生成两个测试球体
+        std::uint64_t id8 = m_world->spawnSphere("c1", {400, 300, 500}, {0, 0, 0}, 10, 10);
+        std::uint64_t id9 = m_world->spawnSphere("c2", {460, 360, 450}, {0, 0, 0}, 10, 10);
+
+        m_world->createSupportSurface(
+            "CylinderSurface",
+            std::move(cylinderSurf),
+            0.7,            // 恢复系数 0.7
+            {id8, id9}
+        );
+
         m_entityCount = static_cast<int>(m_world->getBodyCount());
     }
 

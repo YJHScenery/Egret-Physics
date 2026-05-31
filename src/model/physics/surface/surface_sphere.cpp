@@ -146,20 +146,28 @@ namespace egret
             const Eigen::Vector3d cp = closestPoint(sphereCenter);
             const Eigen::Vector3d n = normal(sphereCenter);
 
-            // 球心到椭球面的有符号距离
+            // 球心到椭球面的有符号距离（归一化值：|local|/R - 1）
+            // 注意：signedDistance() 返回的是归一化距离，不是世界单位
+            // 世界空间中的实际有符号距离 = sd * m_radii.x()（对均匀球体）
             const double sd = signedDistance(sphereCenter);
 
-            // 如果球心到曲面的距离小于球半径，则发生碰撞
-            // 注意：sd > 0 表示球心在外部，sd < 0 表示球心在内部
-            // 碰撞条件：|sd| < sphereRadius (球心在曲面附近的球半径范围内)
-            // 更精确：球表面与曲面相交
-            if (sd > sphereRadius) {
+            // 将球体半径也转换到归一化空间再做比较
+            // 碰撞条件：球表面到曲面表面有接触
+            // 归一化后的球体半径 = sphereRadius / m_radii.x()
+            // 碰撞发生当 sd < sphereRadius / m_radii.x()
+            const double normBodyRadius = sphereRadius / m_radii.x();
+            if (sd > normBodyRadius) {
                 // 球完全在曲面外部，没有碰撞
                 return false;
             }
 
-            // 计算穿透深度
-            const double penetrationDepth = sphereRadius - sd;
+            // 计算穿透深度（世界单位）
+            // 推导：penetration = R + r - d, 其中 d = R*(sd + 1)
+            //       = R + r - R*(sd + 1) = r - R*sd
+            // 验证：d = R+r(sd=r/R):   r - r = 0 ✓
+            //       d = R  (sd=0):     r - 0 = r ✓
+            //       d = R-r(sd=-r/R):  r + r = 2r ✓
+            const double penetrationDepth = sphereRadius - sd * m_radii.x();
 
             ContactPoint contact;
             contact.position = cp;
@@ -169,7 +177,32 @@ namespace egret
             return true;
         }
 
-        // 对其他形状，回退到基类默认实现
-        return SurfaceBase::collide(shape, shapeTransform, manifold);
+        // 对其他形状，回退到基类默认实现（需修正 signedDistance 的无量纲问题）
+        {
+            const Eigen::Vector3d comWorld =
+                shapeTransform.transformPointToWorld(shape->getCenterOfMass());
+
+            const Eigen::Vector3d cp = closestPoint(comWorld);
+            const Eigen::Vector3d n = normal(comWorld);
+
+            const Eigen::Vector3d deepestWorld = shape->support(-n, shapeTransform);
+            const double sd = signedDistance(deepestWorld);
+
+            if (sd >= 0.0) {
+                return false;
+            }
+
+            // signedDistance() 返回归一化值（无量纲：|local|/R - 1），
+            // 需转换为世界单位。对均匀球体：实际穿透 = -sd * m_radii.x() 为精确值。
+            // 对椭球体近似使用 x 半轴作为缩放因子。
+            const double actualPenetration = -sd * m_radii.x();
+
+            ContactPoint contact;
+            contact.position = cp;
+            contact.normal = n;
+            contact.penetration = actualPenetration;
+            manifold.push_back(contact);
+            return true;
+        }
     }
 } // egret

@@ -290,16 +290,47 @@ namespace egret
     double SurfaceCylinder::signedDistanceLocal(const Eigen::Vector3d& local) const
     {
         const double r = std::sqrt(local.x() * local.x() + local.y() * local.y());
-        const double theta = std::atan2(local.y(), local.x());
-        const double thetaNorm = theta < 0.0 ? theta + 2.0 * egret::PI : theta;
         const double z = local.z();
 
-        double dLateral = std::abs(r - m_radius);
-        double dBottom = z;
-        double dTop = m_length - z;
+        // 计算到各表面的欧几里得距离
+
+        // 1. 侧面：距离轴线的径向距离
+        //    当 z 在 [0, m_length] 范围内时，距离 = |r - m_radius|
+        //    当 z 超出范围时，还需考虑 z 方向到最近端面的距离
+        double dLateral;
+        if (z < 0.0) {
+            dLateral = std::sqrt(std::abs(r - m_radius) * std::abs(r - m_radius) + z * z);
+        } else if (z > m_length) {
+            const double dz = z - m_length;
+            dLateral = std::sqrt(std::abs(r - m_radius) * std::abs(r - m_radius) + dz * dz);
+        } else {
+            dLateral = std::abs(r - m_radius);
+        }
+
+        // 2. 底部圆盘 (z=0)
+        double dBottom;
+        if (r <= m_radius) {
+            dBottom = std::abs(z);          // 垂直距离到底部
+        } else {
+            const double dr = r - m_radius;
+            dBottom = std::sqrt(dr * dr + z * z);  // 到底部边缘的欧几里得距离
+        }
+
+        // 3. 顶部圆盘 (z=m_length)
+        const double dzTop = z - m_length;
+        double dTop;
+        if (r <= m_radius) {
+            dTop = std::abs(dzTop);          // 垂直距离到顶部
+        } else {
+            const double dr = r - m_radius;
+            dTop = std::sqrt(dr * dr + dzTop * dzTop);  // 到顶部边缘的欧几里得距离
+        }
+
         double minDist = std::min(dLateral, std::min(dBottom, dTop));
 
         if (!m_isFullCylinder) {
+            const double theta = std::atan2(local.y(), local.x());
+            const double thetaNorm = theta < 0.0 ? theta + 2.0 * egret::PI : theta;
             if (thetaNorm < 0.0 || thetaNorm > m_thetaMax) {
                 const double dThetaStart = thetaNorm;
                 const double dThetaEnd = std::abs(thetaNorm - m_thetaMax);
@@ -309,10 +340,15 @@ namespace egret
             }
         }
 
+        // 判断点是否在圆柱内部
         bool inside = true;
         if (r > m_radius) inside = false;
         if (z < 0.0 || z > m_length) inside = false;
-        if (!m_isFullCylinder && (thetaNorm < 0.0 || thetaNorm > m_thetaMax)) inside = false;
+        if (!m_isFullCylinder) {
+            const double theta = std::atan2(local.y(), local.x());
+            const double thetaNorm = theta < 0.0 ? theta + 2.0 * egret::PI : theta;
+            if (thetaNorm < 0.0 || thetaNorm > m_thetaMax) inside = false;
+        }
 
         return inside ? -minDist : minDist;
     }

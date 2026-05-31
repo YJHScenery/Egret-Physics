@@ -138,6 +138,13 @@ namespace egret
 
         /** 预计算的幂基系数矩阵。m_coeffs[pi][pj] 对应 u^pi * v^pj 的系数向量。 */
         std::array<std::array<Eigen::Vector3d, 4>, 4> m_coeffs{};
+
+        /**
+         * @brief 最后一次 closestPoint 调用的参数值缓存。
+         * @details 避免 collide/signedDistance 重复调用 findParameters 时产生歧义。
+         */
+        mutable double m_lastU{0.0};
+        mutable double m_lastV{0.0};
     };
 } // egret
 

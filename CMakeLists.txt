@@ -181,12 +181,12 @@ set(CPP_FILES
 
         src/view_model/simulator/scene_manager.cpp
         src/view_model/simulator/scene_manager.h
-        src/view_model/simulator/scene_body_model.h
-        src/view_model/simulator/scene_body_model.cpp
-        src/view_model/simulator/scene_constraint_model.h
-        src/view_model/simulator/scene_constraint_model.cpp
-        src/view_model/simulator/scene_surface_model.h
-        src/view_model/simulator/scene_surface_model.cpp
+        src/view_model/simulator/visual_item/scene_body_model.h
+        src/view_model/simulator/visual_item/scene_body_model.cpp
+        src/view_model/simulator/visual_item/scene_constraint_model.h
+        src/view_model/simulator/visual_item/scene_constraint_model.cpp
+        src/view_model/simulator/visual_item/scene_surface_model.h
+        src/view_model/simulator/visual_item/scene_surface_model.cpp
         src/view_model/editor/model_manager.cpp
         src/view_model/editor/model_manager.h
         src/view_model/serialize/model_item_data.cpp
