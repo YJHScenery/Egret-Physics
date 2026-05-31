@@ -7,15 +7,8 @@
  *              约束器中。约束器在求解阶段检测实体与曲面之间的碰撞，并施加法向冲量
  *              （带恢复系数）和摩擦力（预留接口）。
  *
- *              架构决策：独立约束器 + 自维护实体列表
- *              ---------------------------------------
- *              不将曲面集成到求解器的广/窄相位流水线中，原因：
- *              1. 曲面是解析几何体，不是带有 Shape 的物理实体
- *              2. 曲面可能作用于任意动态实体集，不适合写死在 m_physicalEntities 中
- *              3. 表面的碰撞测试（surface-vs-shape）与 shape-vs-shape 碰撞本质不同
- *
- *              因此 SupportSurface 维护自己的实体指针列表 m_registeredEntities，
- *              用户通过 registerEntity / unregisterEntity 管理，在求解时遍历检测。
+ *              实体管理通过基类 ConstraintsBase 的 registerEntity / unregisterEntity
+ *              接口统一实现，所有受约束实体存储在 m_registeredEntities 中。
  *
  * @author      作者姓名 <作者邮箱>
  * @date        2026-06-01
@@ -99,16 +92,6 @@ namespace egret
         [[nodiscard]] ConstraintType getType() const override;
 
         /**
-         * @brief 获取所有受约束的实体。
-         * @details 返回 m_registeredEntities（注册列表）和 m_physicalEntities（基类列表）的并集。
-         * @return 受约束实体的指针列表。
-         */
-        [[nodiscard]] std::vector<PhysicalEntity*> getConstrainedEntities() override;
-
-        /** @copydoc getConstrainedEntities() */
-        [[nodiscard]] const std::vector<PhysicalEntity*>& getConstrainedEntities() const override;
-
-        /**
          * @brief 应用速度修正（冲量阶段）。
          * @details 遍历注册的实体，检测与曲面的碰撞，对碰撞实体施加法向冲量。
          *          冲量计算基于恢复系数和接触点相对速度。
@@ -172,36 +155,6 @@ namespace egret
         {
             m_surface = std::move(newSurface);
         }
-
-        // ==================== 实体注册管理 ====================
-
-        /**
-         * @brief 注册一个实体到约束器。
-         * @details 实体被注册后，每次求解步都会检测其与曲面的碰撞。
-         *          同一实体可重复注册（幂等）。
-         * @param entity 要注册的物理实体指针。
-         */
-        void registerEntity(PhysicalEntity* entity);
-
-        /**
-         * @brief 从约束器中移除实体。
-         * @param entityId 要移除的实体 ID。
-         * @return 如果实体之前已注册则返回 true。
-         */
-        bool unregisterEntity(std::uint64_t entityId);
-
-        /**
-         * @brief 检查实体是否已注册。
-         * @param entityId 实体 ID。
-         * @return 如果已注册则返回 true。
-         */
-        [[nodiscard]] bool isRegistered(std::uint64_t entityId) const;
-
-        /**
-         * @brief 获取注册实体的数量。
-         * @return 注册实体数量。
-         */
-        [[nodiscard]] std::size_t getRegisteredEntityCount() const { return m_registeredEntities.size(); }
 
         // ==================== 物理参数 ====================
 
@@ -281,17 +234,6 @@ namespace egret
     private:
         /** 曲面所有权。 */
         std::unique_ptr<SurfaceBase> m_surface;
-
-        /**
-         * 注册的实体指针列表（弱引用，不拥有所有权）。
-         * 使用 set 实现 O(1) 的注册/注销/查询。
-         */
-        std::unordered_set<PhysicalEntity*> m_registeredEntities;
-
-        /**
-         * 缓存：从实体 ID 到指针的映射，用于快速注销。
-         */
-        std::unordered_map<std::uint64_t, PhysicalEntity*> m_entityIdMap;
 
         /**
          * 恢复系数。负值表示使用实体自身的恢复系数。

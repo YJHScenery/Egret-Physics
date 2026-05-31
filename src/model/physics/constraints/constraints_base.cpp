@@ -16,6 +16,8 @@
 
 #include "constraints_base.h"
 
+#include "physical_entity.h"
+
 namespace egret
 {
     ConstraintsBase::ConstraintsBase()
@@ -33,14 +35,36 @@ namespace egret
         return ConstraintType::Abstract;
     }
 
-    std::vector<PhysicalEntity*> ConstraintsBase::getConstrainedEntities()
+    const std::unordered_set<PhysicalEntity*>& ConstraintsBase::getConstrainedEntities() const
     {
-        return m_physicalEntities;
+        return m_registeredEntities;
     }
 
-    const std::vector<PhysicalEntity*>& ConstraintsBase::getConstrainedEntities() const
+    void ConstraintsBase::registerEntity(PhysicalEntity* entity)
     {
-        return m_physicalEntities;
+        if (entity == nullptr) {
+            return;
+        }
+        const auto [it, inserted] = m_registeredEntities.insert(entity);
+        if (inserted) {
+            m_entityIdMap[entity->getId()] = entity;
+        }
+    }
+
+    bool ConstraintsBase::unregisterEntity(std::uint64_t entityId)
+    {
+        auto it = m_entityIdMap.find(entityId);
+        if (it == m_entityIdMap.end()) {
+            return false;
+        }
+        m_registeredEntities.erase(it->second);
+        m_entityIdMap.erase(it);
+        return true;
+    }
+
+    bool ConstraintsBase::isRegistered(std::uint64_t entityId) const
+    {
+        return m_entityIdMap.find(entityId) != m_entityIdMap.end();
     }
 
     void ConstraintsBase::applyConstraintForces(double dt)

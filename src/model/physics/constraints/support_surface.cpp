@@ -26,63 +26,6 @@ namespace egret
         return ConstraintType::SupportSurface;
     }
 
-    std::vector<PhysicalEntity*> SupportSurface::getConstrainedEntities()
-    {
-        std::vector<PhysicalEntity*> result;
-        result.reserve(m_registeredEntities.size() + m_physicalEntities.size());
-
-        // 添加注册实体
-        for (auto* entity : m_registeredEntities) {
-            if (entity != nullptr) {
-                result.push_back(entity);
-            }
-        }
-
-        // 添加基类列表中的实体（去重）
-        for (auto* entity : m_physicalEntities) {
-            if (entity != nullptr && m_registeredEntities.find(entity) == m_registeredEntities.end()) {
-                result.push_back(entity);
-            }
-        }
-
-        return result;
-    }
-
-    const std::vector<PhysicalEntity*>& SupportSurface::getConstrainedEntities() const
-    {
-        // 注意：基类的 m_physicalEntities 可能为空（我们主要使用 m_registeredEntities）
-        return m_physicalEntities;
-    }
-
-    void SupportSurface::registerEntity(PhysicalEntity* entity)
-    {
-        if (entity == nullptr) {
-            return;
-        }
-
-        const auto [it, inserted] = m_registeredEntities.insert(entity);
-        if (inserted) {
-            m_entityIdMap[entity->getId()] = entity;
-        }
-    }
-
-    bool SupportSurface::unregisterEntity(std::uint64_t entityId)
-    {
-        auto it = m_entityIdMap.find(entityId);
-        if (it == m_entityIdMap.end()) {
-            return false;
-        }
-
-        m_registeredEntities.erase(it->second);
-        m_entityIdMap.erase(it);
-        return true;
-    }
-
-    bool SupportSurface::isRegistered(std::uint64_t entityId) const
-    {
-        return m_entityIdMap.find(entityId) != m_entityIdMap.end();
-    }
-
     void SupportSurface::applyConstraintForces(double dt)
     {
         if (!m_enabled || m_surface == nullptr || m_penaltyStiffness <= 0.0) {
@@ -272,16 +215,13 @@ namespace egret
     }
 
     SupportSurface::SupportSurface(const SupportSurface& other)
+        : PhysicsAbstract(other)
+        , ConstraintsBase(other)
+        , m_surface(other.m_surface->clone())
+        , m_restitution(other.m_restitution)
+        , m_frictionCoeff(other.m_frictionCoeff)
+        , m_penaltyStiffness(other.m_penaltyStiffness)
     {
-        m_id = other.m_id;
-        m_physicalEntities = other.m_physicalEntities;
-        m_enabled = other.m_enabled;
-        m_surface = other.m_surface->clone();
-        m_registeredEntities = other.m_registeredEntities;
-        m_entityIdMap = other.m_entityIdMap;
-        m_restitution = other.m_restitution;
-        m_frictionCoeff = other.m_frictionCoeff;
-        m_penaltyStiffness = other.m_penaltyStiffness;
     }
 
     SupportSurface& SupportSurface::operator=(const SupportSurface& other)
@@ -290,12 +230,9 @@ namespace egret
             return *this;
         }
 
-        m_id = other.m_id;
-        m_physicalEntities = other.m_physicalEntities;
-        m_enabled = other.m_enabled;
+        PhysicsAbstract::operator=(other);
+        ConstraintsBase::operator=(other);
         m_surface = other.m_surface->clone();
-        m_registeredEntities = other.m_registeredEntities;
-        m_entityIdMap = other.m_entityIdMap;
         m_restitution = other.m_restitution;
         m_frictionCoeff = other.m_frictionCoeff;
         m_penaltyStiffness = other.m_penaltyStiffness;

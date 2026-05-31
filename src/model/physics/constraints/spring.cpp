@@ -24,10 +24,11 @@ namespace egret
                    const std::uint64_t id)
         : ConstraintsBase(id)
         , m_stiffness(stiffness)
+        , m_entityA(entityA)
+        , m_entityB(entityB)
     {
-        m_physicalEntities.reserve(2);
-        m_physicalEntities.push_back(entityA);
-        m_physicalEntities.push_back(entityB);
+        registerEntity(entityA);
+        registerEntity(entityB);
 
         // 若未指定原长（≤0），取两实体的初始距离
         if (restLength <= 0.0)
@@ -55,13 +56,13 @@ namespace egret
     {
         std::ignore = dt;
 
-        if (m_physicalEntities.size() < 2)
+        if (m_entityA == nullptr || m_entityB == nullptr)
         {
             return;
         }
 
-        PhysicalEntity* entityA = m_physicalEntities[0];
-        PhysicalEntity* entityB = m_physicalEntities[1];
+        PhysicalEntity* entityA = m_entityA;
+        PhysicalEntity* entityB = m_entityB;
 
         if (entityA == nullptr || entityB == nullptr)
         {
@@ -99,13 +100,13 @@ namespace egret
 
     double Spring::computeConstraintError() const
     {
-        if (m_physicalEntities.size() < 2)
+        if (m_entityA == nullptr || m_entityB == nullptr)
         {
             return 0.0;
         }
 
-        const PhysicalEntity* entityA = m_physicalEntities[0];
-        const PhysicalEntity* entityB = m_physicalEntities[1];
+        const PhysicalEntity* entityA = m_entityA;
+        const PhysicalEntity* entityB = m_entityB;
 
         if (entityA == nullptr || entityB == nullptr)
         {
