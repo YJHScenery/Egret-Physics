@@ -28,7 +28,7 @@ namespace egret
 
     ConstraintType ConstraintsBase::getType() const
     {
-        return ConstraintType::ConnectingLine;
+        return ConstraintType::Abstract;
     }
 
     std::vector<PhysicalEntity*> ConstraintsBase::getConstrainedEntities()

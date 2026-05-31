@@ -21,18 +21,35 @@
 #include <memory>
 #include <vector>
 #include "physics_abstract.h"
+#include <magic_enum.hpp>
 
-enum class ConstraintType : std::uint64_t
+namespace egret
 {
-    Base = 0xFFFFFFAA00000000,
-    ConnectingLine = 0xFFFFFFAA00000001,
-    SimplePendulum = 0xFFFFFFAA00000002,
-    ConnectingRod = 0xFFFFFFAA00000003,
-    SlidingRail = 0xFFFFFFAA00000004,
-};
+    enum class ConstraintType : std::uint64_t
+    {
+        Unknown = 0,
 
-namespace egret {
+        ConnectingLine, SimplePendulum, ConnectingRod, SlidingRail,
 
+        Abstract = 127,
+
+        Other = 255,
+    };
+}
+
+namespace magic_enum::customize
+{
+    template <>
+    struct enum_range<egret::ConstraintType>
+    {
+        static constexpr int min = 0;
+        static constexpr int max = 255;
+    };
+}
+
+
+namespace egret
+{
     class PhysicalEntity;
     /**
      * @brief       约束器抽象基类，定义所有约束器的公共接口。
@@ -47,7 +64,8 @@ namespace egret {
      * @remark      约束器不是线程安全的，多线程访问需要外部同步
      * @see         ConnectingLine, SimplePendulum, ConnectingRod, SlidingRail, PhysicalEntity
      */
-    class ConstraintsBase: virtual public PhysicsAbstract {
+    class ConstraintsBase : virtual public PhysicsAbstract
+    {
     public:
         explicit ConstraintsBase(std::uint64_t id);
 
@@ -83,7 +101,6 @@ namespace egret {
         [[nodiscard]] bool isEnabled() const;
 
     protected:
-
         ConstraintsBase(const ConstraintsBase& other) = default;
 
         ConstraintsBase& operator=(const ConstraintsBase& other) = default;
@@ -96,7 +113,6 @@ namespace egret {
 
         std::uint64_t m_id;
     };
-
 } // egret
 
 #endif //EGRET_PHYSICS_CONSTRAINTS_BASE_H
