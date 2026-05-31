@@ -64,6 +64,9 @@ namespace egret
         Q_PROPERTY(int subdivisions READ subdivisions WRITE setSubdivisions
                    NOTIFY subdivisionsChanged)
 
+        Q_PROPERTY(double planeExtent READ planeExtent WRITE setPlaneExtent
+                   NOTIFY planeExtentChanged)
+
     public:
         /**
          * @brief 构造曲面几何体。
@@ -97,9 +100,22 @@ namespace egret
          */
         void setSubdivisions(int subs);
 
+        /** @brief 获取无限大平面的显示范围。 */
+        [[nodiscard]] double planeExtent() const { return m_planeExtent; }
+
+        /**
+         * @brief 设置无限大平面的显示范围并重建几何体。
+         * @details 仅对 SurfacePlane 有效，其他曲面类型忽略此值。
+         * @param extent 平面边长，最小值 1.0。
+         */
+        void setPlaneExtent(double extent);
+
     signals:
         /** 细分精度变化信号。 */
         void subdivisionsChanged();
+
+        /** 平面范围变化信号。 */
+        void planeExtentChanged();
 
     private:
         /**
@@ -114,6 +130,12 @@ namespace egret
 
         /** 细分精度（默认 16）。 */
         int m_subdivisions{16};
+
+        /**
+         * 无限大平面的显示范围（边长），仅对 SurfacePlane 有效。
+         * 默认值 200.0 与 TessellationConfig::planeExtent 的默认值一致。
+         */
+        double m_planeExtent{200.0};
     };
 } // egret
 

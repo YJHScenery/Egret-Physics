@@ -375,6 +375,26 @@ ColumnLayout {
                                 }
                             }
                         }
+
+                        // ---- 曲面渲染（SupportSurface） ----
+                        // 从 sceneController.surfaceModel 获取曲面网格数据
+                        // 坐标转换已在 SurfaceGeometry::rebuild() 中完成
+                        // (x,y,z) → (y,z,x)，与 buildRenderItems() 保持一致
+                        Repeater3D {
+                            model: sceneController.surfaceModel
+
+                            delegate: Model {
+                                geometry: surfaceGeometry
+
+                                materials: PrincipledMaterial {
+                                    baseColor: surfaceColor
+                                    roughness: 0.3
+                                    metalness: 0.1
+                                    opacity: 0.5
+                                    alphaMode: PrincipledMaterial.Blend
+                                }
+                            }
+                        }
                     }
                 }
 

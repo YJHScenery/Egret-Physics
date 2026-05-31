@@ -31,6 +31,7 @@
 #include "shape_base.h"
 #include "solver.h"
 #include "surface_base.h"
+#include "scene_surface_render_item.h"
 #include "transform.h"
 
 namespace egret
@@ -455,6 +456,14 @@ namespace egret
          * @return 约束渲染条目列表。
          */
         [[nodiscard]] std::vector<SceneConstraintRenderItem> buildConstraintRenderItems() const;
+
+        /**
+         * @brief 生成供 ViewModel 渲染的曲面轻量化数据快照。
+         * @details 遍历世界中的所有约束器，找出 SupportSurface 类型的约束，
+         *          clone 其内部的 SurfaceBase 曲面，供 ViewModel 层转换为 QML 可渲染的网格。
+         * @return 曲面渲染条目列表。
+         */
+        [[nodiscard]] std::vector<SceneSurfaceRenderItem> buildSurfaceRenderItems() const;
 
         /**
          * @brief 查询当前实体数量。

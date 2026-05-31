@@ -165,6 +165,7 @@ set(CPP_FILES
         src/model/solver/solver_types.h
         src/model/scene/world_scene_manager.h
         src/model/scene/world_scene_manager.cpp
+        src/model/scene/scene_surface_render_item.h
 
         src/model/strategy/broad_phase_strategy/broad_phase_strategy.h
         src/model/strategy/broad_phase_strategy/brute_force_broad_phase.h
@@ -184,6 +185,8 @@ set(CPP_FILES
         src/view_model/simulator/scene_body_model.cpp
         src/view_model/simulator/scene_constraint_model.h
         src/view_model/simulator/scene_constraint_model.cpp
+        src/view_model/simulator/scene_surface_model.h
+        src/view_model/simulator/scene_surface_model.cpp
         src/view_model/editor/model_manager.cpp
         src/view_model/editor/model_manager.h
         src/view_model/serialize/model_item_data.cpp

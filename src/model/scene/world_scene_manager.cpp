@@ -69,7 +69,6 @@ namespace egret
             // 未找到参数或数据不足，返回 fallback
             return fallback;
         }
-
     }
 
     WorldSceneManager::WorldSceneManager(std::unique_ptr<SolverBase> solver) : m_solver(std::move(solver))
@@ -107,7 +106,8 @@ namespace egret
 
         auto record = std::make_unique<BodyRecord>();
         record->name = name;
-        record->entity = unique_ptr_cast<PhysicalEntity, PhysicsAbstract>(std::move(entity->clone(UuidGenerator::instance().generate())));
+        record->entity = unique_ptr_cast<PhysicalEntity, PhysicsAbstract>(
+            std::move(entity->clone(UuidGenerator::instance().generate())));
         record->entity->setShape(std::move(shape));
         m_bodies.push_back(std::move(record));
         rebuildSolverCaches();
@@ -388,7 +388,9 @@ namespace egret
             item.velocity = body->entity->getVelocity();
             item.angularVelocity = body->entity->getAngularVelocity();
 
-            item.label = body->name.empty() ? (std::string("Body ") + std::to_string(body->entity->getId())) : body->name;
+            item.label = body->name.empty()
+                             ? (std::string("Body ") + std::to_string(body->entity->getId()))
+                             : body->name;
             item.color = body->entity->getMass() <= 0.0 ? "#6C7A89" : "#3EC5FF";
 
             const Transform& transform = body->entity->getTransform();
@@ -458,10 +460,8 @@ namespace egret
         std::vector<SceneConstraintRenderItem> items;
         items.reserve(m_constraints.size());
 
-        for (const auto& constraintRecord : m_constraints)
-        {
-            if (constraintRecord == nullptr || constraintRecord->constraint == nullptr)
-            {
+        for (const auto& constraintRecord : m_constraints) {
+            if (constraintRecord == nullptr || constraintRecord->constraint == nullptr) {
                 continue;
             }
 
@@ -469,8 +469,7 @@ namespace egret
             const auto& entities = constraint->getConstrainedEntities();
 
             // 目前只支持连接两个实体的约束（如 ConnectingLine、SimplePendulum）
-            if (entities.size() < 2)
-            {
+            if (entities.size() < 2) {
                 continue;
             }
 
@@ -478,8 +477,7 @@ namespace egret
             const PhysicalEntity* entityA = *it++;
             const PhysicalEntity* entityB = *it;
 
-            if (entityA == nullptr || entityB == nullptr)
-            {
+            if (entityA == nullptr || entityB == nullptr) {
                 continue;
             }
 
@@ -501,8 +499,7 @@ namespace egret
             // ConnectingLine 返回 m_length，Spring 返回 m_restLength
             // 若无参考长度（=0），用两端实际距离作为回退
             item.constraintLength = constraint->getReferenceLength();
-            if (item.constraintLength <= 0.0)
-            {
+            if (item.constraintLength <= 0.0) {
                 item.constraintLength = (posB - posA).norm();
             }
 
@@ -512,18 +509,15 @@ namespace egret
             const double slackRatio = (item.constraintLength > 0.0)
                                           ? (item.currentDistance / item.constraintLength)
                                           : 1.0;
-            if (slackRatio < 0.85)
-            {
+            if (slackRatio < 0.85) {
                 // 松弛：淡橙黄色
                 item.color = "#E8B84B";
             }
-            else if (slackRatio < 1.0)
-            {
+            else if (slackRatio < 1.0) {
                 // 接近绷紧：介于橙黄和亮青之间
                 item.color = "#7FCCD4";
             }
-            else
-            {
+            else {
                 // 绷紧：亮青色
                 item.color = "#4FC3F7";
             }
@@ -531,6 +525,45 @@ namespace egret
             item.label = constraintRecord->name.empty()
                              ? (std::string("Constraint ") + std::to_string(constraint->getId()))
                              : constraintRecord->name;
+
+            items.push_back(std::move(item));
+        }
+
+        return items;
+    }
+
+    std::vector<SceneSurfaceRenderItem> WorldSceneManager::buildSurfaceRenderItems() const
+    {
+        std::vector<SceneSurfaceRenderItem> items;
+        items.reserve(m_constraints.size());
+
+        for (const auto& constraintRecord : m_constraints) {
+            if (constraintRecord == nullptr || constraintRecord->constraint == nullptr) {
+                continue;
+            }
+
+            const ConstraintsBase* constraint = constraintRecord->constraint.get();
+
+            // 只处理 SupportSurface 类型的约束
+            if (constraint->getType() != ConstraintType::SupportSurface) {
+                continue;
+            }
+
+            const auto* supportSurface = dynamic_cast<const SupportSurface*>(constraint);
+            
+            if (supportSurface == nullptr) {
+                LOG_WARN_LITERAL("Null Pointer Got: [const SupportSurface* supportSurface]");
+                continue;
+            }
+            const SurfaceBase* surface = supportSurface->getSurface();
+            if (surface == nullptr) {
+                continue;
+            }
+
+            SceneSurfaceRenderItem item{};
+            item.constraintId = constraint->getId();
+            item.surfaceType = static_cast<std::uint32_t>(surface->getType());
+            item.surface = surface->clone();
 
             items.push_back(std::move(item));
         }
@@ -743,7 +776,8 @@ namespace egret
         }
 
         auto constraint = std::make_shared<ConnectingLine>(
-            length, startBody->entity.get(), endBody->entity.get(), UuidGenerator::instance().generate(), turningPositions);
+            length, startBody->entity.get(), endBody->entity.get(), UuidGenerator::instance().generate(),
+            turningPositions);
 
         return registerConstraint(name, constraint);
     }
@@ -773,8 +807,7 @@ namespace egret
         BodyRecord* bodyB = findBody(entityBId);
 
         if (bodyA == nullptr || bodyB == nullptr ||
-            bodyA->entity == nullptr || bodyB->entity == nullptr)
-        {
+            bodyA->entity == nullptr || bodyB->entity == nullptr) {
             return 0;
         }
 
