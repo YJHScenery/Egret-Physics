@@ -23,6 +23,6 @@ CustomMaterial {
 
     shadingMode: CustomMaterial.Unshaded
 
-    vertexShader: "qrc:/shaders/shaders/spring_line.vert"
-    fragmentShader: "qrc:/shaders/shaders/spring_line.frag"
+    vertexShader: "qrc:/shaders/shaders/simple_line.vert"
+    fragmentShader: "qrc:/shaders/shaders/simple_line.frag"
 }

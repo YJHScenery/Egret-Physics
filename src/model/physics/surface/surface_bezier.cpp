@@ -18,6 +18,67 @@
 
 namespace egret
 {
+    TessellatedMesh SurfaceBezier::tessellate(
+        const TessellationConfig& config) const
+    {
+        TessellatedMesh mesh;
+
+        const int segs = std::max(2, config.subdivisions);
+        const double invSegs = 1.0 / static_cast<double>(segs);
+        const int vertsPerSide = segs + 1;
+
+        // 预分配
+        mesh.vertices.reserve(vertsPerSide * vertsPerSide);
+        mesh.normals.reserve(vertsPerSide * vertsPerSide);
+
+        // 生成顶点和法线
+        for (int j = 0; j < vertsPerSide; ++j) {
+            const double v = static_cast<double>(j) * invSegs;
+            for (int i = 0; i < vertsPerSide; ++i) {
+                const double u = static_cast<double>(i) * invSegs;
+
+                // 曲面位置
+                const Eigen::Vector3d pos = evaluate(u, v);
+
+                // 法线 = ∂S/∂u × ∂S/∂v
+                const Eigen::Vector3d su = deriveU(u, v);
+                const Eigen::Vector3d sv = deriveV(u, v);
+                Eigen::Vector3d n = su.cross(sv);
+                const double nLen = n.norm();
+                if (nLen > 1e-20) {
+                    n /= nLen;
+                } else {
+                    n = Eigen::Vector3d::UnitX();
+                }
+
+                mesh.vertices.push_back(pos);
+                mesh.normals.push_back(n);
+            }
+        }
+
+        // 生成索引
+        mesh.indices.reserve(segs * segs * 6);
+        for (int j = 0; j < segs; ++j) {
+            for (int i = 0; i < segs; ++i) {
+                const std::uint32_t idx00 = static_cast<std::uint32_t>(j * vertsPerSide + i);
+                const std::uint32_t idx10 = static_cast<std::uint32_t>(j * vertsPerSide + i + 1);
+                const std::uint32_t idx01 = static_cast<std::uint32_t>((j + 1) * vertsPerSide + i);
+                const std::uint32_t idx11 = static_cast<std::uint32_t>((j + 1) * vertsPerSide + i + 1);
+
+                // 三角形 1
+                mesh.indices.push_back(idx00);
+                mesh.indices.push_back(idx01);
+                mesh.indices.push_back(idx10);
+                // 三角形 2
+                mesh.indices.push_back(idx10);
+                mesh.indices.push_back(idx01);
+                mesh.indices.push_back(idx11);
+            }
+        }
+
+        return mesh;
+    }
+
     SurfaceBezier::SurfaceBezier(
         const std::array<std::array<Eigen::Vector3d, 4>, 4>& controlPoints)
         : m_controlPoints(controlPoints)

@@ -92,6 +92,18 @@ namespace egret
         /** @brief 获取平面法线。 */
         [[nodiscard]] const Eigen::Vector3d& getNormal() const { return m_normal; }
 
+        /**
+         * @brief 将无限大平面离散化为有限矩形网格。
+         * @details 在锚点周围生成一个边长为 planeExtent 的方形网格：
+         *          - 每边分为 subdivisions 段
+         *          - 网格在平面内对齐，法线方向保持不变
+         *          - 无限大平面无法真正渲染，此方法提供一个可视化的有限表示
+         * @param config 细分配置（subdivisions 控制网格密度，planeExtent 控制大小）。
+         * @return 三角形网格数据。
+         */
+        [[nodiscard]] TessellatedMesh tessellate(
+            const TessellationConfig& config) const override;
+
     private:
         /** 平面上任意一点。 */
         Eigen::Vector3d m_anchor;

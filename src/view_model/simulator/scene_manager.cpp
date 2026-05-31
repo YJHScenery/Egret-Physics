@@ -652,7 +652,7 @@ namespace egret
         m_world->createSupportSurface(
             "Ground",
             std::move(plane),
-            0.3, // 恢复系数
+            1.0, // 恢复系数
             {id1, id2, id3} // 初始实体
         );
 
