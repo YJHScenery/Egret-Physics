@@ -20,6 +20,20 @@
 
 namespace egret
 {
+	RigidBody::RigidBody(const double mass, const std::uint64_t id): PhysicsAbstract(id), PhysicalEntity(mass, id)
+	{
+
+	}
+
+	RigidBody::RigidBody(const Eigen::Vector3d& position, Eigen::Vector3d speed, double mass, std::uint64_t id): PhysicsAbstract(id), PhysicalEntity(position, speed, mass, id)
+	{
+	}
+
+	RigidBody::RigidBody(const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass,
+		std::vector<Force> forces, std::uint64_t id): PhysicsAbstract(id), PhysicalEntity(position, speed, mass, forces, id)
+	{
+	}
+
 	void RigidBody::applyForce(const double time)
 	{
 		if (m_mass <= 0.0)

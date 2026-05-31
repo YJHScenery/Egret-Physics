@@ -18,11 +18,13 @@
 
 namespace egret
 {
-    ConstraintsBase::ConstraintsBase() : m_id(0)
+    ConstraintsBase::ConstraintsBase()
+        : PhysicsAbstract(0), m_id(0)
     {
     }
 
-    ConstraintsBase::ConstraintsBase(std::uint64_t id) : m_id(id)
+    ConstraintsBase::ConstraintsBase(std::uint64_t id)
+        : PhysicsAbstract(id), m_id(id)
     {
     }
 

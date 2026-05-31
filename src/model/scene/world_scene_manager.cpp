@@ -451,6 +451,94 @@ namespace egret
         return items;
     }
 
+    std::vector<SceneConstraintRenderItem> WorldSceneManager::buildConstraintRenderItems() const
+    {
+        std::vector<SceneConstraintRenderItem> items;
+        items.reserve(m_constraints.size());
+
+        for (const auto& constraintRecord : m_constraints)
+        {
+            if (constraintRecord == nullptr || constraintRecord->constraint == nullptr)
+            {
+                continue;
+            }
+
+            const ConstraintsBase* constraint = constraintRecord->constraint.get();
+            const std::vector<PhysicalEntity*>& entities = constraint->getConstrainedEntities();
+
+            // 目前只支持连接两个实体的约束（如 ConnectingLine、SimplePendulum）
+            if (entities.size() < 2)
+            {
+                continue;
+            }
+
+            const PhysicalEntity* entityA = entities[0];
+            const PhysicalEntity* entityB = entities[1];
+
+            if (entityA == nullptr || entityB == nullptr)
+            {
+                continue;
+            }
+
+            const Eigen::Vector3d posA = entityA->getPositionCR();
+            const Eigen::Vector3d posB = entityB->getPositionCR();
+
+            SceneConstraintRenderItem item{};
+            item.id = constraint->getId();
+            item.kind = static_cast<std::uint32_t>(constraint->getType());
+            item.entityIdA = entityA->getId();
+            item.entityIdB = entityB->getId();
+
+            // 坐标转换：从物理坐标系 (x,y,z) 到 Quick3D 渲染坐标系 (y,z,x)
+            // 与 buildRenderItems() 中的转换保持一致
+            item.positionA = {posA.y(), posA.z(), posA.x()};
+            item.positionB = {posB.y(), posB.z(), posB.x()};
+
+            // 通过 dynamic_cast 获取 ConnectingLine 的约束长度
+            // 对于其他约束类型，计算两端实体之间的实际距离作为回退
+            const auto* connectingLine = dynamic_cast<const ConnectingLine*>(constraint);
+            if (connectingLine != nullptr)
+            {
+                item.constraintLength = connectingLine->getLength();
+            }
+            else
+            {
+                // 其他约束类型：用两端实际距离作为长度
+                item.constraintLength = (posB - posA).norm();
+            }
+
+            item.currentDistance = (posB - posA).norm();
+
+            // 约束颜色：松弛时为淡橙黄色，绷紧时为亮青色
+            const double slackRatio = (item.constraintLength > 0.0)
+                                          ? (item.currentDistance / item.constraintLength)
+                                          : 1.0;
+            if (slackRatio < 0.85)
+            {
+                // 松弛：淡橙黄色
+                item.color = "#E8B84B";
+            }
+            else if (slackRatio < 1.0)
+            {
+                // 接近绷紧：介于橙黄和亮青之间
+                item.color = "#7FCCD4";
+            }
+            else
+            {
+                // 绷紧：亮青色
+                item.color = "#4FC3F7";
+            }
+
+            item.label = constraintRecord->name.empty()
+                             ? (std::string("Constraint ") + std::to_string(constraint->getId()))
+                             : constraintRecord->name;
+
+            items.push_back(std::move(item));
+        }
+
+        return items;
+    }
+
     std::size_t WorldSceneManager::getBodyCount() const
     {
         return m_bodies.size();

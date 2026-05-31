@@ -29,6 +29,7 @@
 #include <memory>
 
 #include "scene_body_model.h"
+#include "scene_constraint_model.h"
 #include "world_scene_manager.h"
 #include <QQuaternion>
 
@@ -80,17 +81,19 @@ namespace egret
 
         Q_PROPERTY(SceneBodyModel *bodyModel READ bodyModel CONSTANT)
 
+        Q_PROPERTY(SceneConstraintModel *constraintModel READ constraintModel CONSTANT)
+
     public:
         /** 默认构造。 */
-        explicit SceneManagerViewModel(QObject *parent = nullptr);
+        explicit SceneManagerViewModel(QObject* parent = nullptr);
 
         /** 默认析构。 */
         ~SceneManagerViewModel() override = default;
 
         // 从 json 创建 PhysicalEntity 等实例以供仿真器使用
-        static SceneRecord createSceneFromJsonString(const QString &jsonString);
+        static SceneRecord createSceneFromJsonString(const QString& jsonString);
 
-        static SceneRecord createSceneFromJsonFile(const QString &fileName);
+        static SceneRecord createSceneFromJsonFile(const QString& fileName);
 
         /** 当前是否运行。 */
         [[nodiscard]] bool isRunning() const;
@@ -114,7 +117,10 @@ namespace egret
         [[nodiscard]] bool isDragActive() const;
 
         /** QML 直接使用的实体列表模型。 */
-        [[nodiscard]] SceneBodyModel *bodyModel();
+        [[nodiscard]] SceneBodyModel* bodyModel();
+
+        /** QML 直接使用的约束列表模型。 */
+        [[nodiscard]] SceneConstraintModel* constraintModel();
 
         /** 开始运行。 */
         Q_INVOKABLE void play();
@@ -132,9 +138,9 @@ namespace egret
         Q_INVOKABLE void reset();
 
         /** 从 JSON 文件中加载新的场景 */
-        Q_INVOKABLE void loadSceneFronJsonFile(const QString &fileName);
+        Q_INVOKABLE void loadSceneFronJsonFile(const QString& fileName);
 
-        Q_INVOKABLE void loadSceneFromJsonString(const QString &jsonString);
+        Q_INVOKABLE void loadSceneFromJsonString(const QString& jsonString);
 
         // /** 生成一个默认球体。 */
         // Q_INVOKABLE void spawnSphere();
@@ -156,7 +162,7 @@ namespace egret
                                                                       double screenY,
                                                                       double viewportWidth,
                                                                       double viewportHeight,
-                                                                      const QVariantMap &cameraState,
+                                                                      const QVariantMap& cameraState,
                                                                       double planeZ) const;
 
         /**
@@ -167,8 +173,8 @@ namespace egret
                                        double screenY,
                                        double viewportWidth,
                                        double viewportHeight,
-                                       const QVariantMap &cameraState,
-                                       const QString &mode = "xy_plane");
+                                       const QVariantMap& cameraState,
+                                       const QString& mode = "xy_plane");
 
         /**
          * @brief 更新当前拖拽。
@@ -177,22 +183,22 @@ namespace egret
                                         double screenY,
                                         double viewportWidth,
                                         double viewportHeight,
-                                        const QVariantMap &cameraState);
+                                        const QVariantMap& cameraState);
 
         /**
          * @brief 结束拖拽。
          */
         Q_INVOKABLE void endBodyDrag();
 
-        Q_INVOKABLE [[nodiscard]] QVector3D buildRenderScale(std::uint32_t type,
-                                                             const QVector3D &modelScale,
-                                                             const QVector3D &boxSize_optional,
-                                                             double radius_optional, double height_optional,
-                                                             double length_optional);
+        [[nodiscard]] Q_INVOKABLE static QVector3D buildRenderScale(std::uint32_t type,
+                                                                    const QVector3D& modelScale,
+                                                                    const QVector3D& boxSize_optional,
+                                                                    double radius_optional, double height_optional,
+                                                                    double length_optional);
 
-        Q_INVOKABLE [[nodiscard]] QVector3D buildRenderPosition(const QVector3D &position);
+        [[nodiscard]]Q_INVOKABLE static QVector3D buildRenderPosition(const QVector3D& position);
 
-        Q_INVOKABLE [[nodiscard]] QQuaternion buildRenderRotation(const QQuaternion &rotation);
+        [[nodiscard]]Q_INVOKABLE static QQuaternion buildRenderRotation(const QQuaternion& rotation);
 
     signals:
         /** 运行状态变化。 */
@@ -246,6 +252,11 @@ namespace egret
         void refreshBodyModel();
 
         /**
+         * @brief 将模型层约束快照刷新到 Qt 列表模型。
+         */
+        void refreshConstraintModel();
+
+        /**
          * @brief 执行单次固定步长推进的内部函数。
          * @param emitFrameSignal 是否在完成后发出 frameAdvanced 信号。
          */
@@ -268,17 +279,17 @@ namespace egret
                                         double screenY,
                                         double viewportWidth,
                                         double viewportHeight,
-                                        const QVariantMap &cameraState,
-                                        Eigen::Vector3d *origin,
-                                        Eigen::Vector3d *direction,
-                                        QString *error = nullptr) const;
+                                        const QVariantMap& cameraState,
+                                        Eigen::Vector3d* origin,
+                                        Eigen::Vector3d* direction,
+                                        QString* error = nullptr) const;
 
         /** 射线与 z=planeZ 平面的交点。 */
-        [[nodiscard]] static bool intersectRayWithPlaneZ(const Eigen::Vector3d &rayOrigin,
-                                                         const Eigen::Vector3d &rayDirection,
+        [[nodiscard]] static bool intersectRayWithPlaneZ(const Eigen::Vector3d& rayOrigin,
+                                                         const Eigen::Vector3d& rayDirection,
                                                          double planeZ,
-                                                         Eigen::Vector3d *hitPoint,
-                                                         QString *error = nullptr);
+                                                         Eigen::Vector3d* hitPoint,
+                                                         QString* error = nullptr);
 
         /** 更新拖拽状态并发信号。 */
         void setDragActive(bool active);
@@ -330,6 +341,9 @@ namespace egret
 
         /** QML 可直接使用的实体模型。 */
         SceneBodyModel m_bodyModel;
+
+        /** QML 可直接使用的约束模型。 */
+        SceneConstraintModel m_constraintModel;
 
         /** 模型层世界管理器。 */
         std::unique_ptr<WorldSceneManager> m_world;
