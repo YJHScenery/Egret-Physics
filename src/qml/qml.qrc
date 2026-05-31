@@ -23,6 +23,6 @@
         <file>shaders/spring_line.frag</file>
     </qresource>
     <qresource prefix="/materials">
-        <file>materials/SpringLineMaterial.qml</file>
+        <file>materials/EgretLineMaterial.qml</file>
     </qresource>
 </RCC>

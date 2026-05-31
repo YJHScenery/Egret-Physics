@@ -313,7 +313,7 @@ ColumnLayout {
 
                                 // ---- 弹簧螺旋线（仅 Spring 类型） ----
                                 // 使用 SpringGeometry 生成等距等宽螺旋线（LineStrip 图元）
-                                // 通过 SpringLineMaterial 渲染干净的单色线条
+                                // 通过 EgretLineMaterial 渲染干净的单色线条
                                 // 几何体沿 Z 轴从 0 → 1，因此定位到 A，scale.z 拉伸后自然覆盖到 B
                                 Model {
                                     visible: constraintKind == 5
@@ -333,7 +333,7 @@ ColumnLayout {
                                     scale: Qt.vector3d(springCoilScale, springCoilScale, constraintNode.entityDist)
                                     rotation: worldRoot.rotationFromZTo(constraintNode.direction)
 
-                                    materials: SpringLineMaterial {
+                                    materials: EgretLineMaterial {
                                         lineColor: constraintColor
                                     }
                                 }
