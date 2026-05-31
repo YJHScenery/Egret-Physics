@@ -111,6 +111,7 @@ namespace egret
 
         rebuildDemoWorld();
         refreshBodyModel();
+        refreshConstraintModel();
         m_frameClock.start();
     }
 
@@ -377,6 +378,11 @@ namespace egret
         return &m_bodyModel;
     }
 
+    SceneConstraintModel *SceneManagerViewModel::constraintModel()
+    {
+        return &m_constraintModel;
+    }
+
     void SceneManagerViewModel::play()
     {
         if (m_running)
@@ -423,6 +429,7 @@ namespace egret
         endBodyDrag();
         rebuildDemoWorld();
         refreshBodyModel();
+        refreshConstraintModel();
 
         m_simTime = 0.0;
         m_stepCount = 0;
@@ -587,6 +594,7 @@ namespace egret
         }
 
         refreshBodyModel();
+        refreshConstraintModel();
         emit entityChanged();
         return true;
     }
@@ -609,19 +617,19 @@ namespace egret
                                                       const QVector3D &boxSize_optional, double radius_optional,
                                                       double height_optional, double length_optional)
     {
-        return TransformTransformer::instance().buildQuick3DRenderScale(type, modelScale, boxSize_optional,
+        return TransformTransformer::buildQuick3DRenderScale(type, modelScale, boxSize_optional,
                                                                         radius_optional, height_optional,
                                                                         length_optional);
     }
 
     QVector3D SceneManagerViewModel::buildRenderPosition(const QVector3D &position)
     {
-        return TransformTransformer::instance().buildQuick3DRenderPosition(position);
+        return TransformTransformer::buildQuick3DRenderPosition(position);
     }
 
     QQuaternion SceneManagerViewModel::buildRenderRotation(const QQuaternion &rotation)
     {
-        return TransformTransformer::instance().buildQuick3DRenderRotation(rotation);
+        return TransformTransformer::buildQuick3DRenderRotation(rotation);
     }
 
     void SceneManagerViewModel::onFrameTick()
@@ -661,17 +669,17 @@ namespace egret
         //
         m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
         //
-        auto record = createSceneFromJsonFile("C:/Users/jehor/Desktop/1.json");
-        m_world->registerScene(record);
+        // auto record = createSceneFromJsonFile("C:/Users/jehor/Desktop/1.json");
+        // m_world->registerScene(record);
 
         auto generateBox{
             [&]()
             {
-                m_world->spawnBox("地面", {0.0, 0.0, -15.0}, {0.0, 0.0, 0.0}, {800.0, 600.0, 30.0}, 0.0);
-                m_world->spawnBox("地面", {0, -300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
-                m_world->spawnBox("地面", {0, 300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
-                m_world->spawnBox("地面", {400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
-                m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
+                qDebug() << m_world->spawnBox("地面", {0.0, 0.0, -50.0}, {0.0, 0.0, 0.0}, {800.0, 600.0, 30.0}, 0.0);
+                // m_world->spawnBox("地面", {0, -300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
+                // m_world->spawnBox("地面", {0, 300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
+                // m_world->spawnBox("地面", {400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
+                // m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
             }};
 
         auto generateRotationTest{
@@ -716,6 +724,21 @@ namespace egret
 
                 m_world->createSimplePendulum("simple_pendulum_test", 100, {0, 0, 500}, idBox);
             }};
+
+        // generateRotationTest();
+
+
+        std::uint64_t id1 = m_world->spawnSphere("123", {10, 0, 100}, {0, 0, 0}, 10, 10);
+        std::uint64_t id2 = m_world->spawnSphere("456", {10, 0, 200}, {0, 0, 0}, 10, 10);
+        // m_world->createConnectingLine("114514", 140, id1, id2);
+
+
+        std::uint64_t id3 = m_world->spawnSphere("123", {10, 100, 100}, {0, 0, 0}, 10, 10);
+        m_world->createSimplePendulum("1", 100, {10, 200, 100}, id3);
+
+        qDebug() << id1 << id2 << id3;
+        generateBox();
+
 
         auto generate3BodyScene{
             [&]()
@@ -821,6 +844,52 @@ namespace egret
         m_bodyModel.setItems(items);
     }
 
+    void SceneManagerViewModel::refreshConstraintModel()
+    {
+        if (m_world == nullptr)
+        {
+            m_constraintModel.clear();
+            return;
+        }
+
+        QList<SceneConstraintVisualItem> items;
+        const std::vector<SceneConstraintRenderItem> renderItems = m_world->buildConstraintRenderItems();
+        items.reserve(renderItems.size());
+
+        for (const SceneConstraintRenderItem &renderItem : renderItems)
+        {
+            SceneConstraintVisualItem item{};
+            item.id = renderItem.id;
+            item.kind = renderItem.kind;
+            item.entityIdA = renderItem.entityIdA;
+            item.entityIdB = renderItem.entityIdB;
+
+            item.positionA[0] = (float)renderItem.positionA.x();
+            item.positionA[1] = (float)renderItem.positionA.y();
+            item.positionA[2] = (float)renderItem.positionA.z();
+
+            item.positionB[0] = (float)renderItem.positionB.x();
+            item.positionB[1] = (float)renderItem.positionB.y();
+            item.positionB[2] = (float)renderItem.positionB.z();
+
+            item.constraintLength = renderItem.constraintLength;
+            item.currentDistance = renderItem.currentDistance;
+
+            item.color = QString::fromStdString(renderItem.color);
+            item.label = QString::fromStdString(renderItem.label);
+
+            qDebug() << "Constraint" << item.id
+                     << "posA:" << item.positionA[0] << item.positionA[1] << item.positionA[2]
+                     << "posB:" << item.positionB[0] << item.positionB[1] << item.positionB[2]
+                     << "len:" << item.constraintLength
+                     << "dist:" << item.currentDistance;
+
+            items.push_back(std::move(item));
+        }
+
+        m_constraintModel.setItems(items);
+    }
+
     void SceneManagerViewModel::advanceFixedStep(const bool emitFrameSignal)
     {
         if (m_world == nullptr)
@@ -836,6 +905,7 @@ namespace egret
         m_entityCount = static_cast<int>(m_world->getBodyCount());
 
         refreshBodyModel();
+        refreshConstraintModel();
         emit simTimeChanged();
         emit stepCountChanged();
         emit entityCountChanged();

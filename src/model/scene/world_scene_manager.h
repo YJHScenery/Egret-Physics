@@ -163,6 +163,45 @@ namespace egret
     };
 
     /**
+     * @brief       用于视图层渲染的约束轻量化数据快照。
+     * @details     SceneConstraintRenderItem 是用于视图层渲染的约束轻量化数据快照结构体。
+     *              该结构不包含任何拥有权，只提供渲染所需的几何与样式信息，
+     *              便于 ViewModel 层转换为 QML 可消费的数据模型。
+     *              包含约束 ID、类型、两端实体位置、约束原长、当前距离、颜色、标签等。
+     *
+     * @invariant   id 是稳定的约束标识符
+     * @see         WorldSceneManager, SceneConstraintModel
+     */
+    struct SceneConstraintRenderItem
+    {
+        /** 约束 ID。 */
+        std::uint64_t id{0};
+
+        /** 约束类型，对应 ConstraintType 枚举值。 */
+        std::uint32_t kind{0};
+
+        /** 两端实体的 ID。 */
+        std::uint64_t entityIdA{0};
+        std::uint64_t entityIdB{0};
+
+        /** 两端实体当前位置。 */
+        Eigen::Vector3d positionA{};
+        Eigen::Vector3d positionB{};
+
+        /** 约束原长。 */
+        double constraintLength{0.0};
+
+        /** 两端当前实际距离。 */
+        double currentDistance{0.0};
+
+        /** 十六进制颜色字符串，供 QML 直接使用。 */
+        std::string color;
+
+        /** 标签文本，用于调试或悬浮提示。 */
+        std::string label;
+    };
+
+    /**
      * @brief       模型层场景管理器，负责世界真相数据、时间、ID 和求解调度。
      * @details     WorldSceneManager 继承自 SolverSceneSnapshotBase，
      *              是模型层场景管理器，负责世界真相数据、时间、ID 和求解调度。
@@ -407,6 +446,14 @@ namespace egret
          * @return 渲染条目列表。
          */
         [[nodiscard]] std::vector<SceneRenderItem> buildRenderItems() const;
+
+        /**
+         * @brief 生成供 ViewModel 渲染的约束轻量化数据快照。
+         * @details 遍历世界中的所有约束器，收集其两端实体的位置、
+         *          约束原长、当前距离等信息，供 ViewModel 层转换为 QML 可消费的数据模型。
+         * @return 约束渲染条目列表。
+         */
+        [[nodiscard]] std::vector<SceneConstraintRenderItem> buildConstraintRenderItems() const;
 
         /**
          * @brief 查询当前实体数量。

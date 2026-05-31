@@ -221,6 +221,138 @@ ColumnLayout {
 
 
                         }
+
+                        // -- 约束器渲染 --
+                        // 坐标转换已在 C++ buildConstraintRenderItems() 中完成
+                        // (x,y,z) → (y,z,x)，与 buildRenderItems() 保持一致
+                        // QML 中直接使用转换后的值
+
+                        // 计算从默认 Z 轴指向目标方向的旋转四元数
+                        function rotationFromZTo(dir) {
+                            var len = dir.length();
+                            if (len < 0.0001) return Qt.quaternion(1, 0, 0, 0);
+                            dir = dir.times(1.0 / len);
+                            var forward = Qt.vector3d(0, 0, 1);
+                            var dot = forward.dotProduct(dir);
+                            if (dot > 0.9999) return Qt.quaternion(1, 0, 0, 0);
+                            if (dot < -0.9999) return Qt.quaternion(0, 0, 1, 0);
+                            var axis = forward.crossProduct(dir).normalized();
+                            var halfAngleRad = Math.acos(dot) * 0.5;
+                            var sinHalf = Math.sin(halfAngleRad);
+                            var cosHalf = Math.cos(halfAngleRad);
+                            return Qt.quaternion(
+                                cosHalf,
+                                axis.x * sinHalf,
+                                axis.y * sinHalf,
+                                axis.z * sinHalf);
+                        }
+
+                        // 计算二维平面上与方向垂直的向量（用于曲线偏移）
+                        function perpendicular2D(dir) {
+                            var len = dir.length();
+                            if (len < 0.0001) return Qt.vector3d(0, 1, 0);
+                            var perp = Qt.vector3d(-dir.y, dir.x, 0);
+                            var pLen = perp.length();
+                            if (pLen < 0.0001) {
+                                perp = Qt.vector3d(0, 0, 1);
+                                pLen = 1.0;
+                            }
+                            return perp.times(1.0 / pLen);
+                        }
+
+                        Repeater3D {
+                            model: sceneController.constraintModel
+
+                            delegate: Node {
+                                id: constraintNode
+
+                                // 约束两端位置（C++ 中已转换为渲染坐标系）
+                                property var renderPosA: Qt.vector3d(
+                                    constraintPositionA[0],
+                                    constraintPositionA[1],
+                                    constraintPositionA[2])
+                                property var renderPosB: Qt.vector3d(
+                                    constraintPositionB[0],
+                                    constraintPositionB[1],
+                                    constraintPositionB[2])
+
+                                // 方向向量与长度
+                                property var direction: renderPosB.minus(renderPosA)
+                                property var entityDist: direction.length()
+
+                                // 松弛系数：0 = 完全松弛，1 = 完全绷紧
+                                property var slackRatio: constraintConstraintLength > 0
+                                    ? Math.min(constraintCurrentDistance / constraintConstraintLength, 1.0)
+                                    : 1.0
+
+                                // 只对连接两个实体的约束可见
+                                visible: constraintKind > 0 && entityDist > 0.001
+
+                                // ---- 主体直线 ----
+                                // 使用薄盒体渲染为线段，长度为两端实体间的实际距离
+                                Model {
+                                    x: constraintNode.renderPosA.x + constraintNode.direction.x * 0.5
+                                    y: constraintNode.renderPosA.y + constraintNode.direction.y * 0.5
+                                    z: constraintNode.renderPosA.z + constraintNode.direction.z * 0.5
+
+                                    source: "#Cube"
+                                    scale: Qt.vector3d(0.004, 0.004, 0.01 * constraintNode.entityDist)
+                                    rotation: worldRoot.rotationFromZTo(constraintNode.direction)
+
+                                    materials: PrincipledMaterial {
+                                        baseColor: constraintColor
+                                        roughness: 0.35
+                                        specularAmount: 0.5
+                                    }
+                                }
+
+
+                                // ---- 松弛曲线指示器 ----
+                                // 当约束松弛时（slackRatio < 0.9），沿贝塞尔曲线渲染小圆球
+                                // 曲线控制点偏移量与松弛程度成正比
+                                property var slackCurve: slackRatio < 0.9
+                                property var curveOffset: slackCurve
+                                    ? (1.0 - slackRatio) * constraintConstraintLength * 0.35
+                                    : 0.0
+
+                                Repeater3D {
+                                    model: slackCurve
+                                        ? Math.max(5, Math.min(15, Math.ceil(constraintNode.length * 0.05)))
+                                        : 0
+
+                                    delegate: Model {
+                                        // P(t) = (1-t)²A + 2(1-t)tC + t²B
+                                        property var t: (index + 0.5) / model
+
+                                        // 控制点 = 中点 + 垂直偏移
+                                        property var midPt: constraintNode.renderPosA.plus(
+                                            constraintNode.direction.times(0.5))
+                                        property var perpDir: worldRoot.perpendicular2D(constraintNode.direction)
+                                        property var controlPt: midPt.plus(
+                                            perpDir.times(constraintNode.curveOffset))
+
+                                        // 贝塞尔插值
+                                        property var invT: 1.0 - t
+                                        property var pt: constraintNode.renderPosA.times(invT * invT)
+                                            .plus(controlPt.times(2.0 * invT * t))
+                                            .plus(constraintNode.renderPosB.times(t * t))
+
+                                        x: pt.x
+                                        y: pt.y
+                                        z: pt.z
+
+                                        source: "#Sphere"
+                                        scale: Qt.vector3d(0.012, 0.012, 0.012)
+
+                                        materials: PrincipledMaterial {
+                                            baseColor: constraintColor
+                                            roughness: 0.4
+                                            specularAmount: 0.3
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 

@@ -38,7 +38,10 @@ namespace egret
 	class RigidBody : public PhysicalEntity
 	{
 	public:
-		using PhysicalEntity::PhysicalEntity;
+		RigidBody() = default;
+		explicit RigidBody(double mass, std::uint64_t id);
+		RigidBody(const Eigen::Vector3d& position, Eigen::Vector3d speed, double mass, std::uint64_t id);
+		RigidBody(const Eigen::Vector3d &position, const Eigen::Vector3d &speed, double mass, std::vector<Force> forces, std::uint64_t id);
 
 		void applyForce(double time) override;
 

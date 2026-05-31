@@ -67,7 +67,13 @@ namespace egret
 
         void applyAngularVelocityConstraint(double dt) override;
 
-        std::unique_ptr<PhysicsAbstract> clone(std::uint64_t id) const override;
+        /**
+         * @brief 获取约束原长。
+         * @return 约束长度值。
+         */
+        [[nodiscard]] double getLength() const { return m_length; }
+
+        [[nodiscard]] std::unique_ptr<PhysicsAbstract> clone(std::uint64_t id) const override;
 
     protected:
         ConnectingLine();

@@ -20,8 +20,8 @@
 
 namespace egret
 {
-    Particle::Particle(const Eigen::Vector3d &position, const Eigen::Vector3d &speed, double mass, std::uint64_t id) : PhysicalEntity(position, speed, mass, id),
-                                                                                                     m_mass(mass)
+    Particle::Particle(const Eigen::Vector3d &position, const Eigen::Vector3d &speed, double mass, std::uint64_t id)
+        : PhysicsAbstract(id), PhysicalEntity(position, speed, mass, id), m_mass(mass)
     {
     }
 
