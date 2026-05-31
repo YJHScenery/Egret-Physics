@@ -18,4 +18,11 @@
         <file>units/SimulatorUnit.qml</file>
         <file>units/EditorUnit.qml</file>
     </qresource>
+    <qresource prefix="/shaders">
+        <file>shaders/spring_line.vert</file>
+        <file>shaders/spring_line.frag</file>
+    </qresource>
+    <qresource prefix="/materials">
+        <file>materials/SpringLineMaterial.qml</file>
+    </qresource>
 </RCC>

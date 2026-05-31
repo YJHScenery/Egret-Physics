@@ -38,6 +38,7 @@
 #include "enum_handler.h"
 #include "file_handler.h"
 #include "qdebug_handler.h"
+#include "spring_geometry.h"
 
 int main(int argc, char* argv[])
 {
@@ -81,6 +82,8 @@ int main(int argc, char* argv[])
                                                       egret::ModelManager::instance());
     qmlRegisterSingletonInstance<
         egret::EnumHandler>("EnumHandler", 1, 0, "EnumHandler", egret::EnumHandler::instance());
+
+    qmlRegisterType<egret::SpringGeometry>("EgretPhysics", 1, 0, "SpringGeometry");
 
     egret::SceneManagerViewModel sceneController;
     egret::QtComponentHelper qtHelper;

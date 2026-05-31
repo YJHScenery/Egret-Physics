@@ -22,7 +22,10 @@ import QtQuick3D 6.9
 import EnumHandler 1.0
 import ModelManager 1.0
 
+import EgretPhysics 1.0
+
 import "qrc:/components/components"
+import "qrc:/materials/materials"
 
 ColumnLayout {
     id: simulatorRoot
@@ -288,9 +291,11 @@ ColumnLayout {
                                 // 只对连接两个实体的约束可见
                                 visible: constraintKind > 0 && entityDist > 0.001
 
-                                // ---- 主体直线 ----
+                                // ---- 主体直线（非弹簧类型） ----
                                 // 使用薄盒体渲染为线段，长度为两端实体间的实际距离
                                 Model {
+                                    visible: constraintKind != 5
+
                                     x: constraintNode.renderPosA.x + constraintNode.direction.x * 0.5
                                     y: constraintNode.renderPosA.y + constraintNode.direction.y * 0.5
                                     z: constraintNode.renderPosA.z + constraintNode.direction.z * 0.5
@@ -306,8 +311,35 @@ ColumnLayout {
                                     }
                                 }
 
+                                // ---- 弹簧螺旋线（仅 Spring 类型） ----
+                                // 使用 SpringGeometry 生成等距等宽螺旋线（LineStrip 图元）
+                                // 通过 SpringLineMaterial 渲染干净的单色线条
+                                // 几何体沿 Z 轴从 0 → 1，因此定位到 A，scale.z 拉伸后自然覆盖到 B
+                                Model {
+                                    visible: constraintKind == 5
 
-                                // ---- 松弛曲线指示器 ----
+                                    // 定位到端点 A（几何体 z=0 端）
+                                    x: constraintNode.renderPosA.x
+                                    y: constraintNode.renderPosA.y
+                                    z: constraintNode.renderPosA.z
+
+                                    geometry: SpringGeometry {
+                                        coilCount: 10
+                                        segmentsPerTurn: 32
+                                    }
+
+                                    // 螺旋半径与距离成比例，长度精确匹配两端距离
+                                    property real springCoilScale: Math.max(0.2, constraintNode.entityDist * 0.15)
+                                    scale: Qt.vector3d(springCoilScale, springCoilScale, constraintNode.entityDist)
+                                    rotation: worldRoot.rotationFromZTo(constraintNode.direction)
+
+                                    materials: SpringLineMaterial {
+                                        lineColor: constraintColor
+                                    }
+                                }
+
+
+                                // ---- 松弛曲线指示器（非弹簧类型） ----
                                 // 当约束松弛时（slackRatio < 0.9），沿贝塞尔曲线渲染小圆球
                                 // 曲线控制点偏移量与松弛程度成正比
                                 property var slackCurve: slackRatio < 0.9
@@ -322,11 +354,10 @@ ColumnLayout {
 
 
                                 Repeater3D {
+                                    visible: constraintKind != 5
+
                                     model: constraintNode.sphereCount
 
-                                    Component.onCompleted: {
-                                        console.log(index)
-                                    }
 
                                     delegate: Model {
                                         // P(t) = (1-t)²A + 2(1-t)tC + t²B
