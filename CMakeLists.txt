@@ -188,6 +188,8 @@ set(CPP_FILES
         src/view/enum_handler.h
         src/view/spring_geometry.cpp
         src/view/spring_geometry.h
+        src/view/bezier_curve_geometry.cpp
+        src/view/bezier_curve_geometry.h
         src/view_model/serialize/transform_transformer.cpp
         src/view_model/serialize/transform_transformer.h
         src/utils/egret_version.h
