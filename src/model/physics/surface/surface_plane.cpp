@@ -17,6 +17,63 @@
 
 namespace egret
 {
+    TessellatedMesh SurfacePlane::tessellate(
+        const TessellationConfig& config) const
+    {
+        TessellatedMesh mesh;
+
+        const int segs = std::max(1, config.subdivisions);
+        const double halfExtent = config.planeExtent * 0.5;
+        const double invSegs = 1.0 / static_cast<double>(segs);
+
+        // 在平面内构建正交基向量 (u, v)
+        // 选择与法线不平行的参考向量
+        Eigen::Vector3d ref = Eigen::Vector3d::UnitZ();
+        if (std::abs(m_normal.dot(ref)) > 0.9) {
+            ref = Eigen::Vector3d::UnitX();
+        }
+        const Eigen::Vector3d u = m_normal.cross(ref).normalized();
+        const Eigen::Vector3d v = m_normal.cross(u).normalized();
+
+        // 顶点总数：(segs + 1) ^ 2
+        const int vertsPerSide = segs + 1;
+        mesh.vertices.reserve(vertsPerSide * vertsPerSide);
+        mesh.normals.reserve(vertsPerSide * vertsPerSide);
+
+        for (int j = 0; j < vertsPerSide; ++j) {
+            const double vy = -halfExtent + static_cast<double>(j) * config.planeExtent * invSegs;
+            for (int i = 0; i < vertsPerSide; ++i) {
+                const double vx = -halfExtent + static_cast<double>(i) * config.planeExtent * invSegs;
+                // 顶点位置：锚点 + u * vx + v * vy
+                mesh.vertices.push_back(m_anchor + u * vx + v * vy);
+                // 法线：平面法线（恒定）
+                mesh.normals.push_back(m_normal);
+            }
+        }
+
+        // 生成索引（两个三角形组成一个网格单元）
+        mesh.indices.reserve(segs * segs * 6);
+        for (int j = 0; j < segs; ++j) {
+            for (int i = 0; i < segs; ++i) {
+                const std::uint32_t idx00 = static_cast<std::uint32_t>(j * vertsPerSide + i);
+                const std::uint32_t idx10 = static_cast<std::uint32_t>(j * vertsPerSide + i + 1);
+                const std::uint32_t idx01 = static_cast<std::uint32_t>((j + 1) * vertsPerSide + i);
+                const std::uint32_t idx11 = static_cast<std::uint32_t>((j + 1) * vertsPerSide + i + 1);
+
+                // 三角形 1: (idx00, idx01, idx10)
+                mesh.indices.push_back(idx00);
+                mesh.indices.push_back(idx01);
+                mesh.indices.push_back(idx10);
+                // 三角形 2: (idx10, idx01, idx11)
+                mesh.indices.push_back(idx10);
+                mesh.indices.push_back(idx01);
+                mesh.indices.push_back(idx11);
+            }
+        }
+
+        return mesh;
+    }
+
     SurfacePlane::SurfacePlane(const Eigen::Vector3d& anchor,
                                const Eigen::Vector3d& normal)
         : m_anchor(anchor)

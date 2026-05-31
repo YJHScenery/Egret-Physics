@@ -112,6 +112,19 @@ namespace egret
         /** @brief 获取曲面变换。 */
         [[nodiscard]] const Transform& getSurfaceTransform() const { return m_transform; }
 
+        /**
+         * @brief 将圆柱面离散化为三角形网格。
+         * @details 生成包含以下部分的三角形网格：
+         *          - 侧面：沿圆周和高度方向的三角形带
+         *          - 顶部圆盘和底部圆盘：三角扇
+         *          - [非完整圆柱] 起始端面和终止端面：三角扇
+         *          所有顶点先在局部空间计算，然后变换到世界空间。
+         * @param config 细分配置（subdivisions 控制圆周分段数）。
+         * @return 三角形网格数据。
+         */
+        [[nodiscard]] TessellatedMesh tessellate(
+            const TessellationConfig& config) const override;
+
     private:
         /**
          * @brief 曲面组成部分枚举，用于确定法线方向。

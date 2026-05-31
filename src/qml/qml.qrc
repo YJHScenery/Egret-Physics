@@ -19,8 +19,8 @@
         <file>units/EditorUnit.qml</file>
     </qresource>
     <qresource prefix="/shaders">
-        <file>shaders/spring_line.vert</file>
-        <file>shaders/spring_line.frag</file>
+        <file>shaders/simple_line.vert</file>
+        <file>shaders/simple_line.frag</file>
     </qresource>
     <qresource prefix="/materials">
         <file>materials/EgretLineMaterial.qml</file>

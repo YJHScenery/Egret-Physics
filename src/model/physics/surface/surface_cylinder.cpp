@@ -17,6 +17,195 @@
 
 namespace egret
 {
+    TessellatedMesh SurfaceCylinder::tessellate(
+        const TessellationConfig& config) const
+    {
+        TessellatedMesh mesh;
+
+        const int lonSegs = std::max(3, config.subdivisions);       // 圆周分段数
+        const int heightSegs = std::max(2, config.subdivisions / 4); // 高度分段数（至少 2）
+        const int capRadialSegs = std::max(1, config.subdivisions / 4); // 端盖径向分段数
+
+        // 辅助 lambda：将局部顶点和法线变换到世界空间
+        auto addWorldVertex = [&](const Eigen::Vector3d& localPos,
+                                  const Eigen::Vector3d& localNormal) {
+            mesh.vertices.push_back(m_transform.localToWorld(localPos));
+            mesh.normals.push_back(
+                m_transform.localToWorld(localNormal).normalized());
+        };
+
+        // 有效角度范围
+        const double thetaMax = m_isFullCylinder ? 2.0 * egret::PI : m_thetaMax;
+
+        // ==================== 1. 侧面 ====================
+        // 顶点数：(lonSegs + 1) × (heightSegs + 1)，对于部分圆柱使用实际角度
+        for (int j = 0; j <= heightSegs; ++j) {
+            const double z = m_length * static_cast<double>(j) / static_cast<double>(heightSegs);
+            for (int i = 0; i <= lonSegs; ++i) {
+                const double theta = thetaMax * static_cast<double>(i) / static_cast<double>(lonSegs);
+                const double cosT = std::cos(theta);
+                const double sinT = std::sin(theta);
+
+                const Eigen::Vector3d localPos(
+                    m_radius * cosT,
+                    m_radius * sinT,
+                    z
+                );
+                const Eigen::Vector3d localNormal(cosT, sinT, 0.0);
+                addWorldVertex(localPos, localNormal);
+            }
+        }
+
+        const int lateralCols = lonSegs + 1;
+
+        // 侧面索引
+        for (int j = 0; j < heightSegs; ++j) {
+            for (int i = 0; i < lonSegs; ++i) {
+                const std::uint32_t idx00 = static_cast<std::uint32_t>(j * lateralCols + i);
+                const std::uint32_t idx10 = static_cast<std::uint32_t>(j * lateralCols + i + 1);
+                const std::uint32_t idx01 = static_cast<std::uint32_t>((j + 1) * lateralCols + i);
+                const std::uint32_t idx11 = static_cast<std::uint32_t>((j + 1) * lateralCols + i + 1);
+
+                // 三角形 1
+                mesh.indices.push_back(idx00);
+                mesh.indices.push_back(idx01);
+                mesh.indices.push_back(idx10);
+                // 三角形 2
+                mesh.indices.push_back(idx10);
+                mesh.indices.push_back(idx01);
+                mesh.indices.push_back(idx11);
+            }
+        }
+
+        // 当前顶点计数（侧面顶点之后的新顶点从这里开始）
+        auto nextVertex = [&]() -> std::uint32_t {
+            return static_cast<std::uint32_t>(mesh.vertices.size());
+        };
+
+        // ==================== 2. 底部圆盘 (z=0) ====================
+        {
+            const std::uint32_t centerIdx = nextVertex();
+            addWorldVertex(Eigen::Vector3d(0.0, 0.0, 0.0),
+                           Eigen::Vector3d(0.0, 0.0, -1.0));
+
+            for (int i = 0; i <= lonSegs; ++i) {
+                const double theta = thetaMax * static_cast<double>(i) / static_cast<double>(lonSegs);
+                const Eigen::Vector3d localPos(
+                    m_radius * std::cos(theta),
+                    m_radius * std::sin(theta),
+                    0.0
+                );
+                addWorldVertex(localPos, Eigen::Vector3d(0.0, 0.0, -1.0));
+            }
+
+            // 三角扇：中心 + 边缘环
+            for (int i = 0; i < lonSegs; ++i) {
+                mesh.indices.push_back(centerIdx);
+                mesh.indices.push_back(centerIdx + 1 + static_cast<std::uint32_t>(i + 1));
+                mesh.indices.push_back(centerIdx + 1 + static_cast<std::uint32_t>(i));
+            }
+        }
+
+        // ==================== 3. 顶部圆盘 (z=m_length) ====================
+        {
+            const std::uint32_t centerIdx = nextVertex();
+            addWorldVertex(Eigen::Vector3d(0.0, 0.0, m_length),
+                           Eigen::Vector3d(0.0, 0.0, 1.0));
+
+            for (int i = 0; i <= lonSegs; ++i) {
+                const double theta = thetaMax * static_cast<double>(i) / static_cast<double>(lonSegs);
+                const Eigen::Vector3d localPos(
+                    m_radius * std::cos(theta),
+                    m_radius * std::sin(theta),
+                    m_length
+                );
+                addWorldVertex(localPos, Eigen::Vector3d(0.0, 0.0, 1.0));
+            }
+
+            for (int i = 0; i < lonSegs; ++i) {
+                mesh.indices.push_back(centerIdx);
+                mesh.indices.push_back(centerIdx + 1 + static_cast<std::uint32_t>(i));
+                mesh.indices.push_back(centerIdx + 1 + static_cast<std::uint32_t>(i + 1));
+            }
+        }
+
+        // ==================== 4. 起始端面 / 终止端面（仅非完整圆柱）====================
+        if (!m_isFullCylinder) {
+            // 起始端面 (theta=0)
+            {
+                const std::uint32_t centerIdx = nextVertex();
+                const Eigen::Vector3d startNormal(0.0, 1.0, 0.0); // +Y 方向
+                addWorldVertex(Eigen::Vector3d(0.0, 0.0, 0.0), startNormal);
+
+                for (int j = 0; j <= capRadialSegs; ++j) {
+                    const double z = m_length * static_cast<double>(j) / static_cast<double>(capRadialSegs);
+                    for (int i = 0; i <= capRadialSegs; ++i) {
+                        const double r = m_radius * static_cast<double>(i) / static_cast<double>(capRadialSegs);
+                        const Eigen::Vector3d localPos(r, 0.0, z);
+                        addWorldVertex(localPos, startNormal);
+                    }
+                }
+
+                // 索引（矩形网格）
+                const int capCols = capRadialSegs + 1;
+                for (int j = 0; j < capRadialSegs; ++j) {
+                    for (int i = 0; i < capRadialSegs; ++i) {
+                        const std::uint32_t base = centerIdx + 1;
+                        const std::uint32_t idx00 = base + static_cast<std::uint32_t>(j * capCols + i);
+                        const std::uint32_t idx10 = base + static_cast<std::uint32_t>(j * capCols + i + 1);
+                        const std::uint32_t idx01 = base + static_cast<std::uint32_t>((j + 1) * capCols + i);
+                        const std::uint32_t idx11 = base + static_cast<std::uint32_t>((j + 1) * capCols + i + 1);
+
+                        mesh.indices.push_back(idx00);
+                        mesh.indices.push_back(idx01);
+                        mesh.indices.push_back(idx10);
+                        mesh.indices.push_back(idx10);
+                        mesh.indices.push_back(idx01);
+                        mesh.indices.push_back(idx11);
+                    }
+                }
+            }
+
+            // 终止端面 (theta=m_thetaMax)
+            {
+                const std::uint32_t centerIdx = nextVertex();
+                const double cosMax = std::cos(m_thetaMax);
+                const double sinMax = std::sin(m_thetaMax);
+                const Eigen::Vector3d endNormal(-sinMax, cosMax, 0.0); // 径向朝外
+                addWorldVertex(Eigen::Vector3d(0.0, 0.0, 0.0), endNormal);
+
+                for (int j = 0; j <= capRadialSegs; ++j) {
+                    const double z = m_length * static_cast<double>(j) / static_cast<double>(capRadialSegs);
+                    for (int i = 0; i <= capRadialSegs; ++i) {
+                        const double r = m_radius * static_cast<double>(i) / static_cast<double>(capRadialSegs);
+                        const Eigen::Vector3d localPos(r * cosMax, r * sinMax, z);
+                        addWorldVertex(localPos, endNormal);
+                    }
+                }
+
+                const int capCols = capRadialSegs + 1;
+                for (int j = 0; j < capRadialSegs; ++j) {
+                    for (int i = 0; i < capRadialSegs; ++i) {
+                        const std::uint32_t base = centerIdx + 1;
+                        const std::uint32_t idx00 = base + static_cast<std::uint32_t>(j * capCols + i);
+                        const std::uint32_t idx10 = base + static_cast<std::uint32_t>(j * capCols + i + 1);
+                        const std::uint32_t idx01 = base + static_cast<std::uint32_t>((j + 1) * capCols + i);
+                        const std::uint32_t idx11 = base + static_cast<std::uint32_t>((j + 1) * capCols + i + 1);
+
+                        mesh.indices.push_back(idx00);
+                        mesh.indices.push_back(idx01);
+                        mesh.indices.push_back(idx10);
+                        mesh.indices.push_back(idx10);
+                        mesh.indices.push_back(idx01);
+                        mesh.indices.push_back(idx11);
+                    }
+                }
+            }
+        }
+
+        return mesh;
+    }
+
     SurfaceCylinder::SurfaceCylinder(double radius,
                                      double length,
                                      double thetaMax,

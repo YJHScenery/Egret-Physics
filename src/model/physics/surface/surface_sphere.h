@@ -189,6 +189,19 @@ namespace egret
         /** @brief 获取曲面变换。 */
         [[nodiscard]] const Transform& getSurfaceTransform() const { return m_transform; }
 
+        /**
+         * @brief 将椭球面离散化为三角形网格。
+         * @details 使用 UV 球体算法生成三角形网格：
+         *          - 经线方向（绕 Z 轴）分为 subdivisions 段
+         *          - 纬线方向（从北极到南极）分为 subdivisions/2 段
+         *          - 顶点位置在局部空间计算后变换到世界空间
+         *          - 法线通过椭球梯度计算后变换到世界空间
+         * @param config 细分配置（subdivisions 控制经纬分段数）。
+         * @return 三角形网格数据。
+         */
+        [[nodiscard]] TessellatedMesh tessellate(
+            const TessellationConfig& config) const override;
+
     private:
         /** 三个半轴长度 (a, b, c)，对应 x/y/z 方向。 */
         Eigen::Vector3d m_radii;

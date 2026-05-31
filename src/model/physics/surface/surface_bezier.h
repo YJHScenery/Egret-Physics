@@ -91,6 +91,19 @@ namespace egret
         [[nodiscard]] const std::array<std::array<Eigen::Vector3d, 4>, 4>&
         getControlPoints() const { return m_controlPoints; }
 
+        /**
+         * @brief 将双三次 Bezier 曲面离散化为三角形网格。
+         * @details 在 (u,v) ∈ [0,1]² 上均匀采样生成三角形网格：
+         *          - u/v 方向各分为 subdivisions 段
+         *          - 每个采样点的位置通过 evaluate() 计算
+         *          - 法线通过 deriveU() 和 deriveV() 的叉积计算
+         *          控制点已在世界空间，无需额外变换。
+         * @param config 细分配置（subdivisions 控制 u/v 采样密度）。
+         * @return 三角形网格数据。
+         */
+        [[nodiscard]] TessellatedMesh tessellate(
+            const TessellationConfig& config) const override;
+
     private:
         /**
          * @brief 计算 Bezier 曲面 S(u,v) 的值。
