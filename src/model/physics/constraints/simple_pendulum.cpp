@@ -25,12 +25,12 @@ namespace egret
     SimplePendulum::SimplePendulum(double length, const Eigen::Vector3d& anchorPos, PhysicalEntity* entity,
                                    std::uint64_t id)
         : ConnectingLine(id) // 锚点质量为0（固定点）
-          , m_anchor(anchorPos, Eigen::Vector3d{0, 0, 0}, 0.0, id), m_entity(entity)
+          , m_anchor(anchorPos, Eigen::Vector3d{0, 0, 0}, 0.0, id)
+          , m_entity(entity)
     {
-        // 将锚点和摆动物体加入到约束实体列表
-        m_physicalEntities.reserve(2);
-        m_physicalEntities.push_back(&m_anchor);
-        m_physicalEntities.push_back(entity);
+        // 将锚点和摆动物体注册到约束器
+        registerEntity(&m_anchor);
+        registerEntity(entity);
         // 设置约束长度
         m_length = length;
     }
@@ -42,10 +42,9 @@ namespace egret
           , m_anchor(anchorPos, Eigen::Vector3d{0, 0, 0}, 0.0, id) // 锚点质量为0（固定点）
           , m_entity(entity)
     {
-        // 将锚点和摆动物体加入到约束实体列表
-        m_physicalEntities.reserve(2);
-        m_physicalEntities.push_back(&m_anchor);
-        m_physicalEntities.push_back(entity);
+        // 将锚点和摆动物体注册到约束器
+        registerEntity(&m_anchor);
+        registerEntity(entity);
         // 设置约束长度
         m_length = length;
         // 设置路径点

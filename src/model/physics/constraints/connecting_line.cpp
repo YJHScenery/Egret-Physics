@@ -19,8 +19,6 @@
 
 namespace egret
 {
-    // static_assert(sizeof(PhysicalEntity) > 0, "PhysicalEntity must be complete");
-
     ConnectingLine::ConnectingLine() : ConstraintsBase()
     {
     }
@@ -29,17 +27,18 @@ namespace egret
     {
     }
 
-    ConnectingLine::ConnectingLine(double length, PhysicalEntity* entityStart, PhysicalEntity* entityEnd, const std::uint64_t id) : ConstraintsBase(id), m_length(
-        length)
+    ConnectingLine::ConnectingLine(double length, PhysicalEntity* entityStart, PhysicalEntity* entityEnd, const std::uint64_t id)
+        : ConstraintsBase(id), m_length(length)
+          , m_entityA(entityStart)
+          , m_entityB(entityEnd)
     {
-        m_physicalEntities.reserve(2);
-        m_physicalEntities.push_back(entityStart);
-        m_physicalEntities.push_back(entityEnd);
+        registerEntity(entityStart);
+        registerEntity(entityEnd);
     }
 
     ConnectingLine::ConnectingLine(double length, PhysicalEntity* entityStart, PhysicalEntity* entityEnd, const std::uint64_t id,
-                                   const std::initializer_list<Eigen::Vector3d>& turningPositions) : ConnectingLine(
-        length, entityStart, entityEnd, id)
+                                   const std::initializer_list<Eigen::Vector3d>& turningPositions)
+        : ConnectingLine(length, entityStart, entityEnd, id)
     {
         m_pathPositions = turningPositions;
     }
@@ -78,26 +77,16 @@ namespace egret
         return ConstraintType::ConnectingLine;
     }
 
-    // std::vector<PhysicalEntity*> ConnectingLine::getConstrainedEntities()
-    // {
-    //     return m_physicalEntities;
-    // }
-    //
-    // const std::vector<PhysicalEntity*>& ConnectingLine::getConstrainedEntities() const
-    // {
-    //     return m_physicalEntities;
-    // }
-
     void ConnectingLine::applyVelocityConstraint(double dt)
     {
-        if (m_physicalEntities.size() < 2) {
+        if (m_entityA == nullptr || m_entityB == nullptr) {
             return;
         }
 
         if (m_pathPositions.empty()) {
             // 无路径点，简单的两点距离速度约束
-            Eigen::Vector3d p0 = m_physicalEntities[0]->getPositionCR();
-            Eigen::Vector3d p1 = m_physicalEntities[1]->getPositionCR();
+            Eigen::Vector3d p0 = m_entityA->getPositionCR();
+            Eigen::Vector3d p1 = m_entityB->getPositionCR();
             Eigen::Vector3d dp = p1 - p0;
             double dist = dp.norm();
 
@@ -110,8 +99,8 @@ namespace egret
             Eigen::Vector3d n = dp / dist;
 
             // 获取速度
-            Eigen::Vector3d v0 = m_physicalEntities[0]->getVelocity();
-            Eigen::Vector3d v1 = m_physicalEntities[1]->getVelocity();
+            Eigen::Vector3d v0 = m_entityA->getVelocity();
+            Eigen::Vector3d v1 = m_entityB->getVelocity();
 
             // 相对速度在约束方向上的分量
             // 约束方程: C = ||p1-p0|| - L = 0
@@ -125,14 +114,13 @@ namespace egret
             }
 
             // 计算有效质量
-            double m0 = m_physicalEntities[0]->getMass();
-            double m1 = m_physicalEntities[1]->getMass();
+            double m0 = m_entityA->getMass();
+            double m1 = m_entityB->getMass();
 
             // 处理质量为零的情况
             if (m0 <= 0 && m1 <= 0) {
                 return;
             }
-
 
             // 有效质量: M_eff = 1/(1/m0 + 1/m1)
             double invM0 = (m0 > 0) ? 1.0 / m0 : 0.0;
@@ -151,10 +139,10 @@ namespace egret
             // Δv0 = -λ * n / m0
             // Δv1 = λ * n / m1
             if (m0 > 0) {
-                m_physicalEntities[0]->setSpeed(v0 - lambda * n * invM0);
+                m_entityA->setSpeed(v0 - lambda * n * invM0);
             }
             if (m1 > 0) {
-                m_physicalEntities[1]->setSpeed(v1 + lambda * n * invM1);
+                m_entityB->setSpeed(v1 + lambda * n * invM1);
             }
             return;
         }
@@ -162,8 +150,8 @@ namespace egret
         // 带路径点的折线速度约束（简化实现）
         // 对于折线约束，速度约束比较复杂，这里采用简化策略：
         // 只在物体远离时施加阻尼
-        Eigen::Vector3d p0 = m_physicalEntities[0]->getPositionCR();
-        Eigen::Vector3d p1 = m_physicalEntities[1]->getPositionCR();
+        Eigen::Vector3d p0 = m_entityA->getPositionCR();
+        Eigen::Vector3d p1 = m_entityB->getPositionCR();
         Eigen::Vector3d dp = p1 - p0;
         double dist = dp.norm();
 
@@ -173,8 +161,8 @@ namespace egret
         }
 
         Eigen::Vector3d n = dp / dist;
-        Eigen::Vector3d v0 = m_physicalEntities[0]->getVelocity();
-        Eigen::Vector3d v1 = m_physicalEntities[1]->getVelocity();
+        Eigen::Vector3d v0 = m_entityA->getVelocity();
+        Eigen::Vector3d v1 = m_entityB->getVelocity();
 
         double dv = n.dot(v1 - v0);
 
@@ -183,8 +171,8 @@ namespace egret
             return;
         }
 
-        double m0 = m_physicalEntities[0]->getMass();
-        double m1 = m_physicalEntities[1]->getMass();
+        double m0 = m_entityA->getMass();
+        double m1 = m_entityB->getMass();
 
         if (m0 <= 0 && m1 <= 0) {
             return;
@@ -201,23 +189,23 @@ namespace egret
         double lambda = -dv / invMeff;
 
         if (m0 > 0) {
-            m_physicalEntities[0]->setSpeed(v0 - lambda * n * invM0);
+            m_entityA->setSpeed(v0 - lambda * n * invM0);
         }
         if (m1 > 0) {
-            m_physicalEntities[1]->setSpeed(v1 + lambda * n * invM1);
+            m_entityB->setSpeed(v1 + lambda * n * invM1);
         }
     }
 
     void ConnectingLine::applyPositionConstraint(double dt)
     {
-        if (m_physicalEntities.size() < 2) {
+        if (m_entityA == nullptr || m_entityB == nullptr) {
             return;
         }
 
         if (m_pathPositions.empty()) {
             // 无路径点，退化为简单的两点距离约束
-            Eigen::Vector3d p0 = m_physicalEntities[0]->getPositionCR();
-            Eigen::Vector3d p1 = m_physicalEntities[1]->getPositionCR();
+            Eigen::Vector3d p0 = m_entityA->getPositionCR();
+            Eigen::Vector3d p1 = m_entityB->getPositionCR();
             double dist = (p1 - p0).norm();
 
             if (dist <= m_length || dist < 1e-10) {
@@ -228,8 +216,8 @@ namespace egret
             double error = dist - m_length;
             Eigen::Vector3d direction = (p1 - p0) / dist;
 
-            double m0 = m_physicalEntities[0]->getMass();
-            double m1 = m_physicalEntities[1]->getMass();
+            double m0 = m_entityA->getMass();
+            double m1 = m_entityB->getMass();
 
             // 处理质量无限大的情况
             if (m0 <= 0 && m1 <= 0) {
@@ -243,16 +231,16 @@ namespace egret
             Eigen::Vector3d newPos0 = p0 + direction * corr0;
             Eigen::Vector3d newPos1 = p1 - direction * corr1;
 
-            m_physicalEntities[0]->setPosition(newPos0);
-            m_physicalEntities[1]->setPosition(newPos1);
+            m_entityA->setPosition(newPos0);
+            m_entityB->setPosition(newPos1);
             return;
         }
 
         // 带路径点的折线约束
         // 1. 首先检查两个物体之间的直接距离
         // 如果直接距离已经小于等于约束长度，说明物体已经在约束范围内，不需要修正
-        Eigen::Vector3d startPos = m_physicalEntities[0]->getPositionCR();
-        Eigen::Vector3d endPos = m_physicalEntities[1]->getPositionCR();
+        Eigen::Vector3d startPos = m_entityA->getPositionCR();
+        Eigen::Vector3d endPos = m_entityB->getPositionCR();
         double directDist = (endPos - startPos).norm();
 
         // 如果两个物体已经非常接近（距离小于等于约束长度），不施加约束
@@ -286,8 +274,8 @@ namespace egret
         double error = totalLength - m_length;
 
         // 5. 按距离比例分配修正量给两个物体
-        double m0 = m_physicalEntities[0]->getMass();
-        double m1 = m_physicalEntities[1]->getMass();
+        double m0 = m_entityA->getMass();
+        double m1 = m_entityB->getMass();
 
         if (m0 <= 0 && m1 <= 0) {
             return; // 两个都是固定物体
@@ -310,18 +298,18 @@ namespace egret
         Eigen::Vector3d newStartPos = startPos + direction * corr0;
         Eigen::Vector3d newEndPos = endPos - direction * corr1;
 
-        m_physicalEntities[0]->setPosition(newStartPos);
-        m_physicalEntities[1]->setPosition(newEndPos);
+        m_entityA->setPosition(newStartPos);
+        m_entityB->setPosition(newEndPos);
     }
 
     double ConnectingLine::computeConstraintError() const
     {
-        if (m_physicalEntities.size() < 2 || m_pathPositions.empty()) {
+        if (m_entityA == nullptr || m_entityB == nullptr || m_pathPositions.empty()) {
             return 0.0;
         }
 
         double totalLength = 0.0;
-        Eigen::Vector3d prevPos = m_physicalEntities[0]->getPositionCR();
+        Eigen::Vector3d prevPos = m_entityA->getPositionCR();
 
         // 累加起始点到第一个路径点的距离
         totalLength += (m_pathPositions[0] - prevPos).norm();
@@ -332,7 +320,7 @@ namespace egret
         }
 
         // 累加最后一个路径点到结束点的距离
-        Eigen::Vector3d endPos = m_physicalEntities[1]->getPositionCR();
+        Eigen::Vector3d endPos = m_entityB->getPositionCR();
         totalLength += (endPos - m_pathPositions.back()).norm();
 
         // 返回超出长度（如果 totalLength <= m_length，误差为 0）

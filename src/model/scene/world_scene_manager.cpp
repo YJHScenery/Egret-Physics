@@ -466,7 +466,7 @@ namespace egret
             }
 
             const ConstraintsBase* constraint = constraintRecord->constraint.get();
-            const std::vector<PhysicalEntity*>& entities = constraint->getConstrainedEntities();
+            const auto& entities = constraint->getConstrainedEntities();
 
             // 目前只支持连接两个实体的约束（如 ConnectingLine、SimplePendulum）
             if (entities.size() < 2)
@@ -474,8 +474,9 @@ namespace egret
                 continue;
             }
 
-            const PhysicalEntity* entityA = entities[0];
-            const PhysicalEntity* entityB = entities[1];
+            auto it = entities.begin();
+            const PhysicalEntity* entityA = *it++;
+            const PhysicalEntity* entityB = *it;
 
             if (entityA == nullptr || entityB == nullptr)
             {

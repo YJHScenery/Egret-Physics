@@ -127,7 +127,6 @@ namespace egret
     }
 
     bool SurfaceSphere::collide(const ShapeBase* shape,
-    bool SurfaceSphere::collide(const ShapeBase* shape,
                                 const Transform& shapeTransform,
                                 ContactManifold& manifold) const
     {

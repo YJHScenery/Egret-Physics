@@ -35,7 +35,7 @@ namespace egret
      *
      * @invariant   m_stiffness > 0，弹性系数必须为正值
      * @invariant   m_restLength >= 0，原长必须为非负值
-     * @invariant   m_physicalEntities 包含两个物理实体
+     * @invariant   m_entityA / m_entityB 包含两个物理实体
      * @remark      理想弹簧没有长度上限，完全遵循胡克定律
      * @see         ConstraintsBase, ConnectingLine, PhysicalEntity
      */
@@ -86,6 +86,13 @@ namespace egret
 
         /** 设置原长。 */
         void setRestLength(double restLength) { m_restLength = restLength; }
+
+    protected:
+        /** 起点实体指针。 */
+        PhysicalEntity* m_entityA{nullptr};
+
+        /** 终点实体指针。 */
+        PhysicalEntity* m_entityB{nullptr};
 
     private:
         Spring() = delete;

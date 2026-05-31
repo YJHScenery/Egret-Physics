@@ -30,7 +30,7 @@ namespace egret
      *              支持路径点（turningPositions）用于处理绳子遇到阻碍物的情况。
      * 
      * @invariant   m_length > 0，约束长度必须为正值
-     * @invariant   m_physicalEntities 包含两个物理实体（起点和终点）
+     * @invariant   m_entityA / m_entityB 包含两个物理实体（起点和终点）
      * @invariant   m_pathPositions 存储路径转折点（不含始末点）
      * @remark      连接线是柔性约束，只能限制最大距离，不能限制最小距离
      * @see         ConstraintsBase, SimplePendulum, PhysicalEntity
@@ -55,10 +55,6 @@ namespace egret
 
         [[nodiscard]] ConstraintType getType() const override;
 
-        // [[nodiscard]] std::vector<PhysicalEntity*> getConstrainedEntities() override;
-        //
-        // [[nodiscard]] const std::vector<PhysicalEntity*>& getConstrainedEntities() const override;
-
         void applyVelocityConstraint(double dt) override;
 
         void applyPositionConstraint(double dt) override;
@@ -81,6 +77,12 @@ namespace egret
         ConnectingLine();
 
         explicit ConnectingLine(std::uint64_t id);
+
+        /** 起点实体指针。 */
+        PhysicalEntity* m_entityA{nullptr};
+
+        /** 终点实体指针。 */
+        PhysicalEntity* m_entityB{nullptr};
 
         // 始末会由 Physical Entity 的 Position 给出，此处不会储存此二者。
         std::vector<Eigen::Vector3d> m_pathPositions;

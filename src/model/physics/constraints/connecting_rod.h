@@ -26,7 +26,7 @@ namespace egret {
  *              与连接线不同，连接杆是刚性约束，既限制最大距离也限制最小距离。
  * 
  * @invariant   约束长度恒定
- * @invariant   m_physicalEntities 包含两个物理实体
+ * @invariant   m_registeredEntities 包含两个物理实体
  * @remark      连接杆是刚性约束，保持距离恒定，不允许拉伸或压缩
  * @see         ConstraintsBase, ConnectingLine, PhysicalEntity
  */
