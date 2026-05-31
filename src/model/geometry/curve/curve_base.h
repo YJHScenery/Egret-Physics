@@ -41,8 +41,11 @@ namespace egret
         /** N 阶贝塞尔曲线。 */
         Bezier,
 
-        /** 椭圆弧。 */
-        EllipticalArc,
+        /** 圆锥曲线（椭圆/抛物线/双曲线）。 */
+        ConicSection,
+
+        /** 圆柱螺旋线。 */
+        Helix,
 
         Other = 255,
     };

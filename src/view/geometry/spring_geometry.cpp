@@ -1,9 +1,9 @@
 /**
  * @file        spring_geometry.cpp
  * @brief       弹簧螺旋线几何体实现
- * @details     生成沿 Z 轴从 0 到 1 的归一化螺旋线（LineStrip 图元），
- *              线圈半径恒为 1，通过 QML 的 scale 属性缩放匹配实际距离。
- *              配合 CustomMaterial 使用以控制线条颜色和效果。
+ * @details     持有 CurveHelix 成员，生成沿 Z 轴从 0 到 1 的归一化螺旋线
+ *              （LineStrip 图元），线圈半径恒为 1，通过 QML 的 scale 属性
+ *              缩放匹配实际距离。
  *
  * @author      作者姓名 <作者邮箱>
  * @date        2026-06-15
@@ -14,7 +14,7 @@
  */
 
 #include "spring_geometry.h"
-#include <QtMath>
+#include "curve_helix.h"
 #include <numbers>
 
 namespace egret
@@ -24,6 +24,8 @@ namespace egret
     {
         rebuild();
     }
+
+    SpringGeometry::~SpringGeometry() = default;
 
     void SpringGeometry::setCoilCount(int count)
     {
@@ -56,6 +58,11 @@ namespace egret
             return;
         }
 
+        // 构造归一化螺旋线：半径 1，z 从 0 到 1
+        const double totalAngle = 2.0 * std::numbers::pi * static_cast<double>(m_coilCount);
+        const double axialSpeed = 1.0 / totalAngle; // z = c * totalAngle = 1
+        m_curve = std::make_unique<CurveHelix>(1.0, axialSpeed, totalAngle);
+
         // 顶点格式：仅位置 (3 floats)
         constexpr int stride{3 * static_cast<int>(sizeof(float))};
 
@@ -63,19 +70,16 @@ namespace egret
         vertexData.resize(totalPoints * stride);
         auto* vertexPtr{reinterpret_cast<float*>(vertexData.data())};
 
-        // 螺旋线参数
-        const float invSampleCount{1.0f / static_cast<float>(totalPoints)};
-        const float twoPiN{2.0f * static_cast<float>(std::numbers::pi) * static_cast<float>(m_coilCount)};
+        // 使用 CurveHelix 求值生成顶点
+        const double step = totalAngle / static_cast<double>(totalPoints);
 
-        // 生成顶点：P(t) = (cos(2π·n·t), sin(2π·n·t), t)，t ∈ [0, 1]
-        // LineStrip 无索引时按顶点顺序自动连线
         for (int i = 0; i < totalPoints; ++i) {
-            const float t{static_cast<float>(i) * invSampleCount};
-            const float angle{twoPiN * t};
+            const double t = static_cast<double>(i) * step;
+            const Eigen::Vector3d pt = m_curve->evaluate(t);
 
-            vertexPtr[i * 3 + 0] = std::cos(angle);
-            vertexPtr[i * 3 + 1] = std::sin(angle);
-            vertexPtr[i * 3 + 2] = t;
+            vertexPtr[i * 3 + 0] = static_cast<float>(pt.x());
+            vertexPtr[i * 3 + 1] = static_cast<float>(pt.y());
+            vertexPtr[i * 3 + 2] = static_cast<float>(pt.z());
         }
 
         // 配置 QQuick3DGeometry：LineStrip 图元，仅位置属性，无索引
@@ -86,7 +90,6 @@ namespace egret
                      QQuick3DGeometry::Attribute::F32Type);
         setStride(stride);
         setVertexData(vertexData);
-        // 不设置索引数据——LineStrip 按顶点顺序自动连线
         update();
     }
 
