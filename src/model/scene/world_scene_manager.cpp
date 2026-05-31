@@ -35,6 +35,7 @@
 #include "constraints/connecting_line.h"
 #include "constraints/simple_pendulum.h"
 #include "constraints/spring.h"
+#include "constraints/support_surface.h"
 
 namespace egret
 {
@@ -782,6 +783,36 @@ namespace egret
                                                UuidGenerator::instance().generate());
 
         return registerConstraint(name, spring);
+    }
+
+    std::uint64_t WorldSceneManager::createSupportSurface(
+        const std::string& name,
+        std::unique_ptr<SurfaceBase> surface,
+        const double restitution,
+        const std::vector<std::uint64_t>& initialEntityIds)
+    {
+        if (surface == nullptr) {
+            return 0;
+        }
+
+        auto support = std::make_shared<SupportSurface>(
+            UuidGenerator::instance().generate(),
+            std::move(surface));
+
+        // 设置恢复系数
+        if (restitution >= 0.0) {
+            support->setRestitution(restitution);
+        }
+
+        // 注册初始实体
+        for (const auto entityId : initialEntityIds) {
+            BodyRecord* body = findBody(entityId);
+            if (body != nullptr && body->entity != nullptr) {
+                support->registerEntity(body->entity.get());
+            }
+        }
+
+        return registerConstraint(name, support);
     }
 
     ConstraintsBase* WorldSceneManager::getConstraint(const std::uint64_t id)
