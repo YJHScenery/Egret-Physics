@@ -551,6 +551,20 @@ namespace egret
                                            double length, const Eigen::Vector3d &anchorPos, std::uint64_t entityId);
 
         /**
+         * @brief 创建并注册弹簧约束器。
+         * @param name 约束名称。
+         * @param stiffness 弹性系数 k（N/m），必须 > 0。
+         * @param restLength 弹簧原长（m）。若 ≤ 0，则取两实体初始距离。
+         * @param entityAId 第一个实体 ID。
+         * @param entityBId 第二个实体 ID。
+         * @return 新约束的 ID，失败返回 0。
+         */
+        std::uint64_t createSpring(const std::string &name,
+                                   double stiffness, double restLength,
+                                   std::uint64_t entityAId,
+                                   std::uint64_t entityBId);
+
+        /**
          * @brief 获取约束器。
          * @param id 约束 ID。
          * @return 找到则返回约束指针，否则返回 nullptr。

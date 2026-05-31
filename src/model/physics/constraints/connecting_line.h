@@ -73,6 +73,8 @@ namespace egret
          */
         [[nodiscard]] double getLength() const { return m_length; }
 
+        [[nodiscard]] double getReferenceLength() const override { return m_length; }
+
         [[nodiscard]] std::unique_ptr<PhysicsAbstract> clone(std::uint64_t id) const override;
 
     protected:

@@ -31,6 +31,8 @@ namespace egret
 
         ConnectingLine, SimplePendulum, ConnectingRod, SlidingRail,
 
+        Spring,
+
         Abstract = 127,
 
         Other = 255,
@@ -94,6 +96,12 @@ namespace egret
 
         // 计算约束满足程度（用于调试，返回误差值）
         [[nodiscard]] virtual double computeConstraintError() const = 0;
+
+        // 将约束力注入到受约束实体的力累加器中（积分前调用）
+        virtual void applyConstraintForces(double dt);
+
+        // 获取参考长度（用于渲染和调试）
+        [[nodiscard]] virtual double getReferenceLength() const { return 0.0; }
 
         // 设置约束启用/禁用
         void setEnabled(bool enabled);

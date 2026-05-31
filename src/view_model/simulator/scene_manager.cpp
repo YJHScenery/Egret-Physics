@@ -690,9 +690,12 @@ namespace egret
         // generateRotationTest();
 
 
-        std::uint64_t id1 = m_world->spawnSphere("123", {10, 0, 100}, {0, 0, 0}, 10, 10);
-        std::uint64_t id2 = m_world->spawnSphere("456", {10, 0, 200}, {0, 0, 0}, 10, 10);
-        m_world->createConnectingLine("114514", 140, id1, id2);
+
+        std::uint64_t id1 = m_world->spawnSphere("123", {10, 10, 200}, {100, 0, 0}, 10, 10);
+        std::uint64_t id2 = m_world->spawnSphere("456", {10, 0, 500}, {0, 0, 0}, 10, 0);
+        // 创建一个弹性系数 50 N/m、原长 2m 的弹簧，连接 bodyA 和 bodyB
+        uint64_t springId = m_world->createSpring("MySpring", 50.0, 300.0, id2, id1);
+        // m_world->createConnectingLine("114514", 140, id1, id2);
 
 
         std::uint64_t id3 = m_world->spawnSphere("123", {10, 120, 220}, {0, 0, 0}, 10, 10);

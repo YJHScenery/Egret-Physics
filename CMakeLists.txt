@@ -142,6 +142,8 @@ set(CPP_FILES
         src/model/physics/constraints/connecting_line.h
         src/model/physics/constraints/connecting_rod.cpp
         src/model/physics/constraints/connecting_rod.h
+        src/model/physics/constraints/spring.cpp
+        src/model/physics/constraints/spring.h
 
         src/model/solver/solver.h
         src/model/solver/solver.cpp
