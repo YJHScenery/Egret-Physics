@@ -340,61 +340,36 @@ ColumnLayout {
 
 
                                 // ---- 松弛曲线指示器（非弹簧类型） ----
-                                // 当约束松弛时（slackRatio < 0.9），沿贝塞尔曲线渲染小圆球
+                                // 当约束松弛时（slackRatio < 0.9），沿贝塞尔曲线渲染弧线
+                                // 使用 BezierCurveGeometry + EgretLineMaterial 渲染干净的单色线条
                                 // 曲线控制点偏移量与松弛程度成正比
-                                property var slackCurve: slackRatio < 0.9
-                                property var curveOffset: slackCurve
+                                property real curveOffset: slackRatio < 0.9
                                     ? (1.0 - slackRatio) * constraintConstraintLength * 1.5
                                     : 0.0
 
-                                // 球体数量（提取为独立属性，供 inner Repeater3D 的 model 和 delegate 共同引用）
-                                property var sphereCount: slackCurve
-                                    ? Math.max(40, Math.min(15, Math.ceil(entityDist * 0.05)))
+                                // 曲线分段数，随距离增加而增多以保证平滑
+                                property int curveSegments: slackRatio < 0.9
+                                    ? Math.max(8, Math.min(32, Math.ceil(entityDist * 0.03)))
                                     : 0
 
+                                // 控制点 = 中点 + 垂直偏移
+                                property var midPt: renderPosA.plus(direction.times(0.5))
+                                property var perpDir: worldRoot.perpendicular2D(direction)
+                                property var controlPt: midPt.plus(perpDir.times(curveOffset))
 
-                                Repeater3D {
-                                    visible: constraintKind != 5
+                                // 贝塞尔曲线（LineStrip 图元）
+                                Model {
+                                    visible: constraintKind != 5 && slackRatio < 0.9
 
-                                    model: constraintNode.sphereCount
+                                    geometry: BezierCurveGeometry {
+                                        pointA: constraintNode.renderPosA
+                                        controlPoint: constraintNode.controlPt
+                                        pointB: constraintNode.renderPosB
+                                        segments: constraintNode.curveSegments
+                                    }
 
-
-                                    delegate: Model {
-                                        // P(t) = (1-t)²A + 2(1-t)tC + t²B
-                                        // 注意：Qt6 中 delegate 内的 model 是 object 而非整数，不能用它做计数
-                                        property var t: (index + 0.5) / constraintNode.sphereCount
-
-                                        // 控制点 = 中点 + 垂直偏移
-                                        property var midPt: constraintNode.renderPosA.plus(
-                                            constraintNode.direction.times(0.5))
-                                        property var perpDir: worldRoot.perpendicular2D(constraintNode.direction)
-
-                                        // 直接引用外层已经算好的 curveOffset
-                                        // （内层 delegate 的作用域中无法访问外层模型的角色属性）
-                                        property real curveOffset: constraintNode.curveOffset
-
-
-                                        property var controlPt: midPt.plus(
-                                            perpDir.times(curveOffset))
-
-                                        // 贝塞尔插值
-                                        property var invT: 1.0 - t
-                                        property var pt: constraintNode.renderPosA.times(invT * invT)
-                                            .plus(controlPt.times(2.0 * invT * t))
-                                            .plus(constraintNode.renderPosB.times(t * t))
-
-                                        x: pt.x
-                                        y: pt.y
-                                        z: pt.z
-
-                                        source: "#Sphere"
-                                        scale: Qt.vector3d(0.015, 0.015, 0.015)
-
-                                        materials: PrincipledMaterial {
-                                            baseColor: constraintColor
-                                            roughness: 0.4
-                                            specularAmount: 0.3
-                                        }
+                                    materials: EgretLineMaterial {
+                                        lineColor: constraintColor
                                     }
                                 }
                             }
