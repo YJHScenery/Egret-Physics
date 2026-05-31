@@ -33,6 +33,8 @@ namespace egret
 
         Spring,
 
+        SupportSurface,
+
         Abstract = 127,
 
         Other = 255,
@@ -85,7 +87,7 @@ namespace egret
 
         [[nodiscard]] virtual const std::vector<PhysicalEntity*>& getConstrainedEntities() const;
 
-        // 应用约束力/冲量到实体上（速度级别）
+        // 应用速度修正
         virtual void applyVelocityConstraint(double dt) = 0;
 
         // 应用位置修正（位置级别，解决穿透等问题）
@@ -118,8 +120,6 @@ namespace egret
         std::vector<PhysicalEntity*> m_physicalEntities{};
 
         bool m_enabled{true};
-
-        std::uint64_t m_id;
     };
 } // egret
 
