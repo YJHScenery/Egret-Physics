@@ -787,6 +787,48 @@ namespace egret
         return result;
     }
 
+    PhysicalEntity* WorldSceneManager::getEntity(const std::uint64_t id)
+    {
+        const BodyRecord* body = findBody(id);
+        if (body == nullptr || body->entity == nullptr) {
+            return nullptr;
+        }
+        return body->entity.get();
+    }
+
+    std::vector<PhysicalEntity*> WorldSceneManager::getAllPhysicalEntities() const
+    {
+        std::vector<PhysicalEntity*> result;
+        result.reserve(m_bodies.size());
+        for (const auto& record : m_bodies) {
+            if (record != nullptr && record->entity != nullptr) {
+                result.push_back(record->entity.get());
+            }
+        }
+        return result;
+    }
+
+    FieldBase* WorldSceneManager::getField(const std::uint64_t id)
+    {
+        const FieldRecord* field = findField(id);
+        if (field == nullptr || field->field == nullptr) {
+            return nullptr;
+        }
+        return field->field.get();
+    }
+
+    std::vector<FieldBase*> WorldSceneManager::getAllFields() const
+    {
+        std::vector<FieldBase*> result;
+        result.reserve(m_fields.size());
+        for (const auto& record : m_fields) {
+            if (record != nullptr && record->field != nullptr) {
+                result.push_back(record->field.get());
+            }
+        }
+        return result;
+    }
+
     bool WorldSceneManager::removeConstraint(const std::uint64_t id)
     {
         const auto beforeSize = m_constraints.size();

@@ -71,8 +71,8 @@ namespace egret
             double farClip{50000.0};
         };
 
-        [[nodiscard]] double readCameraScalar(const QVariantMap &cameraState,
-                                              const QString &key,
+        [[nodiscard]] double readCameraScalar(const QVariantMap& cameraState,
+                                              const QString& key,
                                               const double fallback)
         {
             const QVariant value = cameraState.value(key);
@@ -81,7 +81,7 @@ namespace egret
             return ok ? converted : fallback;
         }
 
-        [[nodiscard]] CameraState parseCameraState(const QVariantMap &cameraState)
+        [[nodiscard]] CameraState parseCameraState(const QVariantMap& cameraState)
         {
             CameraState parsed{};
             parsed.position.setX(static_cast<float>(readCameraScalar(cameraState, "positionX", parsed.position.x())));
@@ -103,7 +103,7 @@ namespace egret
         }
     }
 
-    SceneManagerViewModel::SceneManagerViewModel(QObject *parent) : QObject(parent), m_bodyModel(this)
+    SceneManagerViewModel::SceneManagerViewModel(QObject* parent) : QObject(parent), m_bodyModel(this)
     {
         m_timer.setInterval(16);
         m_timer.setTimerType(Qt::PreciseTimer);
@@ -115,18 +115,16 @@ namespace egret
         m_frameClock.start();
     }
 
-    SceneRecord SceneManagerViewModel::createSceneFromJsonString(const QString &jsonString)
+    SceneRecord SceneManagerViewModel::createSceneFromJsonString(const QString& jsonString)
     {
         QJsonParseError parseError{};
         const QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8(), &parseError);
-        if (parseError.error != QJsonParseError::NoError || !doc.isObject())
-        {
+        if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
             return {};
         }
 
         const QJsonObject root = doc.object();
-        if (!root.contains("models") || !root.value("models").isArray())
-        {
+        if (!root.contains("models") || !root.value("models").isArray()) {
             return {};
         }
 
@@ -137,21 +135,17 @@ namespace egret
         std::unordered_set<std::uint64_t> usedIds;
         std::uint64_t fallbackId = 1;
 
-        const auto readVector3 = [](const QJsonValue &value, const Eigen::Vector3d &fallback)
+        const auto readVector3 = [](const QJsonValue& value, const Eigen::Vector3d& fallback)
         {
-            if (value.isArray())
-            {
+            if (value.isArray()) {
                 const QJsonArray arr = value.toArray();
-                if (arr.size() >= 3)
-                {
+                if (arr.size() >= 3) {
                     return Eigen::Vector3d(arr[0].toDouble(), arr[1].toDouble(), arr[2].toDouble());
                 }
             }
-            if (value.isObject())
-            {
+            if (value.isObject()) {
                 const QJsonObject obj = value.toObject();
-                if (obj.contains("x") && obj.contains("y") && obj.contains("z"))
-                {
+                if (obj.contains("x") && obj.contains("y") && obj.contains("z")) {
                     return Eigen::Vector3d(obj.value("x").toDouble(), obj.value("y").toDouble(),
                                            obj.value("z").toDouble());
                 }
@@ -159,35 +153,30 @@ namespace egret
             return fallback;
         };
 
-        const auto readQuaternion = [](const QJsonValue &value, const Eigen::Quaterniond &fallback)
+        const auto readQuaternion = [](const QJsonValue& value, const Eigen::Quaterniond& fallback)
         {
-            if (!value.isArray())
-            {
+            if (!value.isArray()) {
                 return fallback;
             }
             const QJsonArray arr = value.toArray();
-            if (arr.size() < 4)
-            {
+            if (arr.size() < 4) {
                 return fallback;
             }
             return Eigen::Quaterniond(arr[0].toDouble(), arr[1].toDouble(), arr[2].toDouble(), arr[3].toDouble());
         };
 
-        const auto hashIdString = [](const QString &value)
+        const auto hashIdString = [](const QString& value)
         {
             const QByteArray hash = QCryptographicHash::hash(value.toUtf8(), QCryptographicHash::Sha1);
             std::uint64_t id = 0;
-            for (int i = 0; i < 8 && i < hash.size(); ++i)
-            {
+            for (int i = 0; i < 8 && i < hash.size(); ++i) {
                 id = (id << 8) | static_cast<unsigned char>(hash[i]);
             }
             return id;
         };
 
-        for (const QJsonValue &entry : modelsArray)
-        {
-            if (!entry.isObject())
-            {
+        for (const QJsonValue& entry : modelsArray) {
+            if (!entry.isObject()) {
                 continue;
             }
 
@@ -214,12 +203,10 @@ namespace egret
 
             ShapeLoadInfo shapeInfo{};
 
-            if (magic_enum::enum_contains<ShapeType>(type) || type != static_cast<std::uint32_t>(ShapeType::Unknown))
-            {
+            if (magic_enum::enum_contains<ShapeType>(type) || type != static_cast<std::uint32_t>(ShapeType::Unknown)) {
                 shapeInfo.typeId = type;
             }
-            else
-            {
+            else {
                 shapeInfo.typeId = static_cast<std::uint32_t>(ShapeType::Unknown);
                 LOG_WARN_LITERAL("Unknown Shape ID");
             }
@@ -231,12 +218,9 @@ namespace egret
                            : obj.value("circle_radius").toDouble();
             };
 
-            switch (static_cast<ShapeType>(type))
-            {
-            case ShapeType::Box:
-            {
-                if (!hasBoxSize)
-                {
+            switch (static_cast<ShapeType>(type)) {
+            case ShapeType::Box: {
+                if (!hasBoxSize) {
                     LOG_WARN_LITERAL("Missing box_size for Box");
                     continue;
                 }
@@ -245,10 +229,8 @@ namespace egret
                 break;
             }
             case ShapeType::Cylinder:
-            case ShapeType::CylindricalShell:
-            {
-                if (!hasRadius || !hasHeight)
-                {
+            case ShapeType::CylindricalShell: {
+                if (!hasRadius || !hasHeight) {
                     LOG_WARN_LITERAL("Missing radius/height for Cylinder");
                     continue;
                 }
@@ -261,10 +243,8 @@ namespace egret
             case ShapeType::Disk:
             case ShapeType::Ring:
             case ShapeType::Sphere:
-            case ShapeType::SphericalShell:
-            {
-                if (!hasRadius)
-                {
+            case ShapeType::SphericalShell: {
+                if (!hasRadius) {
                     LOG_WARN_LITERAL("Missing radius for round shape");
                     continue;
                 }
@@ -272,10 +252,8 @@ namespace egret
                 shapeInfo.numberParams["radius"] = {radius};
                 break;
             }
-            case ShapeType::Rod:
-            {
-                if (!hasLength)
-                {
+            case ShapeType::Rod: {
+                if (!hasLength) {
                     LOG_WARN_LITERAL("Missing length for Rod");
                     continue;
                 }
@@ -289,14 +267,14 @@ namespace egret
             }
 
             std::unique_ptr<ShapeBase> shape = ShapeFactoryRegistry::instance().create(shapeInfo);
-            if (shape == nullptr)
-            {
+            if (shape == nullptr) {
                 LOG_WARN_LITERAL("Shape Created Failed");
                 continue;
             }
 
 
-            auto entity = std::make_shared<RigidBody>(position, initialVelocity, mass, UuidGenerator::instance().generate());
+            auto entity = std::make_shared<RigidBody>(position, initialVelocity, mass,
+                                                      UuidGenerator::instance().generate());
             entity->setRotation(rotation);
             entity->setScale(scale);
 
@@ -308,10 +286,8 @@ namespace egret
             BodyRecord body{};
             const QString idText = obj.value("id").toString();
             std::uint64_t bodyId = idText.isEmpty() ? 0 : hashIdString(idText);
-            if (bodyId == 0 || usedIds.contains(bodyId))
-            {
-                while (usedIds.contains(fallbackId) || fallbackId == 0)
-                {
+            if (bodyId == 0 || usedIds.contains(bodyId)) {
+                while (usedIds.contains(fallbackId) || fallbackId == 0) {
                     ++fallbackId;
                 }
                 bodyId = fallbackId++;
@@ -326,11 +302,10 @@ namespace egret
         return record;
     }
 
-    SceneRecord SceneManagerViewModel::createSceneFromJsonFile(const QString &fileName)
+    SceneRecord SceneManagerViewModel::createSceneFromJsonFile(const QString& fileName)
     {
         QFile file(fileName);
-        if (!file.open(QIODevice::ReadOnly))
-        {
+        if (!file.open(QIODevice::ReadOnly)) {
             return {};
         }
         QByteArray data = file.readAll();
@@ -373,20 +348,19 @@ namespace egret
         return m_dragActive;
     }
 
-    SceneBodyModel *SceneManagerViewModel::bodyModel()
+    SceneBodyModel* SceneManagerViewModel::bodyModel()
     {
         return &m_bodyModel;
     }
 
-    SceneConstraintModel *SceneManagerViewModel::constraintModel()
+    SceneConstraintModel* SceneManagerViewModel::constraintModel()
     {
         return &m_constraintModel;
     }
 
     void SceneManagerViewModel::play()
     {
-        if (m_running)
-        {
+        if (m_running) {
             return;
         }
 
@@ -397,8 +371,7 @@ namespace egret
 
     void SceneManagerViewModel::pause()
     {
-        if (!m_running)
-        {
+        if (!m_running) {
             return;
         }
 
@@ -408,12 +381,10 @@ namespace egret
 
     void SceneManagerViewModel::toggleRunning()
     {
-        if (m_running)
-        {
+        if (m_running) {
             pause();
         }
-        else
-        {
+        else {
             play();
         }
     }
@@ -443,11 +414,11 @@ namespace egret
         emit entityChanged();
     }
 
-    void SceneManagerViewModel::loadSceneFronJsonFile(const QString &fileName)
+    void SceneManagerViewModel::loadSceneFronJsonFile(const QString& fileName)
     {
     }
 
-    void SceneManagerViewModel::loadSceneFromJsonString(const QString &jsonString)
+    void SceneManagerViewModel::loadSceneFromJsonString(const QString& jsonString)
     {
     }
 
@@ -455,7 +426,7 @@ namespace egret
                                                                const double screenY,
                                                                const double viewportWidth,
                                                                const double viewportHeight,
-                                                               const QVariantMap &cameraState,
+                                                               const QVariantMap& cameraState,
                                                                const double planeZ) const
     {
         QVariantMap result{};
@@ -469,16 +440,14 @@ namespace egret
                           cameraState,
                           &rayOrigin,
                           &rayDirection,
-                          &error))
-        {
+                          &error)) {
             result.insert("ok", false);
             result.insert("error", error);
             return result;
         }
 
         Eigen::Vector3d hitPoint{};
-        if (!intersectRayWithPlaneZ(rayOrigin, rayDirection, planeZ, &hitPoint, &error))
-        {
+        if (!intersectRayWithPlaneZ(rayOrigin, rayDirection, planeZ, &hitPoint, &error)) {
             result.insert("ok", false);
             result.insert("error", error);
             return result;
@@ -496,17 +465,15 @@ namespace egret
                                               const double screenY,
                                               const double viewportWidth,
                                               const double viewportHeight,
-                                              const QVariantMap &cameraState,
-                                              const QString &mode)
+                                              const QVariantMap& cameraState,
+                                              const QString& mode)
     {
-        if (m_world == nullptr)
-        {
+        if (m_world == nullptr) {
             return false;
         }
 
         const std::optional<Eigen::Vector3d> bodyPosition = m_world->getBodyPosition(bodyId);
-        if (!bodyPosition.has_value())
-        {
+        if (!bodyPosition.has_value()) {
             return false;
         }
 
@@ -518,14 +485,12 @@ namespace egret
                           viewportHeight,
                           cameraState,
                           &rayOrigin,
-                          &rayDirection))
-        {
+                          &rayDirection)) {
             return false;
         }
 
         Eigen::Vector3d planePoint{};
-        if (!intersectRayWithPlaneZ(rayOrigin, rayDirection, bodyPosition->z(), &planePoint))
-        {
+        if (!intersectRayWithPlaneZ(rayOrigin, rayDirection, bodyPosition->z(), &planePoint)) {
             return false;
         }
 
@@ -541,10 +506,9 @@ namespace egret
                                                const double screenY,
                                                const double viewportWidth,
                                                const double viewportHeight,
-                                               const QVariantMap &cameraState)
+                                               const QVariantMap& cameraState)
     {
-        if (!m_dragActive || m_world == nullptr || m_dragBodyId == 0)
-        {
+        if (!m_dragActive || m_world == nullptr || m_dragBodyId == 0) {
             return false;
         }
 
@@ -556,40 +520,33 @@ namespace egret
                           viewportHeight,
                           cameraState,
                           &rayOrigin,
-                          &rayDirection))
-        {
+                          &rayDirection)) {
             return false;
         }
 
         Eigen::Vector3d currentPlanePoint{};
-        if (!intersectRayWithPlaneZ(rayOrigin, rayDirection, m_dragStartBodyPosition.z(), &currentPlanePoint))
-        {
+        if (!intersectRayWithPlaneZ(rayOrigin, rayDirection, m_dragStartBodyPosition.z(), &currentPlanePoint)) {
             return false;
         }
 
         const Eigen::Vector3d dragDelta = currentPlanePoint - m_dragStartPlanePoint;
         Eigen::Vector3d nextPosition = m_dragStartBodyPosition;
 
-        if (m_dragMode == "axis_x")
-        {
+        if (m_dragMode == "axis_x") {
             nextPosition.x() += dragDelta.x();
         }
-        else if (m_dragMode == "axis_y")
-        {
+        else if (m_dragMode == "axis_y") {
             nextPosition.y() += dragDelta.y();
         }
-        else if (m_dragMode == "axis_z")
-        {
+        else if (m_dragMode == "axis_z") {
             nextPosition.z() += dragDelta.z();
         }
-        else
-        {
+        else {
             nextPosition.x() += dragDelta.x();
             nextPosition.y() += dragDelta.y();
         }
 
-        if (!m_world->setBodyPosition(m_dragBodyId, nextPosition))
-        {
+        if (!m_world->setBodyPosition(m_dragBodyId, nextPosition)) {
             return false;
         }
 
@@ -601,8 +558,7 @@ namespace egret
 
     void SceneManagerViewModel::endBodyDrag()
     {
-        if (!m_dragActive)
-        {
+        if (!m_dragActive) {
             return;
         }
 
@@ -613,21 +569,21 @@ namespace egret
         setDragActive(false);
     }
 
-    QVector3D SceneManagerViewModel::buildRenderScale(std::uint32_t type, const QVector3D &modelScale,
-                                                      const QVector3D &boxSize_optional, double radius_optional,
+    QVector3D SceneManagerViewModel::buildRenderScale(std::uint32_t type, const QVector3D& modelScale,
+                                                      const QVector3D& boxSize_optional, double radius_optional,
                                                       double height_optional, double length_optional)
     {
         return TransformTransformer::buildQuick3DRenderScale(type, modelScale, boxSize_optional,
-                                                                        radius_optional, height_optional,
-                                                                        length_optional);
+                                                             radius_optional, height_optional,
+                                                             length_optional);
     }
 
-    QVector3D SceneManagerViewModel::buildRenderPosition(const QVector3D &position)
+    QVector3D SceneManagerViewModel::buildRenderPosition(const QVector3D& position)
     {
         return TransformTransformer::buildQuick3DRenderPosition(position);
     }
 
-    QQuaternion SceneManagerViewModel::buildRenderRotation(const QQuaternion &rotation)
+    QQuaternion SceneManagerViewModel::buildRenderRotation(const QQuaternion& rotation)
     {
         return TransformTransformer::buildQuick3DRenderRotation(rotation);
     }
@@ -639,15 +595,13 @@ namespace egret
         updateFps(realFrameSeconds);
 
         int subStepCount = 0;
-        while (m_accumulator >= m_fixedStepSeconds && subStepCount < m_maxSubSteps)
-        {
+        while (m_accumulator >= m_fixedStepSeconds && subStepCount < m_maxSubSteps) {
             advanceFixedStep(false);
             m_accumulator -= m_fixedStepSeconds;
             ++subStepCount;
         }
 
-        if (m_accumulator >= m_fixedStepSeconds * static_cast<double>(m_maxSubSteps))
-        {
+        if (m_accumulator >= m_fixedStepSeconds * static_cast<double>(m_maxSubSteps)) {
             m_accumulator = 0.0;
         }
     }
@@ -672,15 +626,22 @@ namespace egret
         // auto record = createSceneFromJsonFile("C:/Users/jehor/Desktop/1.json");
         // m_world->registerScene(record);
 
+        auto groundId = m_world->spawnBox("地面", {0.0, 0.0, -50.0}, {0.0, 0.0, 0.0}, {800.0, 600.0, 30.0}, 0.0);
+
+        RigidBody* ground = dynamic_cast<RigidBody*>(m_world->getEntity(groundId));
+
+        // if (ground != nullptr) {
+        //     qDebug() << ground->getShape()->getVolume();
+        // }
         auto generateBox{
             [&]()
             {
-                qDebug() << m_world->spawnBox("地面", {0.0, 0.0, -50.0}, {0.0, 0.0, 0.0}, {800.0, 600.0, 30.0}, 0.0);
                 // m_world->spawnBox("地面", {0, -300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
                 // m_world->spawnBox("地面", {0, 300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
                 // m_world->spawnBox("地面", {400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
                 // m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
-            }};
+            }
+        };
 
         auto generateRotationTest{
             [&]()
@@ -688,7 +649,7 @@ namespace egret
                 std::uint64_t idBox = m_world->spawnBox("测试", {0, 400, 300}, {320, 100, 233}, {100, 30, 100}, 10.0);
                 // std::uint64_t idBox2 = m_world->spawnBox("测试", {0, 0, 430}, {0, 0, 0}, {100, 30, 100}, 10.0);
                 // Eigen::Matrix3d R;
-                double angle_z = M_PI / 5.0;          // 36 degrees
+                double angle_z = M_PI / 5.0; // 36 degrees
                 double angle_x = 40.0 * M_PI / 180.0; // 40 degrees
 
                 double cz = std::cos(angle_z);
@@ -723,18 +684,19 @@ namespace egret
                 m_world->setBodyRotation(idBox, R);
 
                 m_world->createSimplePendulum("simple_pendulum_test", 100, {0, 0, 500}, idBox);
-            }};
+            }
+        };
 
         // generateRotationTest();
 
 
         std::uint64_t id1 = m_world->spawnSphere("123", {10, 0, 100}, {0, 0, 0}, 10, 10);
         std::uint64_t id2 = m_world->spawnSphere("456", {10, 0, 200}, {0, 0, 0}, 10, 10);
-        // m_world->createConnectingLine("114514", 140, id1, id2);
+        m_world->createConnectingLine("114514", 140, id1, id2);
 
 
-        std::uint64_t id3 = m_world->spawnSphere("123", {10, 100, 100}, {0, 0, 0}, 10, 10);
-        m_world->createSimplePendulum("1", 100, {10, 200, 100}, id3);
+        std::uint64_t id3 = m_world->spawnSphere("123", {10, 120, 220}, {0, 0, 0}, 10, 10);
+        m_world->createSimplePendulum("1", 150, {10, 200, 200}, id3);
 
         qDebug() << id1 << id2 << id3;
         generateBox();
@@ -744,7 +706,7 @@ namespace egret
             [&]()
             {
                 auto generateField{
-                    [&](const Eigen::Vector3d &position, const Eigen::Vector3d &speed, double mass,
+                    [&](const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass,
                         double coupling_G = G)
                     {
                         static int i = 0;
@@ -772,19 +734,22 @@ namespace egret
                                                    gravFieldEntity,
                                                    gravFieldBase,
                                                    std::make_unique<ShapeSphere>(10.0));
-                    }};
+                    }
+                };
 
                 generateField({300, 0, -1}, {0, 75, 100}, 200, 50000);
                 generateField({-150, 259.8, 100}, {-120, -45, 43}, 100, 50000);
                 generateField({-150, -259.8, -300}, {-120, 45, 23}, 50, 50000);
-            }};
+            }
+        };
 
         auto generateSupportSurfaceTest{
             [&]()
             {
                 m_world->spawnSphere("球", {0, 0, 300}, {0, 0, 0}, 10.0, 10.0);
                 std::uint64_t id = m_world->spawnSphere("球", {0, 0, 200}, {0, 0, 0}, 10.0, 10.0);
-            }};
+            }
+        };
         // generateBox();
         // generateSupportSurfaceTest();
         // m_world->spawnCylinder("cylinder", {}, {}, 4, 2, 4);
@@ -798,8 +763,7 @@ namespace egret
 
     void SceneManagerViewModel::refreshBodyModel()
     {
-        if (m_world == nullptr)
-        {
+        if (m_world == nullptr) {
             m_bodyModel.clear();
             return;
         }
@@ -808,8 +772,7 @@ namespace egret
         const std::vector<SceneRenderItem> renderItems = m_world->buildRenderItems();
         items.reserve(renderItems.size());
 
-        for (const SceneRenderItem &renderItem : renderItems)
-        {
+        for (const SceneRenderItem& renderItem : renderItems) {
             SceneBodyVisualItem item{};
             item.id = renderItem.id;
             item.kind = renderItem.kind;
@@ -846,8 +809,7 @@ namespace egret
 
     void SceneManagerViewModel::refreshConstraintModel()
     {
-        if (m_world == nullptr)
-        {
+        if (m_world == nullptr) {
             m_constraintModel.clear();
             return;
         }
@@ -856,33 +818,26 @@ namespace egret
         const std::vector<SceneConstraintRenderItem> renderItems = m_world->buildConstraintRenderItems();
         items.reserve(renderItems.size());
 
-        for (const SceneConstraintRenderItem &renderItem : renderItems)
-        {
+        for (const SceneConstraintRenderItem& renderItem : renderItems) {
             SceneConstraintVisualItem item{};
             item.id = renderItem.id;
             item.kind = renderItem.kind;
             item.entityIdA = renderItem.entityIdA;
             item.entityIdB = renderItem.entityIdB;
 
-            item.positionA[0] = (float)renderItem.positionA.x();
-            item.positionA[1] = (float)renderItem.positionA.y();
-            item.positionA[2] = (float)renderItem.positionA.z();
+            item.positionA[0] = static_cast<float>(renderItem.positionA.x());
+            item.positionA[1] = static_cast<float>(renderItem.positionA.y());
+            item.positionA[2] = static_cast<float>(renderItem.positionA.z());
 
-            item.positionB[0] = (float)renderItem.positionB.x();
-            item.positionB[1] = (float)renderItem.positionB.y();
-            item.positionB[2] = (float)renderItem.positionB.z();
+            item.positionB[0] = static_cast<float>(renderItem.positionB.x());
+            item.positionB[1] = static_cast<float>(renderItem.positionB.y());
+            item.positionB[2] = static_cast<float>(renderItem.positionB.z());
 
             item.constraintLength = renderItem.constraintLength;
             item.currentDistance = renderItem.currentDistance;
 
             item.color = QString::fromStdString(renderItem.color);
             item.label = QString::fromStdString(renderItem.label);
-
-            qDebug() << "Constraint" << item.id
-                     << "posA:" << item.positionA[0] << item.positionA[1] << item.positionA[2]
-                     << "posB:" << item.positionB[0] << item.positionB[1] << item.positionB[2]
-                     << "len:" << item.constraintLength
-                     << "dist:" << item.currentDistance;
 
             items.push_back(std::move(item));
         }
@@ -892,8 +847,7 @@ namespace egret
 
     void SceneManagerViewModel::advanceFixedStep(const bool emitFrameSignal)
     {
-        if (m_world == nullptr)
-        {
+        if (m_world == nullptr) {
             return;
         }
 
@@ -910,16 +864,14 @@ namespace egret
         emit stepCountChanged();
         emit entityCountChanged();
         emit entityChanged();
-        if (emitFrameSignal)
-        {
+        if (emitFrameSignal) {
             emit frameAdvanced();
         }
     }
 
     void SceneManagerViewModel::updateFps(const double realFrameSeconds)
     {
-        if (realFrameSeconds <= 0.0)
-        {
+        if (realFrameSeconds <= 0.0) {
             return;
         }
 
@@ -930,8 +882,7 @@ namespace egret
 
     void SceneManagerViewModel::setRunning(const bool running)
     {
-        if (m_running == running)
-        {
+        if (m_running == running) {
             return;
         }
 
@@ -943,24 +894,20 @@ namespace egret
                                              const double screenY,
                                              const double viewportWidth,
                                              const double viewportHeight,
-                                             const QVariantMap &cameraState,
-                                             Eigen::Vector3d *origin,
-                                             Eigen::Vector3d *direction,
-                                             QString *error) const
+                                             const QVariantMap& cameraState,
+                                             Eigen::Vector3d* origin,
+                                             Eigen::Vector3d* direction,
+                                             QString* error) const
     {
-        if (origin == nullptr || direction == nullptr)
-        {
-            if (error != nullptr)
-            {
+        if (origin == nullptr || direction == nullptr) {
+            if (error != nullptr) {
                 *error = "invalid_output_pointer";
             }
             return false;
         }
 
-        if (viewportWidth <= 1.0 || viewportHeight <= 1.0)
-        {
-            if (error != nullptr)
-            {
+        if (viewportWidth <= 1.0 || viewportHeight <= 1.0) {
+            if (error != nullptr) {
                 *error = "invalid_viewport";
             }
             return false;
@@ -968,8 +915,7 @@ namespace egret
 
         const CameraState camera = parseCameraState(cameraState);
         QVector3D up = camera.up.normalized();
-        if (up.lengthSquared() < 1e-6f)
-        {
+        if (up.lengthSquared() < 1e-6f) {
             up = QVector3D(0.0f, 0.0f, 1.0f);
         }
 
@@ -989,10 +935,8 @@ namespace egret
 
         QVector4D nearPoint = inverseViewProjection * QVector4D(ndcX, ndcY, -1.0f, 1.0f);
         QVector4D farPoint = inverseViewProjection * QVector4D(ndcX, ndcY, 1.0f, 1.0f);
-        if (std::abs(nearPoint.w()) < 1e-8f || std::abs(farPoint.w()) < 1e-8f)
-        {
-            if (error != nullptr)
-            {
+        if (std::abs(nearPoint.w()) < 1e-8f || std::abs(farPoint.w()) < 1e-8f) {
+            if (error != nullptr) {
                 *error = "non_invertible_view_projection";
             }
             return false;
@@ -1003,10 +947,8 @@ namespace egret
 
         const QVector3D rayOriginVec = nearPoint.toVector3D();
         QVector3D rayDirectionVec = (farPoint - nearPoint).toVector3D();
-        if (rayDirectionVec.lengthSquared() < 1e-10f)
-        {
-            if (error != nullptr)
-            {
+        if (rayDirectionVec.lengthSquared() < 1e-10f) {
+            if (error != nullptr) {
                 *error = "invalid_ray_direction";
             }
             return false;
@@ -1018,25 +960,21 @@ namespace egret
         return true;
     }
 
-    bool SceneManagerViewModel::intersectRayWithPlaneZ(const Eigen::Vector3d &rayOrigin,
-                                                       const Eigen::Vector3d &rayDirection,
+    bool SceneManagerViewModel::intersectRayWithPlaneZ(const Eigen::Vector3d& rayOrigin,
+                                                       const Eigen::Vector3d& rayDirection,
                                                        const double planeZ,
-                                                       Eigen::Vector3d *hitPoint,
-                                                       QString *error)
+                                                       Eigen::Vector3d* hitPoint,
+                                                       QString* error)
     {
-        if (hitPoint == nullptr)
-        {
-            if (error != nullptr)
-            {
+        if (hitPoint == nullptr) {
+            if (error != nullptr) {
                 *error = "invalid_hit_pointer";
             }
             return false;
         }
 
-        if (std::abs(rayDirection.z()) < 1e-9)
-        {
-            if (error != nullptr)
-            {
+        if (std::abs(rayDirection.z()) < 1e-9) {
+            if (error != nullptr) {
                 *error = "ray_parallel_to_plane";
             }
             return false;
@@ -1049,8 +987,7 @@ namespace egret
 
     void SceneManagerViewModel::setDragActive(const bool active)
     {
-        if (m_dragActive == active)
-        {
+        if (m_dragActive == active) {
             return;
         }
         m_dragActive = active;
