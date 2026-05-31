@@ -46,7 +46,7 @@ namespace egret
         explicit SurfacePlane(const Eigen::Vector3d& anchor,
                               const Eigen::Vector3d& normal);
 
-        std::unique_ptr<SurfaceBase> clone() const override;
+        [[nodiscard]] std::unique_ptr<SurfaceBase> clone() const override;
 
         /** @brief 获取曲面类型，始终返回 SurfaceType::Plane。 */
         [[nodiscard]] SurfaceType getType() const override;

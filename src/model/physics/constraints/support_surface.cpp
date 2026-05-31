@@ -34,6 +34,14 @@ namespace egret
 
         std::ignore = dt;
 
+        // 曲面类型决定了罚力策略。平面曲面的 signedDistance 精确（欧几里得距离），
+        // 罚力 + 冲量双修正工作良好。曲线曲面（球/柱/Bezier）的碰撞检测基于
+        // 局部切平面近似，signedDistance 可能有偏差，高刚度罚力 + 冲量双修正
+        // 容易导致过度弹跳。对曲线曲面降低有效罚刚度。
+        const SurfaceType st = m_surface->getType();
+        const double stiffnessScale = (st == SurfaceType::Plane) ? 1.0 : 0.1;
+        const double effectiveStiffness = m_penaltyStiffness * stiffnessScale;
+
         // 遍历所有注册实体，对穿透或接近曲面的实体施加法向罚力
         for (auto* entity : m_registeredEntities) {
             if (entity == nullptr || entity->isFixed()) {
@@ -58,7 +66,7 @@ namespace egret
 
                 // 罚力：F = -k * penetration * normal
                 // 方向指向曲面外部（法线方向）
-                const double forceMagnitude = m_penaltyStiffness * contact.penetration;
+                const double forceMagnitude = effectiveStiffness * contact.penetration;
                 const Eigen::Vector3d penaltyForce = forceMagnitude * contact.normal;
 
                 // 通过 upsertForce 注入实体力累加器（使用约束器自身的 ID 做 key）

@@ -60,10 +60,10 @@ namespace egret
         mesh.indices.reserve(segs * segs * 6);
         for (int j = 0; j < segs; ++j) {
             for (int i = 0; i < segs; ++i) {
-                const std::uint32_t idx00 = static_cast<std::uint32_t>(j * vertsPerSide + i);
-                const std::uint32_t idx10 = static_cast<std::uint32_t>(j * vertsPerSide + i + 1);
-                const std::uint32_t idx01 = static_cast<std::uint32_t>((j + 1) * vertsPerSide + i);
-                const std::uint32_t idx11 = static_cast<std::uint32_t>((j + 1) * vertsPerSide + i + 1);
+                const auto idx00 = static_cast<std::uint32_t>(j * vertsPerSide + i);
+                const auto idx10 = static_cast<std::uint32_t>(j * vertsPerSide + i + 1);
+                const auto idx01 = static_cast<std::uint32_t>((j + 1) * vertsPerSide + i);
+                const auto idx11 = static_cast<std::uint32_t>((j + 1) * vertsPerSide + i + 1);
 
                 // 三角形 1
                 mesh.indices.push_back(idx00);
@@ -99,7 +99,12 @@ namespace egret
     double SurfaceBezier::signedDistance(const Eigen::Vector3d& worldPoint) const
     {
         const Eigen::Vector3d cp = closestPoint(worldPoint);
-        const Eigen::Vector3d n = normal(cp);
+        // 使用 closestPoint 缓存的 (u,v) 算法线，避免 findParameters 歧义
+        const Eigen::Vector3d Su = deriveU(m_lastU, m_lastV);
+        const Eigen::Vector3d Sv = deriveV(m_lastU, m_lastV);
+        Eigen::Vector3d n = Su.cross(Sv);
+        const double nLen = n.norm();
+        if (nLen > 1e-20) n /= nLen;
         const Eigen::Vector3d diff = worldPoint - cp;
         return diff.dot(n);
     }
@@ -107,11 +112,29 @@ namespace egret
     Eigen::Vector3d SurfaceBezier::closestPoint(const Eigen::Vector3d& worldPoint) const
     {
         constexpr std::size_t kGridSamples = 5;
+        constexpr std::size_t kEdgeSamples = 8;
         constexpr std::size_t kMaxIter = 32;
         constexpr double kTol = 1e-8;
 
         double bestDist2 = std::numeric_limits<double>::max();
         Eigen::Vector3d bestPoint = evaluate(0.0, 0.0);
+
+        // 边界采样：对远离曲面的点，最近点一定在参数域边界上
+        for (std::size_t s = 0; s <= kEdgeSamples; ++s) {
+            const double t = static_cast<double>(s) / kEdgeSamples;
+            // 四条边界：u=0, u=1, v=0, v=1
+            const std::pair<double, double> edges[4] = {{0.0, t}, {1.0, t}, {t, 0.0}, {t, 1.0}};
+            for (const auto& edge : edges) {
+                const Eigen::Vector3d p = evaluate(edge.first, edge.second);
+                const double d2 = (p - worldPoint).squaredNorm();
+                if (d2 < bestDist2) {
+                    bestDist2 = d2;
+                    bestPoint = p;
+                    m_lastU = edge.first;
+                    m_lastV = edge.second;
+                }
+            }
+        }
 
         for (std::size_t i = 0; i < kGridSamples; ++i) {
             for (std::size_t j = 0; j < kGridSamples; ++j) {
@@ -164,6 +187,8 @@ namespace egret
                 if (dist2 < bestDist2) {
                     bestDist2 = dist2;
                     bestPoint = candidate;
+                    m_lastU = u;
+                    m_lastV = v;
                 }
             }
         }
@@ -189,7 +214,44 @@ namespace egret
                                 const Transform& shapeTransform,
                                 ContactManifold& manifold) const
     {
-        return SurfaceBase::collide(shape, shapeTransform, manifold);
+        if (shape == nullptr) {
+            return false;
+        }
+
+        const Eigen::Vector3d comWorld =
+            shapeTransform.transformPointToWorld(shape->getCenterOfMass());
+
+        // 计算一次最近点，然后复用其缓存的 (u,v) 算法线
+        // 避免 normal() 重复调用 closestPoint 以及 findParameters 可能得到不同 (u,v)
+        const Eigen::Vector3d cp = closestPoint(comWorld);
+        const Eigen::Vector3d Su = deriveU(m_lastU, m_lastV);
+        const Eigen::Vector3d Sv = deriveV(m_lastU, m_lastV);
+        Eigen::Vector3d n = Su.cross(Sv);
+        const double nLen = n.norm();
+        if (nLen > 1e-20) n /= nLen;
+
+        // 确保法线指向曲面"外部"（朝向物体质心方向）
+        // Bezier 曲面的参数法线 (Su × Sv) 方向由控制点顺序决定，
+        // 不保证指向外部，需要根据质心位置矫正。
+        if ((comWorld - cp).dot(n) < 0) {
+            n = -n;
+        }
+
+        const Eigen::Vector3d deepestWorld = shape->support(-n, shapeTransform);
+        // 使用 cp 处的切平面计算有符号距离。避免调用 signedDistance()
+        // 因其内部使用参数法线方向可能与 collide 计算的 n 不一致。
+        const double sd = (deepestWorld - cp).dot(n);
+
+        if (sd >= 0.0) {
+            return false;
+        }
+
+        ContactPoint contact;
+        contact.position = cp;
+        contact.normal = n;
+        contact.penetration = -sd;
+        manifold.push_back(contact);
+        return true;
     }
 
     // ==================== 私有辅助方法 ====================
