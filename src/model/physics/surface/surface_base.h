@@ -41,14 +41,14 @@ namespace egret
     {
         Unknown = 0,
 
-        /** 标准（椭）球面。 */
-        Sphere,
         /** 无限大平面。 */
         Plane,
-        /** 参数化圆柱面（母线长度、包围角度、轴线）。 */
-        Cylinder,
+
         /** 双三次 Bezier 曲面。 */
         Bezier,
+
+        /** 柱面（以空间曲线为基线的扫略面）。 */
+        Cylindrical,
 
         Abstract = 127,
 
@@ -142,7 +142,7 @@ namespace egret
          *          - SurfaceCylinder：圆周分段数 = subdivisions，高度分段数 = subdivisions / 4
          *          - SurfaceBezier：u/v 方向采样数 = subdivisions + 1
          */
-        int subdivisions{16};
+        int subdivisions{128};
 
         /**
          * @brief 无限大平面的显示范围（仅对 SurfacePlane 有效）。

@@ -290,7 +290,7 @@ namespace egret
         void setRunning(bool running);
 
         /** 从相机状态构建拾取射线。 */
-        static [[nodiscard]] bool buildPickRay(double screenX,
+        [[nodiscard]] static bool buildPickRay(double screenX,
                                         double screenY,
                                         double viewportWidth,
                                         double viewportHeight,

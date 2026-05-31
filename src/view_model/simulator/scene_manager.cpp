@@ -60,8 +60,10 @@
 #include "surface_plane.h"
 #include "support_surface.h"
 #include "surface_bezier.h"
-#include "surface_cylinder.h"
-#include "surface_sphere.h"
+#include "surface_cylindrical.h"
+#include "curve_bezier.h"
+#include "curve_elliptical_arc.h"
+#include "constants.h"
 
 #include "uuid_generator.h"
 
@@ -654,18 +656,6 @@ namespace egret
 
         qDebug() << id1 << id2 << id3;
 
-        auto plane = std::make_unique<SurfacePlane>(
-            Eigen::Vector3d(0, 0, 0),
-            Eigen::Vector3d::UnitZ());
-
-        // 通过场景管理器注册
-        m_world->createSupportSurface(
-            "Ground",
-            std::move(plane),
-            1.0, // 恢复系数
-            {id1, id2, id3} // 初始实体
-        );
-
         m_surfaceModel.setPlaneExtent(2000.0);
 
         // === 创建 Bezier 曲面 SupportSurface 用于测试 ===
@@ -703,42 +693,72 @@ namespace egret
             {id4, id5}      // 注册到这个曲面的实体
         );
 
-        // === 创建球面 SupportSurface 用于测试 ===
-        // 位于 (-400, 300, 0)，半径 120
-        const Eigen::Vector3d sphereCenter{-400, 300, 0};
-        auto sphereSurf = std::make_unique<SurfaceSphere>(
-            120.0,
-            Transform(sphereCenter));
+        // ============================================================
+        // 测试用例 1：贝塞尔曲线为基线的柱面
+        // ============================================================
+        // 贝塞尔曲线在 XY 平面内画弧，方向沿 Z 轴挤压
+        // 法线 N = C'(t) × Z 将指向 XY 平面的外侧
+        std::vector<Eigen::Vector3d> bezierCPs2 = {
+            {400,   0, 0},
+            {500,  80, 0},
+            {600, -80, 0},
+            {700,   0, 0}
+        };
+        auto bezierCurve2 = std::make_unique<CurveBezier>(bezierCPs2);
+        auto bezierCyl = std::make_unique<SurfaceCylindrical>(
+            std::move(bezierCurve2),
+            Eigen::Vector3d{0, 100, 30});  // 沿 Z 方向挤压 100 个单位
 
-        // 在球面上方生成两个测试球体
-        std::uint64_t id6 = m_world->spawnSphere("s1", {-400, 300, 400}, {0, 0, 0}, 10, 10);
-        std::uint64_t id7 = m_world->spawnSphere("s2", {-340, 400, 350}, {0, 0, 0}, 10, 10);
+        // 在贝塞尔柱面上方生成测试球体
+        std::uint64_t id8 = m_world->spawnSphere("bc_b1", {450, 10, 400}, {0, 0, 0}, 10, 10);
+        std::uint64_t id9 = m_world->spawnSphere("bc_b2", {550, 10, 350}, {0, 0, 0}, 10, 10);
 
-        m_world->createSupportSurface(
-            "SphereSurface",
-            std::move(sphereSurf),
-            0.8,            // 恢复系数 0.8
-            {id6, id7}
+        auto surface = m_world->createSupportSurface(
+            "BezierCylinder",
+            std::move(bezierCyl),
+            0.7,
+            {id8, id9}
         );
 
-        // === 创建圆柱面 SupportSurface 用于测试 ===
-        // 位于 (400, 300, 0)，半径 80，高度 200，完整圆柱
-        const Eigen::Vector3d cylinderCenter{400, 300, 0};
-        auto cylinderSurf = std::make_unique<SurfaceCylinder>(
-            80.0,
-            200.0,
-            2.0 * egret::PI,
-            Transform(cylinderCenter));
+        // ============================================================
+        // 测试用例 2：椭圆弧为基线的柱面
+        // ============================================================
+        // 创建一个半椭圆弧：中心在 (750, 0, 0)，半长轴 80 沿 X 方向，半短轴 60 沿 Y 方向
+        // 起始角 0，扫略角 π（半椭圆）
+        auto ellArc = std::make_unique<CurveEllipticalArc>(
+            Eigen::Vector3d{750, 0, 0},        // 中心
+            Eigen::Vector3d{80, 0, 0},         // 半长轴（X 方向，长度 80）
+            Eigen::Vector3d{0, 60, 0},         // 半短轴（Y 方向，长度 60）
+            0.0,                               // 起始角
+            egret::PI                          // 扫略角（半椭圆）
+        );
+        auto ellCyl = std::make_unique<SurfaceCylindrical>(
+            std::move(ellArc),
+            Eigen::Vector3d{100, 0,
+                100}         // 沿 Z 方向挤压 100 个单位
+        );
 
-        // 在圆柱面上方生成两个测试球体
-        std::uint64_t id8 = m_world->spawnSphere("c1", {400, 300, 500}, {0, 0, 0}, 10, 10);
-        std::uint64_t id9 = m_world->spawnSphere("c2", {460, 360, 450}, {0, 0, 0}, 10, 10);
+        // 在椭圆弧柱面上方生成测试球体
+        std::uint64_t id10 = m_world->spawnSphere("ec_b1", {720, 30, 350}, {0, 0, 0}, 10, 10);
+        std::uint64_t id11 = m_world->spawnSphere("ec_b2", {780, -30, 400}, {0, 0, 0}, 10, 10);
 
         m_world->createSupportSurface(
-            "CylinderSurface",
-            std::move(cylinderSurf),
-            0.7,            // 恢复系数 0.7
-            {id8, id9}
+            "EllipticalCylinder",
+            std::move(ellCyl),
+            0.7,
+            {id10, id11}
+        );
+
+        // 注册地面：包含场景中所有球体
+        auto plane = std::make_unique<SurfacePlane>(
+            Eigen::Vector3d(0, 0, 0),
+            Eigen::Vector3d::UnitZ());
+
+        m_world->createSupportSurface(
+            "Ground",
+            std::move(plane),
+            1.0, // 恢复系数
+            {id1, id2, id3, id4, id5, id8, id9, id10, id11}
         );
 
         m_entityCount = static_cast<int>(m_world->getBodyCount());

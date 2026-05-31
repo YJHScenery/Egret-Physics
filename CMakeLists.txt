@@ -41,6 +41,7 @@ include_directories(
         src/model/scene
         src/model/physics
         src/model/physics/surface
+        src/model/physics/curve
         src/model/physics/rigid
         src/model/physics/field
         src/model/physics/rigid/shape
@@ -96,11 +97,15 @@ set(CPP_FILES
         src/model/physics/surface/surface_plane.cpp
         src/model/physics/surface/surface_bezier.h
         src/model/physics/surface/surface_bezier.cpp
-        src/model/physics/surface/surface_cylinder.h
-        src/model/physics/surface/surface_cylinder.cpp
-        src/model/physics/surface/surface_sphere.h
-        src/model/physics/surface/surface_sphere.cpp
+        src/model/physics/surface/surface_cylindrical.h
+        src/model/physics/surface/surface_cylindrical.cpp
 
+        src/model/physics/curve/curve_base.h
+        src/model/physics/curve/curve_base.cpp
+        src/model/physics/curve/curve_bezier.h
+        src/model/physics/curve/curve_bezier.cpp
+        src/model/physics/curve/curve_elliptical_arc.h
+        src/model/physics/curve/curve_elliptical_arc.cpp
 
         src/model/physics/physics_utils.h
         src/model/physics/rigid/particle.cpp
