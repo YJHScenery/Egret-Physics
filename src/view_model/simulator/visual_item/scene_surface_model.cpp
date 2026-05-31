@@ -122,12 +122,6 @@ namespace egret
             case SurfaceType::Plane:
                 visualItem.color = "#4A90D9";   // 蓝色
                 break;
-            case SurfaceType::Sphere:
-                visualItem.color = "#50C878";   // 翡翠绿
-                break;
-            case SurfaceType::Cylinder:
-                visualItem.color = "#D4A574";   // 暖棕色
-                break;
             case SurfaceType::Bezier:
                 visualItem.color = "#9B59B6";   // 紫色
                 break;

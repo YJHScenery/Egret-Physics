@@ -387,11 +387,12 @@ ColumnLayout {
                                 geometry: surfaceGeometry
 
                                 materials: PrincipledMaterial {
+                                    cullMode: Material.NoCulling
                                     baseColor: surfaceColor
                                     roughness: 0.3
                                     metalness: 0.1
-                                    opacity: 0.5
-                                    alphaMode: PrincipledMaterial.Blend
+                                    opacity: 1
+                                    alphaMode: PrincipledMaterial.Opaque
                                 }
                             }
                         }
