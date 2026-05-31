@@ -54,7 +54,6 @@ namespace egret
 
     UuidGenerator::UuidGenerator() :
             m_counter(0),
-            m_rd(),
             m_gen(m_rd()),
             m_dist(0, 0xFFFF)
     {

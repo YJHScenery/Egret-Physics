@@ -27,7 +27,6 @@ namespace egret
         // 生成UUID
         uint64_t generate();
 
-
         // 重置计数器（可选）
         void resetCounter();
 
@@ -48,7 +47,7 @@ namespace egret
         std::atomic<uint64_t> m_counter;
         uint64_t m_machineId;
         uint64_t m_processId;
-        std::random_device m_rd;
+        std::random_device m_rd{};
         std::mt19937_64 m_gen;
         std::uniform_int_distribution<uint64_t> m_dist;
         std::mutex m_mutex;

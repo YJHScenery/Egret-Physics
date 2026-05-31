@@ -312,24 +312,50 @@ ColumnLayout {
                                 // 曲线控制点偏移量与松弛程度成正比
                                 property var slackCurve: slackRatio < 0.9
                                 property var curveOffset: slackCurve
-                                    ? (1.0 - slackRatio) * constraintConstraintLength * 0.35
+                                    ? (1.0 - slackRatio) * constraintConstraintLength * 1.5
                                     : 0.0
 
+                                // 球体数量（提取为独立属性，供 inner Repeater3D 的 model 和 delegate 共同引用）
+                                property var sphereCount: slackCurve
+                                    ? Math.max(40, Math.min(15, Math.ceil(entityDist * 0.05)))
+                                    : 0
+
+                                Component.onCompleted: {
+                                    console.log(curveOffset);
+                                    console.log(constraintConstraintLength);
+                                    console.log(slackRatio);
+                                    console.log(slackCurve)
+                                }
+
                                 Repeater3D {
-                                    model: slackCurve
-                                        ? Math.max(5, Math.min(15, Math.ceil(constraintNode.length * 0.05)))
-                                        : 0
+                                    model: constraintNode.sphereCount
+
+                                    Component.onCompleted: {
+                                        console.log(index)
+                                    }
 
                                     delegate: Model {
                                         // P(t) = (1-t)²A + 2(1-t)tC + t²B
-                                        property var t: (index + 0.5) / model
+                                        // 注意：Qt6 中 delegate 内的 model 是 object 而非整数，不能用它做计数
+                                        property var t: (index + 0.5) / constraintNode.sphereCount
 
                                         // 控制点 = 中点 + 垂直偏移
                                         property var midPt: constraintNode.renderPosA.plus(
                                             constraintNode.direction.times(0.5))
                                         property var perpDir: worldRoot.perpendicular2D(constraintNode.direction)
+
+                                        // 直接引用外层已经算好的 curveOffset
+                                        // （内层 delegate 的作用域中无法访问外层模型的角色属性）
+                                        property real curveOffset: constraintNode.curveOffset
+
+                                        Component.onCompleted: {
+                                            console.log("inner curveOffset =", curveOffset);
+                                            console.log("inner t =", t);
+                                            console.log("inner sphereCount =", constraintNode.sphereCount);
+                                        }
+
                                         property var controlPt: midPt.plus(
-                                            perpDir.times(constraintNode.curveOffset))
+                                            perpDir.times(curveOffset))
 
                                         // 贝塞尔插值
                                         property var invT: 1.0 - t
@@ -342,7 +368,7 @@ ColumnLayout {
                                         z: pt.z
 
                                         source: "#Sphere"
-                                        scale: Qt.vector3d(0.012, 0.012, 0.012)
+                                        scale: Qt.vector3d(0.015, 0.015, 0.015)
 
                                         materials: PrincipledMaterial {
                                             baseColor: constraintColor

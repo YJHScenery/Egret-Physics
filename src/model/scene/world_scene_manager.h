@@ -564,6 +564,32 @@ namespace egret
         [[nodiscard]] std::vector<ConstraintsBase *> getAllConstraints() const;
 
         /**
+         * @brief 获取指定 ID 的物理实体。
+         * @param id 实体 ID。
+         * @return 找到则返回实体指针，否则返回 nullptr。
+         */
+        [[nodiscard]] PhysicalEntity *getEntity(std::uint64_t id);
+
+        /**
+         * @brief 获取所有物理实体。
+         * @return 物理实体指针列表。
+         */
+        [[nodiscard]] std::vector<PhysicalEntity *> getAllPhysicalEntities() const;
+
+        /**
+         * @brief 获取指定 ID 的力场。
+         * @param id 场 ID。
+         * @return 找到则返回场指针，否则返回 nullptr。
+         */
+        [[nodiscard]] FieldBase *getField(std::uint64_t id);
+
+        /**
+         * @brief 获取所有力场。
+         * @return 力场指针列表。
+         */
+        [[nodiscard]] std::vector<FieldBase *> getAllFields() const;
+
+        /**
          * @brief 移除约束器。
          * @param id 约束 ID。
          * @return 移除是否成功。
