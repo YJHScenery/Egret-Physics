@@ -139,12 +139,16 @@ namespace egret
         [[nodiscard]] double computeConstraintError() const override;
 
         /**
-         * @brief 将约束力注入实体力累加器。
-         * @details SupportSurface 使用冲量机制（在 applyVelocityConstraint 中），
-         *          不进行力注入。此方法为空。
-         * @param dt 固定时间步长（未使用）。
+         * @brief 将约束力注入实体力累加器（积分前罚力阶段）。
+         * @details 在积分前对穿透或接近曲面的实体施加法向罚力，
+         *          防止实体在积分步中深入穿透曲面。
+         *          罚力公式：F = -k * penetration * normal
+         *          其中 k 为罚刚度 (m_penaltyStiffness)。
+         *          该力通过 upsertForce 注入实体力累加器，
+         *          与场力一起在积分阶段被处理。
+         * @param dt 固定时间步长。
          */
-        void applyConstraintForces(double dt) override { /* 使用冲量而非力 */ }
+        void applyConstraintForces(double dt) override;
 
         // ==================== 曲面管理 ====================
 
@@ -229,6 +233,21 @@ namespace egret
          */
         [[nodiscard]] double getFrictionCoeff() const { return m_frictionCoeff; }
 
+        /**
+         * @brief 设置罚刚度。
+         * @details 控制积分前法向罚力的强度，值越大对穿透抵抗越强。
+         *          典型范围：1e3 ~ 1e6 N/m。
+         *          设置为 0 可完全禁用罚力阶段（仅用冲量）。
+         * @param stiffness 罚刚度 (N/m)，必须 ≥ 0。
+         */
+        void setPenaltyStiffness(double stiffness) { m_penaltyStiffness = std::max(0.0, stiffness); }
+
+        /**
+         * @brief 获取罚刚度。
+         * @return 当前罚刚度 (N/m)。
+         */
+        [[nodiscard]] double getPenaltyStiffness() const { return m_penaltyStiffness; }
+
         SupportSurface() = default;
 
         SupportSurface(const SupportSurface& other);
@@ -283,6 +302,13 @@ namespace egret
          * 摩擦系数（预留，当前未使用）。
          */
         double m_frictionCoeff{0.0};
+
+        /**
+         * 罚刚度，控制积分前法向罚力的强度。
+         * 值越大，对穿透的抵抗越强，但过大会导致数值不稳定。
+         * 典型值范围：1e3 ~ 1e6 (N/m)。
+         */
+        double m_penaltyStiffness{1.0e5};
     };
 } // egret
 

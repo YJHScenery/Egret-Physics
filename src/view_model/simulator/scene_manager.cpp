@@ -16,6 +16,8 @@
 
 #include "scene_manager.h"
 #include <QCryptographicHash>
+
+
 // 原代码：
 // namespace egret {
 //
@@ -55,6 +57,9 @@
 #include "model_item_data.h"
 #include "transform_transformer.h"
 #include "magic_enum.hpp"
+#include "surface_plane.h"
+#include "support_surface.h"
+
 #include "uuid_generator.h"
 
 namespace egret
@@ -622,144 +627,35 @@ namespace egret
         m_world->clear();
         //
         m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
-        //
-        // auto record = createSceneFromJsonFile("C:/Users/jehor/Desktop/1.json");
-        // m_world->registerScene(record);
-
-        auto groundId = m_world->spawnBox("地面", {0.0, 0.0, -50.0}, {0.0, 0.0, 0.0}, {800.0, 600.0, 30.0}, 0.0);
-
-        RigidBody* ground = dynamic_cast<RigidBody*>(m_world->getEntity(groundId));
-
-        // if (ground != nullptr) {
-        //     qDebug() << ground->getShape()->getVolume();
-        // }
-        auto generateBox{
-            [&]()
-            {
-                // m_world->spawnBox("地面", {0, -300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
-                // m_world->spawnBox("地面", {0, 300, 300}, {0.0, 0.0, 0.0}, {800, 30, 600}, 0.0);
-                // m_world->spawnBox("地面", {400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
-                // m_world->spawnBox("地面", {-400, 0, 300}, {0.0, 0.0, 0.0}, {30, 600, 600}, 0.0);
-            }
-        };
-
-        auto generateRotationTest{
-            [&]()
-            {
-                std::uint64_t idBox = m_world->spawnBox("测试", {0, 400, 300}, {320, 100, 233}, {100, 30, 100}, 10.0);
-                // std::uint64_t idBox2 = m_world->spawnBox("测试", {0, 0, 430}, {0, 0, 0}, {100, 30, 100}, 10.0);
-                // Eigen::Matrix3d R;
-                double angle_z = M_PI / 5.0; // 36 degrees
-                double angle_x = 40.0 * M_PI / 180.0; // 40 degrees
-
-                double cz = std::cos(angle_z);
-                double sz = std::sin(angle_z);
-                double cx = std::cos(angle_x);
-                double sx = std::sin(angle_x);
-
-                // 绕Z轴旋转矩阵
-                Eigen::Matrix3d R_z;
-                R_z << cz, -sz, 0,
-                    sz, cz, 0,
-                    0, 0, 1;
-
-                // 绕X轴旋转矩阵
-                Eigen::Matrix3d R_x;
-                R_x << 1, 0, 0,
-                    0, cx, -sx,
-                    0, sx, cx;
-
-                // 先绕Z转，再绕X转（注意乘法顺序：右边先应用）
-                Eigen::Matrix3d R = R_x * R_z;
-                //
-                // double angle2 = M_PI / 6.0; // 45 degrees
-                // double c2 = std::cos(angle2);
-                // double s2 = std::sin(angle2);
-                //
-                // Eigen::Matrix3d R2{}; // 显式行优先
-                // R2 << c2, -s2, 0,
-                //     s2, c2, 0,
-                //     0, 0, 1;
-
-                m_world->setBodyRotation(idBox, R);
-
-                m_world->createSimplePendulum("simple_pendulum_test", 100, {0, 0, 500}, idBox);
-            }
-        };
 
         // generateRotationTest();
 
+        std::uint64_t id1 = m_world->spawnSphere("123", {10, 10, 200}, {0, 0, 0}, 10, 10);
+        std::uint64_t id2 = m_world->spawnSphere("456", {10, 0, 500}, {0, 0, 0}, 10, 10);
 
 
-        std::uint64_t id1 = m_world->spawnSphere("123", {10, 10, 200}, {100, 0, 0}, 10, 10);
-        std::uint64_t id2 = m_world->spawnSphere("456", {10, 0, 500}, {0, 0, 0}, 10, 0);
-        // 创建一个弹性系数 50 N/m、原长 2m 的弹簧，连接 bodyA 和 bodyB
-        uint64_t springId = m_world->createSpring("MySpring", 50.0, 300.0, id2, id1);
+        // 创建一个弹性系数 50 N/m、原长 300m 的弹簧，连接 bodyA 和 bodyB
+        m_world->createSpring("MySpring", 50.0, 300.0, id2, id1);
         // m_world->createConnectingLine("114514", 140, id1, id2);
 
 
-        std::uint64_t id3 = m_world->spawnSphere("123", {10, 120, 220}, {0, 0, 0}, 10, 10);
+        std::uint64_t id3 = m_world->spawnSphere("123", {10, 120, 120}, {0, 0, 0}, 10, 10);
         m_world->createSimplePendulum("1", 150, {10, 200, 200}, id3);
 
         qDebug() << id1 << id2 << id3;
-        generateBox();
 
+        auto plane = std::make_unique<SurfacePlane>(
+            Eigen::Vector3d(0, 0, 0),
+            Eigen::Vector3d::UnitZ());
 
-        auto generate3BodyScene{
-            [&]()
-            {
-                auto generateField{
-                    [&](const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass,
-                        double coupling_G = G)
-                    {
-                        static int i = 0;
-                        i++;
-                        auto gravitationalField = std::make_shared<GravitationalField>(
-                            position,
-                            speed,
-                            mass, coupling_G,
-                            false, i);
+        // 通过场景管理器注册
+        m_world->createSupportSurface(
+            "Ground",
+            std::move(plane),
+            0.3, // 恢复系数
+            {id1, id2, id3} // 初始实体
+        );
 
-                        GravitationalField::setMinDistanceSquared(1600);
-
-                        // gravitationalField->setCouplingCoefficient(1.0);
-                        auto gravFieldEntity = std::static_pointer_cast<PhysicalEntity>(gravitationalField);
-                        auto gravFieldBase = std::static_pointer_cast<FieldBase>(gravitationalField);
-                        static int id = 0;
-                        id++;
-                        QString bodyName{"测试引力源"};
-                        bodyName += QString::number(i);
-                        QString fieldName{"引力场"};
-                        fieldName += QString::number(i);
-
-                        m_world->registerBodyField(bodyName.toStdString(),
-                                                   fieldName.toStdString(),
-                                                   gravFieldEntity,
-                                                   gravFieldBase,
-                                                   std::make_unique<ShapeSphere>(10.0));
-                    }
-                };
-
-                generateField({300, 0, -1}, {0, 75, 100}, 200, 50000);
-                generateField({-150, 259.8, 100}, {-120, -45, 43}, 100, 50000);
-                generateField({-150, -259.8, -300}, {-120, 45, 23}, 50, 50000);
-            }
-        };
-
-        auto generateSupportSurfaceTest{
-            [&]()
-            {
-                m_world->spawnSphere("球", {0, 0, 300}, {0, 0, 0}, 10.0, 10.0);
-                std::uint64_t id = m_world->spawnSphere("球", {0, 0, 200}, {0, 0, 0}, 10.0, 10.0);
-            }
-        };
-        // generateBox();
-        // generateSupportSurfaceTest();
-        // m_world->spawnCylinder("cylinder", {}, {}, 4, 2, 4);
-
-        // generateField({10, 0, 0}, {-0.1, 0, 0.1}, 1, 1000);
-        // generateField({-10, 0, 0}, {0, 0.1, -0.1}, 1, 1000);
-        // generateField({0, 0, 5}, {0.2, -0.1, 0}, 1, 1000);
 
         m_entityCount = static_cast<int>(m_world->getBodyCount());
     }
@@ -780,26 +676,26 @@ namespace egret
             item.id = renderItem.id;
             item.kind = renderItem.kind;
 
-            item.velocity[0] = (float)renderItem.velocity.x();
-            item.velocity[1] = (float)renderItem.velocity.y();
-            item.velocity[2] = (float)renderItem.velocity.z();
+            item.velocity[0] = static_cast<float>(renderItem.velocity.x());
+            item.velocity[1] = static_cast<float>(renderItem.velocity.y());
+            item.velocity[2] = static_cast<float>(renderItem.velocity.z());
 
-            item.angularVelocity[0] = (float)renderItem.angularVelocity.x();
-            item.angularVelocity[1] = (float)renderItem.angularVelocity.y();
-            item.angularVelocity[2] = (float)renderItem.angularVelocity.z();
+            item.angularVelocity[0] = static_cast<float>(renderItem.angularVelocity.x());
+            item.angularVelocity[1] = static_cast<float>(renderItem.angularVelocity.y());
+            item.angularVelocity[2] = static_cast<float>(renderItem.angularVelocity.z());
 
-            item.centerPos[0] = (float)renderItem.position.x();
-            item.centerPos[1] = (float)renderItem.position.y();
-            item.centerPos[2] = (float)renderItem.position.z();
+            item.centerPos[0] = static_cast<float>(renderItem.position.x());
+            item.centerPos[1] = static_cast<float>(renderItem.position.y());
+            item.centerPos[2] = static_cast<float>(renderItem.position.z());
 
-            item.scale[0] = (float)renderItem.scale.x();
-            item.scale[1] = (float)renderItem.scale.y();
-            item.scale[2] = (float)renderItem.scale.z();
+            item.scale[0] = static_cast<float>(renderItem.scale.x());
+            item.scale[1] = static_cast<float>(renderItem.scale.y());
+            item.scale[2] = static_cast<float>(renderItem.scale.z());
 
-            item.rotation[0] = (float)renderItem.rotation.w();
-            item.rotation[1] = (float)renderItem.rotation.x();
-            item.rotation[2] = (float)renderItem.rotation.y();
-            item.rotation[3] = (float)renderItem.rotation.z();
+            item.rotation[0] = static_cast<float>(renderItem.rotation.w());
+            item.rotation[1] = static_cast<float>(renderItem.rotation.x());
+            item.rotation[2] = static_cast<float>(renderItem.rotation.y());
+            item.rotation[3] = static_cast<float>(renderItem.rotation.z());
 
             item.color = QString::fromStdString(renderItem.color);
             item.label = QString::fromStdString(renderItem.label);
@@ -808,6 +704,47 @@ namespace egret
         }
 
         m_bodyModel.setItems(items);
+    }
+
+    void SceneManagerViewModel::build3BodyModel() const
+    {
+        {
+            auto generateField{
+                [&](const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass,
+                    double coupling_G = G)
+                {
+                    static int i = 0;
+                    i++;
+                    auto gravitationalField = std::make_shared<GravitationalField>(
+                        position,
+                        speed,
+                        mass, coupling_G,
+                        false, i);
+
+                    GravitationalField::setMinDistanceSquared(1600);
+
+                    // gravitationalField->setCouplingCoefficient(1.0);
+                    auto gravFieldEntity = std::static_pointer_cast<PhysicalEntity>(gravitationalField);
+                    auto gravFieldBase = std::static_pointer_cast<FieldBase>(gravitationalField);
+                    static int id = 0;
+                    id++;
+                    QString bodyName{"测试引力源"};
+                    bodyName += QString::number(i);
+                    QString fieldName{"引力场"};
+                    fieldName += QString::number(i);
+
+                    m_world->registerBodyField(bodyName.toStdString(),
+                                               fieldName.toStdString(),
+                                               gravFieldEntity,
+                                               gravFieldBase,
+                                               std::make_unique<ShapeSphere>(10.0));
+                }
+            };
+
+            generateField({300, 0, -1}, {0, 75, 100}, 200, 50000);
+            generateField({-150, 259.8, 100}, {-120, -45, 43}, 100, 50000);
+            generateField({-150, -259.8, -300}, {-120, 45, 23}, 50, 50000);
+        }
     }
 
     void SceneManagerViewModel::refreshConstraintModel()

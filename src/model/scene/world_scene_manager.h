@@ -30,6 +30,7 @@
 #include "rigid_body.h"
 #include "shape_base.h"
 #include "solver.h"
+#include "surface_base.h"
 #include "transform.h"
 
 namespace egret
@@ -563,6 +564,23 @@ namespace egret
                                    double stiffness, double restLength,
                                    std::uint64_t entityAId,
                                    std::uint64_t entityBId);
+
+        /**
+         * @brief 创建并注册支撑曲面约束器。
+         * @details 创建一个 SupportSurface 约束器，接收一个曲面，
+         *          并可选地注册一组初始实体。曲面所有权转移给约束器。
+         *          约束器建立后，可通过 registerEntity / unregisterEntity
+         *          动态管理受曲面影响的实体。
+         * @param name 约束名称。
+         * @param surface 曲面所有权（unique_ptr）。
+         * @param restitution 恢复系数（默认 -1，使用实体自身值）。
+         * @param initialEntityIds 初始注册的实体 ID 列表（可选）。
+         * @return 新约束的 ID，失败返回 0。
+         */
+        std::uint64_t createSupportSurface(const std::string &name,
+                                           std::unique_ptr<SurfaceBase> surface,
+                                           double restitution = -1.0,
+                                           const std::vector<std::uint64_t> &initialEntityIds = {});
 
         /**
          * @brief 获取约束器。

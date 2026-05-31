@@ -202,7 +202,7 @@ ColumnLayout {
                             model: sceneController.bodyModel
 
                             delegate: Model {
-                                id: modelXX
+                                id: mainViewModel
                                 objectName: "body-" + bodyId
                                 source: resourceHelper.getSourceByShape(bodyKind)
                                 property var renderCenter: bodyPosition
@@ -221,8 +221,6 @@ ColumnLayout {
                                 }
 
                             }
-
-
                         }
 
                         // -- 约束器渲染 --
@@ -294,7 +292,7 @@ ColumnLayout {
                                 // ---- 主体直线（非弹簧类型） ----
                                 // 使用薄盒体渲染为线段，长度为两端实体间的实际距离
                                 Model {
-                                    visible: constraintKind !== 5
+                                    visible: constraintKind === 1 && slackRatio >= 0.9
 
                                     x: constraintNode.renderPosA.x + constraintNode.direction.x * 0.5
                                     y: constraintNode.renderPosA.y + constraintNode.direction.y * 0.5
@@ -329,7 +327,10 @@ ColumnLayout {
                                     }
 
                                     // 螺旋半径与距离成比例，长度精确匹配两端距离
-                                    property real springCoilScale: 0.2 * Math.max(0.2, constraintNode.entityDist * 0.15)
+                                    // property real springCoilScale: 0.2 * Math.max(0.2, constraintNode.entityDist * 0.15)
+
+                                    // 螺旋半径固定
+                                    property real springCoilScale: 8
                                     scale: Qt.vector3d(springCoilScale, springCoilScale, constraintNode.entityDist)
                                     rotation: worldRoot.rotationFromZTo(constraintNode.direction)
 
@@ -359,7 +360,7 @@ ColumnLayout {
 
                                 // 贝塞尔曲线（LineStrip 图元）
                                 Model {
-                                    visible: constraintKind !== 5 && slackRatio < 0.9
+                                    visible: constraintKind === 1 && slackRatio < 0.9
 
                                     geometry: BezierCurveGeometry {
                                         pointA: constraintNode.renderPosA

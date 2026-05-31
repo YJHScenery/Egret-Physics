@@ -90,6 +90,18 @@ set(CPP_FILES
         src/utils/io/logger.h
         src/utils/language/cpp_property.cpp
 
+        src/model/physics/surface/surface_base.h
+        src/model/physics/surface/surface_base.cpp
+        src/model/physics/surface/surface_plane.h
+        src/model/physics/surface/surface_plane.cpp
+        src/model/physics/surface/surface_bezier.h
+        src/model/physics/surface/surface_bezier.cpp
+        src/model/physics/surface/surface_cylinder.h
+        src/model/physics/surface/surface_cylinder.cpp
+        src/model/physics/surface/surface_sphere.h
+        src/model/physics/surface/surface_sphere.cpp
+
+
         src/model/physics/physics_utils.h
         src/model/physics/rigid/particle.cpp
         src/model/physics/rigid/particle.h

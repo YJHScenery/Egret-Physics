@@ -246,10 +246,14 @@ namespace egret
          */
         void rebuildDemoWorld();
 
+        void build3BodyModel() const;
+
         /**
          * @brief 将模型层世界快照刷新到 Qt 列表模型。
          */
         void refreshBodyModel();
+
+
 
         /**
          * @brief 将模型层约束快照刷新到 Qt 列表模型。

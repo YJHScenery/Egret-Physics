@@ -83,6 +83,55 @@ namespace egret
         return m_entityIdMap.find(entityId) != m_entityIdMap.end();
     }
 
+    void SupportSurface::applyConstraintForces(double dt)
+    {
+        if (!m_enabled || m_surface == nullptr || m_penaltyStiffness <= 0.0) {
+            return;
+        }
+
+        std::ignore = dt;
+
+        // 遍历所有注册实体，对穿透或接近曲面的实体施加法向罚力
+        for (auto* entity : m_registeredEntities) {
+            if (entity == nullptr || entity->isFixed()) {
+                continue;
+            }
+
+            auto shape = entity->getShape();
+            if (shape == nullptr) {
+                continue;
+            }
+
+            // 检测碰撞（获取穿透信息）
+            ContactManifold manifold;
+            if (!m_surface->collide(shape.get(), entity->getTransformCR(), manifold)) {
+                continue;
+            }
+
+            for (const auto& contact : manifold) {
+                if (contact.penetration <= 0.0) {
+                    continue;
+                }
+
+                // 罚力：F = -k * penetration * normal
+                // 方向指向曲面外部（法线方向）
+                const double forceMagnitude = m_penaltyStiffness * contact.penetration;
+                const Eigen::Vector3d penaltyForce = forceMagnitude * contact.normal;
+
+                // 通过 upsertForce 注入实体力累加器（使用约束器自身的 ID 做 key）
+                entity->upsertForce(Force{penaltyForce, m_id});
+
+                // 如果接触点偏离质心，还需注入等效力矩
+                const Eigen::Vector3d com = entity->getPosition();
+                const Eigen::Vector3d r = contact.position - com;
+                if (r.squaredNorm() > 1e-12) {
+                    const Eigen::Vector3d penaltyTorque = r.cross(penaltyForce);
+                    entity->upsertTorque(Torque{penaltyTorque, m_id});
+                }
+            }
+        }
+    }
+
     void SupportSurface::applyVelocityConstraint(double dt)
     {
         if (!m_enabled || m_surface == nullptr) {
@@ -224,7 +273,7 @@ namespace egret
 
     SupportSurface::SupportSurface(const SupportSurface& other)
     {
-        m_id = UuidGenerator::instance().generate();
+        m_id = other.m_id;
         m_physicalEntities = other.m_physicalEntities;
         m_enabled = other.m_enabled;
         m_surface = other.m_surface->clone();
@@ -232,6 +281,7 @@ namespace egret
         m_entityIdMap = other.m_entityIdMap;
         m_restitution = other.m_restitution;
         m_frictionCoeff = other.m_frictionCoeff;
+        m_penaltyStiffness = other.m_penaltyStiffness;
     }
 
     SupportSurface& SupportSurface::operator=(const SupportSurface& other)
@@ -240,7 +290,7 @@ namespace egret
             return *this;
         }
 
-        m_id = UuidGenerator::instance().generate();
+        m_id = other.m_id;
         m_physicalEntities = other.m_physicalEntities;
         m_enabled = other.m_enabled;
         m_surface = other.m_surface->clone();
@@ -248,13 +298,14 @@ namespace egret
         m_entityIdMap = other.m_entityIdMap;
         m_restitution = other.m_restitution;
         m_frictionCoeff = other.m_frictionCoeff;
+        m_penaltyStiffness = other.m_penaltyStiffness;
         return *this;
     }
 
     std::unique_ptr<PhysicsAbstract> SupportSurface::clone(std::uint64_t id) const
     {
         auto surface = std::make_unique<SupportSurface>(*this);
-        surface->m_id = id;
+        surface->setId(id);
         return surface;
     }
 

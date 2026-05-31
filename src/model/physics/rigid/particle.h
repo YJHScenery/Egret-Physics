@@ -58,8 +58,6 @@ namespace egret
         Eigen::Vector3d getAngularMomentum() override;
 
         std::unique_ptr<PhysicsAbstract> clone(std::uint64_t id) const override;
-        double m_mass{};
-
 
     protected:
         Particle() = default;
