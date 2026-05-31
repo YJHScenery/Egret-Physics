@@ -65,6 +65,7 @@ namespace egret
         /** 标签。 */
         QString label;
     };
+    
 
     /**
      * @brief       QML 可直接使用的实体列表模型。
@@ -98,16 +99,16 @@ namespace egret
         };
 
         /** 默认构造。 */
-        explicit SceneBodyModel(QObject *parent = nullptr);
+        explicit SceneBodyModel(QObject* parent = nullptr);
 
         /** 默认析构。 */
         ~SceneBodyModel() override = default;
 
         /** 行数。 */ //  = QModelIndex()
-        [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
+        [[nodiscard]] int rowCount(const QModelIndex& parent) const override;
 
         /** 模型数据。 */ //  = Qt::DisplayRole
-        [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
+        [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
 
         /** 角色名称。 */
         [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
@@ -116,7 +117,7 @@ namespace egret
          * @brief 用新的数据覆盖整个模型。
          * @param items 新的实体渲染快照。
          */
-        void setItems(const QList<SceneBodyVisualItem> &items);
+        void setItems(const QList<SceneBodyVisualItem>& items);
 
         /**
          * @brief 清空模型。

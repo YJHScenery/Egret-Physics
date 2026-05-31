@@ -19,11 +19,10 @@
 #define EGRET_PHYSICS_FIELD_BASE_H
 #include "Eigen/Dense"
 #include "physics_abstract.h"
+#include <magic_enum.hpp>
 
 namespace egret
 {
-    class PhysicalEntity;
-    
     enum class FieldType : std::uint32_t
     {
         Unknown = 0,
@@ -34,6 +33,21 @@ namespace egret
 
         Other = 255,
     };
+}
+
+namespace magic_enum::customize
+{
+    template <>
+    struct enum_range<egret::FieldType>
+    {
+        static constexpr int min = 0;
+        static constexpr int max = 255;
+    };
+}
+
+namespace egret
+{
+    class PhysicalEntity;
 
     /**
      * @brief       物理场抽象基类，定义所有物理场的公共接口。
@@ -47,7 +61,7 @@ namespace egret
      * @remark      场不是线程安全的，多线程访问需要外部同步
      * @see         GravityField, GravitationalField, PhysicalEntity
      */
-    class FieldBase: virtual public PhysicsAbstract
+    class FieldBase : virtual public PhysicsAbstract
     {
     public:
         explicit FieldBase(std::uint64_t id);
@@ -57,6 +71,7 @@ namespace egret
         FieldBase& operator=(FieldBase&& other) = default;
 
         ~FieldBase() override = default;
+
         // 返回此位置的场向量
         virtual Eigen::Vector3d sample(const Eigen::Vector3d& position) = 0;
 
@@ -68,8 +83,7 @@ namespace egret
 
         virtual void setEnabled(bool enable);
 
-        virtual FieldType getType() const;
-
+        [[nodiscard]] virtual FieldType getType() const;
 
     protected:
         FieldBase();
