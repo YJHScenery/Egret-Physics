@@ -40,6 +40,7 @@ include_directories(
         src/model/solver
         src/model/scene
         src/model/physics
+        src/model/physics/surface
         src/model/physics/rigid
         src/model/physics/field
         src/model/physics/rigid/shape
@@ -52,6 +53,7 @@ include_directories(
         src/view_model/serialize
         src/view_model/editor
         src/view
+        src/view/geometry/
         src/utils
         src/utils/io
 )
@@ -136,8 +138,8 @@ set(CPP_FILES
 
         src/model/physics/constraints/constraints_base.cpp
         src/model/physics/constraints/constraints_base.h
-        src/model/physics/constraints/sliding_rail.cpp
-        src/model/physics/constraints/sliding_rail.h
+        src/model/physics/constraints/support_surface.cpp
+        src/model/physics/constraints/support_surface.h
         src/model/physics/constraints/connecting_line.cpp
         src/model/physics/constraints/connecting_line.h
         src/model/physics/constraints/connecting_rod.cpp
@@ -186,10 +188,10 @@ set(CPP_FILES
         src/view/file_handler.h
         src/view/enum_handler.cpp
         src/view/enum_handler.h
-        src/view/spring_geometry.cpp
-        src/view/spring_geometry.h
-        src/view/bezier_curve_geometry.cpp
-        src/view/bezier_curve_geometry.h
+        src/view/geometry/spring_geometry.cpp
+        src/view/geometry/spring_geometry.h
+        src/view/geometry/bezier_curve_geometry.cpp
+        src/view/geometry/bezier_curve_geometry.h
         src/view_model/serialize/transform_transformer.cpp
         src/view_model/serialize/transform_transformer.h
         src/utils/egret_version.h

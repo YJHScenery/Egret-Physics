@@ -39,7 +39,7 @@
 #include "file_handler.h"
 #include "qdebug_handler.h"
 #include "spring_geometry.h"
-#include "bezier_curve_geometry.h"
+#include "view/geometry/bezier_curve_geometry.h"
 
 int main(int argc, char* argv[])
 {

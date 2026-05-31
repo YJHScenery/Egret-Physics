@@ -294,7 +294,7 @@ ColumnLayout {
                                 // ---- 主体直线（非弹簧类型） ----
                                 // 使用薄盒体渲染为线段，长度为两端实体间的实际距离
                                 Model {
-                                    visible: constraintKind != 5
+                                    visible: constraintKind !== 5
 
                                     x: constraintNode.renderPosA.x + constraintNode.direction.x * 0.5
                                     y: constraintNode.renderPosA.y + constraintNode.direction.y * 0.5
@@ -316,7 +316,7 @@ ColumnLayout {
                                 // 通过 EgretLineMaterial 渲染干净的单色线条
                                 // 几何体沿 Z 轴从 0 → 1，因此定位到 A，scale.z 拉伸后自然覆盖到 B
                                 Model {
-                                    visible: constraintKind == 5
+                                    visible: constraintKind === 5
 
                                     // 定位到端点 A（几何体 z=0 端）
                                     x: constraintNode.renderPosA.x
@@ -324,12 +324,12 @@ ColumnLayout {
                                     z: constraintNode.renderPosA.z
 
                                     geometry: SpringGeometry {
-                                        coilCount: 10
+                                        coilCount: 32
                                         segmentsPerTurn: 32
                                     }
 
                                     // 螺旋半径与距离成比例，长度精确匹配两端距离
-                                    property real springCoilScale: Math.max(0.2, constraintNode.entityDist * 0.15)
+                                    property real springCoilScale: 0.2 * Math.max(0.2, constraintNode.entityDist * 0.15)
                                     scale: Qt.vector3d(springCoilScale, springCoilScale, constraintNode.entityDist)
                                     rotation: worldRoot.rotationFromZTo(constraintNode.direction)
 
@@ -349,7 +349,7 @@ ColumnLayout {
 
                                 // 曲线分段数，随距离增加而增多以保证平滑
                                 property int curveSegments: slackRatio < 0.9
-                                    ? Math.max(8, Math.min(32, Math.ceil(entityDist * 0.03)))
+                                    ? Math.max(32, Math.min(32, Math.ceil(entityDist * 0.03)))
                                     : 0
 
                                 // 控制点 = 中点 + 垂直偏移
@@ -359,7 +359,7 @@ ColumnLayout {
 
                                 // 贝塞尔曲线（LineStrip 图元）
                                 Model {
-                                    visible: constraintKind != 5 && slackRatio < 0.9
+                                    visible: constraintKind !== 5 && slackRatio < 0.9
 
                                     geometry: BezierCurveGeometry {
                                         pointA: constraintNode.renderPosA
