@@ -30,6 +30,7 @@
 #include "os/windows/windows_config.h"
 #include "resource_helper.h"
 #include "editor/model_manager.h"
+#include "editor/parameter_manager.h"
 #include "serialize/model_item_data.h"
 #include <QQuickStyle>
 #include <QStandardPaths>
@@ -81,6 +82,8 @@ int main(int argc, char* argv[])
     qmlRegisterType<egret::MaterialData>("ModelManager", 1, 0, "MaterialData");
     qmlRegisterSingletonInstance<egret::ModelManager>("ModelManager", 1, 0, "ModelManager",
                                                       egret::ModelManager::instance());
+    qmlRegisterSingletonInstance<egret::EditorParameterManager>(
+        "EditorManager", 1, 0, "EditorParameterManager", egret::EditorParameterManager::instance());
     qmlRegisterSingletonInstance<
         egret::EnumHandler>("EnumHandler", 1, 0, "EnumHandler", egret::EnumHandler::instance());
 

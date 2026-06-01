@@ -273,6 +273,8 @@ set(CPP_FILES
         src/view_model/simulator/visual_item/scene_surface_model.cpp
         src/view_model/editor/model_manager.cpp
         src/view_model/editor/model_manager.h
+        src/view_model/editor/parameter_manager.cpp
+        src/view_model/editor/parameter_manager.h
         src/view_model/serialize/model_item_data.cpp
         src/view_model/serialize/model_item_data.h
 

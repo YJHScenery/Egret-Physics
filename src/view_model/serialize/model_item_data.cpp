@@ -376,11 +376,13 @@ namespace egret
 
     void ModelItemData::setBoxSize(const QVector3D &boxSize)
     {
-        if (!m_boxSize.has_value() || qFuzzyCompare(m_boxSize.value(), boxSize))
+        if (!m_boxSize.has_value() || !qFuzzyCompare(m_boxSize.value(), boxSize))
         {
+            qDebug() << __func__;
             m_boxSize = boxSize;
             emit boxSizeChanged();
         }
+
     }
 
     double ModelItemData::radius() const
@@ -393,8 +395,11 @@ namespace egret
         if (!m_radius.has_value() || !qFuzzyCompare(m_radius.value(), radius))
         {
             m_radius = radius;
+            qDebug() << m_radius.value();
+            qDebug() << __func__;
             emit radiusChanged();
         }
+        qDebug() << __func__ << "114514";
     }
 
     double ModelItemData::height() const
