@@ -574,25 +574,8 @@ namespace egret
                                    std::uint64_t entityAId,
                                    std::uint64_t entityBId);
 
-        /**
-         * @brief 创建并注册连接杆约束器。
-         * @details 在两个实体的本地锚点之间创建刚性距离约束。
-         *          杆长由当前两实体锚点的世界距离自动计算，
-         *          除非显式指定 length > 0。
-         * @param name 约束名称。
-         * @param entityAId 第一个实体 ID。
-         * @param localAnchorA 第一个实体本地空间中的连接点。
-         * @param entityBId 第二个实体 ID。
-         * @param localAnchorB 第二个实体本地空间中的连接点。
-         * @param length 杆长（m）。若 ≤ 0，则取两实体锚点当前距离。
-         * @return 新约束的 ID，失败返回 0。
-         */
-        std::uint64_t createConnectingRod(const std::string &name,
-                                          std::uint64_t entityAId,
-                                          const Eigen::Vector3d &localAnchorA,
-                                          std::uint64_t entityBId,
-                                          const Eigen::Vector3d &localAnchorB,
-                                          double length = -1.0);
+
+        std::uint64_t createRod(const std::string &name, double length, std::uint64_t entityAId, uint64_t entityBId);
 
         /**
          * @brief 创建并注册支撑曲面约束器。

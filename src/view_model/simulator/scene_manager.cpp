@@ -628,8 +628,6 @@ namespace egret
     {
         SolverConfig config{};
 
-        // config.enableNarrowPhase = false;
-
         auto solver = std::make_unique<Solver>(
             config,
             std::make_unique<SemiImplicitEulerIntegratorStrategy>(),
@@ -638,113 +636,16 @@ namespace egret
 
         m_world = std::make_unique<WorldSceneManager>(std::move(solver));
         m_world->clear();
-        //
         m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
 
-        // ============================================================
-        //  ConnectingRod 测试场景
-        // ============================================================
-        //  布局（俯视 X-Y 平面，Z 为高度）：
-        //
-        //     ballTop (0, 100, 350)
-        //        │
-        //      Rod1
-        //        │
-        //  ballLeft ── ballJoint(0,0,200) ── ballRight(150,0,250)
-        //   (-150,0,250)    │                  Rod2
-        //                  Rod3
-        //
-        //  Rod1.EndB, Rod2.EndA, Rod3.EndA 均指向 ballJoint
-        //  Rod1.EndB → Rod2.EndA (Rod 类型连接)
-        //  RodConnections: Rod1-Rod2 = Coplanar
-        //
-        //  预期效果：三根杆刚性维持距离，Rod1 和 Rod2 保持共面。
+        std::uint64_t id1 = m_world->spawnSphere("1", {100, 100, 100}, {0, 0, 0}, 10, 10);
+        std::uint64_t id2 = m_world->spawnSphere("2", {200, 160, 180}, {0, 0, 0}, 10, 60);
 
-        const Eigen::Vector3d zeroAnchor{0.0, 0.0, 0.0};
-
-        // 创建四个球体
-        std::uint64_t idTop = m_world->spawnSphere("ballTop", {0, 100, 350}, {0, 0, 0}, 8, 10);
-        std::uint64_t idJoint = m_world->spawnSphere("ballJoint", {0, 0, 200}, {0, 0, 0}, 8, 10);
-        std::uint64_t idRight = m_world->spawnSphere("ballRight", {150, 0, 250}, {0, 0, 0}, 8, 10);
-        std::uint64_t idLeft = m_world->spawnSphere("ballLeft", {-150, 0, 250}, {0, 0, 0}, 8, 10);
-
-        // 创建三根连接杆（杆长由锚点世界距离自动计算）
-        std::uint64_t rod1Id = m_world->createConnectingRod(
-            "Rod1_Top_Joint", idTop, zeroAnchor, idJoint, zeroAnchor);
-        std::uint64_t rod2Id = m_world->createConnectingRod(
-            "Rod2_Joint_Right", idJoint, zeroAnchor, idRight, zeroAnchor);
-        std::uint64_t rod3Id = m_world->createConnectingRod(
-            "Rod3_Joint_Left", idJoint, zeroAnchor, idLeft, zeroAnchor);
-
-        // 获取杆指针以建立杆间连接
-        auto* rod1 = dynamic_cast<ConnectingRod*>(m_world->getConstraint(rod1Id));
-        auto* rod2 = dynamic_cast<ConnectingRod*>(m_world->getConstraint(rod2Id));
-        auto* rod3 = dynamic_cast<ConnectingRod*>(m_world->getConstraint(rod3Id));
-
-        // Rod1.EndB(索引1) 连接到 Rod2.EndA(索引0)，杆间共面约束
-        if (rod1 && rod2)
-        {
-            rod1->connectEndToRod(1, rod2, 0, RodJointState::Coplanar);
-        }
-
-        // Rod3 也汇聚于 ballJoint，直接通过 Entity 端点连接即可
-        // （三杆共享同一实体 ballJoint，无需额外的杆间连接）
-
-        // ============================================================
-        //  纯链式连接测试（无中间实体）
-        //
-        //  布局：
-        //    ballChain1 (0, 120, 500)
-        //        │
-        //      Rod4
-        //        │
-        //     [虚拟枢轴]  ← 无实体！Rod4.EndB ↔ Rod5.EndA 直连
-        //        │
-        //      Rod5
-        //        │
-        //    ballChain2 (200, 0, 420)
-        //
-        //  ============================================================
-
-        // 创建两个实体和一个临时枢轴实体（仅用于初始构造）
-        std::uint64_t idChain1 = m_world->spawnSphere(
-            "ballChain1", {0, 120, 500}, {0, 0, 0}, 8, 10);
-        std::uint64_t idChain2 = m_world->spawnSphere(
-            "ballChain2", {200, 0, 420}, {0, 0, 0}, 8, 10);
-        std::uint64_t idTempPivot = m_world->spawnSphere(
-            "tempPivot", {80, 40, 460}, {0, 0, 0}, 3, 1); // 小质量临时实体
-
-        // 用临时实体构造两杆
-        std::uint64_t rod4Id = m_world->createConnectingRod(
-            "Rod4_Chain1_Pivot", idChain1, zeroAnchor, idTempPivot, zeroAnchor);
-        std::uint64_t rod5Id = m_world->createConnectingRod(
-            "Rod5_Pivot_Chain2", idTempPivot, zeroAnchor, idChain2, zeroAnchor);
-
-        // 建立双向 Rod-Rod 连接（临时实体将被绕开）
-        auto* rod4 = dynamic_cast<ConnectingRod*>(m_world->getConstraint(rod4Id));
-        auto* rod5 = dynamic_cast<ConnectingRod*>(m_world->getConstraint(rod5Id));
-
-        if (rod4 && rod5)
-        {
-            // Rod4.EndB(1) ↔ Rod5.EndA(0) 直连，共面约束
-            rod4->connectEndToRod(1, rod5, 0, RodJointState::Coplanar);
-
-            // 连接后 Rod4.EndB 和 Rod5.EndA 变为 Rod 类型 + 缓存位置
-            // 临时实体 tempPivot 不再被两杆的端点引用（孤立实体）
-        }
-
-        qDebug() << "Pure chain test (no entity at pivot):"
-                 << "\n  Rod4:" << rod4Id << "(Chain1-Pivot, EndB→Rod5.EndA)"
-                 << "\n  Rod5:" << rod5Id << "(Pivot-Chain2, EndA→Rod4.EndB)"
-                 << "\n  Chain entities:" << idChain1 << idChain2
-                 << "\n  Temp pivot (orphaned):" << idTempPivot;
-
-        m_surfaceModel.setPlaneExtent(2000.0);
+        m_world->createRod("rod", 141, id1, id2);
 
         // 收集所有实体 ID 用于地面注册
         std::vector<std::uint64_t> allIds = {
-            idTop, idJoint, idRight, idLeft,
-            idChain1, idChain2, idTempPivot
+            id1, id2
         };
 
         // 注册地面
