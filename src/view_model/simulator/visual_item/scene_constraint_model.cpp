@@ -124,7 +124,7 @@ namespace egret
             roles[static_cast<int>(role_value)] = roleName.toUtf8();
         }
 
-        qDebug() << "SceneConstraintModel::roleNames(): " << roles;
+        // qDebug() << "SceneConstraintModel::roleNames(): " << roles;
 
         return roles;
     }

@@ -211,11 +211,15 @@ namespace egret
 
         ModelItemData* model = models[0];
         qDebug() << "name: " << model->name();
+
+        qDebug() << "type: " << model->type();
+
         model->setMass(data.m_mass);
         model->setLoadTime(data.m_loadTime);
         model->setRestitution(data.m_restitution);
         model->setPos(data.m_pos);
         qDebug() << "new position" << model->pos();
+        qDebug() << "new size:" << data.m_boxSize;
 
         model->setScale(data.m_scale);
         model->setRotation(data.m_rotation);
@@ -224,8 +228,10 @@ namespace egret
 
         if (data.m_boxSize.has_value()) {
             model->setBoxSize(data.m_boxSize.value());
+            qDebug() << "set new size" << model->boxSize();
         }
         if (data.m_radius.has_value()) {
+            qDebug() << "set new radius" << data.m_radius.value();
             model->setRadius(data.m_radius.value());
         }
         if (data.m_height.has_value()) {
@@ -431,7 +437,6 @@ namespace egret
         }
 
         auto val = TransformTransformer::buildQuick3DRenderTransform(*model);
-        // qDebug() << __func__ << val;
         return val;
     }
 
@@ -553,7 +558,7 @@ namespace egret
         models.append(sphere);
 
         auto* sphere2 = new ModelItemData();
-        sphere2->setName("Default Sphere");
+        sphere2->setName("Default Sphere 2");
         sphere2->setType(ShapeType::Sphere);
         sphere2->setMass(10);
         sphere2->setRadius(10);

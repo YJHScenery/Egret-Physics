@@ -693,10 +693,11 @@ ColumnLayout {
                                     width: sourceComboBox.width
                                     height: 28
                                     highlighted: sourceComboBox.highlightedIndex === index
+                                    hoverEnabled: true
 
                                     contentItem: Text {
                                         text: modelData.displayName
-                                        color: highlighted ? "#FFFFFF" : "#CCCCCC"
+                                        color: highlighted ? "#FFFFFF" : (hovered ? "#FFFFFF" : "#CCCCCC")
                                         horizontalAlignment: Text.AlignLeft
                                         verticalAlignment: Text.AlignVCenter
                                         leftPadding: 10
@@ -704,7 +705,7 @@ ColumnLayout {
                                     }
 
                                     background: Rectangle {
-                                        color: highlighted ? theme.accent : "transparent"
+                                        color: highlighted ? theme.accent : (hovered ? "#1D4E87" : "transparent")
                                         radius: theme.radiusS
                                     }
                                 }
@@ -885,12 +886,12 @@ ColumnLayout {
                                                 height: 16
                                             }
                                             delegate: ItemDelegate {
-                                                width: parent.width; height: 28
+                                                width: parent.width; height: 28; hoverEnabled: true
                                                 contentItem: Text {
-                                                    text: modelData; color: highlighted ? "#FFFFFF" : "#CCCCCC"; horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12
+                                                    text: modelData; color: highlighted ? "#FFFFFF" : (hovered ? "#FFFFFF" : "#CCCCCC"); horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12
                                                 }
                                                 background: Rectangle {
-                                                    color: highlighted ? theme.accent : "transparent"; radius: theme.radiusS
+                                                    color: highlighted ? theme.accent : (hovered ? "#1D4E87" : "transparent"); radius: theme.radiusS
                                                 }
                                             }
                                             onCurrentIndexChanged: {
@@ -939,12 +940,12 @@ ColumnLayout {
                                     height: 16
                                 }
                                 delegate: ItemDelegate {
-                                    width: parent.width; height: 28
+                                    width: parent.width; height: 28; hoverEnabled: true
                                     contentItem: Text {
-                                        text: modelData.displayName; color: highlighted ? "#FFFFFF" : "#CCCCCC"; horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12
+                                        text: modelData.displayName; color: highlighted ? "#FFFFFF" : (hovered ? "#FFFFFF" : "#CCCCCC"); horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12
                                     }
                                     background: Rectangle {
-                                        color: highlighted ? theme.accent : "transparent"; radius: theme.radiusS
+                                        color: highlighted ? theme.accent : (hovered ? "#1D4E87" : "transparent"); radius: theme.radiusS
                                     }
                                 }
 
@@ -1101,12 +1102,12 @@ ColumnLayout {
                                     height: 16
                                 }
                                 delegate: ItemDelegate {
-                                    width: parent.width; height: 28
+                                    width: parent.width; height: 28; hoverEnabled: true
                                     contentItem: Text {
-                                        text: modelData.displayName; color: highlighted ? "#FFFFFF" : "#CCCCCC"; horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12
+                                        text: modelData.displayName; color: highlighted ? "#FFFFFF" : (hovered ? "#FFFFFF" : "#CCCCCC"); horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12
                                     }
                                     background: Rectangle {
-                                        color: highlighted ? theme.accent : "transparent"; radius: theme.radiusS
+                                        color: highlighted ? theme.accent : (hovered ? "#1D4E87" : "transparent"); radius: theme.radiusS
                                     }
                                 }
 
@@ -1207,12 +1208,12 @@ ColumnLayout {
                                                     height: 16
                                                 }
                                                 delegate: ItemDelegate {
-                                                    width: parent.width; height: 28
+                                                    width: parent.width; height: 28; hoverEnabled: true
                                                     contentItem: Text {
-                                                        text: modelData; color: highlighted ? "#FFFFFF" : "#CCCCCC"; horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12
+                                                        text: modelData; color: highlighted ? "#FFFFFF" : (hovered ? "#FFFFFF" : "#CCCCCC"); horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12
                                                     }
                                                     background: Rectangle {
-                                                        color: highlighted ? theme.accent : "transparent"; radius: theme.radiusS
+                                                        color: highlighted ? theme.accent : (hovered ? "#1D4E87" : "transparent"); radius: theme.radiusS
                                                     }
                                                 }
                                                 onCurrentIndexChanged: {
