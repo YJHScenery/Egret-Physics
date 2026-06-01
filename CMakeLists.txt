@@ -10,6 +10,82 @@ set(CMAKE_PREFIX_PATH "D:/Qt/6.9.3/msvc2022_64")
 
 option(BUILD_DOCS "Build documentation with Doxygen" ON)
 
+
+# ========== 获取Git信息 ==========
+# 获取完整提交哈希（40位）
+execute_process(
+        COMMAND git rev-parse HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+)
+
+# 获取短哈希（8位）
+execute_process(
+        COMMAND git rev-parse --short=8 HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_SHORT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+)
+
+# 获取分支名
+execute_process(
+        COMMAND git rev-parse --abbrev-ref HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_BRANCH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+)
+
+# 获取最近的标签
+execute_process(
+        COMMAND git describe --tags --abbrev=0
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_TAG
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+)
+
+# 检查是否有未提交的修改
+execute_process(
+        COMMAND git status --porcelain
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_DIRTY
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+)
+
+# 如果存在未提交修改，添加-dirty标记
+if(GIT_DIRTY)
+    set(GIT_COMMIT_SHORT "${GIT_COMMIT_SHORT}-dirty")
+    set(GIT_COMMIT_HASH "${GIT_COMMIT_HASH}-dirty")
+endif()
+
+# 获取构建时间
+string(TIMESTAMP BUILD_TIME "%Y-%m-%d %H:%M:%S")
+
+# 如果没有获取到Git信息，设置默认值
+if(NOT GIT_COMMIT_SHORT)
+    set(GIT_COMMIT_SHORT "unknown")
+    set(GIT_COMMIT_HASH "unknown")
+    set(GIT_BRANCH "unknown")
+    set(GIT_TAG "unknown")
+endif()
+
+message(STATUS "Git Commit: ${GIT_COMMIT_SHORT}")
+message(STATUS "Git Branch: ${GIT_BRANCH}")
+message(STATUS "Git Tag: ${GIT_TAG}")
+
+# ========== 生成版本头文件 ==========
+configure_file(
+        ${CMAKE_SOURCE_DIR}/src/utils/git_version.h.in
+        ${CMAKE_BINARY_DIR}/generated/git_version.h
+        @ONLY
+)
+
+
 if (BUILD_DOCS)
     find_package(Doxygen)
     if (DOXYGEN_FOUND)
@@ -240,6 +316,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         ${QT_MODULES_LIST_WITH_PREFIX}
 )
 
+target_include_directories(${PROJECT_NAME} PRIVATE
+        ${CMAKE_BINARY_DIR}/generated
+)
 
 if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     set(DEBUG_SUFFIX)
