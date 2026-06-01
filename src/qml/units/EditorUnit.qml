@@ -164,7 +164,7 @@ ColumnLayout {
 
                             function onModelListChanged() {
                                 console.log("Model list changed, refreshing Repeater3D");
-                                basicNode.modelList = []
+                                basicNode.modelList = [] // 不要删！！！这是强制让这个勾八QML引擎刷新的
                                 basicNode.modelList = ModelManager.getAllModels();
                             }
                         }

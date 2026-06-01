@@ -399,6 +399,8 @@ namespace egret
         void emitSubParametersChanged();
         
         void emitHasSubSubTypes();
+        
+        void emitSubSubTypesChanged();
 
     signals:
         /** @brief 当前类别变更信号。 */

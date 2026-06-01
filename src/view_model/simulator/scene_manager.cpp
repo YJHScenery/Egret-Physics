@@ -59,6 +59,7 @@
 #include "magic_enum.hpp"
 #include "surface_plane.h"
 #include "support_surface.h"
+#include "constraints/connecting_rod.h"
 #include "surface_bezier.h"
 #include "surface_cylindrical.h"
 #include "curve_bezier.h"
@@ -640,118 +641,113 @@ namespace egret
         //
         m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
 
-        // generateRotationTest();
+        // ============================================================
+        //  ConnectingRod 测试场景
+        // ============================================================
+        //  布局（俯视 X-Y 平面，Z 为高度）：
+        //
+        //     ballTop (0, 100, 350)
+        //        │
+        //      Rod1
+        //        │
+        //  ballLeft ── ballJoint(0,0,200) ── ballRight(150,0,250)
+        //   (-150,0,250)    │                  Rod2
+        //                  Rod3
+        //
+        //  Rod1.EndB, Rod2.EndA, Rod3.EndA 均指向 ballJoint
+        //  Rod1.EndB → Rod2.EndA (Rod 类型连接)
+        //  RodConnections: Rod1-Rod2 = Coplanar
+        //
+        //  预期效果：三根杆刚性维持距离，Rod1 和 Rod2 保持共面。
 
-        std::uint64_t id1 = m_world->spawnSphere("123", {10, 10, 200}, {0, 0, 0}, 10, 10);
-        std::uint64_t id2 = m_world->spawnSphere("456", {10, 0, 500}, {0, 0, 0}, 10, 10);
+        const Eigen::Vector3d zeroAnchor{0.0, 0.0, 0.0};
 
+        // 创建四个球体
+        std::uint64_t idTop = m_world->spawnSphere("ballTop", {0, 100, 350}, {0, 0, 0}, 8, 10);
+        std::uint64_t idJoint = m_world->spawnSphere("ballJoint", {0, 0, 200}, {0, 0, 0}, 8, 10);
+        std::uint64_t idRight = m_world->spawnSphere("ballRight", {150, 0, 250}, {0, 0, 0}, 8, 10);
+        std::uint64_t idLeft = m_world->spawnSphere("ballLeft", {-150, 0, 250}, {0, 0, 0}, 8, 10);
 
-        // 创建一个弹性系数 50 N/m、原长 300m 的弹簧，连接 bodyA 和 bodyB
-        m_world->createSpring("MySpring", 50.0, 300.0, id2, id1);
-        // m_world->createConnectingLine("114514", 140, id1, id2);
+        // 创建三根连接杆（杆长由锚点世界距离自动计算）
+        std::uint64_t rod1Id = m_world->createConnectingRod(
+            "Rod1_Top_Joint", idTop, zeroAnchor, idJoint, zeroAnchor);
+        std::uint64_t rod2Id = m_world->createConnectingRod(
+            "Rod2_Joint_Right", idJoint, zeroAnchor, idRight, zeroAnchor);
+        std::uint64_t rod3Id = m_world->createConnectingRod(
+            "Rod3_Joint_Left", idJoint, zeroAnchor, idLeft, zeroAnchor);
 
+        // 获取杆指针以建立杆间连接
+        auto* rod1 = dynamic_cast<ConnectingRod*>(m_world->getConstraint(rod1Id));
+        auto* rod2 = dynamic_cast<ConnectingRod*>(m_world->getConstraint(rod2Id));
+        auto* rod3 = dynamic_cast<ConnectingRod*>(m_world->getConstraint(rod3Id));
 
-        std::uint64_t id3 = m_world->spawnSphere("123", {10, 120, 120}, {0, 0, 0}, 10, 10);
-        m_world->createSimplePendulum("1", 150, {10, 200, 200}, id3);
+        // Rod1.EndB(索引1) 连接到 Rod2.EndA(索引0)，杆间共面约束
+        if (rod1 && rod2)
+        {
+            rod1->connectEndToRod(1, rod2, 0, RodJointState::Coplanar);
+        }
 
-        qDebug() << id1 << id2 << id3;
+        // Rod3 也汇聚于 ballJoint，直接通过 Entity 端点连接即可
+        // （三杆共享同一实体 ballJoint，无需额外的杆间连接）
+
+        // ============================================================
+        //  纯链式连接测试（无中间实体）
+        //
+        //  布局：
+        //    ballChain1 (0, 120, 500)
+        //        │
+        //      Rod4
+        //        │
+        //     [虚拟枢轴]  ← 无实体！Rod4.EndB ↔ Rod5.EndA 直连
+        //        │
+        //      Rod5
+        //        │
+        //    ballChain2 (200, 0, 420)
+        //
+        //  ============================================================
+
+        // 创建两个实体和一个临时枢轴实体（仅用于初始构造）
+        std::uint64_t idChain1 = m_world->spawnSphere(
+            "ballChain1", {0, 120, 500}, {0, 0, 0}, 8, 10);
+        std::uint64_t idChain2 = m_world->spawnSphere(
+            "ballChain2", {200, 0, 420}, {0, 0, 0}, 8, 10);
+        std::uint64_t idTempPivot = m_world->spawnSphere(
+            "tempPivot", {80, 40, 460}, {0, 0, 0}, 3, 1); // 小质量临时实体
+
+        // 用临时实体构造两杆
+        std::uint64_t rod4Id = m_world->createConnectingRod(
+            "Rod4_Chain1_Pivot", idChain1, zeroAnchor, idTempPivot, zeroAnchor);
+        std::uint64_t rod5Id = m_world->createConnectingRod(
+            "Rod5_Pivot_Chain2", idTempPivot, zeroAnchor, idChain2, zeroAnchor);
+
+        // 建立双向 Rod-Rod 连接（临时实体将被绕开）
+        auto* rod4 = dynamic_cast<ConnectingRod*>(m_world->getConstraint(rod4Id));
+        auto* rod5 = dynamic_cast<ConnectingRod*>(m_world->getConstraint(rod5Id));
+
+        if (rod4 && rod5)
+        {
+            // Rod4.EndB(1) ↔ Rod5.EndA(0) 直连，共面约束
+            rod4->connectEndToRod(1, rod5, 0, RodJointState::Coplanar);
+
+            // 连接后 Rod4.EndB 和 Rod5.EndA 变为 Rod 类型 + 缓存位置
+            // 临时实体 tempPivot 不再被两杆的端点引用（孤立实体）
+        }
+
+        qDebug() << "Pure chain test (no entity at pivot):"
+                 << "\n  Rod4:" << rod4Id << "(Chain1-Pivot, EndB→Rod5.EndA)"
+                 << "\n  Rod5:" << rod5Id << "(Pivot-Chain2, EndA→Rod4.EndB)"
+                 << "\n  Chain entities:" << idChain1 << idChain2
+                 << "\n  Temp pivot (orphaned):" << idTempPivot;
 
         m_surfaceModel.setPlaneExtent(2000.0);
 
-        // === 创建 Bezier 曲面 SupportSurface 用于测试 ===
-        // 4x4 控制点网格，形成一个中心隆起的缓坡曲面
-        // 偏移到 (300, -150, 0) 处，避免与地面平面重叠
-        using CP = std::array<std::array<Eigen::Vector3d, 4>, 4>;
-        CP bezierCP = {{
-            {{Eigen::Vector3d{  0,   0, 0}, Eigen::Vector3d{100,   0, 10},
-              Eigen::Vector3d{200,   0, 10}, Eigen::Vector3d{300,   0,  0}}},
-            {{Eigen::Vector3d{  0, 100, 10}, Eigen::Vector3d{100, 100, 60},
-              Eigen::Vector3d{200, 100, 80}, Eigen::Vector3d{300, 100, 10}}},
-            {{Eigen::Vector3d{  0, 200, 10}, Eigen::Vector3d{100, 200, 80},
-              Eigen::Vector3d{200, 200, 60}, Eigen::Vector3d{300, 200, 10}}},
-            {{Eigen::Vector3d{  0, 300,  0}, Eigen::Vector3d{100, 300, 10},
-              Eigen::Vector3d{200, 300, 10}, Eigen::Vector3d{300, 300,  0}}}
-        }};
-
-        // 整体偏移到场景中的目标位置
-        const Eigen::Vector3d bezierOffset{200, -150, 100};
-        for (auto& row : bezierCP) {
-            for (auto& cp : row) {
-                cp += bezierOffset;
-            }
-        }
-
-        // 在 Bezier 曲面上方生成两个测试球体
-        std::uint64_t id4 = m_world->spawnSphere("b1", {300, -50, 500}, {0, 0, 0}, 10, 10);
-        std::uint64_t id5 = m_world->spawnSphere("b2", {250, 100, 450}, {0, 0, 0}, 10, 10);
-
-        auto bezier = std::make_unique<SurfaceBezier>(bezierCP);
-        m_world->createSupportSurface(
-            "BezierHill",
-            std::move(bezier),
-            0.6,            // 恢复系数 0.6
-            {id4, id5}      // 注册到这个曲面的实体
-        );
-
-        // ============================================================
-        // 测试用例 1：贝塞尔曲线为基线的柱面
-        // ============================================================
-        // 贝塞尔曲线在 XY 平面内画弧，方向沿 Z 轴挤压
-        // 法线 N = C'(t) × Z 将指向 XY 平面的外侧
-        std::vector<Eigen::Vector3d> bezierCPs2 = {
-            {400,   10, 10},
-            {500,  80, 10},
-            {600, -80, 10},
-            {700,   10, 10}
+        // 收集所有实体 ID 用于地面注册
+        std::vector<std::uint64_t> allIds = {
+            idTop, idJoint, idRight, idLeft,
+            idChain1, idChain2, idTempPivot
         };
-        auto bezierCurve2 = std::make_unique<CurveBezier>(bezierCPs2);
-        auto bezierCyl = std::make_unique<SurfaceCylindrical>(
-            std::move(bezierCurve2),
-            Eigen::Vector3d{10, 100, 30});  // 沿 Z 方向挤压 100 个单位
 
-        
-        // 在贝塞尔柱面上方生成测试球体
-        std::uint64_t id8 = m_world->spawnSphere("bc_b1", {450, 10, 400}, {0, 0, 0}, 10, 10);
-        std::uint64_t id9 = m_world->spawnSphere("bc_b2", {550, 10, 350}, {0, 0, 0}, 10, 10);
-
-        auto surface = m_world->createSupportSurface(
-            "BezierCylinder",
-            std::move(bezierCyl),
-            0.7,
-            {id8, id9}
-        );
-
-        // ============================================================
-        // 测试用例 2：椭圆弧为基线的柱面
-        // ============================================================
-        // 创建一个半椭圆弧：中心在 (750, 0, 0)，半长轴 80 沿 X 方向，半短轴 60 沿 Y 方向
-        // 起始角 0，扫略角 π（半椭圆）
-        auto ellArc = std::make_unique<CurveConicSection>(
-            ConicType::Ellipse,
-            Eigen::Vector3d{750, 10, 10},        // 中心
-            Eigen::Vector3d{80, 10, 10},         // 半长轴（X 方向，长度 80）
-            Eigen::Vector3d{10, 60, 10},         // 半短轴（Y 方向，长度 60）
-            0.0,                               // 起始角
-            egret::PI                          // 扫略角（半椭圆）
-        );
-        auto ellCyl = std::make_unique<SurfaceCylindrical>(
-            std::move(ellArc),
-            Eigen::Vector3d{100, 0,
-                100}         // 沿 Z 方向挤压 100 个单位
-        );
-
-        // 在椭圆弧柱面上方生成测试球体
-        std::uint64_t id10 = m_world->spawnSphere("ec_b1", {720, 30, 350}, {0, 0, 0}, 10, 10);
-        std::uint64_t id11 = m_world->spawnSphere("ec_b2", {780, -30, 400}, {0, 0, 0}, 10, 10);
-
-        m_world->createSupportSurface(
-            "EllipticalCylinder",
-            std::move(ellCyl),
-            0.7,
-            {id10, id11}
-        );
-
-        // 注册地面：包含场景中所有球体
+        // 注册地面
         auto plane = std::make_unique<SurfacePlane>(
             Eigen::Vector3d(0, 0, 0),
             Eigen::Vector3d::UnitZ());
@@ -759,8 +755,8 @@ namespace egret
         m_world->createSupportSurface(
             "Ground",
             std::move(plane),
-            1.0, // 恢复系数
-            {id1, id2, id3, id4, id5, id8, id9, id10, id11}
+            1.0,
+            allIds
         );
 
         m_entityCount = static_cast<int>(m_world->getBodyCount());

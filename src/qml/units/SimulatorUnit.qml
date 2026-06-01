@@ -292,14 +292,14 @@ ColumnLayout {
                                 // ---- 主体直线（非弹簧类型） ----
                                 // 使用薄盒体渲染为线段，长度为两端实体间的实际距离
                                 Model {
-                                    visible: constraintKind === 1 && slackRatio >= 0.9
+                                    visible: (constraintKind === 1 || constraintKind === 3) && slackRatio >= 0.9
 
                                     x: constraintNode.renderPosA.x + constraintNode.direction.x * 0.5
                                     y: constraintNode.renderPosA.y + constraintNode.direction.y * 0.5
                                     z: constraintNode.renderPosA.z + constraintNode.direction.z * 0.5
 
                                     source: "#Cube"
-                                    scale: Qt.vector3d(0.004, 0.004, 0.01 * constraintNode.entityDist)
+                                    scale: Qt.vector3d(0.01, 0.01, 0.01 * constraintNode.entityDist)
                                     rotation: worldRoot.rotationFromZTo(constraintNode.direction)
 
                                     materials: PrincipledMaterial {

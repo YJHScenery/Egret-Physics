@@ -452,6 +452,7 @@ namespace egret
             emitSubTypesChanged();
             emitSubParametersChanged();
             emitHasSubSubTypes();
+            emitSubSubTypesChanged();
         }
     }
 
@@ -561,6 +562,7 @@ namespace egret
         emitSubTypesChanged();
         emitSubParametersChanged();
         emitHasSubSubTypes();
+        emitSubSubTypesChanged();
     }
     
 
@@ -690,6 +692,7 @@ namespace egret
 
         emit subParametersChanged();
         emitHasSubSubTypes();
+        emitSubSubTypesChanged();
     }
 
     QVariantList EditorParameterManager::subParameters() const
@@ -893,6 +896,11 @@ namespace egret
     void EditorParameterManager::emitHasSubSubTypes()
     {
         emit hasSubSubTypesChanged();
+    }
+
+    void EditorParameterManager::emitSubSubTypesChanged()
+    {
+        emit subSubTypesChanged();
     }
 
 
