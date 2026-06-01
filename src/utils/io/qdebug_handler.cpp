@@ -17,43 +17,47 @@ void CustomMessageHandler::message(const QtMsgType type, const QMessageLogContex
     QString logEntry = QString("[%1] ")
         .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz"));
 
+
+    QString toCommand{};
     // 确定日志级别
     switch (type) {
     case QtDebugMsg:
-        logEntry += "[DEBUG] ";
+        toCommand += "[DEBUG] ";
         break;
     case QtInfoMsg:
-        logEntry += "[INFO] ";
+        toCommand += "[INFO] ";
         break;
     case QtWarningMsg:
-        logEntry += "[WARN] ";
+        toCommand += "[WARN] ";
         break;
     case QtCriticalMsg:
-        logEntry += "[CRITICAL] ";
+        toCommand += "[CRITICAL] ";
         break;
     case QtFatalMsg:
-        logEntry += "[FATAL] ";
+        toCommand += "[FATAL] ";
         break;
     }
 
-    logEntry += msg;
+    toCommand += msg;
 
     // 如果可用，附加源文件名和行号
     if (context.file) {
-        logEntry += QString(" (File: %1, Line: %2, Function: %3)")
+        toCommand += QString(" (File: %1, Line: %2, Function: %3)")
                     .arg(context.file)
                     .arg(context.line)
                     .arg(context.function);
     }
-    logEntry += "\n";
+    toCommand += "\n";
+
+    logEntry += toCommand;
 
     // 2. 输出到控制台 (标准错误流)
-    fprintf(stderr, "%s", logEntry.toLocal8Bit().constData());
+    fprintf(stderr, "%s", toCommand.toLocal8Bit().constData());
     fflush(stderr); // 确保立即刷新
 
     // 3. 输出到专用的调试日志文件
     QMutexLocker locker(&logMutex); // 线程安全地加锁
-    QFile debugLogFile(m_outputFileName); // 替换为你想要的文件路径
+    QFile debugLogFile(m_outputFileName);
     if (debugLogFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
         QTextStream out(&debugLogFile);
         out << logEntry;

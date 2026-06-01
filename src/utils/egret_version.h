@@ -26,18 +26,18 @@
 
 namespace egret
 {
-    template <typename T>
+    template <std::unsigned_integral T>
     constexpr T EGRET_PHYSICS_VERSION_MAJOR = 1;
 
-    template <typename T>
+    template <std::unsigned_integral T>
     constexpr T EGRET_PHYSICS_VERSION_MINOR = 0;
 
-    template <typename T>
+    template <std::unsigned_integral T>
     constexpr T EGRET_PHYSICS_VERSION_PATCH = 0;
 
-    constexpr unsigned int EGRET_PHYSICS_VERSION_MAJOR_UINT = EGRET_PHYSICS_VERSION_MAJOR<int>;
-    constexpr unsigned int EGRET_PHYSICS_VERSION_MINOR_UINT = EGRET_PHYSICS_VERSION_MINOR<int>;
-    constexpr unsigned int EGRET_PHYSICS_VERSION_PATCH_UINT = EGRET_PHYSICS_VERSION_PATCH<int>;
+    constexpr unsigned int EGRET_PHYSICS_VERSION_MAJOR_UINT = EGRET_PHYSICS_VERSION_MAJOR<unsigned int>;
+    constexpr unsigned int EGRET_PHYSICS_VERSION_MINOR_UINT = EGRET_PHYSICS_VERSION_MINOR<unsigned int>;
+    constexpr unsigned int EGRET_PHYSICS_VERSION_PATCH_UINT = EGRET_PHYSICS_VERSION_PATCH<unsigned int>;
 
 
     template <auto N>
@@ -169,13 +169,7 @@ namespace egret
      * @tparam T       版本号数字的无符号整型类型
      * @tparam Values  版本号数字包（至少一个元素）
      */
-    template <
-        typename Prefix,
-        typename Hyphen,
-        typename Suffix,
-        typename T,
-        T... Values
-    >
+    template <typename Prefix, typename Hyphen, typename Suffix, typename T, T... Values>
         requires (std::unsigned_integral<T> && sizeof...(Values) >= 1)
     struct FormattedVersionFormatter
     {
@@ -202,13 +196,7 @@ namespace egret
      * // ver == "v1.0.0.1-release"
      * @endcode
      */
-    template <
-        typename Prefix,
-        typename Hyphen,
-        typename Suffix,
-        typename T,
-        T... Values
-    >
+    template <typename Prefix, typename Hyphen, typename Suffix, typename T, T... Values>
     static constexpr std::string_view formatted_version_v =
         FormattedVersionFormatter<Prefix, Hyphen, Suffix, T, Values...>::value;
 
@@ -220,7 +208,8 @@ decltype(BOOST_HANA_STRING(Suffix)), \
 T, \
 ##__VA_ARGS__>
 
-    static constexpr std::string_view WHOLE_EGRET_VERSION_STRING = CREATE_FORMATTED_VERSION_V("v", ".", PREFIX_GIT_VERSION_FULL,
+    static constexpr std::string_view WHOLE_EGRET_VERSION_STRING = CREATE_FORMATTED_VERSION_V(
+        "v", ".", PREFIX_GIT_VERSION_FULL,
         unsigned int,
         EGRET_PHYSICS_VERSION_MAJOR_UINT,
         EGRET_PHYSICS_VERSION_MINOR_UINT,

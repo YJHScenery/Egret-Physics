@@ -61,6 +61,7 @@ int main(int argc, char* argv[])
 
     CustomMessageHandler::setOutputTarget("./logs/qdebug_output.log");
     CustomMessageHandler::install();
+
     egret::AsyncLogger& logger{egret::AsyncLogger::instance()};
     logger.setLogFilePath("./logs/async_logger.log");
     logger.setMaxFileSize(20 * 1024 * 1024); // 20 MB
