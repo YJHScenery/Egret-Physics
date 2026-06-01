@@ -551,7 +551,7 @@ namespace egret
             }
 
             const auto* supportSurface = dynamic_cast<const SupportSurface*>(constraint);
-            
+
             if (supportSurface == nullptr) {
                 LOG_WARN_LITERAL("Null Pointer Got: [const SupportSurface* supportSurface]");
                 continue;
@@ -820,46 +820,21 @@ namespace egret
         return registerConstraint(name, spring);
     }
 
-    std::uint64_t WorldSceneManager::createConnectingRod(const std::string& name,
-                                                         const std::uint64_t entityAId,
-                                                         const Eigen::Vector3d& localAnchorA,
-                                                         const std::uint64_t entityBId,
-                                                         const Eigen::Vector3d& localAnchorB,
-                                                         const double length)
+    std::uint64_t WorldSceneManager::createRod(const std::string& name, double length, std::uint64_t entityAId,
+                                               uint64_t entityBId)
     {
         BodyRecord* bodyA = findBody(entityAId);
         BodyRecord* bodyB = findBody(entityBId);
 
         if (bodyA == nullptr || bodyB == nullptr ||
-            bodyA->entity == nullptr || bodyB->entity == nullptr)
-        {
+            bodyA->entity == nullptr || bodyB->entity == nullptr) {
             return 0;
         }
 
-        Endpoint endA;
-        endA.type = EndpointType::Entity;
-        endA.entity = bodyA->entity.get();
-        endA.localAnchor = localAnchorA;
-
-        Endpoint endB;
-        endB.type = EndpointType::Entity;
-        endB.entity = bodyB->entity.get();
-        endB.localAnchor = localAnchorB;
-
-        std::shared_ptr<ConnectingRod> rod;
-        if (length > 0.0)
-        {
-            rod = std::make_shared<ConnectingRod>(endA, endB, length,
-                                                  UuidGenerator::instance().generate());
-        }
-        else
-        {
-            rod = std::make_shared<ConnectingRod>(endA, endB,
-                                                  UuidGenerator::instance().generate());
-        }
-
+        auto rod = std::make_shared<ConnectingRod>(length, bodyA->entity.get(), bodyB->entity.get(), UuidGenerator::instance().generate());
         return registerConstraint(name, rod);
     }
+
 
     std::uint64_t WorldSceneManager::createSupportSurface(
         const std::string& name,
