@@ -49,7 +49,7 @@ namespace egret
             return {};
         }
 
-        const SceneBodyVisualItem &item = m_items[static_cast<std::size_t>(index.row())];
+        const SceneBodyVisualItem &item = m_items[static_cast<qsizetype>(index.row())];
         switch (role)
         {
         case IdRole:
@@ -63,45 +63,45 @@ namespace egret
         case PositionRole:
         {
             QVariantList position;
-            for (int i = 0; i < 3; ++i)
+            for (double centerPo : item.centerPos)
             {
-                position.append(item.centerPos[i]);
+                position.append(centerPo);
             }
             return position;
         }
         case ScaleRole:
         {
             QVariantList scale;
-            for (int i = 0; i < 3; ++i)
+            for (double i : item.scale)
             {
-                scale.append(item.scale[i]);
+                scale.append(i);
             }
             return scale;
         }
         case RotationRole:
         {
             QVariantList rotation;
-            for (int i = 0; i < 4; ++i)
+            for (double i : item.rotation)
             {
-                rotation.append(item.rotation[i]);
+                rotation.append(i);
             }
             return rotation;
         }
         case VelocityRole:
         {
             QVariantList speed;
-            for (int i = 0; i < 3; ++i)
+            for (double i : item.velocity)
             {
-                speed.append(item.velocity[i]);
+                speed.append(i);
             }
             return speed;
         }
         case AngularVelocityRole:
         {
             QVariantList angularSpeed;
-            for (int i = 0; i < 3; ++i)
+            for (double i : item.angularVelocity)
             {
-                angularSpeed.append(item.angularVelocity[i]);
+                angularSpeed.append(i);
             }
             return angularSpeed;
         }

@@ -744,15 +744,27 @@ ColumnLayout {
                                 font.bold: true
                             }
                             Text {
-                                text: "速度: " + simulatorRoot.formatVec(bodyVelocity[0], bodyVelocity[1], bodyVelocity[2])
+                                text: "速度: " + simulatorRoot.formatVec(bodyVelocity[2], bodyVelocity[0], bodyVelocity[1])
                                 color: "#9EC4EA"
                                 font.pixelSize: 11
+
+                                onTextChanged: {
+                                    console.log(bodyVelocity);
+
+                                }
                             }
                             Text {
-                                text: "位置: " + simulatorRoot.formatVec(bodyPosition[0], bodyPosition[1], bodyPosition[2])
+                                text: "位置: " + simulatorRoot.formatVec(bodyPosition[2], bodyPosition[0], bodyPosition[1])
                                 color: "#9EC4EA"
                                 font.pixelSize: 11
+                                //
+                                //
+                                onTextChanged: {
+                                    console.log(bodyPosition);
+                                }
                             }
+
+
                         }
                     }
                 }

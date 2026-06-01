@@ -636,15 +636,15 @@ ColumnLayout {
                                     if (currentIndex >= types.length) return;
                                     var typeId = types[currentIndex].typeId;
 
-                                    console.log("EditorUnit: currentIndex =", currentIndex,
-                                        "typeId =", typeId,
-                                        "displayName =", types[currentIndex].displayName);
+                                    // console.log("EditorUnit: currentIndex =", currentIndex,
+                                    //     "typeId =", typeId,
+                                    //     "displayName =", types[currentIndex].displayName);
 
                                     EditorParameterManager.currentTypeId = typeId;
                                     inspectorPanel.m_type = typeId;
                                     // 强制同步刷新几何参数
                                     inspectorColumn.geometryParams = EditorParameterManager.currentParameters;
-                                    console.log("EditorUnit: geometryParams.length =", inspectorColumn.geometryParams.length);
+                                    // console.log("EditorUnit: geometryParams.length =", inspectorColumn.geometryParams.length);
                                 }
 
                                 // 下拉菜单样式

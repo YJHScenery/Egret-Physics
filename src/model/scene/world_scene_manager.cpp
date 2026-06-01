@@ -64,7 +64,7 @@ namespace egret
             const auto numIter = info.numberParams.find(key);
             if (numIter != info.numberParams.end() && numIter->second.size() >= 3) {
                 // 假设存储的是 [x, y, z] 三个双精度值
-                return Eigen::Vector3d(numIter->second[0], numIter->second[1], numIter->second[2]);
+                return {numIter->second[0], numIter->second[1], numIter->second[2]};
             }
 
             // 未找到参数或数据不足，返回 fallback
@@ -382,12 +382,12 @@ namespace egret
             }
 
             const Eigen::Vector3d position = body->entity->getPosition();
+            const Eigen::Vector3d velocity = body->entity->getVelocity();
+            const Eigen::Vector3d angularVelocity = body->entity->getAngularVelocity();
 
             SceneRenderItem item{};
             item.id = body->entity->getId();
             item.kind = static_cast<std::uint32_t>(body->entity->getShape()->getType());
-            item.velocity = body->entity->getVelocity();
-            item.angularVelocity = body->entity->getAngularVelocity();
 
             item.label = body->name.empty()
                              ? (std::string("Body ") + std::to_string(body->entity->getId()))
@@ -449,6 +449,8 @@ namespace egret
             item.scale = renderScale;
             item.rotation = {modelRotation.w(), modelRotation.y(), modelRotation.z(), modelRotation.x()};
             item.position = {position.y(), position.z(), position.x()};
+            item.velocity = {velocity.y(), velocity.z(), velocity.x()};
+            item.angularVelocity = {angularVelocity.y(), angularVelocity.z(), angularVelocity.x()};
 
             items.push_back(std::move(item));
         }

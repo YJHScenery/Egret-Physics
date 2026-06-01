@@ -26,6 +26,9 @@
 
 #define EGRET_PHYSICS_APPLICATION_NAME "EgretPhysicsStudio"
 
+
+#define DEBUG_MODE 1
+
 namespace egret
 {
     template <typename Base, std::integral Exponent, Exponent Ex>

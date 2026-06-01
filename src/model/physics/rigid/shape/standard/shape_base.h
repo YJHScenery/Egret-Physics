@@ -50,7 +50,7 @@ namespace egret
         Other = 255
     };
 
-    [[nodiscard]] std::string reflectShapeToString(const ShapeType type);
+    [[nodiscard]] std::string reflectShapeToString(ShapeType type);
 
 }
 
@@ -67,7 +67,7 @@ namespace magic_enum::customize
 
 namespace egret
 {
-    class SceneRenderItem;
+    struct SceneRenderItem;
 
     struct ShapeLoadInfo
     {

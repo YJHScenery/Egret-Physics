@@ -638,27 +638,111 @@ namespace egret
         m_world->clear();
         m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
 
-        std::uint64_t id1 = m_world->spawnSphere("1", {100, 100, 100}, {0, 0, 0}, 10, 10);
-        std::uint64_t id2 = m_world->spawnSphere("2", {200, 160, 180}, {0, 0, 0}, 10, 60);
 
-        m_world->createRod("rod", 141, id1, id2);
+        std::uint64_t id1 = m_world->spawnSphere("123", {0, 0, 300}, {0, 0, 0}, 10, 10);
+        std::uint64_t id2 = m_world->spawnSphere("456", {0, 0, 400}, {0, 0, 0}, 10, 0);
 
-        // 收集所有实体 ID 用于地面注册
-        std::vector<std::uint64_t> allIds = {
-            id1, id2
-        };
 
-        // 注册地面
-        auto plane = std::make_unique<SurfacePlane>(
-            Eigen::Vector3d(0, 0, 0),
-            Eigen::Vector3d::UnitZ());
+        // 创建一个弹性系数 50 N/m、原长 300m 的弹簧，连接 bodyA 和 bodyB
+        m_world->createSpring("MySpring", 50.0, 100.0, id2, id1);
 
-        m_world->createSupportSurface(
-            "Ground",
-            std::move(plane),
-            1.0,
-            allIds
-        );
+
+        // // m_world->createConnectingLine("114514", 140, id1, id2);
+        //
+        //
+        // std::uint64_t id3 = m_world->spawnSphere("123", {10, 120, 120}, {0, 0, 0}, 10, 10);
+        // m_world->createSimplePendulum("1", 150, {10, 200, 200}, id3);
+        // // m_world->createSpring("MySpring2", 50.0, 100.0, id3, id1);
+        //
+        // qDebug() << id1 << id2 << id3;
+        //
+        // m_surfaceModel.setPlaneExtent(2000.0);
+        //
+        // // === 创建 Bezier 曲面 SupportSurface 用于测试 ===
+        // // 4x4 控制点网格，形成一个中心隆起的缓坡曲面
+        // // 偏移到 (300, -150, 0) 处，避免与地面平面重叠
+        // using CP = std::array<std::array<Eigen::Vector3d, 4>, 4>;
+        // CP bezierCP = {
+        //     {
+        //         {
+        //             {
+        //                 Eigen::Vector3d{0, 0, 0}, Eigen::Vector3d{100, 0, 10},
+        //                 Eigen::Vector3d{200, 0, 10}, Eigen::Vector3d{300, 0, 0}
+        //             }
+        //         },
+        //         {
+        //             {
+        //                 Eigen::Vector3d{0, 100, 10}, Eigen::Vector3d{100, 100, 60},
+        //                 Eigen::Vector3d{200, 100, 80}, Eigen::Vector3d{300, 100, 10}
+        //             }
+        //         },
+        //         {
+        //             {
+        //                 Eigen::Vector3d{0, 200, 10}, Eigen::Vector3d{100, 200, 80},
+        //                 Eigen::Vector3d{200, 200, 60}, Eigen::Vector3d{300, 200, 10}
+        //             }
+        //         },
+        //         {
+        //             {
+        //                 Eigen::Vector3d{0, 300, 0}, Eigen::Vector3d{100, 300, 10},
+        //                 Eigen::Vector3d{200, 300, 10}, Eigen::Vector3d{300, 300, 0}
+        //             }
+        //         }
+        //     }
+        // };
+        //
+        // // 整体偏移到场景中的目标位置
+        // const Eigen::Vector3d bezierOffset{200, -150, 100};
+        //
+        // for (auto& row : bezierCP) {
+        //     for (auto& cp : row) {
+        //         cp += bezierOffset;
+        //     }
+        // }
+        //
+        // // 在 Bezier 曲面上方生成两个测试球体
+        // std::uint64_t id4 = m_world->spawnSphere("b1", {300, -50, 500}, {0, 0, 0}, 10, 10);
+        // std::uint64_t id5 = m_world->spawnSphere("b2", {250, 100, 450}, {0, 0, 0}, 10, 10);
+        //
+        //
+        // m_world->createSpring("MySpring2", 50.0, 100.0, id5, id1);
+        // m_world->createSpring("MySpring2", 50.0, 100.0, id5, id4);
+        //
+        // auto bezier = std::make_unique<SurfaceBezier>(bezierCP);
+        // m_world->createSupportSurface(
+        //     "BezierHill",
+        //     std::move(bezier),
+        //     0.6, // 恢复系数 0.6
+        //     {id4, id5} // 注册到这个曲面的实体
+        // );
+        //
+        //
+        // std::uint64_t id8 = m_world->spawnSphere("c1", {400, 300, 500}, {0, 0, 0}, 10, 10);
+        // std::uint64_t id9 = m_world->spawnSphere("c2", {460, 360, 450}, {0, 0, 0}, 10, 10);
+        //
+        // m_world->createRod("rod", sqrt(3600 + 3600 + 2500), id8, id9);
+        //
+        // std::uint64_t id10 = m_world->spawnSphere("1", {100, 100, 100}, {0, 0, 0}, 10, 10);
+        // std::uint64_t id11 = m_world->spawnSphere("2", {200, 160, 180}, {0, 0, 0}, 10, 60);
+        //
+        // m_world->createRod("rod", 141, id10, id11);
+        //
+        // // 收集所有实体 ID 用于地面注册
+        // std::vector<std::uint64_t> allIds = {
+        //     id1, id2, id3, id4, id5, id8, id9, id10, id11
+        // };
+        //
+        // // 注册地面
+        // auto plane = std::make_unique<SurfacePlane>(
+        //     Eigen::Vector3d(0, 0, 0),
+        //     Eigen::Vector3d::UnitZ());
+        //
+        // m_world->createSupportSurface(
+        //     "Ground",
+        //     std::move(plane),
+        //     1.0,
+        //     allIds
+        // );
 
         m_entityCount = static_cast<int>(m_world->getBodyCount());
     }

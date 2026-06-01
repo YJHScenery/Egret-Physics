@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 #include <QDebug>
 #include <qgenericmatrix.h>
 #include <QString>
@@ -582,6 +583,7 @@ namespace egret
             }
 
             constraint->applyVelocityConstraint(dt);
+            constraint->applyAngularVelocityConstraint(dt);
             constraint->applyPositionConstraint(dt);
         }
     }
