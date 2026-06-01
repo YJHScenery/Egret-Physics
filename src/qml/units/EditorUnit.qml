@@ -24,6 +24,7 @@ import QtQuick3D 6.9
 import QtQuick.Dialogs 6.9
 import ModelManager 1.0
 import EnumHandler 1.0
+import EditorManager 1.0
 
 import "qrc:/components/components"
 import "qrc:/components/components/theme"
@@ -150,18 +151,20 @@ ColumnLayout {
                         id: basicNode
 
                         property var alphaModeMap: ({
-                                "Default": PrincipledMaterial.Default,
-                                "Blend": PrincipledMaterial.Blend,
-                                "Opaque": PrincipledMaterial.Opaque,
-                                "Mask": PrincipledMaterial.Mask
-                            })
+                            "Default": PrincipledMaterial.Default,
+                            "Blend": PrincipledMaterial.Blend,
+                            "Opaque": PrincipledMaterial.Opaque,
+                            "Mask": PrincipledMaterial.Mask
+                        })
 
                         property var modelList: ModelManager.getAllModels()
+
                         Connections {
                             target: ModelManager
 
                             function onModelListChanged() {
                                 console.log("Model list changed, refreshing Repeater3D");
+                                basicNode.modelList = []
                                 basicNode.modelList = ModelManager.getAllModels();
                             }
                         }
@@ -188,7 +191,9 @@ ColumnLayout {
                                 property bool isSelected: editorCanvas.selectedObjectName === objectName
                                 property var transform: ModelManager.setQuick3DRenderTransform(index)
 
+
                                 objectName: modelData.name ? modelData.name : ("model-" + index)
+
                                 source: modelData.source
 
                                 // z-up 到 y-up 的交换
@@ -208,6 +213,7 @@ ColumnLayout {
                                     alphaMode: delegateModel.materialAlphaMode ? delegateModel.materialAlphaMode : PrincipledMaterial.Default
                                     cullMode: Material.NoCulling
                                 }
+
                             }
                         }
                     }
@@ -280,16 +286,25 @@ ColumnLayout {
                                 var models = ModelManager.findModelsByName(editorCanvas.selectedObjectName);
                                 if (models.length > 0) {
                                     var model = models[0];
+
+                                    // 通用属性
+                                    inspectorPanel.m_name = model.name;
+                                    inspectorPanel.m_mass = model.mass;
+                                    inspectorPanel.m_loadTime = model.loadTime;
+                                    inspectorPanel.m_restitution = model.restitution;
                                     inspectorPanel.m_pos = Qt.vector3d(model.pos.x, model.pos.y, model.pos.z);
                                     inspectorPanel.m_scale = Qt.vector3d(model.scale.x, model.scale.y, model.scale.z);
                                     inspectorPanel.m_rotation = model.rotation;
-                                    inspectorPanel.m_mass = model.mass;
-                                    inspectorPanel.m_name = model.name;
-                                    // inspectorPanel.m_source = model.source;
-                                    // 从 materials 获取材质属性
+                                    inspectorPanel.m_initialVelo = model.initialVelo;
+                                    inspectorPanel.m_initialAnguVelo = model.initialAnguVelo;
+
+                                    // 材质属性
                                     inspectorPanel.m_baseColor = model.materials.baseColor;
                                     inspectorPanel.m_metalness = model.materials.metalness;
                                     inspectorPanel.m_roughness = model.materials.roughness;
+
+                                    // 类型 + 几何参数 — 委托给独立函数
+                                    inspectorColumn.syncTypeAndGeometryToUi(model);
 
                                     operatingButton.isCreateMode = false;
                                 }
@@ -339,10 +354,7 @@ ColumnLayout {
                 Layout.fillHeight: true
                 title: "属性 / Inspector"
 
-                property real radius_Optional: 1.0
-                property vector3d size_BoxOnly: Qt.vector3d(1, 1, 1)
-                property real length_RodOnly: 1.0
-                property real height_Optional: 1.0
+                // 几何参数由 EditorParameterManager 统一管理，不再平铺在此处
 
                 property real m_mass: 0.0
                 property real m_loadTime: 0.0
@@ -362,16 +374,15 @@ ColumnLayout {
                 property real m_roughness: 0.6
 
                 function serializeToJson() {
+                    // 从 EditorParameterManager 获取当前类型的几何参数
+                    var geoParams = EditorParameterManager.collectAllValues();
+
                     var data = {
                         entity_name: inspectorPanel.m_name,
                         entity_type: inspectorPanel.m_type,
                         entity_mass: inspectorPanel.m_mass,
                         load_time: inspectorPanel.m_loadTime,
                         restitution: inspectorPanel.m_restitution,
-                        circle_radius: inspectorPanel.radius_Optional,
-                        box_size: [inspectorPanel.size_BoxOnly.x, inspectorPanel.size_BoxOnly.y, inspectorPanel.size_BoxOnly.z],
-                        length: inspectorPanel.length_RodOnly,
-                        height: inspectorPanel.height_Optional,
                         position: [inspectorPanel.m_pos.x, inspectorPanel.m_pos.y, inspectorPanel.m_pos.z],
                         scale: [inspectorPanel.m_scale.x, inspectorPanel.m_scale.y, inspectorPanel.m_scale.z],
                         rotation: [inspectorPanel.m_rotation.scalar, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z],
@@ -381,6 +392,17 @@ ColumnLayout {
                         material_metalness: inspectorPanel.m_metalness,
                         material_roughness: inspectorPanel.m_roughness
                     };
+
+                    // 合并几何参数（key 已匹配后端 JSON 约定：circle_radius / box_size / length / height）
+                    for (var key in geoParams) {
+                        var val = geoParams[key];
+                        // 将 QVector3D 转换为数组（后端 JSON 解析期望数组格式）
+                        if (val && typeof val.x !== "undefined") {
+                            data[key] = [val.x, val.y, val.z];
+                        } else {
+                            data[key] = val;
+                        }
+                    }
 
                     var jsonData = JSON.stringify(data);
                     console.log("____________________________________");
@@ -407,7 +429,8 @@ ColumnLayout {
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                     rightPadding: inspectorScrollBar.visible ? inspectorScrollBar.width : 0
 
-                    ScrollBar.vertical: Basic.ScrollBar {
+                    ScrollBar.vertical: Basic.ScrollBar
+                    {
                         id: inspectorScrollBar
                         width: 8
                         policy: ScrollBar.AsNeeded
@@ -432,8 +455,70 @@ ColumnLayout {
                     }
 
                     ColumnLayout {
+                        id: inspectorColumn
                         width: Math.max(0, inspectorScrollView.availableWidth - inspectorScrollView.rightPadding)
                         spacing: 10
+
+                        // 几何参数的本地快照 — 绕过 QML C++ 绑定延迟问题
+                        property var geometryParams: []
+                        // 从 pick 加载数据时置 true，阻止 onCurrentIndexChanged 重复触发类型切换
+                        property bool isLoadingFromPick: false
+
+                        // ============ Section 可见性逻辑 ============
+                        readonly property bool isShapeCategory: EditorParameterManager.currentCategory === 0
+                        readonly property bool isFieldCategory: EditorParameterManager.currentCategory === 1
+                        readonly property bool isConstraintCategory: EditorParameterManager.currentCategory === 2
+
+                        // 变换 (Transform)：仅实体
+                        readonly property bool isTransformVisible: isShapeCategory
+
+                        // 初始速度：实体 或 非固定的引力场
+                        // 绑定到 parameterValues（具有 NOTIFY）以在参数值变化时重新求值
+                        readonly property bool isVelocitySectionVisible: isShapeCategory
+                            || (isFieldCategory && EditorParameterManager.currentTypeId === 2
+                                && EditorParameterManager.parameterValues["fixed"] === 0)
+
+                        // 角速度：仅实体
+                        readonly property bool isAngularVelocityVisible: isShapeCategory
+
+                        // 材质：实体 或 支撑曲面
+                        readonly property bool isMaterialVisible: isShapeCategory
+                            || (isConstraintCategory && EditorParameterManager.currentTypeId === 6)
+
+                        Component.onCompleted: {
+                            geometryParams = EditorParameterManager.currentParameters;
+                        }
+
+                        // 根据 model 的 typeId 更新所有 UI 状态（由 pick 调用）
+                        function syncTypeAndGeometryToUi(model) {
+                            isLoadingFromPick = true;
+
+                            // 1. 更新 inspector 通用属性
+                            inspectorPanel.m_type = model.type;
+
+                            // 2. 切到正确的 ComboBox index
+                            var types = EditorParameterManager.availableTypes;
+                            for (var i = 0; i < types.length; i++) {
+                                if (types[i].typeId === model.type) {
+                                    sourceComboBox.currentIndex = i;
+                                    break;
+                                }
+                            }
+
+                            // 3. 设置几何参数并同步到 EditorParameterManager
+                            EditorParameterManager.currentTypeId = model.type;
+                            EditorParameterManager.loadFromValues({
+                                "box_size": model.boxSize,
+                                "circle_radius": model.radius,
+                                "height": model.height,
+                                "length": model.length
+                            });
+
+                            // 4. 刷新几何参数 UI
+                            geometryParams = EditorParameterManager.currentParameters;
+
+                            isLoadingFromPick = false;
+                        }
 
                         RowLayout {
                             width: parent.width
@@ -444,6 +529,7 @@ ColumnLayout {
                                 pixelSize: 12
                                 onClicked: {
                                     operatingButton.isCreateMode = true;
+                                    EditorParameterManager.currentCategory = 0;
                                 }
                             }
 
@@ -451,18 +537,20 @@ ColumnLayout {
                                 id: createNewFieldButton
                                 text: "添加场"
                                 pixelSize: 12
-                                onClicked:
-                                // operatingButton.isCreateMode = true;
-                                {}
+                                onClicked: {
+                                    operatingButton.isCreateMode = true;
+                                    EditorParameterManager.currentCategory = 1;
+                                }
                             }
 
                             EgretPushButton {
                                 id: createNewConstraintButton
                                 text: "添加约束器"
                                 pixelSize: 12
-                                onClicked:
-                                // operatingButton.isCreateMode = true;
-                                {}
+                                onClicked: {
+                                    operatingButton.isCreateMode = true;
+                                    EditorParameterManager.currentCategory = 2;
+                                }
                             }
                         }
 
@@ -533,9 +621,30 @@ ColumnLayout {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 28
 
+                                // 数据驱动：model 来自 EditorParameterManager
+                                textRole: "displayName"
+                                valueRole: "typeId"
+                                model: EditorParameterManager.availableTypes
+
                                 onCurrentIndexChanged: {
-                                    basicParamsGrid.updateDynamicProperties(sourceComboBox.currentIndex);
-                                    inspectorPanel.m_type = currentIndex + 1;
+                                    if (currentIndex < 0) return;
+                                    // pick 加载时跳过，避免重复触发类型切换
+                                    if (inspectorColumn.isLoadingFromPick) return;
+
+                                    // 直接从 availableTypes 列表按索引取值 — 最可靠的方式
+                                    var types = EditorParameterManager.availableTypes;
+                                    if (currentIndex >= types.length) return;
+                                    var typeId = types[currentIndex].typeId;
+
+                                    console.log("EditorUnit: currentIndex =", currentIndex,
+                                        "typeId =", typeId,
+                                        "displayName =", types[currentIndex].displayName);
+
+                                    EditorParameterManager.currentTypeId = typeId;
+                                    inspectorPanel.m_type = typeId;
+                                    // 强制同步刷新几何参数
+                                    inspectorColumn.geometryParams = EditorParameterManager.currentParameters;
+                                    console.log("EditorUnit: geometryParams.length =", inspectorColumn.geometryParams.length);
                                 }
 
                                 // 下拉菜单样式
@@ -586,7 +695,7 @@ ColumnLayout {
                                     highlighted: sourceComboBox.highlightedIndex === index
 
                                     contentItem: Text {
-                                        text: modelData
+                                        text: modelData.displayName
                                         color: highlighted ? "#FFFFFF" : "#CCCCCC"
                                         horizontalAlignment: Text.AlignLeft
                                         verticalAlignment: Text.AlignVCenter
@@ -599,21 +708,12 @@ ColumnLayout {
                                         radius: theme.radiusS
                                     }
                                 }
-
-                                model: ["标准盒体", "标准圆柱体", "标准圆柱面", "标准圆盘", "标准圆环", "标准细杆", "标准球体", "标准球壳"]
-
-                                // 绑定到 inspectorPanel 的属性
-                                // currentIndex: {
-                                //     var idx = model.indexOf(inspectorPanel.m_type);
-                                //     return idx !== -1 ? idx : 0;
-                                // }
-
-                                // onCurrentValueChanged: inspectorPanel.m_type = currentIndex
                             }
 
                             Label {
                                 text: "质量"
                                 color: "#BFD8F4"
+                                visible: EditorParameterManager.currentCategory === 0
                             }
                             FloatField {
                                 Layout.fillWidth: true
@@ -622,6 +722,7 @@ ColumnLayout {
                                 stepSize: 0.1
                                 value: inspectorPanel.m_mass
                                 onValueChanged: inspectorPanel.m_mass = value
+                                visible: EditorParameterManager.currentCategory === 0
                             }
 
                             Label {
@@ -640,6 +741,7 @@ ColumnLayout {
                             Label {
                                 text: "弹性"
                                 color: "#BFD8F4"
+                                visible: EditorParameterManager.currentCategory === 0
                             }
                             FloatField {
                                 Layout.fillWidth: true
@@ -648,11 +750,485 @@ ColumnLayout {
                                 stepSize: 0.05
                                 value: inspectorPanel.m_restitution
                                 onValueChanged: inspectorPanel.m_restitution = value
+                                visible: EditorParameterManager.currentCategory === 0
                             }
                         }
 
                         EgretSeparator {
                             Layout.fillWidth: true
+                        }
+
+                        // ============================================================
+                        //  几何参数 / Geometry — 数据驱动，来自 EditorParameterManager
+                        // ============================================================
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 28
+                            radius: 6
+                            color: "#0F2B4B"
+                            border.width: 1
+                            border.color: "#2C5D88"
+
+                            visible: EditorParameterManager.currentCategory === 0
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "几何参数 / Geometry"
+                                color: "#CFE6FF"
+                                font.pixelSize: 12
+                            }
+                        }
+
+                        // 主参数列表 — 只包含控件类型分发，不含业务类型 switch
+                        Repeater {
+                            id: geometryRepeater
+                            model: inspectorColumn.geometryParams
+
+                            delegate: Column {
+                                id: paramColumn
+                                property var paramData: modelData
+                                width: parent.width
+                                Layout.fillWidth: true
+
+                                Label {
+                                    text: modelData.displayName
+                                    color: "#BFD8F4"
+                                }
+
+                                // float 类型参数编辑器
+                                Loader {
+                                    width: parent.width
+                                    active: modelData.type === "float"
+                                    sourceComponent: Component {
+                                        FloatField {
+                                            Layout.fillWidth: true
+                                            from: modelData.min !== undefined ? modelData.min : -1000000
+                                            to: modelData.max !== undefined ? modelData.max : 1000000
+                                            stepSize: modelData.step !== undefined ? modelData.step : 0.1
+                                            decimals: modelData.decimals !== undefined ? modelData.decimals : 3
+                                            value: modelData.value
+                                            onValueChanged: EditorParameterManager.setParameterValue(modelData.key, value)
+                                        }
+                                    }
+                                }
+
+                                // vector3d 类型参数编辑器
+                                Loader {
+                                    width: parent.width
+                                    active: modelData.type === "vector3d"
+                                    sourceComponent: Component {
+                                        RowLayout {
+                                            spacing: 6
+                                            FloatField {
+                                                Layout.fillWidth: true
+                                                value: modelData.value ? modelData.value.x : 0
+                                                stepSize: 0.1
+                                                onValueChanged: {
+                                                    var v = EditorParameterManager.parameterValue(modelData.key);
+                                                    if (!v) v = Qt.vector3d(0, 0, 0);
+                                                    EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(value, v.y, v.z));
+                                                }
+                                            }
+                                            FloatField {
+                                                Layout.fillWidth: true
+                                                value: modelData.value ? modelData.value.y : 0
+                                                stepSize: 0.1
+                                                onValueChanged: {
+                                                    var v = EditorParameterManager.parameterValue(modelData.key);
+                                                    if (!v) v = Qt.vector3d(0, 0, 0);
+                                                    EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(v.x, value, v.z));
+                                                }
+                                            }
+                                            FloatField {
+                                                Layout.fillWidth: true
+                                                value: modelData.value ? modelData.value.z : 0
+                                                stepSize: 0.1
+                                                onValueChanged: {
+                                                    var v = EditorParameterManager.parameterValue(modelData.key);
+                                                    if (!v) v = Qt.vector3d(0, 0, 0);
+                                                    EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(v.x, v.y, value));
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // enum 类型参数编辑器
+                                Loader {
+                                    width: parent.width
+                                    active: modelData.type === "enum"
+                                    sourceComponent: Component {
+                                        ComboBox {
+                                            width: parent.width
+                                            implicitHeight: 28
+                                            model: modelData.enumOptions ? modelData.enumOptions : []
+                                            currentIndex: modelData.value !== undefined ? modelData.value : 0
+
+                                            popup.width: parent.width * 0.82
+                                            popup.background: Rectangle {
+                                                color: theme.bg1; border.width: 1; border.color: theme.border; radius: theme.radiusS
+                                            }
+                                            contentItem: Text {
+                                                text: parent.displayText; color: "#FFFFFF"; horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12; elide: Text.ElideRight
+                                            }
+                                            background: Rectangle {
+                                                color: theme.bg1; radius: theme.radiusS; border.width: 1; border.color: parent.activeFocus ? theme.accent : (comboHover.hovered ? "#4A7FBF" : theme.border)
+                                                HoverHandler { id: comboHover }
+                                            }
+                                            indicator: Image {
+                                                source: "qrc:/units/assets/units/triangle_arrow.svg"
+                                                anchors.right: parent.right
+                                                anchors.rightMargin: 8
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                width: 16
+                                                height: 16
+                                            }
+                                            delegate: ItemDelegate {
+                                                width: parent.width; height: 28
+                                                contentItem: Text {
+                                                    text: modelData; color: highlighted ? "#FFFFFF" : "#CCCCCC"; horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12
+                                                }
+                                                background: Rectangle {
+                                                    color: highlighted ? theme.accent : "transparent"; radius: theme.radiusS
+                                                }
+                                            }
+                                            onCurrentIndexChanged: {
+                                                if (currentIndex >= 0)
+                                                    EditorParameterManager.setParameterValue(modelData.key, currentIndex);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // 子类型选择 — 第 1 层（如 Constraint=SupportSurface → Surface 类型）
+                        Column {
+                            visible: EditorParameterManager.hasSubTypes
+                            width: parent.width
+                            Layout.fillWidth: true
+
+                            Label {
+                                text: "曲面类型"
+                                color: "#BFD8F4"
+                            }
+                            ComboBox {
+                                width: parent.width
+                                implicitHeight: 28
+                                textRole: "displayName"
+                                valueRole: "typeId"
+                                model: EditorParameterManager.subTypes
+
+                                popup.width: parent.width * 0.82
+                                popup.background: Rectangle {
+                                    color: theme.bg1; border.width: 1; border.color: theme.border; radius: theme.radiusS
+                                }
+                                contentItem: Text {
+                                    text: parent.displayText; color: "#FFFFFF"; horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12; elide: Text.ElideRight
+                                }
+                                background: Rectangle {
+                                    color: theme.bg1; radius: theme.radiusS; border.width: 1; border.color: parent.activeFocus ? theme.accent : theme.border
+                                }
+                                indicator: Image {
+                                    source: "qrc:/units/assets/units/triangle_arrow.svg"
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 16
+                                    height: 16
+                                }
+                                delegate: ItemDelegate {
+                                    width: parent.width; height: 28
+                                    contentItem: Text {
+                                        text: modelData.displayName; color: highlighted ? "#FFFFFF" : "#CCCCCC"; horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12
+                                    }
+                                    background: Rectangle {
+                                        color: highlighted ? theme.accent : "transparent"; radius: theme.radiusS
+                                    }
+                                }
+
+                                onCurrentIndexChanged: {
+                                    if (currentIndex >= 0 && model[currentIndex])
+                                        EditorParameterManager.subTypeId = model[currentIndex].typeId;
+                                }
+                            }
+
+                            // 子类型参数列表
+                            Repeater {
+                                model: EditorParameterManager.subParameters
+                                delegate: Column {
+                                    width: parent.width
+                                    Layout.fillWidth: true
+                                    Label {
+                                        text: modelData.displayName; color: "#BFD8F4"
+                                    }
+                                    Loader {
+                                        width: parent.width
+                                        active: modelData.type === "float"
+                                        sourceComponent: Component {
+                                            FloatField {
+                                                Layout.fillWidth: true
+                                                from: modelData.min !== undefined ? modelData.min : -1000000
+                                                to: modelData.max !== undefined ? modelData.max : 1000000
+                                                stepSize: modelData.step !== undefined ? modelData.step : 0.1
+                                                decimals: modelData.decimals !== undefined ? modelData.decimals : 3
+                                                value: modelData.value
+                                                onValueChanged: EditorParameterManager.setParameterValue(modelData.key, value)
+                                            }
+                                        }
+                                    }
+                                    Loader {
+                                        width: parent.width
+                                        active: modelData.type === "vector3d"
+                                        sourceComponent: Component {
+                                            RowLayout {
+                                                spacing: 6
+                                                FloatField {
+                                                    Layout.fillWidth: true
+                                                    value: modelData.value ? modelData.value.x : 0
+                                                    stepSize: 0.1
+                                                    onValueChanged: {
+                                                        var v = EditorParameterManager.parameterValue(modelData.key);
+                                                        if (!v) v = Qt.vector3d(0, 0, 0);
+                                                        EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(value, v.y, v.z));
+                                                    }
+                                                }
+                                                FloatField {
+                                                    Layout.fillWidth: true
+                                                    value: modelData.value ? modelData.value.y : 0
+                                                    stepSize: 0.1
+                                                    onValueChanged: {
+                                                        var v = EditorParameterManager.parameterValue(modelData.key);
+                                                        if (!v) v = Qt.vector3d(0, 0, 0);
+                                                        EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(v.x, value, v.z));
+                                                    }
+                                                }
+                                                FloatField {
+                                                    Layout.fillWidth: true
+                                                    value: modelData.value ? modelData.value.z : 0
+                                                    stepSize: 0.1
+                                                    onValueChanged: {
+                                                        var v = EditorParameterManager.parameterValue(modelData.key);
+                                                        if (!v) v = Qt.vector3d(0, 0, 0);
+                                                        EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(v.x, v.y, value));
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Loader {
+                                        width: parent.width
+                                        active: modelData.type === "enum"
+                                        sourceComponent: Component {
+                                            ComboBox {
+                                                width: parent.width
+                                                implicitHeight: 28
+                                                model: modelData.enumOptions ? modelData.enumOptions : []
+                                                currentIndex: modelData.value !== undefined ? modelData.value : 0
+                                                popup.width: parent.width * 0.82
+                                                popup.background: Rectangle {
+                                                    color: theme.bg1; border.width: 1; border.color: theme.border; radius: theme.radiusS
+                                                }
+                                                contentItem: Text {
+                                                    text: parent.displayText; color: "#FFFFFF"; horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12; elide: Text.ElideRight
+                                                }
+                                                background: Rectangle {
+                                                    color: theme.bg1; radius: theme.radiusS; border.width: 1; border.color: parent.activeFocus ? theme.accent : theme.border
+                                                }
+                                                indicator: Image {
+                                                    source: "qrc:/units/assets/units/triangle_arrow.svg"
+                                                    anchors.right: parent.right
+                                                    anchors.rightMargin: 8
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    width: 16
+                                                    height: 16
+                                                }
+                                                delegate: ItemDelegate {
+                                                    width: parent.width; height: 28
+                                                    contentItem: Text {
+                                                        text: modelData; color: highlighted ? "#FFFFFF" : "#CCCCCC"; horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12
+                                                    }
+                                                    background: Rectangle {
+                                                        color: highlighted ? theme.accent : "transparent"; radius: theme.radiusS
+                                                    }
+                                                }
+                                                onCurrentIndexChanged: {
+                                                    if (currentIndex >= 0)
+                                                        EditorParameterManager.setParameterValue(modelData.key, currentIndex);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // 子类型选择 — 第 2 层（如 Surface=Cylindrical → Curve 类型）
+                        Column {
+                            visible: EditorParameterManager.hasSubSubTypes
+                            width: parent.width
+                            Layout.fillWidth: true
+
+                            Label {
+                                text: "曲线类型"
+                                color: "#BFD8F4"
+                            }
+
+                            ComboBox {
+                                width: parent.width
+                                implicitHeight: 28
+                                textRole: "displayName"
+                                valueRole: "typeId"
+                                model: EditorParameterManager.subSubTypes
+
+                                popup.width: parent.width * 0.82
+                                popup.background: Rectangle {
+                                    color: theme.bg1; border.width: 1; border.color: theme.border; radius: theme.radiusS
+                                }
+                                contentItem: Text {
+                                    text: parent.displayText; color: "#FFFFFF"; horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12; elide: Text.ElideRight
+                                }
+                                background: Rectangle {
+                                    color: theme.bg1; radius: theme.radiusS; border.width: 1; border.color: parent.activeFocus ? theme.accent : theme.border
+                                }
+                                indicator: Image {
+                                    source: "qrc:/units/assets/units/triangle_arrow.svg"
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 16
+                                    height: 16
+                                }
+                                delegate: ItemDelegate {
+                                    width: parent.width; height: 28
+                                    contentItem: Text {
+                                        text: modelData.displayName; color: highlighted ? "#FFFFFF" : "#CCCCCC"; horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12
+                                    }
+                                    background: Rectangle {
+                                        color: highlighted ? theme.accent : "transparent"; radius: theme.radiusS
+                                    }
+                                }
+
+                                onCurrentIndexChanged: {
+                                    if (currentIndex >= 0 && model[currentIndex])
+                                        EditorParameterManager.subSubTypeId = model[currentIndex].typeId;
+                                }
+                            }
+
+                            // 第 2 层子类型参数列表
+                            Repeater {
+                                model: EditorParameterManager.subSubParameters
+                                delegate: Column {
+                                    width: parent.width
+                                    Layout.fillWidth: true
+                                    Label {
+                                        text: modelData.displayName; color: "#BFD8F4"
+                                    }
+                                    Loader {
+                                        width: parent.width
+                                        active: modelData.type === "float"
+                                        sourceComponent: Component {
+                                            FloatField {
+                                                Layout.fillWidth: true
+                                                from: modelData.min !== undefined ? modelData.min : -1000000
+                                                to: modelData.max !== undefined ? modelData.max : 1000000
+                                                stepSize: modelData.step !== undefined ? modelData.step : 0.1
+                                                decimals: modelData.decimals !== undefined ? modelData.decimals : 3
+                                                value: modelData.value
+                                                onValueChanged: EditorParameterManager.setParameterValue(modelData.key, value)
+                                            }
+                                        }
+                                    }
+                                    Loader {
+                                        width: parent.width
+                                        active: modelData.type === "vector3d"
+                                        sourceComponent: Component {
+                                            RowLayout {
+                                                spacing: 6
+                                                FloatField {
+                                                    Layout.fillWidth: true
+                                                    value: modelData.value ? modelData.value.x : 0
+                                                    stepSize: 0.1
+                                                    onValueChanged: {
+                                                        var v = EditorParameterManager.parameterValue(modelData.key);
+                                                        if (!v) v = Qt.vector3d(0, 0, 0);
+                                                        EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(value, v.y, v.z));
+                                                    }
+                                                }
+                                                FloatField {
+                                                    Layout.fillWidth: true
+                                                    value: modelData.value ? modelData.value.y : 0
+                                                    stepSize: 0.1
+                                                    onValueChanged: {
+                                                        var v = EditorParameterManager.parameterValue(modelData.key);
+                                                        if (!v) v = Qt.vector3d(0, 0, 0);
+                                                        EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(v.x, value, v.z));
+                                                    }
+                                                }
+                                                FloatField {
+                                                    Layout.fillWidth: true
+                                                    value: modelData.value ? modelData.value.z : 0
+                                                    stepSize: 0.1
+                                                    onValueChanged: {
+                                                        var v = EditorParameterManager.parameterValue(modelData.key);
+                                                        if (!v) v = Qt.vector3d(0, 0, 0);
+                                                        EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(v.x, v.y, value));
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Loader {
+                                        width: parent.width
+                                        active: modelData.type === "enum"
+                                        sourceComponent: Component {
+                                            ComboBox {
+                                                width: parent.width
+                                                implicitHeight: 28
+                                                model: modelData.enumOptions ? modelData.enumOptions : []
+                                                currentIndex: modelData.value !== undefined ? modelData.value : 0
+                                                popup.width: parent.width * 0.82
+                                                popup.background: Rectangle {
+                                                    color: theme.bg1; border.width: 1; border.color: theme.border; radius: theme.radiusS
+                                                }
+                                                contentItem: Text {
+                                                    text: parent.displayText; color: "#FFFFFF"; horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12; elide: Text.ElideRight
+                                                }
+                                                background: Rectangle {
+                                                    color: theme.bg1; radius: theme.radiusS; border.width: 1; border.color: parent.activeFocus ? theme.accent : theme.border
+                                                }
+                                                indicator: Image {
+                                                    source: "qrc:/units/assets/units/triangle_arrow.svg"
+                                                    anchors.right: parent.right
+                                                    anchors.rightMargin: 8
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    width: 16
+                                                    height: 16
+                                                }
+                                                delegate: ItemDelegate {
+                                                    width: parent.width; height: 28
+                                                    contentItem: Text {
+                                                        text: modelData; color: highlighted ? "#FFFFFF" : "#CCCCCC"; horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter; leftPadding: 10; font.pixelSize: 12
+                                                    }
+                                                    background: Rectangle {
+                                                        color: highlighted ? theme.accent : "transparent"; radius: theme.radiusS
+                                                    }
+                                                }
+                                                onCurrentIndexChanged: {
+                                                    if (currentIndex >= 0)
+                                                        EditorParameterManager.setParameterValue(modelData.key, currentIndex);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        EgretSeparator {
+                            Layout.fillWidth: true
+                            visible: inspectorColumn.isTransformVisible
                         }
 
                         Rectangle {
@@ -662,6 +1238,7 @@ ColumnLayout {
                             color: "#0F2B4B"
                             border.width: 1
                             border.color: "#2C5D88"
+                            visible: inspectorColumn.isTransformVisible
 
                             Text {
                                 anchors.centerIn: parent
@@ -673,205 +1250,14 @@ ColumnLayout {
 
                         GridLayout {
                             id: basicParamsGrid
+                            visible: inspectorColumn.isTransformVisible
                             Layout.fillWidth: true
                             columns: 2
                             columnSpacing: 10
                             rowSpacing: 8
 
-                            // 存储动态属性定义的数据模型
-                            property var dynamicProperties: []
-
-                            Component.onCompleted: {
-                                updateDynamicProperties(sourceComboBox.currentIndex);
-                            }
-
-                            function updateDynamicProperties(index) {
-                                switch (index) {
-                                case 0:
-                                    {
-                                        dynamicProperties = [
-                                            {
-                                                label: "长、宽、高",
-                                                size: 3
-                                            }
-                                            // 可以添加更多属性
-                                        ];
-                                        break;
-                                    }
-                                case 1:
-                                case 2:
-                                    {
-                                        dynamicProperties = [
-                                            {
-                                                label: "半径",
-                                                size: 1
-                                            },
-                                            {
-                                                label: "高",
-                                                size: 1
-                                            }
-                                        ];
-                                        break;
-                                    }
-                                case 3:
-                                case 4:
-                                    {
-                                        dynamicProperties = [
-                                            {
-                                                label: "半径",
-                                                size: 1
-                                            }
-                                        ];
-                                        break;
-                                    }
-                                case 5:
-                                    {
-                                        dynamicProperties = [
-                                            {
-                                                label: "长度",
-                                                size: 1
-                                            }
-                                        ];
-                                        break;
-                                    }
-                                case 6:
-                                case 7:
-                                    {
-                                        dynamicProperties = [
-                                            {
-                                                label: "半径",
-                                                size: 1
-                                            }
-                                        ];
-                                        break;
-                                    }
-                                default:
-                                    break;
-                                }
-                            }
-
-                            Repeater {
-                                id: dynamicRepeater
-                                model: basicParamsGrid.dynamicProperties
-
-                                Column {
-                                    id: repeaterColumn
-                                    property var propertyData: modelData
-                                    property int outerIndex: index  // 直接获取外层Repeater的索引
-                                    width: parent.width
-                                    Layout.fillWidth: true
-                                    Layout.columnSpan: 2
-
-                                    Label {
-                                        text: propertyData.label
-                                        color: "#BFD8F4"
-                                        Layout.fillWidth: true
-                                    }
-
-                                    RowLayout {
-                                        width: parent.width
-                                        spacing: 6
-                                        Repeater {
-                                            model: propertyData.size
-
-                                            FloatField {
-                                                Layout.fillWidth: true
-                                                stepSize: 0.1
-
-                                                value: {
-                                                    switch (sourceComboBox.currentIndex + 1) {
-                                                    case EnumHandler.Box:
-                                                        {
-                                                            switch (index) {
-                                                            case 0:
-                                                                return inspectorPanel.size_BoxOnly.x;
-                                                            case 1:
-                                                                return inspectorPanel.size_BoxOnly.y;
-                                                            case 2:
-                                                                return inspectorPanel.size_BoxOnly.z;
-                                                            default:
-                                                                return 0;
-                                                            }
-                                                        }
-                                                    case EnumHandler.Cylinder:
-                                                    case EnumHandler.CylindericalShell:
-                                                        {
-                                                            if (repeaterColumn.outerIndex === 0) {
-                                                                return inspectorPanel.radius_Optional;
-                                                            } else {
-                                                                return inspectorPanel.height_Optional;
-                                                            }
-                                                        }
-                                                    case EnumHandler.Disk:
-                                                    case EnumHandler.Ring:
-                                                        {
-                                                            return inspectorPanel.radius_Optional;
-                                                        }
-                                                    case EnumHandler.Rod:
-                                                        {
-                                                            return inspectorPanel.length_RodOnly;
-                                                        }
-                                                    case EnumHandler.Sphere:
-                                                    case EnumHandler.SphericalShell:
-                                                        {
-                                                            return inspectorPanel.radius_Optional;
-                                                        }
-                                                    default:
-                                                        return 0;
-                                                    }
-                                                }
-
-                                                onValueChanged: {
-                                                    switch (sourceComboBox.currentIndex + 1) {
-                                                    case EnumHandler.Box:
-                                                        {
-                                                            switch (index) {
-                                                            case 0:
-                                                                inspectorPanel.size_BoxOnly = Qt.vector3d(value, inspectorPanel.size_BoxOnly.y, inspectorPanel.size_BoxOnly.z);
-                                                                break;
-                                                            case 1:
-                                                                inspectorPanel.size_BoxOnly = Qt.vector3d(inspectorPanel.size_BoxOnly.x, value, inspectorPanel.size_BoxOnly.z);
-                                                                break;
-                                                            case 2:
-                                                                inspectorPanel.size_BoxOnly = Qt.vector3d(inspectorPanel.size_BoxOnly.x, inspectorPanel.size_BoxOnly.y, value);
-                                                                break;
-                                                            }
-                                                            break;
-                                                        }
-                                                    case EnumHandler.Cylinder:
-                                                    case EnumHandler.CylindericalShell:
-                                                        {
-                                                            if (repeaterColumn.outerIndex === 0) {
-                                                                inspectorPanel.radius_Optional = value;
-                                                            } else {
-                                                                inspectorPanel.height_Optional = value;
-                                                            }
-                                                            break;
-                                                        }
-                                                    case EnumHandler.Disk:
-                                                    case EnumHandler.Ring:
-                                                        {
-                                                            inspectorPanel.radius_Optional = value;
-                                                            break;
-                                                        }
-                                                    case EnumHandler.Rod:
-                                                        {
-                                                            inspectorPanel.length_RodOnly = value;
-                                                            break;
-                                                        }
-                                                    case EnumHandler.Sphere:
-                                                    case EnumHandler.SphericalShell:
-                                                        {
-                                                            inspectorPanel.radius_Optional = value;
-                                                            break;
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                            // 变换参数由 EditorParameterManager 的几何参数部分处理；
+                            // 此 GridLayout 仅包含位置、缩放、旋转
 
                             Label {
                                 text: "位置 (x, y, z)"
@@ -977,6 +1363,7 @@ ColumnLayout {
 
                         EgretSeparator {
                             Layout.fillWidth: true
+                            visible: inspectorColumn.isVelocitySectionVisible
                         }
 
                         Rectangle {
@@ -986,6 +1373,7 @@ ColumnLayout {
                             color: "#0F2B4B"
                             border.width: 1
                             border.color: "#2C5D88"
+                            visible: inspectorColumn.isVelocitySectionVisible
 
                             Text {
                                 anchors.centerIn: parent
@@ -1000,6 +1388,7 @@ ColumnLayout {
                             columns: 2
                             columnSpacing: 10
                             rowSpacing: 8
+                            visible: inspectorColumn.isVelocitySectionVisible
 
                             Label {
                                 text: "速度"
@@ -1034,11 +1423,13 @@ ColumnLayout {
                                 text: "角速度"
                                 color: "#BFD8F4"
                                 Layout.columnSpan: 2
+                                visible: inspectorColumn.isAngularVelocityVisible
                             }
                             RowLayout {
                                 Layout.fillWidth: true
                                 Layout.columnSpan: 2
                                 spacing: 6
+                                visible: inspectorColumn.isAngularVelocityVisible
                                 FloatField {
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_initialAnguVelo.x
@@ -1062,6 +1453,7 @@ ColumnLayout {
 
                         EgretSeparator {
                             Layout.fillWidth: true
+                            visible: inspectorColumn.isMaterialVisible
                         }
 
                         Rectangle {
@@ -1071,6 +1463,7 @@ ColumnLayout {
                             color: "#0F2B4B"
                             border.width: 1
                             border.color: "#2C5D88"
+                            visible: inspectorColumn.isMaterialVisible
 
                             Text {
                                 anchors.centerIn: parent
@@ -1085,6 +1478,7 @@ ColumnLayout {
                             columns: 2
                             columnSpacing: 10
                             rowSpacing: 8
+                            visible: inspectorColumn.isMaterialVisible
 
                             Label {
                                 text: "基础色"
