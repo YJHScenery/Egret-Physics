@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <concepts>
 #include <boost/hana/string.hpp>
+#include "git_version.h"
 
 namespace egret
 {
@@ -219,7 +220,7 @@ decltype(BOOST_HANA_STRING(Suffix)), \
 T, \
 ##__VA_ARGS__>
 
-    static constexpr std::string_view WHOLE_EGRET_VERSION_STRING = CREATE_FORMATTED_VERSION_V("v", ".", "-insiders",
+    static constexpr std::string_view WHOLE_EGRET_VERSION_STRING = CREATE_FORMATTED_VERSION_V("v", ".", PREFIX_GIT_VERSION_FULL,
         unsigned int,
         EGRET_PHYSICS_VERSION_MAJOR_UINT,
         EGRET_PHYSICS_VERSION_MINOR_UINT,
