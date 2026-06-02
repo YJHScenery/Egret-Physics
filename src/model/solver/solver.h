@@ -237,7 +237,25 @@ namespace egret
          */
         void integrate(SolverSceneSnapshotBase &scene, double dt, SolverStats &stats) const;
 
-        void resolveConstraints(SolverSceneSnapshotBase &scene, double dt, SolverStats &stats) const;
+        /**
+         * @brief 在积分前应用速度约束和角速度约束。
+         * @details 冲量型约束（速度修正、角速度修正）必须在积分之前执行，
+         *          确保积分使用的是已修正的速度。
+         * @param scene 可变场景快照。
+         * @param dt 固定步长。
+         * @param stats 可变步骤统计。
+         */
+        void applyVelocityAndAngularConstraints(SolverSceneSnapshotBase &scene, double dt, SolverStats &stats) const;
+
+        /**
+         * @brief 在积分后应用位置约束。
+         * @details 位置修正（穿透恢复等）在积分之后执行，
+         *          用于消除积分引入的微小穿透。
+         * @param scene 可变场景快照。
+         * @param dt 固定步长。
+         * @param stats 可变步骤统计。
+         */
+        void applyPositionConstraints(SolverSceneSnapshotBase &scene, double dt, SolverStats &stats) const;
 
         /**
          * @brief 在积分后计算用于诊断的能量统计。

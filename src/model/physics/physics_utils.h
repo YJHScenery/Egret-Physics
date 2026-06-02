@@ -138,7 +138,7 @@ namespace egret
     std::unique_ptr<Derived> unique_ptr_cast(std::unique_ptr<Base>&& ptr)
     {
         // 使用 dynamic_cast 进行安全检查（需要多态类型）
-        Derived* d = dynamic_cast<Derived*>(ptr.get());
+        auto* d = dynamic_cast<Derived*>(ptr.get());
         if (!d) {
             LOG_FATAL_LITERAL("Cannot Cast This Pointer");
             return nullptr; // 或者抛出异常

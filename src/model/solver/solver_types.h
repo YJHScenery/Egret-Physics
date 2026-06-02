@@ -186,6 +186,9 @@ namespace egret
         /** 若为真，则在场作用前清空实体外力累加器。 */
         bool clearForcesBeforeFieldApply{true};
 
+        /** 若为真，则在场作用前清空实体力矩累加器（与力清理对称）。 */
+        bool clearTorquesBeforeFieldApply{true};
+
         /** 若为真，则每一步都应用场景中的所有场。 */
         bool applyFieldsEachStep{true};
 

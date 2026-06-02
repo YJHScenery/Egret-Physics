@@ -140,12 +140,16 @@ namespace egret
                 resolveContacts(scene, dt, constraints, result.stats);
             }
 
+            // 速度/角速度约束必须在积分前执行，确保积分使用修正后的速度
+            applyVelocityAndAngularConstraints(scene, dt, result.stats);
+
             if (m_config.enableIntegration) {
                 integrate(scene, dt, result.stats);
             }
         }
 
-        resolveConstraints(scene, dt, result.stats);
+        // 位置约束在积分后执行，用于消除积分引入的微小穿透
+        applyPositionConstraints(scene, dt, result.stats);
         updateEnergyStats(scene, result.stats);
         scene.advanceSimulationTime(dt);
         return result;
@@ -214,6 +218,10 @@ namespace egret
                 for (std::size_t index = 0; index < forceCount; ++index) {
                     body.entity->removeForce(0);
                 }
+            }
+
+            if (m_config.clearTorquesBeforeFieldApply) {
+                body.entity->clearTorques();
             }
 
             if (!m_config.applyFieldsEachStep) {
@@ -570,9 +578,9 @@ namespace egret
         }
     }
 
-    void Solver::resolveConstraints(SolverSceneSnapshotBase& scene,
-                                    const double dt,
-                                    SolverStats& stats) const
+    void Solver::applyVelocityAndAngularConstraints(SolverSceneSnapshotBase& scene,
+                                                     const double dt,
+                                                     SolverStats& stats) const
     {
         const auto constraints = scene.getConstraints();
         stats.constraintCount = constraints.size();
@@ -584,6 +592,20 @@ namespace egret
 
             constraint->applyVelocityConstraint(dt);
             constraint->applyAngularVelocityConstraint(dt);
+        }
+    }
+
+    void Solver::applyPositionConstraints(SolverSceneSnapshotBase& scene,
+                                          const double dt,
+                                          SolverStats& stats) const
+    {
+        const auto constraints = scene.getConstraints();
+
+        for (ConstraintsBase* constraint : constraints) {
+            if (constraint == nullptr || !constraint->isEnabled()) {
+                continue;
+            }
+
             constraint->applyPositionConstraint(dt);
         }
     }

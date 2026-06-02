@@ -47,7 +47,7 @@ namespace egret
 
 		void movePosition(double time) override;
 
-		void applyTorque(double time, Eigen::Matrix4d rotation) override;
+		void applyTorque(double time) override;
 
 		void rotate(double time, Eigen::Matrix4d rotation) override;
 
