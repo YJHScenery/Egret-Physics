@@ -2,4 +2,4 @@ dependency/include/** linguist-vendored
 
 *.py linguist-vendored
 
-doxygen/ linguist-vendored
+doxygen/** linguist-vendored
