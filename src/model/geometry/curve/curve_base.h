@@ -22,6 +22,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 #include <Eigen/Dense>
 
@@ -64,7 +65,76 @@ namespace magic_enum::customize
 namespace egret
 {
     /**
+     * @brief       曲线采样点数据结构体。
+     * @details     存储曲线离散化后的线条顶点序列。
+     *              由曲线类的 sample() 方法生成，供视图层渲染使用。
+     *              不包含法线和索引——线条图元（LineStrip）只需要
+     *              有序的顶点序列即可确定绘制路径。
+     *              顶点为 double 精度（匹配物理引擎），
+     *              视图层在填充 QQuick3DGeometry 时转换为 float。
+     */
+    struct CurvePoints
+    {
+        /** 顶点位置列表（世界空间坐标，按参数顺序排列）。 */
+        std::vector<Eigen::Vector3d> vertices;
+
+        /**
+         * @brief 检查采样数据是否有效（包含至少 2 个顶点）。
+         * @return 如果包含有效数据则返回 true。
+         */
+        [[nodiscard]] bool isValid() const noexcept
+        {
+            return vertices.size() >= 2;
+        }
+
+        /**
+         * @brief 返回顶点数量。
+         * @return 顶点数目。
+         */
+        [[nodiscard]] std::size_t vertexCount() const noexcept
+        {
+            return vertices.size();
+        }
+
+        /** 清空所有数据。 */
+        void clear() noexcept
+        {
+            vertices.clear();
+        }
+    };
+
+    /**
+     * @brief       曲线采样配置参数结构体。
+     * @details     控制曲线离散化时的精度。
+     *              所有派生类统一使用此参数：segments 越大曲线越平滑。
+     */
+    struct SampleConfig
+    {
+        /**
+         * @brief 线段分段数（默认 32）。
+         * @details 生成的顶点数为 segments + 1（包含两端点）。
+         *          值越大生成的线段越多，曲线越平滑。
+         *          对于 Bezier 曲线和螺旋线等，默认值 32 已足够平滑。
+         */
+        int segments{32};
+    };
+
+    /**
      * @brief       空间曲线抽象基类，定义所有曲线的公共接口。
+     * @details     CurveBase 是所有空间曲线的抽象基类，提供以下功能：
+     *              - 统一的类型枚举识别（getType）
+     *              - 曲线上点的求值（evaluate），返回参数 t 对应的三维坐标
+     *              - 一阶导（切向）计算（derivative），用于曲面法线计算
+     *              - 参数范围查询（getStartT / getEndT），用于采样和渲染
+     *              - 采样（sample），将曲线离散化为线条顶点序列
+     *
+     *              曲线采用参数形式 C(t)，t 从 getStartT() 到 getEndT()。
+     *              标准参数化约定 t ∈ [0, 1]，派生类可定义其他范围。
+     *
+     * @invariant   getType() 返回有效的 CurveType 枚举值
+     * @remark      曲线类不包含位置变换信息，仅描述几何形状
+     * @see         CurveBezier, CurveEllipticalArc, SurfaceCylindrical
+     *
      * @details     CurveBase 是所有空间曲线的抽象基类，提供以下功能：
      *              - 统一的类型枚举识别（getType）
      *              - 曲线上点的求值（evaluate），返回参数 t 对应的三维坐标
@@ -127,6 +197,18 @@ namespace egret
          * @return 指向新曲线对象的 unique_ptr。
          */
         [[nodiscard]] virtual std::unique_ptr<CurveBase> clone() const = 0;
+
+        /**
+         * @brief 将曲线离散化为线条顶点序列，用于渲染。
+         * @details 在 [getStartT(), getEndT()] 区间内均匀采样
+         *          (segments + 1) 个顶点，每个顶点通过 evaluate(t) 求值。
+         *          派生类可覆盖此方法以提供弧长参数化采样
+         *          或其他自定义采样策略。
+         * @param config 采样配置参数（分段数等）。
+         * @return 包含顶点序列的 CurvePoints。
+         */
+        [[nodiscard]] virtual CurvePoints sample(
+            const SampleConfig& config = SampleConfig{}) const;
 
     protected:
         CurveBase() = default;

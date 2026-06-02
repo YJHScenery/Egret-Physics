@@ -250,6 +250,7 @@ set(CPP_FILES
         src/model/scene/world_scene_manager.h
         src/model/scene/world_scene_manager.cpp
         src/model/scene/scene_surface_render_item.h
+        src/model/scene/scene_curve_render_item.h
 
         src/model/strategy/broad_phase_strategy/broad_phase_strategy.h
         src/model/strategy/broad_phase_strategy/brute_force_broad_phase.h
@@ -271,6 +272,8 @@ set(CPP_FILES
         src/view_model/simulator/visual_item/scene_constraint_model.cpp
         src/view_model/simulator/visual_item/scene_surface_model.h
         src/view_model/simulator/visual_item/scene_surface_model.cpp
+        src/view_model/simulator/visual_item/scene_curve_model.h
+        src/view_model/simulator/visual_item/scene_curve_model.cpp
         src/view_model/editor/model_manager.cpp
         src/view_model/editor/model_manager.h
         src/view_model/editor/parameter_manager.cpp
@@ -293,6 +296,8 @@ set(CPP_FILES
         src/view/geometry/spring_geometry.h
         src/view/geometry/bezier_curve_geometry.cpp
         src/view/geometry/bezier_curve_geometry.h
+        src/view/geometry/curve_geometry.cpp
+        src/view/geometry/curve_geometry.h
         src/view/geometry/surface_geometry.cpp
         src/view/geometry/surface_geometry.h
         src/view_model/serialize/transform_transformer.cpp
@@ -304,6 +309,8 @@ set(CPP_FILES
         src/model/physics/physics_abstract.h
         src/utils/io/qdebug_handler.h
         src/utils/io/qdebug_handler.cpp
+        src/model/physics/constraints/sliding_rail.cpp
+        src/model/physics/constraints/sliding_rail.h
 
 )
 

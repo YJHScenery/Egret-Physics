@@ -83,7 +83,7 @@ namespace egret
 
         ~ConstraintsBase() override = default;
 
-        ConstraintsBase(ConstraintsBase&& other) = default;
+        ConstraintsBase(ConstraintsBase&& other)  noexcept = default;
 
         ConstraintsBase& operator=(ConstraintsBase&& other) = default;
 

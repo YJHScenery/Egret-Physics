@@ -31,6 +31,7 @@
 #include "shape_cylinder.h"
 #include "shape_sphere.h"
 #include "simple_pendulum.h"
+#include "sliding_rail.h"
 #include "uuid_generator.h"
 #include "constraints/connecting_line.h"
 #include "constraints/simple_pendulum.h"
@@ -574,6 +575,44 @@ namespace egret
         return items;
     }
 
+    std::vector<SceneCurveRenderItem> WorldSceneManager::buildCurveRenderItems() const
+    {
+        std::vector<SceneCurveRenderItem> items;
+        items.reserve(m_constraints.size());
+
+        for (const auto& constraintRecord : m_constraints) {
+            if (constraintRecord == nullptr || constraintRecord->constraint == nullptr) {
+                continue;
+            }
+
+            const ConstraintsBase* constraint = constraintRecord->constraint.get();
+
+            // 只处理 SlidingRail 类型的约束
+            if (constraint->getType() != ConstraintType::SlidingRail) {
+                continue;
+            }
+
+            const auto* slidingRail = dynamic_cast<const SlidingRail*>(constraint);
+            if (slidingRail == nullptr) {
+                continue;
+            }
+
+            const CurveBase* curve = slidingRail->getCurve();
+            if (curve == nullptr) {
+                continue;
+            }
+
+            SceneCurveRenderItem item{};
+            item.constraintId = constraint->getId();
+            item.curveType = static_cast<std::uint32_t>(curve->getType());
+            item.curve = curve->clone();
+
+            items.push_back(std::move(item));
+        }
+
+        return items;
+    }
+
     std::size_t WorldSceneManager::getBodyCount() const
     {
         return m_bodies.size();
@@ -866,6 +905,30 @@ namespace egret
         }
 
         return registerConstraint(name, support);
+    }
+
+    std::uint64_t WorldSceneManager::createSlidingRail(
+        const std::string& name,
+        std::unique_ptr<CurveBase> curve,
+        const std::vector<std::uint64_t>& initialEntityIds)
+    {
+        if (curve == nullptr) {
+            return 0;
+        }
+
+        auto rail = std::make_shared<SlidingRail>(
+            UuidGenerator::instance().generate(),
+            std::move(curve));
+
+        // 注册初始实体
+        for (const auto entityId : initialEntityIds) {
+            BodyRecord* body = findBody(entityId);
+            if (body != nullptr && body->entity != nullptr) {
+                rail->registerEntity(body->entity.get());
+            }
+        }
+
+        return registerConstraint(name, rail);
     }
 
     ConstraintsBase* WorldSceneManager::getConstraint(const std::uint64_t id)
