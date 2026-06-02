@@ -27,19 +27,15 @@ namespace egret
 
     void Particle::applyForce(const double time)
     {
-        Eigen::Vector3d acceleration{};
-        if (m_mass != 0)
-        {
-            acceleration = getJoinForce().force / m_mass;
-        }
-        else
-        {
-            acceleration = {0, 0, 0};
+        if (m_mass <= 0.0) {
+            movePosition(time);
+            return;
         }
 
-        Eigen::Vector3d newPosition = m_transform.getTranslation() + m_speed * time + 0.5 * acceleration * time * time;
-        m_transform.setTranslation(newPosition);
+        // 半隐式欧拉：先更新速度，再用新速度更新位置
+        const Eigen::Vector3d acceleration{getJoinForce().force / m_mass};
         m_speed += acceleration * time;
+        m_transform.setTranslation(m_transform.getTranslation() + m_speed * time);
     }
 
     void Particle::movePosition(const double time)
@@ -47,7 +43,7 @@ namespace egret
         m_transform.setTranslation(m_transform.getTranslation() + m_speed * time);
     }
 
-    void Particle::applyTorque(const double time, Eigen::Matrix4d rotation)
+    void Particle::applyTorque(const double time)
     {
         // 质点不存在转动，忽略力矩的作用
     }

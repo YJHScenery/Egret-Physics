@@ -36,9 +36,7 @@ namespace egret
             }
 
             body.entity->applyForce(dt);
-            body.entity->applyTorque(dt, body.entity->getTransformCR().getLocalToWorldMatrix());
-            body.entity->rotate(dt, body.entity->getTransformCR().getLocalToWorldMatrix());
-
+            body.entity->applyTorque(dt);
         }
 
         stats.resolvedContactCount += 0;

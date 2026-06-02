@@ -121,15 +121,21 @@ namespace egret
 
         void removeTorque(long long index);
 
+        /**
+         * @brief 清空所有累积的力矩。
+         * @details 与力清理对称，通常在积分消费力矩后由求解器调用。
+         */
+        void clearTorques() { m_torques.clear(); }
+
         void setSpeed(const Eigen::Vector3d &speed) { m_speed = speed; }
 
         void setAngular(const Eigen::Vector3d &angular) { m_angular = angular; }
 
         void setShape(const std::shared_ptr<ShapeBase> &shape) { m_shape = shape; }
 
-        std::shared_ptr<ShapeBase> getShape() { return m_shape; }
+        [[nodiscard]] std::shared_ptr<ShapeBase> getShape() { return m_shape; }
 
-        std::shared_ptr<ShapeBase> getShape() const { return m_shape; }
+        [[nodiscard]] std::shared_ptr<ShapeBase> getShape() const { return m_shape; }
 
         // 匀加速直线运动
         virtual void applyForce(double time) = 0; // 应用所有的力，更新位置信息
@@ -137,8 +143,8 @@ namespace egret
         // 匀速直线运动
         virtual void movePosition(double time) = 0; // 根据当前速度移动相应时间
 
-        // 转动（需要提供初始姿态，这里需要传入 4x4 的旋转矩阵。）
-        virtual void applyTorque(double time, Eigen::Matrix4d rotation) = 0;
+        // 转动：消费累积力矩，更新角速度与姿态（与 applyForce 行为对称）
+        virtual void applyTorque(double time) = 0;
 
         // 匀速转动
         virtual void rotate(double time, Eigen::Matrix4d rotation) = 0;

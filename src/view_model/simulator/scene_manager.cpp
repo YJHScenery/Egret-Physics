@@ -655,50 +655,68 @@ namespace egret
         // 创建一个弹性系数 50 N/m、原长 300m 的弹簧，连接 bodyA 和 bodyB
         m_world->createSpring("MySpring", 50.0, 100.0, id2, id1);
 
+
+        std::uint64_t idBox = m_world->spawnBox("", {0, 0, 50}, {0, 0, 0}, {100, 100, 30}, 1);
+
+        auto box = m_world->getEntity(idBox);
+
+        Eigen::Matrix3d R;
+        double angle = 30.0 * M_PI / 180.0;  // 转为弧度
+        double c = std::cos(angle);
+        double s = std::sin(angle);
+
+        R << 1, 0,  0,
+             0, c, -s,
+             0, s,  c;
+
+        box->setRotation(R);
+        box->setAngular({10, 10, 10});
+        // std::uint64_t idBox2 = m_world->spawnBox("", {0, 0, -2350}, {0, 0, 0}, {1000, 1000, 30}, 0);
+
         // === SlidingRail 滑轨约束测试 ===
         // 测试 1：圆柱螺旋线轨道
         // 螺旋线半径 150，轴向速度 30，4 圈（≈ 8π）
         // 在螺旋线起点附近生成两个球体，注册到滑轨上
-        {
-            constexpr double helixRadius = 150.0;
-            constexpr double helixAxialSpeed = 30.0;
-            constexpr double helixEndT = 8.0 * std::numbers::pi;
-
-            const double startX = 0.0;
-            const double startY = 0.0;
-            const double startZ = 200.0;
-
-            // 在螺旋线起点附近创建两个测试球体
-            std::uint64_t railBody1 = m_world->spawnSphere(
-                "RailBall1", {startX + 0, startY + 0, startZ + 0},
-                {50, 0, 0}, 10, 10);
-            std::uint64_t railBody2 = m_world->spawnSphere(
-                "RailBall2", {startX + 0, startY + 0, startZ + 100},
-                {80, 0, 30}, 10, 10);
-
-            auto helix = std::make_unique<CurveHelix>(
-                helixRadius, helixAxialSpeed, helixEndT);
-            m_world->createSlidingRail("HelixRail", std::move(helix),
-                                       {railBody1, railBody2});
-        }
+        // {
+        //     constexpr double helixRadius = 150.0;
+        //     constexpr double helixAxialSpeed = 30.0;
+        //     constexpr double helixEndT = 8.0 * std::numbers::pi;
+        //
+        //     const double startX = 0.0;
+        //     const double startY = 0.0;
+        //     const double startZ = 200.0;
+        //
+        //     // 在螺旋线起点附近创建两个测试球体
+        //     std::uint64_t railBody1 = m_world->spawnSphere(
+        //         "RailBall1", {startX + 0, startY + 0, startZ + 0},
+        //         {50, 0, 0}, 10, 10);
+        //     std::uint64_t railBody2 = m_world->spawnSphere(
+        //         "RailBall2", {startX + 0, startY + 0, startZ + 100},
+        //         {80, 0, 30}, 10, 10);
+        //
+        //     auto helix = std::make_unique<CurveHelix>(
+        //         helixRadius, helixAxialSpeed, helixEndT);
+        //     m_world->createSlidingRail("HelixRail", std::move(helix),
+        //                                {railBody1, railBody2});
+        // }
 
         // 测试 2：贝塞尔曲线轨道
         // 3 个控制点，形成一条从 (0, 400, 300) 到 (300, 700, 300) 的弧线
-        {
-            std::vector<Eigen::Vector3d> controlPoints = {
-                {0.0, 400.0, 300.0},
-                {150.0, 550.0, 500.0},
-                {300.0, 700.0, 300.0},
-            };
-
-            std::uint64_t railBody3 = m_world->spawnSphere(
-                "RailBall3", {0, 400, 300},
-                {30, 30, 10}, 10, 10);
-
-            auto bezier = std::make_unique<CurveBezier>(std::move(controlPoints));
-            m_world->createSlidingRail("BezierRail", std::move(bezier),
-                                       {railBody3});
-        }
+        // {
+        //     std::vector<Eigen::Vector3d> controlPoints = {
+        //         {0.0, 400.0, 300.0},
+        //         {150.0, 550.0, 500.0},
+        //         {300.0, 700.0, 300.0},
+        //     };
+        //
+        //     std::uint64_t railBody3 = m_world->spawnSphere(
+        //         "RailBall3", {0, 400, 300},
+        //         {30, 30, 10}, 10, 10);
+        //
+        //     auto bezier = std::make_unique<CurveBezier>(std::move(controlPoints));
+        //     m_world->createSlidingRail("BezierRail", std::move(bezier),
+        //                                {railBody3});
+        // }
 
         // // m_world->createConnectingLine("114514", 140, id1, id2);
         //
