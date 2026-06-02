@@ -305,11 +305,27 @@ namespace egret
             normal = diff.normalized();
         }
         else {
-            // 如果距离为零，使用圆盘法向量作为法线
-            normal = diskNormal;
-            // 确保法线指向正确方向（从盒子指向圆盘）
-            if (normal.dot(diskCenter - boxCenter) < 0) {
-                normal = -normal;
+            // 圆盘中心在 Box 内部或恰好在表面：计算到最近面的法线方向
+            int bestAxis = 0;
+            double bestRatio = 0.0;
+            for (int i = 0; i < 3; ++i) {
+                const double ratio = (boxHalfSize[i] > 1e-12) ? std::abs(localDiskCenter[i]) / boxHalfSize[i] : 0.0;
+                if (ratio > bestRatio) {
+                    bestRatio = ratio;
+                    bestAxis = i;
+                }
+            }
+            if (bestRatio < 1e-12) {
+                // 恰好在 Box 几何中心，回退使用圆盘法向量
+                normal = diskNormal;
+                if (normal.dot(diskCenter - boxCenter) < 0) {
+                    normal = -normal;
+                }
+            } else {
+                normal = Eigen::Vector3d::Zero();
+                normal[bestAxis] = (localDiskCenter[bestAxis] >= 0.0) ? 1.0 : -1.0;
+                // 将局部法线变换到世界坐标系
+                normal = transA.getRotation() * normal;
             }
         }
 
@@ -406,9 +422,26 @@ namespace egret
         // 计算法线（使用最近点指向杆中心的方向）
         Eigen::Vector3d normal = closestWorldPoint - rodCenter;
         if (normal.squaredNorm() < 1e-12) {
-            normal = Eigen::Vector3d::UnitX();
-            if (std::abs(rodAxis.dot(normal)) > 0.9) {
-                normal = Eigen::Vector3d::UnitY();
+            // 杆中心在 Box 内部或恰好在表面：计算到最近面的法线方向
+            int bestAxis = 0;
+            double bestRatio = 0.0;
+            for (int i = 0; i < 3; ++i) {
+                const double ratio = (boxHalfSize[i] > 1e-12) ? std::abs(localCenter[i]) / boxHalfSize[i] : 0.0;
+                if (ratio > bestRatio) {
+                    bestRatio = ratio;
+                    bestAxis = i;
+                }
+            }
+            if (bestRatio < 1e-12) {
+                // 恰好在 Box 几何中心，回退默认方向（避开杆轴向）
+                normal = Eigen::Vector3d::UnitX();
+                if (std::abs(rodAxis.dot(normal)) > 0.9) {
+                    normal = Eigen::Vector3d::UnitY();
+                }
+            } else {
+                normal = Eigen::Vector3d::Zero();
+                normal[bestAxis] = (localCenter[bestAxis] >= 0.0) ? 1.0 : -1.0;
+                normal = transA.getRotation() * normal;
             }
         }
         else {
@@ -460,10 +493,27 @@ namespace egret
         const double penetration = radius - dist;
 
         // 法线方向：从最近点指向球心（世界坐标系）
-        Eigen::Vector3d normalLocal = diff.normalized();
-        // 如果球心恰好在中心（diff 为零向量），则取默认法线（例如向上）
+        Eigen::Vector3d normalLocal;
         if (dist < 1e-9) {
-            normalLocal = Eigen::Vector3d::UnitY();
+            // 球心在 Box 内部或恰好在表面：计算到最近面的法线方向
+            int bestAxis = 0;
+            double bestRatio = 0.0;
+            for (int i = 0; i < 3; ++i) {
+                const double ratio = (half[i] > 1e-12) ? std::abs(localCenter[i]) / half[i] : 0.0;
+                if (ratio > bestRatio) {
+                    bestRatio = ratio;
+                    bestAxis = i;
+                }
+            }
+            if (bestRatio < 1e-12) {
+                // 球心恰好在 Box 几何中心，回退默认方向
+                normalLocal = Eigen::Vector3d::UnitY();
+            } else {
+                normalLocal = Eigen::Vector3d::Zero();
+                normalLocal[bestAxis] = (localCenter[bestAxis] >= 0.0) ? 1.0 : -1.0;
+            }
+        } else {
+            normalLocal = diff.normalized();
         }
         const Eigen::Vector3d normalWorld = transA.getRotation() * normalLocal;
 

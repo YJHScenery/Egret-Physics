@@ -79,6 +79,8 @@ namespace egret
 
         Q_PROPERTY(double fixedStepMs READ fixedStepMs NOTIFY fixedStepMsChanged)
 
+        Q_PROPERTY(double timeScale READ timeScale NOTIFY timeScaleChanged)
+
         Q_PROPERTY(bool dragActive READ isDragActive NOTIFY dragActiveChanged)
 
         Q_PROPERTY(SceneBodyModel *bodyModel READ bodyModel CONSTANT)
@@ -118,6 +120,22 @@ namespace egret
 
         /** 固定步长，单位毫秒。 */
         [[nodiscard]] double fixedStepMs() const;
+
+        /** 时间缩放因子（1.0=实时，3.0=3倍速，10.0=10倍速）。 */
+        [[nodiscard]] double timeScale() const;
+
+        /**
+         * @brief 设置积分步长。
+         * @param ms 步长，单位毫秒（必须 > 0）。
+         */
+        Q_INVOKABLE void setFixedStepMs(double ms);
+
+        /**
+         * @brief 设置时间缩放因子。
+         * @param scale 缩放因子，1.0 为实时，3.0 为 3 倍速，0.1 为 1/10 慢动作。
+         * @details 物理积分始终以 fixedStepMs 为步长求解，缩放仅影响累加器的推进速率。
+         */
+        Q_INVOKABLE void setTimeScale(double scale);
 
         /** 当前是否处于拖拽状态。 */
         [[nodiscard]] bool isDragActive() const;
@@ -231,6 +249,9 @@ namespace egret
         /** 固定步长变化。 */
         void fixedStepMsChanged();
 
+        /** 时间缩放因子变化。 */
+        void timeScaleChanged();
+
         /** 拖拽状态变化。 */
         void dragActiveChanged();
 
@@ -337,6 +358,13 @@ namespace egret
 
         /** 固定步长，单位秒。 */
         double m_fixedStepSeconds{1.0 / 120.0};
+
+        /**
+         * @brief 时间缩放因子。
+         * @details 1.0 = 实时，>1.0 = 加速，<1.0 = 慢动作。
+         *          物理积分始终以 m_fixedStepSeconds 求解，缩放仅影响累加器。
+         */
+        double m_timeScale{1.0};
 
         /** 每帧最多补偿的固定步数，避免“死亡螺旋”。 */
         int m_maxSubSteps{5};

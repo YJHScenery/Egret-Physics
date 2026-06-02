@@ -648,12 +648,70 @@ ColumnLayout {
                 visible: simulatorRoot.infoPanelVisible
                 opacity: simulatorRoot.infoPanelVisible ? 1 : 0
                 enabled: simulatorRoot.infoPanelVisible
-                Layout.preferredHeight: 220
+                Layout.preferredHeight: 290
                 title: "仿真控制"
 
                 ColumnLayout {
                     anchors.fill: parent
                     spacing: 10
+
+                    // ---- 时间缩放选择器 ----
+                    Text {
+                        text: "模拟速度"
+                        color: "#AAC4D8"
+                        font.pixelSize: 11
+                        font.bold: true
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Repeater {
+                            model: [
+                                { label: "0.1×", scale: 0.1 },
+                                { label: "1×",   scale: 1.0 },
+                                { label: "3×",   scale: 3.0 },
+                                { label: "10×",  scale: 10.0 }
+                            ]
+
+                            Rectangle {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 32
+                                radius: 6
+                                color: {
+                                    const active = Math.abs(sceneController.timeScale - modelData.scale) < 0.01;
+                                    if (active)
+                                        return "#1A5E9E";
+                                    return speedBtnMouse.containsMouse ? "#1E3D5C" : "#1A2D44";
+                                }
+                                border.width: 1
+                                border.color: {
+                                    const active = Math.abs(sceneController.timeScale - modelData.scale) < 0.01;
+                                    return active ? "#58B8FF" : "#3A5A7A";
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: modelData.label
+                                    color: "#EAF5FF"
+                                    font.pixelSize: 12
+                                    font.bold: Math.abs(sceneController.timeScale - modelData.scale) < 0.01
+                                }
+
+                                MouseArea {
+                                    id: speedBtnMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        sceneController.setTimeScale(modelData.scale);
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     Rectangle {
                         id: computeBtnRect
@@ -765,7 +823,7 @@ ColumnLayout {
                                 font.pixelSize: 11
 
                                 onTextChanged: {
-                                    console.log(bodyVelocity);
+                                    console.log(bodyId + ": " + bodyVelocity);
 
                                 }
                             }
@@ -776,7 +834,7 @@ ColumnLayout {
                                 //
                                 //
                                 onTextChanged: {
-                                    console.log(bodyPosition);
+                                    console.log(bodyId + ": " + bodyPosition);
                                 }
                             }
 

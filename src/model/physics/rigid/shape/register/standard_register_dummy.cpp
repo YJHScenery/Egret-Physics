@@ -33,9 +33,10 @@ using namespace egret;
 static bool registerStandardShape()
 {
     auto& reg = ShapeRegister::instance();
-    
+
     reg.registerJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Box,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           auto* boxA = dynamic_cast<const ShapeBox*>(ShapeA);
@@ -47,7 +48,8 @@ static bool registerStandardShape()
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Sphere,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* box = dynamic_cast<const ShapeBox*>(ShapeA)) {
@@ -56,17 +58,12 @@ static bool registerStandardShape()
                               }
                           }
 
-                          if (auto* sphere = dynamic_cast<const ShapeSphere*>(ShapeA)) {
-                              if (auto* box = dynamic_cast<const ShapeBox*>(ShapeB)) {
-                                  return collideBoxSphere(*box, transB, *sphere, transA, manifold);
-                              }
-                          }
-
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Sphere, (std::uint32_t)ShapeType::Sphere,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           auto* sphereA = dynamic_cast<const ShapeSphere*>(ShapeA);
@@ -79,7 +76,8 @@ static bool registerStandardShape()
 
     // Box 与 其他形状
     reg.registerJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Cylinder,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* box = dynamic_cast<const ShapeBox*>(ShapeA)) {
@@ -87,16 +85,12 @@ static bool registerStandardShape()
                                   return collideBoxCylinder(*box, transA, *cyl, transB, manifold);
                               }
                           }
-                          if (auto* cyl = dynamic_cast<const ShapeCylinder*>(ShapeA)) {
-                              if (auto* box = dynamic_cast<const ShapeBox*>(ShapeB)) {
-                                  return collideBoxCylinder(*box, transB, *cyl, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::CylindricalShell,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* box = dynamic_cast<const ShapeBox*>(ShapeA)) {
@@ -104,16 +98,12 @@ static bool registerStandardShape()
                                   return collideBoxCylindricalShell(*box, transA, *shell, transB, manifold);
                               }
                           }
-                          if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(ShapeA)) {
-                              if (auto* box = dynamic_cast<const ShapeBox*>(ShapeB)) {
-                                  return collideBoxCylindricalShell(*box, transB, *shell, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Disk,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* box = dynamic_cast<const ShapeBox*>(ShapeA)) {
@@ -121,16 +111,12 @@ static bool registerStandardShape()
                                   return collideBoxDisk(*box, transA, *disk, transB, manifold);
                               }
                           }
-                          if (auto* disk = dynamic_cast<const ShapeDisk*>(ShapeA)) {
-                              if (auto* box = dynamic_cast<const ShapeBox*>(ShapeB)) {
-                                  return collideBoxDisk(*box, transB, *disk, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Ring,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* box = dynamic_cast<const ShapeBox*>(ShapeA)) {
@@ -138,16 +124,12 @@ static bool registerStandardShape()
                                   return collideBoxRing(*box, transA, *ring, transB, manifold);
                               }
                           }
-                          if (auto* ring = dynamic_cast<const ShapeRing*>(ShapeA)) {
-                              if (auto* box = dynamic_cast<const ShapeBox*>(ShapeB)) {
-                                  return collideBoxRing(*box, transB, *ring, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Rod,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* box = dynamic_cast<const ShapeBox*>(ShapeA)) {
@@ -155,16 +137,12 @@ static bool registerStandardShape()
                                   return collideBoxRod(*box, transA, *rod, transB, manifold);
                               }
                           }
-                          if (auto* rod = dynamic_cast<const ShapeRod*>(ShapeA)) {
-                              if (auto* box = dynamic_cast<const ShapeBox*>(ShapeB)) {
-                                  return collideBoxRod(*box, transB, *rod, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::SphericalShell,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* box = dynamic_cast<const ShapeBox*>(ShapeA)) {
@@ -172,17 +150,13 @@ static bool registerStandardShape()
                                   return collideBoxSphericalShell(*box, transA, *shell, transB, manifold);
                               }
                           }
-                          if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(ShapeA)) {
-                              if (auto* box = dynamic_cast<const ShapeBox*>(ShapeB)) {
-                                  return collideBoxSphericalShell(*box, transB, *shell, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     // Cylinder 开头的组合
     reg.registerJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::Cylinder,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           auto* a = dynamic_cast<const ShapeCylinder*>(ShapeA);
@@ -194,7 +168,8 @@ static bool registerStandardShape()
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::CylindricalShell,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* cyl = dynamic_cast<const ShapeCylinder*>(ShapeA)) {
@@ -202,16 +177,12 @@ static bool registerStandardShape()
                                   return collideCylinderCylindricalShell(*cyl, transA, *shell, transB, manifold);
                               }
                           }
-                          if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(ShapeA)) {
-                              if (auto* cyl = dynamic_cast<const ShapeCylinder*>(ShapeB)) {
-                                  return collideCylinderCylindricalShell(*cyl, transB, *shell, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::Disk,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* cyl = dynamic_cast<const ShapeCylinder*>(ShapeA)) {
@@ -219,16 +190,12 @@ static bool registerStandardShape()
                                   return collideCylinderDisk(*cyl, transA, *disk, transB, manifold);
                               }
                           }
-                          if (auto* disk = dynamic_cast<const ShapeDisk*>(ShapeA)) {
-                              if (auto* cyl = dynamic_cast<const ShapeCylinder*>(ShapeB)) {
-                                  return collideCylinderDisk(*cyl, transB, *disk, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::Ring,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* cyl = dynamic_cast<const ShapeCylinder*>(ShapeA)) {
@@ -236,16 +203,12 @@ static bool registerStandardShape()
                                   return collideCylinderRing(*cyl, transA, *ring, transB, manifold);
                               }
                           }
-                          if (auto* ring = dynamic_cast<const ShapeRing*>(ShapeA)) {
-                              if (auto* cyl = dynamic_cast<const ShapeCylinder*>(ShapeB)) {
-                                  return collideCylinderRing(*cyl, transB, *ring, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::Rod,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* cyl = dynamic_cast<const ShapeCylinder*>(ShapeA)) {
@@ -253,16 +216,12 @@ static bool registerStandardShape()
                                   return collideCylinderRod(*cyl, transA, *rod, transB, manifold);
                               }
                           }
-                          if (auto* rod = dynamic_cast<const ShapeRod*>(ShapeA)) {
-                              if (auto* cyl = dynamic_cast<const ShapeCylinder*>(ShapeB)) {
-                                  return collideCylinderRod(*cyl, transB, *rod, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::Sphere,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* cyl = dynamic_cast<const ShapeCylinder*>(ShapeA)) {
@@ -270,16 +229,12 @@ static bool registerStandardShape()
                                   return collideCylinderSphere(*cyl, transA, *sphere, transB, manifold);
                               }
                           }
-                          if (auto* sphere = dynamic_cast<const ShapeSphere*>(ShapeA)) {
-                              if (auto* cyl = dynamic_cast<const ShapeCylinder*>(ShapeB)) {
-                                  return collideCylinderSphere(*cyl, transB, *sphere, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::SphericalShell,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* cyl = dynamic_cast<const ShapeCylinder*>(ShapeA)) {
@@ -287,17 +242,13 @@ static bool registerStandardShape()
                                   return collideCylinderSphericalShell(*cyl, transA, *shell, transB, manifold);
                               }
                           }
-                          if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(ShapeA)) {
-                              if (auto* cyl = dynamic_cast<const ShapeCylinder*>(ShapeB)) {
-                                  return collideCylinderSphericalShell(*cyl, transB, *shell, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     // Cylindrical shell 开头的组合
     reg.registerJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::CylindricalShell,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           auto* a = dynamic_cast<const ShapeCylindricalShell*>(ShapeA);
@@ -309,7 +260,8 @@ static bool registerStandardShape()
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::Disk,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(ShapeA)) {
@@ -317,16 +269,12 @@ static bool registerStandardShape()
                                   return collideCylindricalShellDisk(*shell, transA, *disk, transB, manifold);
                               }
                           }
-                          if (auto* disk = dynamic_cast<const ShapeDisk*>(ShapeA)) {
-                              if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(ShapeB)) {
-                                  return collideCylindricalShellDisk(*shell, transB, *disk, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::Ring,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(ShapeA)) {
@@ -334,16 +282,12 @@ static bool registerStandardShape()
                                   return collideCylindricalShellRing(*shell, transA, *ring, transB, manifold);
                               }
                           }
-                          if (auto* ring = dynamic_cast<const ShapeRing*>(ShapeA)) {
-                              if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(ShapeB)) {
-                                  return collideCylindricalShellRing(*shell, transB, *ring, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::Rod,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(ShapeA)) {
@@ -351,16 +295,12 @@ static bool registerStandardShape()
                                   return collideCylindricalShellRod(*shell, transA, *rod, transB, manifold);
                               }
                           }
-                          if (auto* rod = dynamic_cast<const ShapeRod*>(ShapeA)) {
-                              if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(ShapeB)) {
-                                  return collideCylindricalShellRod(*shell, transB, *rod, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::Sphere,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(ShapeA)) {
@@ -368,26 +308,18 @@ static bool registerStandardShape()
                                   return collideCylindricalShellSphere(*shell, transA, *sphere, transB, manifold);
                               }
                           }
-                          if (auto* sphere = dynamic_cast<const ShapeSphere*>(ShapeA)) {
-                              if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(ShapeB)) {
-                                  return collideCylindricalShellSphere(*shell, transB, *sphere, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::SphericalShell,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* shellA = dynamic_cast<const ShapeCylindricalShell*>(ShapeA)) {
                               if (auto* shellB = dynamic_cast<const ShapeSphericalShell*>(ShapeB)) {
-                                  return collideCylindricalShellSphericalShell(*shellA, transA, *shellB, transB, manifold);
-                              }
-                          }
-                          if (auto* shellB = dynamic_cast<const ShapeCylindricalShell*>(ShapeA)) {
-                              if (auto* shellA = dynamic_cast<const ShapeSphericalShell*>(ShapeB)) {
-                                  return collideCylindricalShellSphericalShell(*shellB, transB, *shellA, transA, manifold);
+                                  return collideCylindricalShellSphericalShell(
+                                      *shellA, transA, *shellB, transB, manifold);
                               }
                           }
                           return false;
@@ -395,7 +327,8 @@ static bool registerStandardShape()
 
     // Disk 开头
     reg.registerJudge((std::uint32_t)ShapeType::Disk, (std::uint32_t)ShapeType::Disk,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           auto* a = dynamic_cast<const ShapeDisk*>(ShapeA);
@@ -407,7 +340,8 @@ static bool registerStandardShape()
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Disk, (std::uint32_t)ShapeType::Ring,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* disk = dynamic_cast<const ShapeDisk*>(ShapeA)) {
@@ -415,16 +349,12 @@ static bool registerStandardShape()
                                   return collideDiskRing(*disk, transA, *ring, transB, manifold);
                               }
                           }
-                          if (auto* ring = dynamic_cast<const ShapeRing*>(ShapeA)) {
-                              if (auto* disk = dynamic_cast<const ShapeDisk*>(ShapeB)) {
-                                  return collideDiskRing(*disk, transB, *ring, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Disk, (std::uint32_t)ShapeType::Rod,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* disk = dynamic_cast<const ShapeDisk*>(ShapeA)) {
@@ -432,16 +362,12 @@ static bool registerStandardShape()
                                   return collideDiskRod(*disk, transA, *rod, transB, manifold);
                               }
                           }
-                          if (auto* rod = dynamic_cast<const ShapeRod*>(ShapeA)) {
-                              if (auto* disk = dynamic_cast<const ShapeDisk*>(ShapeB)) {
-                                  return collideDiskRod(*disk, transB, *rod, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Disk, (std::uint32_t)ShapeType::Sphere,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* disk = dynamic_cast<const ShapeDisk*>(ShapeA)) {
@@ -449,16 +375,12 @@ static bool registerStandardShape()
                                   return collideDiskSphere(*disk, transA, *sphere, transB, manifold);
                               }
                           }
-                          if (auto* sphere = dynamic_cast<const ShapeSphere*>(ShapeA)) {
-                              if (auto* disk = dynamic_cast<const ShapeDisk*>(ShapeB)) {
-                                  return collideDiskSphere(*disk, transB, *sphere, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Disk, (std::uint32_t)ShapeType::SphericalShell,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* disk = dynamic_cast<const ShapeDisk*>(ShapeA)) {
@@ -466,17 +388,13 @@ static bool registerStandardShape()
                                   return collideDiskSphericalShell(*disk, transA, *shell, transB, manifold);
                               }
                           }
-                          if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(ShapeA)) {
-                              if (auto* disk = dynamic_cast<const ShapeDisk*>(ShapeB)) {
-                                  return collideDiskSphericalShell(*disk, transB, *shell, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     // Ring 开头
     reg.registerJudge((std::uint32_t)ShapeType::Ring, (std::uint32_t)ShapeType::Ring,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           auto* a = dynamic_cast<const ShapeRing*>(ShapeA);
@@ -488,7 +406,8 @@ static bool registerStandardShape()
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Ring, (std::uint32_t)ShapeType::Rod,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* ring = dynamic_cast<const ShapeRing*>(ShapeA)) {
@@ -496,16 +415,12 @@ static bool registerStandardShape()
                                   return collideRingRod(*ring, transA, *rod, transB, manifold);
                               }
                           }
-                          if (auto* rod = dynamic_cast<const ShapeRod*>(ShapeA)) {
-                              if (auto* ring = dynamic_cast<const ShapeRing*>(ShapeB)) {
-                                  return collideRingRod(*ring, transB, *rod, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Ring, (std::uint32_t)ShapeType::Sphere,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* ring = dynamic_cast<const ShapeRing*>(ShapeA)) {
@@ -513,16 +428,12 @@ static bool registerStandardShape()
                                   return collideRingSphere(*ring, transA, *sphere, transB, manifold);
                               }
                           }
-                          if (auto* sphere = dynamic_cast<const ShapeSphere*>(ShapeA)) {
-                              if (auto* ring = dynamic_cast<const ShapeRing*>(ShapeB)) {
-                                  return collideRingSphere(*ring, transB, *sphere, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Ring, (std::uint32_t)ShapeType::SphericalShell,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* ring = dynamic_cast<const ShapeRing*>(ShapeA)) {
@@ -530,17 +441,13 @@ static bool registerStandardShape()
                                   return collideRingSphericalShell(*ring, transA, *shell, transB, manifold);
                               }
                           }
-                          if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(ShapeA)) {
-                              if (auto* ring = dynamic_cast<const ShapeRing*>(ShapeB)) {
-                                  return collideRingSphericalShell(*ring, transB, *shell, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     // Rod 开头
     reg.registerJudge((std::uint32_t)ShapeType::Rod, (std::uint32_t)ShapeType::Rod,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           auto* a = dynamic_cast<const ShapeRod*>(ShapeA);
@@ -552,7 +459,8 @@ static bool registerStandardShape()
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Rod, (std::uint32_t)ShapeType::Sphere,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* rod = dynamic_cast<const ShapeRod*>(ShapeA)) {
@@ -560,16 +468,12 @@ static bool registerStandardShape()
                                   return collideRodSphere(*rod, transA, *sphere, transB, manifold);
                               }
                           }
-                          if (auto* sphere = dynamic_cast<const ShapeSphere*>(ShapeA)) {
-                              if (auto* rod = dynamic_cast<const ShapeRod*>(ShapeB)) {
-                                  return collideRodSphere(*rod, transB, *sphere, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::Rod, (std::uint32_t)ShapeType::SphericalShell,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* rod = dynamic_cast<const ShapeRod*>(ShapeA)) {
@@ -577,17 +481,13 @@ static bool registerStandardShape()
                                   return collideRodSphericalShell(*rod, transA, *shell, transB, manifold);
                               }
                           }
-                          if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(ShapeA)) {
-                              if (auto* rod = dynamic_cast<const ShapeRod*>(ShapeB)) {
-                                  return collideRodSphericalShell(*rod, transB, *shell, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     // Sphere 与 Spherical shell 的组合（spherical_shell - spherical_shell）
     reg.registerJudge((std::uint32_t)ShapeType::Sphere, (std::uint32_t)ShapeType::SphericalShell,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           if (auto* sphere = dynamic_cast<const ShapeSphere*>(ShapeA)) {
@@ -595,16 +495,12 @@ static bool registerStandardShape()
                                   return collideSphereSphericalShell(*sphere, transA, *shell, transB, manifold);
                               }
                           }
-                          if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(ShapeA)) {
-                              if (auto* sphere = dynamic_cast<const ShapeSphere*>(ShapeB)) {
-                                  return collideSphereSphericalShell(*sphere, transB, *shell, transA, manifold);
-                              }
-                          }
                           return false;
                       });
 
     reg.registerJudge((std::uint32_t)ShapeType::SphericalShell, (std::uint32_t)ShapeType::SphericalShell,
-                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB, const Transform& transB,
+                      [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
+                         const Transform& transB,
                          ContactManifold& manifold)
                       {
                           auto* a = dynamic_cast<const ShapeSphericalShell*>(ShapeA);

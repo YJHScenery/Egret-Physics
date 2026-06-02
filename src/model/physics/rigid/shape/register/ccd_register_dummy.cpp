@@ -34,7 +34,8 @@ namespace egret
     {
         auto& reg = ShapeRegister::instance();
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box), static_cast<std::uint32_t>(ShapeType::Box),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box),
+                                    static_cast<std::uint32_t>(ShapeType::Box),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
 
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
@@ -55,7 +56,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box), static_cast<std::uint32_t>(ShapeType::Sphere),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box),
+                                    static_cast<std::uint32_t>(ShapeType::Sphere),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
 
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
@@ -66,20 +68,10 @@ namespace egret
                                         if (auto* box = dynamic_cast<const ShapeBox*>(shapeA)) {
                                             if (auto* sphere = dynamic_cast<const ShapeSphere*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideBoxSphere(*box, initTransA, linearVelA, angularVelA,
-                                                                               *sphere, initTransB, linearVelB, angularVelB,
-                                                                               dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-
-                                        if (auto* sphere = dynamic_cast<const ShapeSphere*>(shapeA)) {
-                                            if (auto* box = dynamic_cast<const ShapeBox*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideBoxSphere(*box, initTransB, linearVelB, angularVelB,
-                                                                               *sphere, initTransA, linearVelA, angularVelA,
-                                                                               dt, collisionTime, manifold)) {
+                                                if (continuousCollideBoxSphere(
+                                                    *box, initTransA, linearVelA, angularVelA,
+                                                    *sphere, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -88,7 +80,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Sphere), static_cast<std::uint32_t>(ShapeType::Sphere),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Sphere),
+                                    static_cast<std::uint32_t>(ShapeType::Sphere),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -99,9 +92,10 @@ namespace egret
                                         auto* sphereB = dynamic_cast<const ShapeSphere*>(shapeB);
                                         if (sphereA != nullptr && sphereB != nullptr) {
                                             double collisionTime = 0.0;
-                                            if (continuousCollideSphereSphere(*sphereA, initTransA, linearVelA, angularVelA,
-                                                                              *sphereB, initTransB, linearVelB, angularVelB,
-                                                                              dt, collisionTime, manifold)) {
+                                            if (continuousCollideSphereSphere(
+                                                *sphereA, initTransA, linearVelA, angularVelA,
+                                                *sphereB, initTransB, linearVelB, angularVelB,
+                                                dt, collisionTime, manifold)) {
                                                 return collisionTime;
                                             }
                                         }
@@ -109,7 +103,8 @@ namespace egret
                                     });
 
         // Box 与 其他形状
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box), static_cast<std::uint32_t>(ShapeType::Cylinder),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box),
+                                    static_cast<std::uint32_t>(ShapeType::Cylinder),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -119,19 +114,10 @@ namespace egret
                                         if (auto* box = dynamic_cast<const ShapeBox*>(shapeA)) {
                                             if (auto* cyl = dynamic_cast<const ShapeCylinder*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideBoxCylinder(*box, initTransA, linearVelA, angularVelA,
-                                                                                 *cyl, initTransB, linearVelB, angularVelB,
-                                                                                 dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* cyl = dynamic_cast<const ShapeCylinder*>(shapeA)) {
-                                            if (auto* box = dynamic_cast<const ShapeBox*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideBoxCylinder(*box, initTransB, linearVelB, angularVelB,
-                                                                                 *cyl, initTransA, linearVelA, angularVelA,
-                                                                                 dt, collisionTime, manifold)) {
+                                                if (continuousCollideBoxCylinder(
+                                                    *box, initTransA, linearVelA, angularVelA,
+                                                    *cyl, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -139,7 +125,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box), static_cast<std::uint32_t>(ShapeType::CylindricalShell),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box),
+                                    static_cast<std::uint32_t>(ShapeType::CylindricalShell),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -149,19 +136,10 @@ namespace egret
                                         if (auto* box = dynamic_cast<const ShapeBox*>(shapeA)) {
                                             if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideBoxCylindricalShell(*box, initTransA, linearVelA, angularVelA,
-                                                                                         *shell, initTransB, linearVelB, angularVelB,
-                                                                                         dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(shapeA)) {
-                                            if (auto* box = dynamic_cast<const ShapeBox*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideBoxCylindricalShell(*box, initTransB, linearVelB, angularVelB,
-                                                                                         *shell, initTransA, linearVelA, angularVelA,
-                                                                                         dt, collisionTime, manifold)) {
+                                                if (continuousCollideBoxCylindricalShell(
+                                                    *box, initTransA, linearVelA, angularVelA,
+                                                    *shell, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -169,7 +147,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box), static_cast<std::uint32_t>(ShapeType::Disk),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box),
+                                    static_cast<std::uint32_t>(ShapeType::Disk),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -186,20 +165,11 @@ namespace egret
                                                 }
                                             }
                                         }
-                                        if (auto* disk = dynamic_cast<const ShapeDisk*>(shapeA)) {
-                                            if (auto* box = dynamic_cast<const ShapeBox*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideBoxDisk(*box, initTransB, linearVelB, angularVelB,
-                                                                             *disk, initTransA, linearVelA, angularVelA,
-                                                                             dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box), static_cast<std::uint32_t>(ShapeType::Ring),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box),
+                                    static_cast<std::uint32_t>(ShapeType::Ring),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -216,20 +186,11 @@ namespace egret
                                                 }
                                             }
                                         }
-                                        if (auto* ring = dynamic_cast<const ShapeRing*>(shapeA)) {
-                                            if (auto* box = dynamic_cast<const ShapeBox*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideBoxRing(*box, initTransB, linearVelB, angularVelB,
-                                                                             *ring, initTransA, linearVelA, angularVelA,
-                                                                             dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box), static_cast<std::uint32_t>(ShapeType::Rod),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box),
+                                    static_cast<std::uint32_t>(ShapeType::Rod),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -246,20 +207,11 @@ namespace egret
                                                 }
                                             }
                                         }
-                                        if (auto* rod = dynamic_cast<const ShapeRod*>(shapeA)) {
-                                            if (auto* box = dynamic_cast<const ShapeBox*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideBoxRod(*box, initTransB, linearVelB, angularVelB,
-                                                                            *rod, initTransA, linearVelA, angularVelA,
-                                                                            dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box), static_cast<std::uint32_t>(ShapeType::SphericalShell),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box),
+                                    static_cast<std::uint32_t>(ShapeType::SphericalShell),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -269,19 +221,10 @@ namespace egret
                                         if (auto* box = dynamic_cast<const ShapeBox*>(shapeA)) {
                                             if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideBoxSphericalShell(*box, initTransA, linearVelA, angularVelA,
-                                                                                       *shell, initTransB, linearVelB, angularVelB,
-                                                                                       dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(shapeA)) {
-                                            if (auto* box = dynamic_cast<const ShapeBox*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideBoxSphericalShell(*box, initTransB, linearVelB, angularVelB,
-                                                                                       *shell, initTransA, linearVelA, angularVelA,
-                                                                                       dt, collisionTime, manifold)) {
+                                                if (continuousCollideBoxSphericalShell(
+                                                    *box, initTransA, linearVelA, angularVelA,
+                                                    *shell, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -290,7 +233,8 @@ namespace egret
                                     });
 
         // Cylinder 开头的组合
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Cylinder), static_cast<std::uint32_t>(ShapeType::Cylinder),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Cylinder),
+                                    static_cast<std::uint32_t>(ShapeType::Cylinder),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -301,16 +245,18 @@ namespace egret
                                         auto* b = dynamic_cast<const ShapeCylinder*>(shapeB);
                                         if (a != nullptr && b != nullptr) {
                                             double collisionTime = 0.0;
-                                            if (continuousCollideCylinderCylinder(*a, initTransA, linearVelA, angularVelA,
-                                                                                  *b, initTransB, linearVelB, angularVelB,
-                                                                                  dt, collisionTime, manifold)) {
+                                            if (continuousCollideCylinderCylinder(
+                                                *a, initTransA, linearVelA, angularVelA,
+                                                *b, initTransB, linearVelB, angularVelB,
+                                                dt, collisionTime, manifold)) {
                                                 return collisionTime;
                                             }
                                         }
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Cylinder), static_cast<std::uint32_t>(ShapeType::CylindricalShell),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Cylinder),
+                                    static_cast<std::uint32_t>(ShapeType::CylindricalShell),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -320,19 +266,10 @@ namespace egret
                                         if (auto* cyl = dynamic_cast<const ShapeCylinder*>(shapeA)) {
                                             if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideCylinderCylindricalShell(*cyl, initTransA, linearVelA, angularVelA,
-                                                                                              *shell, initTransB, linearVelB, angularVelB,
-                                                                                              dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(shapeA)) {
-                                            if (auto* cyl = dynamic_cast<const ShapeCylinder*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideCylinderCylindricalShell(*cyl, initTransB, linearVelB, angularVelB,
-                                                                                              *shell, initTransA, linearVelA, angularVelA,
-                                                                                              dt, collisionTime, manifold)) {
+                                                if (continuousCollideCylinderCylindricalShell(
+                                                    *cyl, initTransA, linearVelA, angularVelA,
+                                                    *shell, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -340,7 +277,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Cylinder), static_cast<std::uint32_t>(ShapeType::Disk),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Cylinder),
+                                    static_cast<std::uint32_t>(ShapeType::Disk),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -350,19 +288,10 @@ namespace egret
                                         if (auto* cyl = dynamic_cast<const ShapeCylinder*>(shapeA)) {
                                             if (auto* disk = dynamic_cast<const ShapeDisk*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideCylinderDisk(*cyl, initTransA, linearVelA, angularVelA,
-                                                                                  *disk, initTransB, linearVelB, angularVelB,
-                                                                                  dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* disk = dynamic_cast<const ShapeDisk*>(shapeA)) {
-                                            if (auto* cyl = dynamic_cast<const ShapeCylinder*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideCylinderDisk(*cyl, initTransB, linearVelB, angularVelB,
-                                                                                  *disk, initTransA, linearVelA, angularVelA,
-                                                                                  dt, collisionTime, manifold)) {
+                                                if (continuousCollideCylinderDisk(
+                                                    *cyl, initTransA, linearVelA, angularVelA,
+                                                    *disk, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -370,7 +299,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Cylinder), static_cast<std::uint32_t>(ShapeType::Ring),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Cylinder),
+                                    static_cast<std::uint32_t>(ShapeType::Ring),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -380,19 +310,10 @@ namespace egret
                                         if (auto* cyl = dynamic_cast<const ShapeCylinder*>(shapeA)) {
                                             if (auto* ring = dynamic_cast<const ShapeRing*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideCylinderRing(*cyl, initTransA, linearVelA, angularVelA,
-                                                                                  *ring, initTransB, linearVelB, angularVelB,
-                                                                                  dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* ring = dynamic_cast<const ShapeRing*>(shapeA)) {
-                                            if (auto* cyl = dynamic_cast<const ShapeCylinder*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideCylinderRing(*cyl, initTransB, linearVelB, angularVelB,
-                                                                                  *ring, initTransA, linearVelA, angularVelA,
-                                                                                  dt, collisionTime, manifold)) {
+                                                if (continuousCollideCylinderRing(
+                                                    *cyl, initTransA, linearVelA, angularVelA,
+                                                    *ring, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -400,7 +321,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Cylinder), static_cast<std::uint32_t>(ShapeType::Rod),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Cylinder),
+                                    static_cast<std::uint32_t>(ShapeType::Rod),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -410,19 +332,10 @@ namespace egret
                                         if (auto* cyl = dynamic_cast<const ShapeCylinder*>(shapeA)) {
                                             if (auto* rod = dynamic_cast<const ShapeRod*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideCylinderRod(*cyl, initTransA, linearVelA, angularVelA,
-                                                                                 *rod, initTransB, linearVelB, angularVelB,
-                                                                                 dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* rod = dynamic_cast<const ShapeRod*>(shapeA)) {
-                                            if (auto* cyl = dynamic_cast<const ShapeCylinder*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideCylinderRod(*cyl, initTransB, linearVelB, angularVelB,
-                                                                                 *rod, initTransA, linearVelA, angularVelA,
-                                                                                 dt, collisionTime, manifold)) {
+                                                if (continuousCollideCylinderRod(
+                                                    *cyl, initTransA, linearVelA, angularVelA,
+                                                    *rod, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -430,7 +343,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Cylinder), static_cast<std::uint32_t>(ShapeType::Sphere),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Cylinder),
+                                    static_cast<std::uint32_t>(ShapeType::Sphere),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -440,19 +354,10 @@ namespace egret
                                         if (auto* cyl = dynamic_cast<const ShapeCylinder*>(shapeA)) {
                                             if (auto* sphere = dynamic_cast<const ShapeSphere*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideCylinderSphere(*cyl, initTransA, linearVelA, angularVelA,
-                                                                                    *sphere, initTransB, linearVelB, angularVelB,
-                                                                                    dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* sphere = dynamic_cast<const ShapeSphere*>(shapeA)) {
-                                            if (auto* cyl = dynamic_cast<const ShapeCylinder*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideCylinderSphere(*cyl, initTransB, linearVelB, angularVelB,
-                                                                                    *sphere, initTransA, linearVelA, angularVelA,
-                                                                                    dt, collisionTime, manifold)) {
+                                                if (continuousCollideCylinderSphere(
+                                                    *cyl, initTransA, linearVelA, angularVelA,
+                                                    *sphere, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -460,7 +365,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Cylinder), static_cast<std::uint32_t>(ShapeType::SphericalShell),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Cylinder),
+                                    static_cast<std::uint32_t>(ShapeType::SphericalShell),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -470,19 +376,10 @@ namespace egret
                                         if (auto* cyl = dynamic_cast<const ShapeCylinder*>(shapeA)) {
                                             if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideCylinderSphericalShell(*cyl, initTransA, linearVelA, angularVelA,
-                                                                                             *shell, initTransB, linearVelB, angularVelB,
-                                                                                             dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(shapeA)) {
-                                            if (auto* cyl = dynamic_cast<const ShapeCylinder*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideCylinderSphericalShell(*cyl, initTransB, linearVelB, angularVelB,
-                                                                                             *shell, initTransA, linearVelA, angularVelA,
-                                                                                             dt, collisionTime, manifold)) {
+                                                if (continuousCollideCylinderSphericalShell(
+                                                    *cyl, initTransA, linearVelA, angularVelA,
+                                                    *shell, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -491,7 +388,8 @@ namespace egret
                                     });
 
         // Cylindrical shell 开头的组合
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::CylindricalShell), static_cast<std::uint32_t>(ShapeType::CylindricalShell),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::CylindricalShell),
+                                    static_cast<std::uint32_t>(ShapeType::CylindricalShell),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -502,16 +400,18 @@ namespace egret
                                         auto* b = dynamic_cast<const ShapeCylindricalShell*>(shapeB);
                                         if (a != nullptr && b != nullptr) {
                                             double collisionTime = 0.0;
-                                            if (continuousCollideCylindricalShellCylindricalShell(*a, initTransA, linearVelA, angularVelA,
-                                                                                                 *b, initTransB, linearVelB, angularVelB,
-                                                                                                 dt, collisionTime, manifold)) {
+                                            if (continuousCollideCylindricalShellCylindricalShell(
+                                                *a, initTransA, linearVelA, angularVelA,
+                                                *b, initTransB, linearVelB, angularVelB,
+                                                dt, collisionTime, manifold)) {
                                                 return collisionTime;
                                             }
                                         }
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(std::uint32_t(ShapeType::CylindricalShell), static_cast<std::uint32_t>(ShapeType::Disk),
+        reg.registerContinuousJudge(std::uint32_t(ShapeType::CylindricalShell),
+                                    static_cast<std::uint32_t>(ShapeType::Disk),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -521,19 +421,10 @@ namespace egret
                                         if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(shapeA)) {
                                             if (auto* disk = dynamic_cast<const ShapeDisk*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideCylindricalShellDisk(*shell, initTransA, linearVelA, angularVelA,
-                                                                                          *disk, initTransB, linearVelB, angularVelB,
-                                                                                          dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* disk = dynamic_cast<const ShapeDisk*>(shapeA)) {
-                                            if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideCylindricalShellDisk(*shell, initTransB, linearVelB, angularVelB,
-                                                                                          *disk, initTransA, linearVelA, angularVelA,
-                                                                                          dt, collisionTime, manifold)) {
+                                                if (continuousCollideCylindricalShellDisk(
+                                                    *shell, initTransA, linearVelA, angularVelA,
+                                                    *disk, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -541,7 +432,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::CylindricalShell), static_cast<std::uint32_t>(ShapeType::Ring),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::CylindricalShell),
+                                    static_cast<std::uint32_t>(ShapeType::Ring),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -551,19 +443,10 @@ namespace egret
                                         if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(shapeA)) {
                                             if (auto* ring = dynamic_cast<const ShapeRing*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideCylindricalShellRing(*shell, initTransA, linearVelA, angularVelA,
-                                                                                          *ring, initTransB, linearVelB, angularVelB,
-                                                                                          dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* ring = dynamic_cast<const ShapeRing*>(shapeA)) {
-                                            if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideCylindricalShellRing(*shell, initTransB, linearVelB, angularVelB,
-                                                                                          *ring, initTransA, linearVelA, angularVelA,
-                                                                                          dt, collisionTime, manifold)) {
+                                                if (continuousCollideCylindricalShellRing(
+                                                    *shell, initTransA, linearVelA, angularVelA,
+                                                    *ring, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -571,7 +454,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::CylindricalShell), static_cast<std::uint32_t>(ShapeType::Rod),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::CylindricalShell),
+                                    static_cast<std::uint32_t>(ShapeType::Rod),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -581,19 +465,10 @@ namespace egret
                                         if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(shapeA)) {
                                             if (auto* rod = dynamic_cast<const ShapeRod*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideCylindricalShellRod(*shell, initTransA, linearVelA, angularVelA,
-                                                                                         *rod, initTransB, linearVelB, angularVelB,
-                                                                                         dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* rod = dynamic_cast<const ShapeRod*>(shapeA)) {
-                                            if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideCylindricalShellRod(*shell, initTransB, linearVelB, angularVelB,
-                                                                                         *rod, initTransA, linearVelA, angularVelA,
-                                                                                         dt, collisionTime, manifold)) {
+                                                if (continuousCollideCylindricalShellRod(
+                                                    *shell, initTransA, linearVelA, angularVelA,
+                                                    *rod, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -601,7 +476,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::CylindricalShell), static_cast<std::uint32_t>(ShapeType::Sphere),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::CylindricalShell),
+                                    static_cast<std::uint32_t>(ShapeType::Sphere),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -611,19 +487,10 @@ namespace egret
                                         if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(shapeA)) {
                                             if (auto* sphere = dynamic_cast<const ShapeSphere*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideCylindricalShellSphere(*shell, initTransA, linearVelA, angularVelA,
-                                                                                            *sphere, initTransB, linearVelB, angularVelB,
-                                                                                            dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* sphere = dynamic_cast<const ShapeSphere*>(shapeA)) {
-                                            if (auto* shell = dynamic_cast<const ShapeCylindricalShell*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideCylindricalShellSphere(*shell, initTransB, linearVelB, angularVelB,
-                                                                                            *sphere, initTransA, linearVelA, angularVelA,
-                                                                                            dt, collisionTime, manifold)) {
+                                                if (continuousCollideCylindricalShellSphere(
+                                                    *shell, initTransA, linearVelA, angularVelA,
+                                                    *sphere, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -631,7 +498,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::CylindricalShell), static_cast<std::uint32_t>(ShapeType::SphericalShell),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::CylindricalShell),
+                                    static_cast<std::uint32_t>(ShapeType::SphericalShell),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -641,19 +509,10 @@ namespace egret
                                         if (auto* shellA = dynamic_cast<const ShapeCylindricalShell*>(shapeA)) {
                                             if (auto* shellB = dynamic_cast<const ShapeSphericalShell*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideCylindricalShellSphericalShell(*shellA, initTransA, linearVelA, angularVelA,
-                                                                                                     *shellB, initTransB, linearVelB, angularVelB,
-                                                                                                     dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* shellB = dynamic_cast<const ShapeCylindricalShell*>(shapeA)) {
-                                            if (auto* shellA = dynamic_cast<const ShapeSphericalShell*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideCylindricalShellSphericalShell(*shellB, initTransB, linearVelB, angularVelB,
-                                                                                                     *shellA, initTransA, linearVelA, angularVelA,
-                                                                                                     dt, collisionTime, manifold)) {
+                                                if (continuousCollideCylindricalShellSphericalShell(
+                                                    *shellA, initTransA, linearVelA, angularVelA,
+                                                    *shellB, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -662,7 +521,8 @@ namespace egret
                                     });
 
         // Disk 开头
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Disk), static_cast<std::uint32_t>(ShapeType::Disk),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Disk),
+                                    static_cast<std::uint32_t>(ShapeType::Disk),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -682,7 +542,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Disk), static_cast<std::uint32_t>(ShapeType::Ring),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Disk),
+                                    static_cast<std::uint32_t>(ShapeType::Ring),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -692,19 +553,10 @@ namespace egret
                                         if (auto* disk = dynamic_cast<const ShapeDisk*>(shapeA)) {
                                             if (auto* ring = dynamic_cast<const ShapeRing*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideDiskRing(*disk, initTransA, linearVelA, angularVelA,
-                                                                              *ring, initTransB, linearVelB, angularVelB,
-                                                                              dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* ring = dynamic_cast<const ShapeRing*>(shapeA)) {
-                                            if (auto* disk = dynamic_cast<const ShapeDisk*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideDiskRing(*disk, initTransB, linearVelB, angularVelB,
-                                                                              *ring, initTransA, linearVelA, angularVelA,
-                                                                              dt, collisionTime, manifold)) {
+                                                if (continuousCollideDiskRing(
+                                                    *disk, initTransA, linearVelA, angularVelA,
+                                                    *ring, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -712,7 +564,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Disk), static_cast<std::uint32_t>(ShapeType::Rod),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Disk),
+                                    static_cast<std::uint32_t>(ShapeType::Rod),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -729,20 +582,11 @@ namespace egret
                                                 }
                                             }
                                         }
-                                        if (auto* rod = dynamic_cast<const ShapeRod*>(shapeA)) {
-                                            if (auto* disk = dynamic_cast<const ShapeDisk*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideDiskRod(*disk, initTransB, linearVelB, angularVelB,
-                                                                             *rod, initTransA, linearVelA, angularVelA,
-                                                                             dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Disk), static_cast<std::uint32_t>(ShapeType::Sphere),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Disk),
+                                    static_cast<std::uint32_t>(ShapeType::Sphere),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -752,19 +596,10 @@ namespace egret
                                         if (auto* disk = dynamic_cast<const ShapeDisk*>(shapeA)) {
                                             if (auto* sphere = dynamic_cast<const ShapeSphere*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideDiskSphere(*disk, initTransA, linearVelA, angularVelA,
-                                                                                *sphere, initTransB, linearVelB, angularVelB,
-                                                                                dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* sphere = dynamic_cast<const ShapeSphere*>(shapeA)) {
-                                            if (auto* disk = dynamic_cast<const ShapeDisk*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideDiskSphere(*disk, initTransB, linearVelB, angularVelB,
-                                                                                *sphere, initTransA, linearVelA, angularVelA,
-                                                                                dt, collisionTime, manifold)) {
+                                                if (continuousCollideDiskSphere(
+                                                    *disk, initTransA, linearVelA, angularVelA,
+                                                    *sphere, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -772,7 +607,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Disk), static_cast<std::uint32_t>(ShapeType::SphericalShell),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Disk),
+                                    static_cast<std::uint32_t>(ShapeType::SphericalShell),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -782,19 +618,10 @@ namespace egret
                                         if (auto* disk = dynamic_cast<const ShapeDisk*>(shapeA)) {
                                             if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideDiskSphericalShell(*disk, initTransA, linearVelA, angularVelA,
-                                                                                        *shell, initTransB, linearVelB, angularVelB,
-                                                                                        dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(shapeA)) {
-                                            if (auto* disk = dynamic_cast<const ShapeDisk*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideDiskSphericalShell(*disk, initTransB, linearVelB, angularVelB,
-                                                                                        *shell, initTransA, linearVelA, angularVelA,
-                                                                                        dt, collisionTime, manifold)) {
+                                                if (continuousCollideDiskSphericalShell(
+                                                    *disk, initTransA, linearVelA, angularVelA,
+                                                    *shell, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -803,7 +630,8 @@ namespace egret
                                     });
 
         // Ring 开头
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Ring), static_cast<std::uint32_t>(ShapeType::Ring),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Ring),
+                                    static_cast<std::uint32_t>(ShapeType::Ring),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -823,7 +651,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Ring), static_cast<std::uint32_t>(ShapeType::Rod),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Ring),
+                                    static_cast<std::uint32_t>(ShapeType::Rod),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -840,20 +669,11 @@ namespace egret
                                                 }
                                             }
                                         }
-                                        if (auto* rod = dynamic_cast<const ShapeRod*>(shapeA)) {
-                                            if (auto* ring = dynamic_cast<const ShapeRing*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideRingRod(*ring, initTransB, linearVelB, angularVelB,
-                                                                             *rod, initTransA, linearVelA, angularVelA,
-                                                                             dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Ring), static_cast<std::uint32_t>(ShapeType::Sphere),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Ring),
+                                    static_cast<std::uint32_t>(ShapeType::Sphere),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -863,19 +683,10 @@ namespace egret
                                         if (auto* ring = dynamic_cast<const ShapeRing*>(shapeA)) {
                                             if (auto* sphere = dynamic_cast<const ShapeSphere*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideRingSphere(*ring, initTransA, linearVelA, angularVelA,
-                                                                                *sphere, initTransB, linearVelB, angularVelB,
-                                                                                dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* sphere = dynamic_cast<const ShapeSphere*>(shapeA)) {
-                                            if (auto* ring = dynamic_cast<const ShapeRing*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideRingSphere(*ring, initTransB, linearVelB, angularVelB,
-                                                                                *sphere, initTransA, linearVelA, angularVelA,
-                                                                                dt, collisionTime, manifold)) {
+                                                if (continuousCollideRingSphere(
+                                                    *ring, initTransA, linearVelA, angularVelA,
+                                                    *sphere, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -883,7 +694,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Ring), static_cast<std::uint32_t>(ShapeType::SphericalShell),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Ring),
+                                    static_cast<std::uint32_t>(ShapeType::SphericalShell),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -893,19 +705,10 @@ namespace egret
                                         if (auto* ring = dynamic_cast<const ShapeRing*>(shapeA)) {
                                             if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideRingSphericalShell(*ring, initTransA, linearVelA, angularVelA,
-                                                                                        *shell, initTransB, linearVelB, angularVelB,
-                                                                                        dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(shapeA)) {
-                                            if (auto* ring = dynamic_cast<const ShapeRing*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideRingSphericalShell(*ring, initTransB, linearVelB, angularVelB,
-                                                                                        *shell, initTransA, linearVelA, angularVelA,
-                                                                                        dt, collisionTime, manifold)) {
+                                                if (continuousCollideRingSphericalShell(
+                                                    *ring, initTransA, linearVelA, angularVelA,
+                                                    *shell, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -914,7 +717,8 @@ namespace egret
                                     });
 
         // Rod 开头
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Rod), static_cast<std::uint32_t>(ShapeType::Rod),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Rod),
+                                    static_cast<std::uint32_t>(ShapeType::Rod),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -934,7 +738,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Rod), static_cast<std::uint32_t>(ShapeType::Sphere),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Rod),
+                                    static_cast<std::uint32_t>(ShapeType::Sphere),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -944,19 +749,10 @@ namespace egret
                                         if (auto* rod = dynamic_cast<const ShapeRod*>(shapeA)) {
                                             if (auto* sphere = dynamic_cast<const ShapeSphere*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideRodSphere(*rod, initTransA, linearVelA, angularVelA,
-                                                                               *sphere, initTransB, linearVelB, angularVelB,
-                                                                               dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* sphere = dynamic_cast<const ShapeSphere*>(shapeA)) {
-                                            if (auto* rod = dynamic_cast<const ShapeRod*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideRodSphere(*rod, initTransB, linearVelB, angularVelB,
-                                                                               *sphere, initTransA, linearVelA, angularVelA,
-                                                                               dt, collisionTime, manifold)) {
+                                                if (continuousCollideRodSphere(
+                                                    *rod, initTransA, linearVelA, angularVelA,
+                                                    *sphere, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -964,7 +760,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Rod), static_cast<std::uint32_t>(ShapeType::SphericalShell),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Rod),
+                                    static_cast<std::uint32_t>(ShapeType::SphericalShell),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -974,19 +771,10 @@ namespace egret
                                         if (auto* rod = dynamic_cast<const ShapeRod*>(shapeA)) {
                                             if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideRodSphericalShell(*rod, initTransA, linearVelA, angularVelA,
-                                                                                       *shell, initTransB, linearVelB, angularVelB,
-                                                                                       dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(shapeA)) {
-                                            if (auto* rod = dynamic_cast<const ShapeRod*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideRodSphericalShell(*rod, initTransB, linearVelB, angularVelB,
-                                                                                       *shell, initTransA, linearVelA, angularVelA,
-                                                                                       dt, collisionTime, manifold)) {
+                                                if (continuousCollideRodSphericalShell(
+                                                    *rod, initTransA, linearVelA, angularVelA,
+                                                    *shell, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -995,7 +783,8 @@ namespace egret
                                     });
 
         // Sphere 与 Spherical shell 的组合
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Sphere), static_cast<std::uint32_t>(ShapeType::SphericalShell),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Sphere),
+                                    static_cast<std::uint32_t>(ShapeType::SphericalShell),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -1005,19 +794,10 @@ namespace egret
                                         if (auto* sphere = dynamic_cast<const ShapeSphere*>(shapeA)) {
                                             if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(shapeB)) {
                                                 double collisionTime = 0.0;
-                                                if (continuousCollideSphereSphericalShell(*sphere, initTransA, linearVelA, angularVelA,
-                                                                                          *shell, initTransB, linearVelB, angularVelB,
-                                                                                          dt, collisionTime, manifold)) {
-                                                    return collisionTime;
-                                                }
-                                            }
-                                        }
-                                        if (auto* shell = dynamic_cast<const ShapeSphericalShell*>(shapeA)) {
-                                            if (auto* sphere = dynamic_cast<const ShapeSphere*>(shapeB)) {
-                                                double collisionTime = 0.0;
-                                                if (continuousCollideSphereSphericalShell(*sphere, initTransB, linearVelB, angularVelB,
-                                                                                          *shell, initTransA, linearVelA, angularVelA,
-                                                                                          dt, collisionTime, manifold)) {
+                                                if (continuousCollideSphereSphericalShell(
+                                                    *sphere, initTransA, linearVelA, angularVelA,
+                                                    *shell, initTransB, linearVelB, angularVelB,
+                                                    dt, collisionTime, manifold)) {
                                                     return collisionTime;
                                                 }
                                             }
@@ -1025,7 +805,8 @@ namespace egret
                                         return std::nullopt;
                                     });
 
-        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::SphericalShell), static_cast<std::uint32_t>(ShapeType::SphericalShell),
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::SphericalShell),
+                                    static_cast<std::uint32_t>(ShapeType::SphericalShell),
                                     [](const ShapeBase* shapeA, const Transform& initTransA,
                                        const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
                                        const ShapeBase* shapeB, const Transform& initTransB,
@@ -1036,9 +817,10 @@ namespace egret
                                         auto* b = dynamic_cast<const ShapeSphericalShell*>(shapeB);
                                         if (a != nullptr && b != nullptr) {
                                             double collisionTime = 0.0;
-                                            if (continuousCollideSphericalShellSphericalShell(*a, initTransA, linearVelA, angularVelA,
-                                                                                              *b, initTransB, linearVelB, angularVelB,
-                                                                                              dt, collisionTime, manifold)) {
+                                            if (continuousCollideSphericalShellSphericalShell(
+                                                *a, initTransA, linearVelA, angularVelA,
+                                                *b, initTransB, linearVelB, angularVelB,
+                                                dt, collisionTime, manifold)) {
                                                 return collisionTime;
                                             }
                                         }

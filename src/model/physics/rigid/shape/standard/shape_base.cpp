@@ -32,13 +32,24 @@ namespace egret
     bool ShapeBase::collide(const ShapeBase *other,
                             const Transform &thisTrans, const Transform &otherTrans, ContactManifold &manifold) const
     {
-        const auto &myId = (std::uint32_t)this->getType();
-        const auto &otherId = (std::uint32_t)other->getType();
+        const auto myId = static_cast<std::uint32_t>(this->getType());
+        const auto otherId = static_cast<std::uint32_t>(other->getType());
         const auto func = ShapeRegister::instance().findJudge(myId, otherId);
-        if (func)
+        if (!func) {
+            return false;
+        }
+
+        // 规范顺序：myId 为注册 key 中较小的类型 ID，Lambda 期望 ShapeA = 该类型
+        if (myId <= otherId) {
             return (*func)(this, thisTrans, other, otherTrans, manifold);
-        // 未注册的类对 → 可返回 false / 抛异常 / 默认处理
-        return false;
+        }
+
+        // 非规范顺序：交换参数调用 Lambda，然后翻转所有法线以保持 A→B 方向
+        const bool result = (*func)(other, otherTrans, this, thisTrans, manifold);
+        for (ContactPoint& contact : manifold) {
+            contact.normal = -contact.normal;
+        }
+        return result;
     }
 
     std::optional<double> ShapeBase::continuousCollide(const ShapeBase *other,
@@ -48,18 +59,31 @@ namespace egret
                                                        const Eigen::Vector3d &otherLinearVel, const Eigen::Vector3d &otherAngularVel, double dt,
                                                        ContactManifold &manifold) const
     {
-        const auto &myId = (std::uint32_t)this->getType();
-        const auto &otherId = (std::uint32_t)other->getType();
+        const auto myId = static_cast<std::uint32_t>(this->getType());
+        const auto otherId = static_cast<std::uint32_t>(other->getType());
         const auto func = ShapeRegister::instance().findContinuousJudge(myId, otherId);
-        if (func)
-        {
+        if (!func) {
+            return std::nullopt;
+        }
+
+        // 规范顺序：myId 为注册 key 中较小的类型 ID
+        if (myId <= otherId) {
             return (*func)(this, initTransA,
                            thisLinearVel, thisAngularVel, other, initTransB,
                            otherLinearVel, otherAngularVel,
                            dt, manifold);
         }
-        // 未注册的类对 → 可返回 nullopt / 抛异常 / 默认处理
-        return std::nullopt;
+
+        // 非规范顺序：交换参数调用，然后翻转所有法线
+        const auto result = (*func)(other, initTransB,
+                                    otherLinearVel, otherAngularVel,
+                                    this, initTransA,
+                                    thisLinearVel, thisAngularVel,
+                                    dt, manifold);
+        for (ContactPoint& contact : manifold) {
+            contact.normal = -contact.normal;
+        }
+        return result;
     }
 
     std::string reflectShapeToString(const ShapeType type)
