@@ -358,6 +358,33 @@ namespace egret
         return m_fixedStepSeconds * 1000.0;
     }
 
+    double SceneManagerViewModel::timeScale() const
+    {
+        return m_timeScale;
+    }
+
+    void SceneManagerViewModel::setFixedStepMs(const double ms)
+    {
+        if (ms <= 0.0 || ms > 1000.0) {
+            qWarning() << "setFixedStepMs: 无效步长" << ms << "ms，必须在 (0, 1000] 范围内";
+            return;
+        }
+        m_fixedStepSeconds = ms / 1000.0;
+        m_accumulator = 0.0;
+        emit fixedStepMsChanged();
+    }
+
+    void SceneManagerViewModel::setTimeScale(const double scale)
+    {
+        if (scale <= 0.0 || scale > 100.0) {
+            qWarning() << "setTimeScale: 无效缩放因子" << scale << "，必须在 (0, 100] 范围内";
+            return;
+        }
+        m_timeScale = scale;
+        m_accumulator = 0.0;
+        emit timeScaleChanged();
+    }
+
     bool SceneManagerViewModel::isDragActive() const
     {
         return m_dragActive;
@@ -432,7 +459,10 @@ namespace egret
         m_simTime = 0.0;
         m_stepCount = 0;
         m_accumulator = 0.0;
+        m_timeScale = 1.0;
         m_entityCount = m_world != nullptr ? static_cast<int>(m_world->getBodyCount()) : 0;
+
+        emit timeScaleChanged();
 
         emit simTimeChanged();
         emit stepCountChanged();
@@ -618,7 +648,9 @@ namespace egret
     void SceneManagerViewModel::onFrameTick()
     {
         const double realFrameSeconds = std::max(0.0, static_cast<double>(m_frameClock.restart()) / 1000.0);
-        m_accumulator += realFrameSeconds;
+
+        // 时间缩放：累加器按缩放后的虚拟时间推进，物理积分仍以 m_fixedStepSeconds 为准
+        m_accumulator += realFrameSeconds * m_timeScale;
         updateFps(realFrameSeconds);
 
         int subStepCount = 0;
@@ -628,8 +660,11 @@ namespace egret
             ++subStepCount;
         }
 
-        if (m_accumulator >= m_fixedStepSeconds * static_cast<double>(m_maxSubSteps)) {
-            m_accumulator = 0.0;
+        // 修复死亡螺旋：累加器超限时钳制到 maxSubSteps*dt，
+        // 保留溢出时间在下一帧继续消耗，而非丢弃导致物理时间永久落后。
+        const double maxAccumulator = m_fixedStepSeconds * static_cast<double>(m_maxSubSteps);
+        if (m_accumulator > maxAccumulator) {
+            m_accumulator = maxAccumulator;
         }
     }
 
@@ -656,23 +691,26 @@ namespace egret
         m_world->createSpring("MySpring", 50.0, 100.0, id2, id1);
 
 
-        std::uint64_t idBox = m_world->spawnBox("", {0, 0, 50}, {0, 0, 0}, {100, 100, 30}, 1);
+        // std::uint64_t idBox = m_world->spawnBox("", {0, 0, 50}, {0, 0, 0}, {100, 100, 30}, 1);
+        //
+        // auto box = m_world->getEntity(idBox);
+        //
+        // Eigen::Matrix3d R;
+        // double angle = 30.0 * M_PI / 180.0;  // 转为弧度
+        // double c = std::cos(angle);
+        // double s = std::sin(angle);
+        //
+        // R << 1, 0,  0,
+        //      0, c, -s,
+        //      0, s,  c;
+        //
+        // box->setRotation(R);
+        // box->setAngular({10, 10, 10});
+        std::uint64_t id3 = m_world->spawnSphere("1", {100, 100, 490}, {0, 0,  0}, 10, 10);
+        // std::uint64_t idBox1 = m_world->spawnBox("2", {0, 0, 100}, {0, 0, 0}, {10, 10, 30}, 10);
+        std::uint64_t idBox2 = m_world->spawnBox("3", {0, 0, 0}, {0, 0, 0}, {1000, 1000, 130}, 0);
 
-        auto box = m_world->getEntity(idBox);
-
-        Eigen::Matrix3d R;
-        double angle = 30.0 * M_PI / 180.0;  // 转为弧度
-        double c = std::cos(angle);
-        double s = std::sin(angle);
-
-        R << 1, 0,  0,
-             0, c, -s,
-             0, s,  c;
-
-        box->setRotation(R);
-        box->setAngular({10, 10, 10});
-        // std::uint64_t idBox2 = m_world->spawnBox("", {0, 0, -2350}, {0, 0, 0}, {1000, 1000, 30}, 0);
-
+        qDebug() << id1 << id2 << id3 << idBox2;
         // === SlidingRail 滑轨约束测试 ===
         // 测试 1：圆柱螺旋线轨道
         // 螺旋线半径 150，轴向速度 30，4 圈（≈ 8π）
