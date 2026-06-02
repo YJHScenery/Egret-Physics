@@ -398,6 +398,22 @@ ColumnLayout {
                                 }
                             }
                         }
+
+                        // ---- 曲线轨道渲染（SlidingRail） ----
+                        // 从 sceneController.curveModel 获取曲线数据
+                        // 坐标转换已在 CurveGeometry::rebuild() 中完成
+                        // (x,y,z) → (y,z,x)，与渲染管线保持一致
+                        Repeater3D {
+                            model: sceneController.curveModel
+
+                            delegate: Model {
+                                geometry: curveGeometry
+
+                                materials: EgretLineMaterial {
+                                    lineColor: curveColor
+                                }
+                            }
+                        }
                     }
                 }
 

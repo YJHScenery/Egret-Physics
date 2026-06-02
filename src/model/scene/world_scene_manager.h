@@ -31,6 +31,7 @@
 #include "shape_base.h"
 #include "solver.h"
 #include "surface_base.h"
+#include "scene_curve_render_item.h"
 #include "scene_surface_render_item.h"
 #include "transform.h"
 
@@ -466,6 +467,14 @@ namespace egret
         [[nodiscard]] std::vector<SceneSurfaceRenderItem> buildSurfaceRenderItems() const;
 
         /**
+         * @brief 生成供 ViewModel 渲染的曲线轻量化数据快照。
+         * @details 遍历世界中的所有约束器，找出 SlidingRail 类型的约束，
+         *          clone 其内部的 CurveBase 曲线，供 ViewModel 层转换为 QML 可渲染的线条。
+         * @return 曲线渲染条目列表。
+         */
+        [[nodiscard]] std::vector<SceneCurveRenderItem> buildCurveRenderItems() const;
+
+        /**
          * @brief 查询当前实体数量。
          * @return 实体数量。
          */
@@ -593,6 +602,17 @@ namespace egret
                                            std::unique_ptr<SurfaceBase> surface,
                                            double restitution = -1.0,
                                            const std::vector<std::uint64_t> &initialEntityIds = {});
+
+        /**
+         * @brief 创建滑轨约束并注册到世界。
+         * @param name 约束名称。
+         * @param curve 曲线轨道所有权（unique_ptr）。
+         * @param initialEntityIds 初始注册的实体 ID 列表（可选）。
+         * @return 新约束的 ID，失败返回 0。
+         */
+        std::uint64_t createSlidingRail(const std::string& name,
+                                        std::unique_ptr<CurveBase> curve,
+                                        const std::vector<std::uint64_t>& initialEntityIds = {});
 
         /**
          * @brief 获取约束器。

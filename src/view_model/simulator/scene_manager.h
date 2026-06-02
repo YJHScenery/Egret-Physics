@@ -30,6 +30,7 @@
 
 #include "visual_item/scene_body_model.h"
 #include "visual_item/scene_constraint_model.h"
+#include "visual_item/scene_curve_model.h"
 #include "visual_item/scene_surface_model.h"
 #include "world_scene_manager.h"
 #include <QQuaternion>
@@ -86,6 +87,8 @@ namespace egret
 
         Q_PROPERTY(SceneSurfaceModel *surfaceModel READ surfaceModel CONSTANT)
 
+        Q_PROPERTY(SceneCurveModel *curveModel READ curveModel CONSTANT)
+
     public:
         /** 默认构造。 */
         explicit SceneManagerViewModel(QObject* parent = nullptr);
@@ -127,6 +130,9 @@ namespace egret
 
         /** QML 直接使用的曲面列表模型。 */
         [[nodiscard]] SceneSurfaceModel* surfaceModel();
+
+        /** QML 直接使用的曲线列表模型。 */
+        [[nodiscard]] SceneCurveModel* curveModel();
 
         /** 开始运行。 */
         Q_INVOKABLE void play();
@@ -272,6 +278,11 @@ namespace egret
         void refreshSurfaceModel();
 
         /**
+         * @brief 将模型层曲线快照刷新到 Qt 列表模型。
+         */
+        void refreshCurveModel();
+
+        /**
          * @brief 执行单次固定步长推进的内部函数。
          * @param emitFrameSignal 是否在完成后发出 frameAdvanced 信号。
          */
@@ -362,6 +373,9 @@ namespace egret
 
         /** QML 可直接使用的曲面模型。 */
         SceneSurfaceModel m_surfaceModel;
+
+        /** QML 可直接使用的曲线模型。 */
+        SceneCurveModel m_curveModel;
 
         /** 模型层世界管理器。 */
         std::unique_ptr<WorldSceneManager> m_world;
