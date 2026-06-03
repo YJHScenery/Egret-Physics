@@ -416,6 +416,19 @@ namespace egret
         }
     }
 
+    bool ModelItemData::visible() const
+    {
+        return m_data.m_visible;
+    }
+
+    void ModelItemData::setVisible(bool visible)
+    {
+        if (m_data.m_visible != visible) {
+            m_data.m_visible = visible;
+            emit visibleChanged();
+        }
+    }
+
     void ModelItemData::matchSource()
     {
         const QString source{ResourceHelper::getSourceByShape(m_data.m_type)};
@@ -604,6 +617,7 @@ namespace egret
 
         copy->m_data.m_payload = source.m_data.m_payload;
         copy->m_data.m_category = source.m_data.m_category;
+        copy->m_data.m_visible = source.m_data.m_visible;
 
         return copy;
     }

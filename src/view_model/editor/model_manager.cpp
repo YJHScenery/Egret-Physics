@@ -380,6 +380,18 @@ namespace egret
         return results;
     }
 
+    QList<ModelItemData*> ModelManager::getModelsByCategory(int category) const
+    {
+        QList<ModelItemData*> results;
+        results.reserve(m_modelList.size());
+        for (const QSharedPointer<ModelItemData>& model : m_modelList) {
+            if (model->category() == category) {
+                results.append(model.data());
+            }
+        }
+        return results;
+    }
+
     void ModelManager::setModelsPosition(const QVector3D& position, const QStringList& ids)
     {
         saveState();

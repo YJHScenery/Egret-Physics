@@ -106,6 +106,8 @@ namespace egret
 
         Q_INVOKABLE QList<ModelItemData *> findModelsBySource(const QString &source);
 
+        Q_INVOKABLE QList<ModelItemData *> getModelsByCategory(int category) const;
+
         // 批量修改
         Q_INVOKABLE void setModelsPosition(const QVector3D &position, const QStringList &ids = QStringList());
 

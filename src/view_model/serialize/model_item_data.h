@@ -124,6 +124,9 @@ namespace egret
 
         /** 透传的额外 JSON 负载（如 field_data / constraint_data） */
         QJsonObject m_payload{};
+
+        /** 可视化开关，默认可见 */
+        bool m_visible{true};
     };
 
     /**
@@ -161,6 +164,8 @@ namespace egret
         Q_PROPERTY(double radius READ radius WRITE setRadius NOTIFY radiusChanged)
         Q_PROPERTY(double height READ height WRITE setHeight NOTIFY heightChanged)
         Q_PROPERTY(double length READ length WRITE setLength NOTIFY lengthChanged)
+        Q_PROPERTY(int category READ category NOTIFY categoryChanged)
+        Q_PROPERTY(bool visible READ visible WRITE setVisible NOTIFY visibleChanged)
 
     public:
         explicit ModelItemData(QObject *parent = nullptr);
@@ -183,6 +188,7 @@ namespace egret
         [[nodiscard]] double radius() const;
         [[nodiscard]] double height() const;
         [[nodiscard]] double length() const;
+        [[nodiscard]] bool visible() const;
 
         void setMass(double mass);
         void setLoadTime(double loadTime);
@@ -201,6 +207,7 @@ namespace egret
         void setRadius(double radius);
         void setHeight(double height);
         void setLength(double length);
+        void setVisible(bool visible);
 
         // 序列化
         [[nodiscard]] QJsonObject toJson() const;
@@ -215,7 +222,14 @@ namespace egret
         [[nodiscard]] const QJsonObject &payload() const { return m_data.m_payload; }
 
         /** 设置实体类别（0=Shape, 1=Field, 2=Constraint），供 ModelManager 使用 */
-        void setCategory(int category) { m_data.m_category = category; }
+        void setCategory(int category)
+        {
+            if (m_data.m_category != category) {
+                m_data.m_category = category;
+                emit categoryChanged();
+            }
+        }
+        
         [[nodiscard]] int category() const { return m_data.m_category; }
 
 
@@ -236,6 +250,8 @@ namespace egret
         void radiusChanged();
         void heightChanged();
         void lengthChanged();
+        void categoryChanged();
+        void visibleChanged();
 
     private:
         /** 所有数据字段统一存储，避免与 ModelItemDataField 重复 */

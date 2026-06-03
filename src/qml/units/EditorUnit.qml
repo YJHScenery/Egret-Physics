@@ -44,6 +44,14 @@ ColumnLayout {
         Layout.fillHeight: true
         spacing: 12
 
+        SceneEntityListPanel {
+            id: sceneEntityListPanel
+            Layout.preferredWidth: 260
+            Layout.minimumWidth: 200
+            Layout.maximumWidth: 320
+            Layout.fillHeight: true
+        }
+
         GlassPanel {
             id: editorViewportPanel
             Layout.fillWidth: true
