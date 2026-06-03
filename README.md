@@ -28,12 +28,21 @@
 
 ## 依赖
 
-| 库 | 版本 | 许可证 |
-|---------|---------|---------|
-| Boost | 1.90.0 | Boost Software License 1.0 |
-| Eigen | 5.0.0 | Mozilla Public License 2.0 |
+### 第三方库
+
+| 库         | 版本 | 许可证 |
+|-----------|---------|---------|
+| Boost     | 1.90.0 | Boost Software License 1.0 |
+| Eigen     | 5.0.0 | Mozilla Public License 2.0 |
 | magic_enum | 0.9.8 | MIT License |
-| Qt | 6.9.3 | LGPLv3/GPLv3 |
+| Qt        | 6.9.3 | LGPLv3/GPLv3 |
+
+### 其他组件
+
+| Repo                                                                      | 许可证   |
+|---------------------------------------------------------------------------|-------|
+| [Transform Gizmo](https://github.com/YJHScenery/QtQuick3D-Transform-Gizmo) | GPLv3 |
+| [3D Coordinate](https://github.com/YJHScenery/Smart-3D-Coordinate-System) | GPLv3 |
 
 ## 快速开始
 
@@ -57,7 +66,6 @@ cmake --build . --config Release
 | 选项 | 描述 | 默认值 |
 |--------|-------------|---------|
 | `BUILD_TESTS` | 构建单元测试 | ON |
-| `DEBUG_SIMULATE_RELEASE` | 在 Debug 构建中模拟 Release 行为 | OFF |
 
 ### 运行应用
 
