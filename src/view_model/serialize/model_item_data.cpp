@@ -86,6 +86,10 @@ namespace egret
 
         data.m_type = obj["entity_type"].toInteger();
 
+        if (obj.contains("category")) {
+            data.m_category = obj["category"].toInt();
+        }
+
         data.m_mass = getDouble("entity_mass");
 
         data.m_loadTime = getDouble("load_time");
@@ -429,42 +433,41 @@ namespace egret
     QJsonObject ModelItemData::toJson() const
     {
         QJsonObject obj;
-        obj["mass"] = m_data.m_mass;
-        obj["load_time"] = m_data.m_loadTime;
-        obj["restitution"] = m_data.m_restitution;
+        // 公共字段
+        obj["category"] = m_data.m_category;
         obj["id"] = m_data.m_id;
         obj["name"] = m_data.m_name;
-        obj["source"] = m_data.m_source;
-
+        obj["load_time"] = m_data.m_loadTime;
         obj["type"] = QJsonValue{static_cast<std::int64_t>(m_data.m_type)};
-        if (m_data.m_boxSize.has_value()) {
-            obj["box_size"] = QJsonArray{m_data.m_boxSize->x(), m_data.m_boxSize->y(), m_data.m_boxSize->z()};
-        }
-        if (m_data.m_radius.has_value()) {
-            obj["radius"] = m_data.m_radius.value();
-        }
-        if (m_data.m_height.has_value()) {
-            obj["height"] = m_data.m_height.value();
-        }
-        if (m_data.m_length.has_value()) {
-            obj["length"] = m_data.m_length.value();
-        }
-
         obj["pos"] = QJsonArray{m_data.m_pos.x(), m_data.m_pos.y(), m_data.m_pos.z()};
-        obj["scale"] = QJsonArray{m_data.m_scale.x(), m_data.m_scale.y(), m_data.m_scale.z()};
-        obj["rotation"] = QJsonArray{
-            m_data.m_rotation.scalar(), m_data.m_rotation.x(), m_data.m_rotation.y(), m_data.m_rotation.z()
-        };
 
-        obj["initial_velocity"] = QJsonArray{
-            m_data.m_initialVelo.x(), m_data.m_initialVelo.y(), m_data.m_initialVelo.z()
-        };
-        obj["initial_angular_velocity"] = QJsonArray{
-            m_data.m_initialAnguVelo.x(), m_data.m_initialAnguVelo.y(), m_data.m_initialAnguVelo.z()
-        };
-        obj["materials"] = m_data.m_materials->toJson();
+        if (m_data.m_category == 0) {
+            // ============ Shape ============
+            obj["mass"] = m_data.m_mass;
+            obj["restitution"] = m_data.m_restitution;
+            obj["source"] = m_data.m_source;
+            obj["scale"] = QJsonArray{m_data.m_scale.x(), m_data.m_scale.y(), m_data.m_scale.z()};
+            obj["rotation"] = QJsonArray{
+                m_data.m_rotation.scalar(), m_data.m_rotation.x(), m_data.m_rotation.y(), m_data.m_rotation.z()
+            };
+            obj["initial_velocity"] = QJsonArray{
+                m_data.m_initialVelo.x(), m_data.m_initialVelo.y(), m_data.m_initialVelo.z()
+            };
+            obj["initial_angular_velocity"] = QJsonArray{
+                m_data.m_initialAnguVelo.x(), m_data.m_initialAnguVelo.y(), m_data.m_initialAnguVelo.z()
+            };
+            if (m_data.m_boxSize.has_value())
+                obj["box_size"] = QJsonArray{m_data.m_boxSize->x(), m_data.m_boxSize->y(), m_data.m_boxSize->z()};
+            if (m_data.m_radius.has_value())
+                obj["radius"] = m_data.m_radius.value();
+            if (m_data.m_height.has_value())
+                obj["height"] = m_data.m_height.value();
+            if (m_data.m_length.has_value())
+                obj["length"] = m_data.m_length.value();
+            obj["materials"] = m_data.m_materials->toJson();
+        }
 
-        // 透传 payload（field_data / constraint_data 等）
+        // 透传 payload（field_data / constraint_data）
         for (auto it = m_data.m_payload.begin(); it != m_data.m_payload.end(); ++it) {
             obj[it.key()] = it.value();
         }
@@ -474,30 +477,22 @@ namespace egret
 
     bool ModelItemData::fromJson(const QJsonObject& json)
     {
-        if (json.contains("mass")) {
-            setMass(json["mass"].toDouble());
+        // 公共字段
+        if (json.contains("category")) {
+            m_data.m_category = json["category"].toInt();
         }
         if (json.contains("load_time")) {
             setLoadTime(json["load_time"].toDouble());
         }
-
-        if (json.contains("restitution")) {
-            setRestitution(json["restitution"].toDouble());
-        }
         if (json.contains("type")) {
             setType(static_cast<std::uint32_t>(json["type"].toInteger()));
         }
-
         if (json.contains("id")) {
             setId(json["id"].toString());
         }
         if (json.contains("name")) {
             setName(json["name"].toString());
         }
-        if (json.contains("source")) {
-            setSource(json["source"].toString());
-        }
-
         if (json.contains("pos") && json["pos"].isArray()) {
             QJsonArray posArr = json["pos"].toArray();
             if (posArr.size() >= 3) {
@@ -506,90 +501,74 @@ namespace egret
             }
         }
 
-        if (json.contains("scale") && json["scale"].isArray()) {
-            QJsonArray scaleArr = json["scale"].toArray();
-            if (scaleArr.size() >= 3) {
-                setScale(QVector3D(static_cast<float>(scaleArr[0].toDouble()),
-                                   static_cast<float>(scaleArr[1].toDouble()),
-                                   static_cast<float>(scaleArr[2].toDouble())));
+        if (m_data.m_category == 0) {
+            // ============ Shape ============
+            if (json.contains("mass"))
+                setMass(json["mass"].toDouble());
+            if (json.contains("restitution"))
+                setRestitution(json["restitution"].toDouble());
+            if (json.contains("source"))
+                setSource(json["source"].toString());
+            if (json.contains("scale") && json["scale"].isArray()) {
+                QJsonArray arr = json["scale"].toArray();
+                if (arr.size() >= 3)
+                    setScale(QVector3D(static_cast<float>(arr[0].toDouble()), static_cast<float>(arr[1].toDouble()), static_cast<float>(arr[2].toDouble())));
+            }
+            if (json.contains("rotation") && json["rotation"].isArray()) {
+                QJsonArray arr = json["rotation"].toArray();
+                if (arr.size() >= 4)
+                    setRotation(QQuaternion(static_cast<float>(arr[0].toDouble()), static_cast<float>(arr[1].toDouble()), static_cast<float>(arr[2].toDouble()), static_cast<float>(arr[3].toDouble())));
+            }
+            if (json.contains("initial_velocity") && json["initial_velocity"].isArray()) {
+                QJsonArray arr = json["initial_velocity"].toArray();
+                if (arr.size() >= 3)
+                    setInitialVelo(QVector3D(static_cast<float>(arr[0].toDouble()), static_cast<float>(arr[1].toDouble()), static_cast<float>(arr[2].toDouble())));
+            }
+            if (json.contains("initial_angular_velocity") && json["initial_angular_velocity"].isArray()) {
+                QJsonArray arr = json["initial_angular_velocity"].toArray();
+                if (arr.size() >= 3)
+                    setInitialAnguVelo(QVector3D(static_cast<float>(arr[0].toDouble()), static_cast<float>(arr[1].toDouble()), static_cast<float>(arr[2].toDouble())));
+            }
+            if (json.contains("materials") && json["materials"].isObject())
+                m_data.m_materials->fromJson(json["materials"].toObject());
+            if (json.contains("box_size") && json["box_size"].isArray()) {
+                QJsonArray arr = json["box_size"].toArray();
+                if (arr.size() >= 3) {
+                    m_data.m_boxSize = QVector3D(static_cast<float>(arr[0].toDouble()), static_cast<float>(arr[1].toDouble()), static_cast<float>(arr[2].toDouble()));
+                    emit boxSizeChanged();
+                }
+            }
+            if (json.contains("radius")) {
+                m_data.m_radius = json["radius"].toDouble();
+                emit radiusChanged();
+            } else if (json.contains("circle_radius")) {
+                m_data.m_radius = json["circle_radius"].toDouble();
+                emit radiusChanged();
+            }
+            if (json.contains("height")) {
+                m_data.m_height = json["height"].toDouble();
+                emit heightChanged();
+            }
+            if (json.contains("length")) {
+                m_data.m_length = json["length"].toDouble();
+                emit lengthChanged();
             }
         }
 
-        if (json.contains("rotation") && json["rotation"].isArray()) {
-            QJsonArray rotArr = json["rotation"].toArray();
-            if (rotArr.size() >= 4) {
-                setRotation(QQuaternion(static_cast<float>(rotArr[0].toDouble()),
-                                        static_cast<float>(rotArr[1].toDouble()),
-                                        static_cast<float>(rotArr[2].toDouble()),
-                                        static_cast<float>(rotArr[3].toDouble())));
-            }
-        }
-
-        if (json.contains("initial_velocity") && json["initial_velocity"].isArray()) {
-            QJsonArray initialVelArr = json["initial_velocity"].toArray();
-            if (initialVelArr.size() >= 3) {
-                setInitialVelo(QVector3D(static_cast<float>(initialVelArr[0].toDouble()),
-                                         static_cast<float>(initialVelArr[1].toDouble()),
-                                         static_cast<float>(initialVelArr[2].toDouble())));
-            }
-        }
-
-        if (json.contains("initial_angular_velocity") && json["initial_angular_velocity"].isArray()) {
-            QJsonArray initialAngularVelArr = json["initial_angular_velocity"].toArray();
-            if (initialAngularVelArr.size() >= 3) {
-                setInitialAnguVelo(QVector3D(static_cast<float>(initialAngularVelArr[0].toDouble()),
-                                             static_cast<float>(initialAngularVelArr[1].toDouble()),
-                                             static_cast<float>(initialAngularVelArr[2].toDouble())));
-            }
-        }
-        if (json.contains("materials") && json["materials"].isObject()) {
-            m_data.m_materials->fromJson(json["materials"].toObject());
-        }
-
-        if (json.contains("box_size") && json["box_size"].isArray()) {
-            QJsonArray boxSizeArr = json["box_size"].toArray();
-            if (boxSizeArr.size() >= 3) {
-                m_data.m_boxSize = QVector3D(static_cast<float>(boxSizeArr[0].toDouble()),
-                                             static_cast<float>(boxSizeArr[1].toDouble()),
-                                             static_cast<float>(boxSizeArr[2].toDouble()));
-                emit boxSizeChanged();
-            }
-        }
-
-        if (json.contains("radius")) {
-            m_data.m_radius = json["radius"].toDouble();
-            emit radiusChanged();
-        }
-        else if (json.contains("circle_radius")) {
-            m_data.m_radius = json["circle_radius"].toDouble();
-            emit radiusChanged();
-        }
-
-        if (json.contains("height")) {
-            m_data.m_height = json["height"].toDouble();
-            emit heightChanged();
-        }
-
-        if (json.contains("length")) {
-            m_data.m_length = json["length"].toDouble();
-            emit lengthChanged();
-        }
-
-        // 恢复 payload（field_data / constraint_data 等已知 key 之外的字段）
+        // 恢复 payload（非标准字段存入 payload）
+        m_data.m_payload = {};
         for (auto it = json.begin(); it != json.end(); ++it) {
-            if (it.key() == "mass" || it.key() == "load_time" || it.key() == "restitution"
-                || it.key() == "id" || it.key() == "name" || it.key() == "source"
-                || it.key() == "type" || it.key() == "box_size" || it.key() == "circle_radius"
-                || it.key() == "radius" || it.key() == "height" || it.key() == "length"
-                || it.key() == "pos" || it.key() == "scale" || it.key() == "rotation"
-                || it.key() == "initial_velocity" || it.key() == "initial_angular_velocity"
-                || it.key() == "materials" || it.key() == "material_base_color"
-                || it.key() == "material_metalness" || it.key() == "material_roughness"
-                || it.key() == "entity_name" || it.key() == "entity_type" || it.key() == "entity_mass"
-                || it.key() == "position" || it.key() == "field_type" || it.key() == "constraint_type") {
+            const QString &k = it.key();
+            if (k == "mass" || k == "load_time" || k == "restitution"
+                || k == "id" || k == "name" || k == "source"
+                || k == "type" || k == "category" || k == "box_size" || k == "circle_radius"
+                || k == "radius" || k == "height" || k == "length"
+                || k == "pos" || k == "scale" || k == "rotation"
+                || k == "initial_velocity" || k == "initial_angular_velocity"
+                || k == "materials") {
                 continue;
             }
-            m_data.m_payload[it.key()] = it.value();
+            m_data.m_payload[k] = it.value();
         }
 
         return true;
@@ -624,6 +603,7 @@ namespace egret
         }
 
         copy->m_data.m_payload = source.m_data.m_payload;
+        copy->m_data.m_category = source.m_data.m_category;
 
         return copy;
     }

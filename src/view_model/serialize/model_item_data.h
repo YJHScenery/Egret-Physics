@@ -94,6 +94,9 @@ namespace egret
      */
     struct ModelItemDataField
     {
+        /** 实体类别：0=Shape, 1=Field, 2=Constraint */
+        int m_category{0};
+
         double m_mass{};
         double m_loadTime{};
         double m_restitution{1.0};
@@ -209,8 +212,12 @@ namespace egret
 
         /** 直接读写 m_data 的 payload 字段，供 ModelManager 透传 field/constraint 数据 */
         void setPayload(const QJsonObject &payload) { m_data.m_payload = payload; }
-        
         [[nodiscard]] const QJsonObject &payload() const { return m_data.m_payload; }
+
+        /** 设置实体类别（0=Shape, 1=Field, 2=Constraint），供 ModelManager 使用 */
+        void setCategory(int category) { m_data.m_category = category; }
+        [[nodiscard]] int category() const { return m_data.m_category; }
+
 
     signals:
         void massChanged();

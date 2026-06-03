@@ -160,6 +160,7 @@ namespace egret
         }
 
         auto* newModel = new ModelItemData();
+        newModel->setCategory(data.m_category);
         newModel->setName(data.m_name);
         // newModel->setSource("#Cylinder");
         newModel->setType(data.m_type);
@@ -218,6 +219,7 @@ namespace egret
 
         qDebug() << "type: " << model->type();
 
+        model->setCategory(data.m_category);
         model->setMass(data.m_mass);
         model->setLoadTime(data.m_loadTime);
         model->setRestitution(data.m_restitution);
