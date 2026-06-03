@@ -77,7 +77,8 @@ ColumnLayout {
         id: shapePanel
         Layout.fillWidth: true
         Layout.fillHeight: true
-        Layout.preferredHeight: 200
+        Layout.minimumHeight: 80
+        Layout.preferredHeight: Math.min(80 + shapeModels.length * 26, 400)
         title: "实体列表"
 
         ScrollView {
@@ -139,7 +140,8 @@ ColumnLayout {
         id: fieldPanel
         Layout.fillWidth: true
         Layout.fillHeight: true
-        Layout.preferredHeight: 200
+        Layout.minimumHeight: 80
+        Layout.preferredHeight: Math.min(80 + fieldModels.length * 26, 400)
         title: "场列表"
 
         ScrollView {
@@ -199,7 +201,8 @@ ColumnLayout {
         id: constraintPanel
         Layout.fillWidth: true
         Layout.fillHeight: true
-        Layout.preferredHeight: 200
+        Layout.minimumHeight: 80
+        Layout.preferredHeight: Math.min(80 + constraintModels.length * 26, 400)
         title: "约束器列表"
 
         ScrollView {
