@@ -103,6 +103,9 @@ namespace egret
 
         static SceneRecord createSceneFromJsonFile(const QString& fileName);
 
+
+        void initialize();
+
         /** 当前是否运行。 */
         [[nodiscard]] bool isRunning() const;
 
@@ -198,7 +201,7 @@ namespace egret
         /**
          * @brief 开始拖拽指定实体。
          */
-        Q_INVOKABLE bool beginBodyDrag(quint64 bodyId,
+        Q_INVOKABLE bool beginBodyDrag(const QString& bodyId,
                                        double screenX,
                                        double screenY,
                                        double viewportWidth,

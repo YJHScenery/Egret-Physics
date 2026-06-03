@@ -54,7 +54,7 @@ namespace egret
         {
         case IdRole:
         {
-            return QVariant::fromValue(item.id);
+            return QVariant::fromValue(QString::number(item.id));
         }
         case KindRole:
         {

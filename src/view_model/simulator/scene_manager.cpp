@@ -122,6 +122,7 @@ namespace egret
         m_timer.setTimerType(Qt::PreciseTimer);
         connect(&m_timer, &QTimer::timeout, this, &SceneManagerViewModel::onFrameTick);
 
+        initialize();
         rebuildDemoWorld();
         refreshBodyModel();
         refreshConstraintModel();
@@ -328,6 +329,20 @@ namespace egret
         return createSceneFromJsonString(data);
     }
 
+    void SceneManagerViewModel::initialize()
+    {
+        SolverConfig config{};
+
+        auto solver = std::make_unique<Solver>(
+            config,
+            std::make_unique<SemiImplicitEulerIntegratorStrategy>(),
+            std::make_unique<BruteForceBroadPhaseStrategy>(),
+            std::make_unique<FrictionlessContactResolverStrategy>());
+
+        m_world = std::make_unique<WorldSceneManager>(std::move(solver));
+        m_world->clear();
+    }
+
     bool SceneManagerViewModel::isRunning() const
     {
         return m_running;
@@ -450,6 +465,7 @@ namespace egret
     {
         pause();
         endBodyDrag();
+        initialize();
         rebuildDemoWorld();
         refreshBodyModel();
         refreshConstraintModel();
@@ -517,7 +533,7 @@ namespace egret
         return result;
     }
 
-    bool SceneManagerViewModel::beginBodyDrag(const quint64 bodyId,
+    bool SceneManagerViewModel::beginBodyDrag(const QString& bodyId,
                                               const double screenX,
                                               const double screenY,
                                               const double viewportWidth,
@@ -529,7 +545,9 @@ namespace egret
             return false;
         }
 
-        const std::optional<Eigen::Vector3d> bodyPosition = m_world->getBodyPosition(bodyId);
+        const quint64 id = bodyId.toULongLong();
+
+        const std::optional<Eigen::Vector3d> bodyPosition = m_world->getBodyPosition(id);
         if (!bodyPosition.has_value()) {
             return false;
         }
@@ -551,7 +569,7 @@ namespace egret
             return false;
         }
 
-        m_dragBodyId = bodyId;
+        m_dragBodyId = id;
         m_dragMode = mode;
         m_dragStartBodyPosition = *bodyPosition;
         m_dragStartPlanePoint = planePoint;
@@ -670,27 +688,16 @@ namespace egret
 
     void SceneManagerViewModel::rebuildDemoWorld()
     {
-        SolverConfig config{};
+        if (m_world == nullptr) {
+            LOG_FATAL("SceneManagerViewModel::rebuildDemoWorld(): WorldSceneManager is nullptr");
+            return;
+        }
 
-        auto solver = std::make_unique<Solver>(
-            config,
-            std::make_unique<SemiImplicitEulerIntegratorStrategy>(),
-            std::make_unique<BruteForceBroadPhaseStrategy>(),
-            std::make_unique<FrictionlessContactResolverStrategy>());
-
-        m_world = std::make_unique<WorldSceneManager>(std::move(solver));
-        m_world->clear();
         m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
-
-
         std::uint64_t id1 = m_world->spawnSphere("123", {0, 0, 300}, {0, 0, 0}, 10, 10);
         std::uint64_t id2 = m_world->spawnSphere("456", {0, 0, 400}, {0, 0, 0}, 10, 0);
-
-
         // 创建一个弹性系数 50 N/m、原长 300m 的弹簧，连接 bodyA 和 bodyB
         m_world->createSpring("MySpring", 50.0, 100.0, id2, id1);
-
-
         // std::uint64_t idBox = m_world->spawnBox("", {0, 0, 50}, {0, 0, 0}, {100, 100, 30}, 1);
         //
         // auto box = m_world->getEntity(idBox);
@@ -706,6 +713,7 @@ namespace egret
         //
         // box->setRotation(R);
         // box->setAngular({10, 10, 10});
+
         std::uint64_t id3 = m_world->spawnSphere("1", {100, 100, 490}, {0, 0,  0}, 10, 10);
         // std::uint64_t idBox1 = m_world->spawnBox("2", {0, 0, 100}, {0, 0, 0}, {10, 10, 30}, 10);
         std::uint64_t idBox2 = m_world->spawnBox("3", {0, 0, 0}, {0, 0, 0}, {1000, 1000, 130}, 0);
@@ -904,43 +912,47 @@ namespace egret
 
     void SceneManagerViewModel::build3BodyModel() const
     {
-        {
-            auto generateField{
-                [&](const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass,
-                    double coupling_G = G)
-                {
-                    static int i = 0;
-                    i++;
-                    auto gravitationalField = std::make_shared<GravitationalField>(
-                        position,
-                        speed,
-                        mass, coupling_G,
-                        false, i);
 
-                    GravitationalField::setMinDistanceSquared(1600);
-
-                    // gravitationalField->setCouplingCoefficient(1.0);
-                    auto gravFieldEntity = std::static_pointer_cast<PhysicalEntity>(gravitationalField);
-                    auto gravFieldBase = std::static_pointer_cast<FieldBase>(gravitationalField);
-                    static int id = 0;
-                    id++;
-                    QString bodyName{"测试引力源"};
-                    bodyName += QString::number(i);
-                    QString fieldName{"引力场"};
-                    fieldName += QString::number(i);
-
-                    m_world->registerBodyField(bodyName.toStdString(),
-                                               fieldName.toStdString(),
-                                               gravFieldEntity,
-                                               gravFieldBase,
-                                               std::make_unique<ShapeSphere>(10.0));
-                }
-            };
-
-            generateField({300, 0, -1}, {0, 75, 100}, 200, 50000);
-            generateField({-150, 259.8, 100}, {-120, -45, 43}, 100, 50000);
-            generateField({-150, -259.8, -300}, {-120, 45, 23}, 50, 50000);
+        if (m_world == nullptr) {
+            LOG_FATAL("SceneManagerViewModel::build3BodyModel(): m_world == nullptr");
+            return;
         }
+        auto generateField{
+            [&](const Eigen::Vector3d& position, const Eigen::Vector3d& speed, double mass,
+                double coupling_G = G)
+            {
+                static int i = 0;
+                i++;
+                auto gravitationalField = std::make_shared<GravitationalField>(
+                    position,
+                    speed,
+                    mass, coupling_G,
+                    false, i);
+
+                GravitationalField::setMinDistanceSquared(1600);
+
+                // gravitationalField->setCouplingCoefficient(1.0);
+                auto gravFieldEntity = std::static_pointer_cast<PhysicalEntity>(gravitationalField);
+                auto gravFieldBase = std::static_pointer_cast<FieldBase>(gravitationalField);
+                static int id = 0;
+                id++;
+                QString bodyName{"测试引力源"};
+                bodyName += QString::number(i);
+                QString fieldName{"引力场"};
+                fieldName += QString::number(i);
+
+                m_world->registerBodyField(bodyName.toStdString(),
+                                           fieldName.toStdString(),
+                                           gravFieldEntity,
+                                           gravFieldBase,
+                                           std::make_unique<ShapeSphere>(10.0));
+            }
+        };
+
+        generateField({300, 0, -1}, {0, 75, 100}, 200, 50000);
+        generateField({-150, 259.8, 100}, {-120, -45, 43}, 100, 50000);
+        generateField({-150, -259.8, -300}, {-120, 45, 23}, 50, 50000);
+
     }
 
     void SceneManagerViewModel::refreshConstraintModel()
