@@ -586,48 +586,91 @@ ColumnLayout {
                 property real m_loadTime: 0.0
                 property real m_restitution: 1.0
                 property string m_name: ""
-                //  property string m_source: ""
+
                 property int m_type: 0
-                // property color m_color: "#5CC8FF"
+
                 property vector3d m_pos: Qt.vector3d(0, 0, 0)
                 property vector3d m_scale: Qt.vector3d(1, 1, 1)
                 property quaternion m_rotation: Qt.quaternion(1, 0, 0, 0)
                 property vector3d m_initialVelo: Qt.vector3d(0, 0, 0)
                 property vector3d m_initialAnguVelo: Qt.vector3d(0, 0, 0)
 
+                property int m_fieldType: 0
+                property vector3d m_gravityAcceleration: Qt.vector3d(0, 0, 0)
+                property vector3d m_gravitationalFieldSource: Qt.vector3d(0, 0, 0)
+                property bool m_gravitationalFieldFixed: true
+                property vector3d m_gravitationalFieldVelo: Qt.vector3d(0, 0, 0)
+
+
                 property color m_baseColor: "#8FBCE8"
                 property real m_metalness: 0.2
                 property real m_roughness: 0.6
 
                 function serializeToJson() {
-                    // 从 EditorParameterManager 获取当前类型的几何参数
                     var geoParams = EditorParameterManager.collectAllValues();
+                    var category = EditorParameterManager.currentCategory;
+
+                    // 辅助：将 QVariantMap 中的 QVector3D 展平为数组
+                    function flattenParams(params) {
+                        var result = {};
+                        for (var key in params) {
+                            var val = params[key];
+                            if (val && typeof val.x !== "undefined") {
+                                result[key] = [val.x, val.y, val.z];
+                            } else {
+                                result[key] = val;
+                            }
+                        }
+                        return result;
+                    }
 
                     var data = {
                         entity_name: inspectorPanel.m_name,
                         entity_type: inspectorPanel.m_type,
-                        entity_mass: inspectorPanel.m_mass,
                         load_time: inspectorPanel.m_loadTime,
-                        restitution: inspectorPanel.m_restitution,
-                        position: [inspectorPanel.m_pos.x, inspectorPanel.m_pos.y, inspectorPanel.m_pos.z],
-                        scale: [inspectorPanel.m_scale.x, inspectorPanel.m_scale.y, inspectorPanel.m_scale.z],
-                        rotation: [inspectorPanel.m_rotation.scalar, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z],
-                        initial_velocity: [inspectorPanel.m_initialVelo.x, inspectorPanel.m_initialVelo.y, inspectorPanel.m_initialVelo.z],
-                        initial_angular_velocity: [inspectorPanel.m_initialAnguVelo.x, inspectorPanel.m_initialAnguVelo.y, inspectorPanel.m_initialAnguVelo.z],
-                        material_base_color: inspectorPanel.m_baseColor.toString(),
-                        material_metalness: inspectorPanel.m_metalness,
-                        material_roughness: inspectorPanel.m_roughness
+                        position: [inspectorPanel.m_pos.x, inspectorPanel.m_pos.y, inspectorPanel.m_pos.z]
                     };
 
-                    // 合并几何参数（key 已匹配后端 JSON 约定：circle_radius / box_size / length / height）
-                    for (var key in geoParams) {
-                        var val = geoParams[key];
-                        // 将 QVector3D 转换为数组（后端 JSON 解析期望数组格式）
-                        if (val && typeof val.x !== "undefined") {
-                            data[key] = [val.x, val.y, val.z];
-                        } else {
-                            data[key] = val;
+                    if (category === 0) {
+                        // ============ Shape ============
+                        data.entity_mass = inspectorPanel.m_mass;
+                        data.restitution = inspectorPanel.m_restitution;
+                        data.scale = [inspectorPanel.m_scale.x, inspectorPanel.m_scale.y, inspectorPanel.m_scale.z];
+                        data.rotation = [inspectorPanel.m_rotation.scalar, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z];
+                        data.initial_velocity = [inspectorPanel.m_initialVelo.x, inspectorPanel.m_initialVelo.y, inspectorPanel.m_initialVelo.z];
+                        data.initial_angular_velocity = [inspectorPanel.m_initialAnguVelo.x, inspectorPanel.m_initialAnguVelo.y, inspectorPanel.m_initialAnguVelo.z];
+                        data.material_base_color = inspectorPanel.m_baseColor.toString();
+                        data.material_metalness = inspectorPanel.m_metalness;
+                        data.material_roughness = inspectorPanel.m_roughness;
+
+                        // 几何参数
+                        var geoFlat = flattenParams(geoParams);
+                        for (var key in geoFlat) {
+                            if (key.indexOf("sub_") === 0 || key.indexOf("subsub_") === 0) continue;
+                            data[key] = geoFlat[key];
                         }
+                    } else if (category === 1) {
+                        // ============ Field ============
+                        data.field_type = inspectorPanel.m_type;
+
+                        // 直接从 EditorParameterManager 读取所有参数（唯一真实数据源）
+                        var allValues = EditorParameterManager.parameterValues;
+                        var fieldParams = flattenParams(allValues);
+
+                        // 同步到 inspectorPanel 的场属性（双向保持一致）
+                        inspectorPanel.m_gravityAcceleration = allValues["gravity"] || Qt.vector3d(0, 0, 0);
+                        inspectorPanel.m_gravitationalFieldSource = allValues["sourcePos"] || Qt.vector3d(0, 0, 0);
+                        inspectorPanel.m_gravitationalFieldFixed = allValues["fixed"] !== 0;
+                        var velo = allValues["sourceVelo"] || Qt.vector3d(0, 0, 0);
+                        inspectorPanel.m_gravitationalFieldVelo = velo;
+
+                        data.field_data = fieldParams;
+                    } else if (category === 2) {
+                        // ============ Constraint ============
+                        data.constraint_type = inspectorPanel.m_type;
+
+                        var constraintParams = flattenParams(geoParams);
+                        data.constraint_data = constraintParams;
                     }
 
                     var jsonData = JSON.stringify(data);

@@ -202,6 +202,11 @@ namespace egret
                     0.0, 0.0, 0.0, 0,
                     {QStringLiteral("否"), QStringLiteral("是")}
                 },
+                {
+                    QStringLiteral("sourceVelo"), QStringLiteral("场源初速度"),
+                    QStringLiteral("vector3d"), QVector3D(0.0f, 0.0f, 0.0f),
+                    -100000.0, 100000.0, 0.1, 3
+                },
             },
             0
         });

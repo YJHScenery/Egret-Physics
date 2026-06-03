@@ -113,10 +113,14 @@ namespace egret
 
         QVector3D m_initialVelo{};
         QVector3D m_initialAnguVelo{};
-        QColor m_baseColor{};
-        qreal m_metalness{};
-        qreal m_roughness{};
-        QString m_alphaMode{};
+        // QColor m_baseColor{};
+        // qreal m_metalness{};
+        // qreal m_roughness{};
+        // QString m_alphaMode{};
+        std::shared_ptr<MaterialData> m_materials{};
+
+        /** 透传的额外 JSON 负载（如 field_data / constraint_data） */
+        QJsonObject m_payload{};
     };
 
     /**
@@ -203,6 +207,11 @@ namespace egret
         [[nodiscard]] QSharedPointer<ModelItemData> clone() const;
         static ModelItemData *createCopy(const ModelItemData &source, QObject *parent = nullptr);
 
+        /** 直接读写 m_data 的 payload 字段，供 ModelManager 透传 field/constraint 数据 */
+        void setPayload(const QJsonObject &payload) { m_data.m_payload = payload; }
+        
+        [[nodiscard]] const QJsonObject &payload() const { return m_data.m_payload; }
+
     signals:
         void massChanged();
         void loadTimeChanged();
@@ -222,30 +231,11 @@ namespace egret
         void lengthChanged();
 
     private:
-        double m_mass{};
-        double m_loadTime{};
-        double m_restitution{1.0};
-        QString m_id{};
-        QString m_name{};
-        QString m_source{};
+        /** 所有数据字段统一存储，避免与 ModelItemDataField 重复 */
+        ModelItemDataField m_data{};
 
-        std::uint32_t m_type{};
+        // MaterialData *m_materials{};
 
-        std::optional<QVector3D> m_boxSize;
-        std::optional<double> m_radius;
-        std::optional<double> m_height;
-        std::optional<double> m_length;
-
-        QVector3D m_pos{};
-        QVector3D m_scale{1.0f, 1.0f, 1.0f};
-        QQuaternion m_rotation{1.0f, 0, 0, 0};
-
-        QVector3D m_initialVelo{};
-        QVector3D m_initialAnguVelo{};
-
-        MaterialData *m_materials{};
-
-        // 原则上不允许外部修改 m_source。
         void matchSource();
     };
 

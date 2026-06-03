@@ -51,9 +51,11 @@ namespace egret
         model->setParent(nullptr);
         if (QQmlEngine::objectOwnership(model) == QQmlEngine::JavaScriptOwnership) {
             qWarning() << "Object is already owned by QML engine!";
-            LOG_WARN_LITERAL("Object is already owned by QML engine!");
+            LOG_WARN("Object is already owned by QML engine!");
         }
         QQmlEngine::setObjectOwnership(model, QQmlEngine::CppOwnership);
+        // MaterialData 通过 shared_ptr 管理，也必须设为 CppOwnership 防止 QML 接管
+        QQmlEngine::setObjectOwnership(model->materials(), QQmlEngine::CppOwnership);
 
         QSharedPointer<ModelItemData> modelPtr(model);
         m_models[id] = modelPtr;
@@ -185,11 +187,13 @@ namespace egret
             newModel->setLength(data.m_length.value());
         }
 
-        newModel->materials()->setBaseColor(data.m_baseColor);
-        newModel->materials()->setMetalness(data.m_metalness);
-        newModel->materials()->setRoughness(data.m_roughness);
+        newModel->materials()->setBaseColor(data.m_materials->baseColor());
+        newModel->materials()->setMetalness(data.m_materials->metalness());
+        newModel->materials()->setRoughness(data.m_materials->roughness());
+        newModel->materials()->setAlphaMode(data.m_materials->alphaMode());
 
-        newModel->materials()->setAlphaMode("Opaque");
+        // 透传 field_data / constraint_data payload
+        newModel->setPayload(data.m_payload);
 
         // qDebug() << __func__ << "Create";
         return addModel(newModel);
@@ -240,9 +244,9 @@ namespace egret
         if (data.m_length.has_value()) {
             model->setLength(data.m_length.value());
         }
-        model->materials()->setBaseColor(data.m_baseColor);
-        model->materials()->setMetalness(data.m_metalness);
-        model->materials()->setRoughness(data.m_roughness);
+        model->materials()->setBaseColor(data.m_materials->baseColor());
+        model->materials()->setMetalness(data.m_materials->metalness());
+        model->materials()->setRoughness(data.m_materials->roughness());
 
         emit modelListChanged();
         return true;
