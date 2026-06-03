@@ -32,7 +32,7 @@
 #include "shape_sphere.h"
 #include "simple_pendulum.h"
 #include "sliding_rail.h"
-#include "uuid_generator.h"
+#include "unique_id_generator.h"
 #include "constraints/connecting_line.h"
 #include "constraints/simple_pendulum.h"
 #include "constraints/spring.h"
@@ -89,7 +89,7 @@ namespace egret
 
         auto record = std::make_unique<BodyRecord>();
         record->name = name;
-        record->entity = std::make_shared<RigidBody>(position, speed, mass, UuidGenerator::instance().generate());
+        record->entity = std::make_shared<RigidBody>(position, speed, mass, UniqueIDGenerator::instance().generate());
 
         record->entity->setShape(std::move(shape));
         // record->shape = std::move(shape);
@@ -109,7 +109,7 @@ namespace egret
         auto record = std::make_unique<BodyRecord>();
         record->name = name;
         record->entity = unique_ptr_cast<PhysicalEntity, PhysicsAbstract>(
-            std::move(entity->clone(UuidGenerator::instance().generate())));
+            std::move(entity->clone(UniqueIDGenerator::instance().generate())));
         record->entity->setShape(std::move(shape));
         m_bodies.push_back(std::move(record));
         rebuildSolverCaches();
@@ -229,7 +229,7 @@ namespace egret
     {
         auto record = std::make_unique<FieldRecord>();
         record->name = name;
-        record->field = std::make_shared<GravityField>(gravity, referencePoint, UuidGenerator::instance().generate());
+        record->field = std::make_shared<GravityField>(gravity, referencePoint, UniqueIDGenerator::instance().generate());
         m_fields.push_back(std::move(record));
         rebuildSolverCaches();
         return m_fields.back()->field->getId();
@@ -265,7 +265,7 @@ namespace egret
         }
 
         auto bodyRecord = std::make_unique<BodyRecord>();
-        const std::uint64_t id{UuidGenerator::instance().generate()};
+        const std::uint64_t id{UniqueIDGenerator::instance().generate()};
         bodyRecord->name = bodyName;
         bodyRecord->entity = unique_ptr_cast<PhysicalEntity, PhysicsAbstract>(std::move(entity->clone(id)));
         bodyRecord->entity->setShape(std::move(shape));
@@ -798,7 +798,7 @@ namespace egret
         record->name = name;
         record->constraint = constraint;
         record->enabled = true;
-        record->constraint->setId(UuidGenerator::instance().generate());
+        record->constraint->setId(UniqueIDGenerator::instance().generate());
         m_constraints.push_back(std::move(record));
         return m_constraints.back()->constraint->getId();
     }
@@ -818,7 +818,7 @@ namespace egret
         }
 
         auto constraint = std::make_shared<ConnectingLine>(
-            length, startBody->entity.get(), endBody->entity.get(), UuidGenerator::instance().generate(),
+            length, startBody->entity.get(), endBody->entity.get(), UniqueIDGenerator::instance().generate(),
             turningPositions);
 
         return registerConstraint(name, constraint);
@@ -834,7 +834,7 @@ namespace egret
 
         const auto simplePendulum{
             std::make_shared<SimplePendulum>(
-                length, anchorPos, body->entity.get(), UuidGenerator::instance().generate())
+                length, anchorPos, body->entity.get(), UniqueIDGenerator::instance().generate())
         };
 
         return registerConstraint(name, simplePendulum);
@@ -856,7 +856,7 @@ namespace egret
         auto spring = std::make_shared<Spring>(stiffness, restLength,
                                                bodyA->entity.get(),
                                                bodyB->entity.get(),
-                                               UuidGenerator::instance().generate());
+                                               UniqueIDGenerator::instance().generate());
 
         return registerConstraint(name, spring);
     }
@@ -872,7 +872,7 @@ namespace egret
             return 0;
         }
 
-        auto rod = std::make_shared<ConnectingRod>(length, bodyA->entity.get(), bodyB->entity.get(), UuidGenerator::instance().generate());
+        auto rod = std::make_shared<ConnectingRod>(length, bodyA->entity.get(), bodyB->entity.get(), UniqueIDGenerator::instance().generate());
         return registerConstraint(name, rod);
     }
 
@@ -888,7 +888,7 @@ namespace egret
         }
 
         auto support = std::make_shared<SupportSurface>(
-            UuidGenerator::instance().generate(),
+            UniqueIDGenerator::instance().generate(),
             std::move(surface));
 
         // 设置恢复系数
@@ -917,7 +917,7 @@ namespace egret
         }
 
         auto rail = std::make_shared<SlidingRail>(
-            UuidGenerator::instance().generate(),
+            UniqueIDGenerator::instance().generate(),
             std::move(curve));
 
         // 注册初始实体

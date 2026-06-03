@@ -2,19 +2,19 @@
 // Created by jehor on 2026/5/30.
 //
 
-#include "uuid_generator.h"
+#include "unique_id_generator.h"
 
 #include "os/windows/windows_config.h"
 
 namespace egret
 {
-    UuidGenerator& UuidGenerator::instance()
+    UniqueIDGenerator& UniqueIDGenerator::instance()
     {
-        static UuidGenerator instance;
+        static UniqueIDGenerator instance;
         return instance;
     }
 
-    uint64_t UuidGenerator::generate()
+    uint64_t UniqueIDGenerator::generate()
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -40,19 +40,19 @@ namespace egret
         return uuid;
     }
 
-    void UuidGenerator::resetCounter()
+    void UniqueIDGenerator::resetCounter()
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_counter = 0;
     }
 
-    uint64_t UuidGenerator::getCounter() const
+    uint64_t UniqueIDGenerator::getCounter() const
     {
         return m_counter.load();
     }
 
-    UuidGenerator::UuidGenerator() :
+    UniqueIDGenerator::UniqueIDGenerator() :
             m_counter(0),
             m_gen(m_rd()),
             m_dist(0, 0xFFFF)
@@ -63,7 +63,7 @@ namespace egret
         m_processId = getProcessId();
     }
 
-    uint64_t UuidGenerator::getMachineId()
+    uint64_t UniqueIDGenerator::getMachineId()
     {
         // 使用硬件信息或配置文件生成唯一ID
         // 简化版本：使用随机数
@@ -71,7 +71,7 @@ namespace egret
         return dist(m_gen);
     }
 
-    uint64_t UuidGenerator::getProcessId()
+    uint64_t UniqueIDGenerator::getProcessId()
     {
 #ifdef _WIN32
         return getWindowsCurrentProcessId() & 0x3FFull;
