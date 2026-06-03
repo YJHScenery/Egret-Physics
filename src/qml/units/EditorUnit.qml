@@ -453,9 +453,28 @@ ColumnLayout {
                         if (mouse.button === Qt.LeftButton
                             && editorCanvas.gizmoActive
                             && editorGizmo.activeElement !== TransformGizmo.UIElement.None) {
-                            // Gizmo 拖拽松手：先 handleRelease，再同步坐标到 inspectorPanel
+                            // Gizmo 拖拽松手 → handleRelease → 同步坐标 → 直接写 C++ 数据模型
                             editorGizmo.handleRelease();
-                            editorCanvas.syncGizmoToInspector();
+
+                            // 读取 Quick3D (y-up) 坐标，转换为数学 (z-up)
+                            var q3dPos = editorGizmo.targetNode.position;
+                            var q3dRot = editorGizmo.targetNode.rotation;
+                            var mathPos = editorCanvas.fromRenderPosition(q3dPos);
+                            var mathRot = editorCanvas.fromRenderRotation(q3dRot);
+
+                            // 同步到 inspectorPanel（UI 显示）
+                            inspectorPanel.m_pos = mathPos;
+                            inspectorPanel.m_rotation = mathRot;
+
+                            // 直接写入 C++ 数据模型 — 不触发 modelListChanged，Repeater3D 不重建
+                            var models = ModelManager.findModelsByName(editorCanvas.selectedObjectName);
+                            if (models.length > 0) {
+                                models[0].pos = mathPos;
+                                models[0].rotation = mathRot;
+                                console.log("Gizmo auto-saved — direct model update,"
+                                            + " delegate & gizmo preserved");
+                            }
+
                             editorCanvas.gizmoActive = false;
                         }
                     }
