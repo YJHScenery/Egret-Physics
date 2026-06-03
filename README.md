@@ -5,7 +5,11 @@
 
 一个现代化的物理模拟引擎，支持刚体动力学、碰撞检测和约束求解。
 
-![program_screenshot_v0.0.1](./README.assets/program_screenshot_v0.0.1.png)
+![program_screenshot_v1.0-Simulator](./README.assets/program_screenshot_v1.0-Simulator.png)
+
+![program_screenshot_v1.0-Editor](./README.assets/program_screenshot_v1.0-Editor.png)
+
+![program_screenshot_v1.0-Editor_2](./README.assets/program_screenshot_v1.0-Editor_2.png)
 
 ## 特性
 

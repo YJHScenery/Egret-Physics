@@ -496,6 +496,85 @@ ColumnLayout {
             spacing: 12
 
             GlassPanel {
+                id: gizmoSettingsPanel
+                Layout.fillWidth: true
+                Layout.preferredHeight: 150
+                title: "Gizmo 设置"
+
+                GridLayout {
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    columns: 2
+                    columnSpacing: 10
+                    rowSpacing: 6
+
+                    // ── 平移步长 ──
+                    Label {
+                        text: "平移步长"
+                        color: "#BFD8F4"
+                        font.pixelSize: 12
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        FloatField {
+                            id: linearSpeedField
+                            Layout.preferredWidth: 80
+                            suffix: "m"
+                            value: editorGizmo.linearSpeed
+                            from: 0.001
+                            to: 100.0
+                            stepSize: 0.01
+                            decimals: 3
+                            onValueChanged: editorGizmo.linearSpeed = value
+                        }
+                        Repeater {
+                            model: [0.1, 1.0, 5.0, 10.0]
+                            delegate: EgretPushButton {
+                                text: modelData
+                                pixelSize: 10
+                                implicitHeight: 22
+                                implicitWidth: 38
+                                onClicked: linearSpeedField.setValue(modelData)
+                            }
+                        }
+                    }
+
+                    // ── 旋转步长 ──
+                    Label {
+                        text: "旋转步长"
+                        color: "#BFD8F4"
+                        font.pixelSize: 12
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        FloatField {
+                            id: angularSpeedField
+                            Layout.preferredWidth: 80
+                            suffix: "°"
+                            value: editorGizmo.angularSpeed
+                            from: 0.1
+                            to: 180.0
+                            stepSize: 0.5
+                            decimals: 1
+                            onValueChanged: editorGizmo.angularSpeed = value
+                        }
+                        Repeater {
+                            model: [2.0, 5.0, 10.0, 20.0]
+                            delegate: EgretPushButton {
+                                text: modelData
+                                pixelSize: 10
+                                implicitHeight: 22
+                                implicitWidth: 32
+                                onClicked: angularSpeedField.setValue(modelData)
+                            }
+                        }
+                    }
+                }
+            }
+
+            GlassPanel {
                 id: inspectorPanel
                 Layout.fillWidth: true
                 Layout.fillHeight: true
