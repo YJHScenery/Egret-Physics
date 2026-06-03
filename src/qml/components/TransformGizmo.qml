@@ -342,21 +342,21 @@ Node {
             QtObject {
                 readonly property vector3d rot: Qt.vector3d(0, 0, -90)
                 readonly property vector3d vec: Qt.vector3d(1, 0, 0)
-                readonly property color col: "#f33"
+                readonly property color col: "#FF0000"
                 readonly property int elem: TransformGizmo.UIElement.BeamX
                 readonly property string objName: "beamX"
             },
             QtObject {
                 readonly property vector3d rot: Qt.vector3d(0, 0, 0)
                 readonly property vector3d vec: Qt.vector3d(0, 1, 0)
-                readonly property color col: "#3f3"
+                readonly property color col: "#00FF00"
                 readonly property int elem: TransformGizmo.UIElement.BeamY
                 readonly property string objName: "beamY"
             },
             QtObject {
                 readonly property vector3d rot: Qt.vector3d(90, 0, 0)
                 readonly property vector3d vec: Qt.vector3d(0, 0, 1)
-                readonly property color col: "#33f"
+                readonly property color col: "#0000FF"
                 readonly property int elem: TransformGizmo.UIElement.BeamZ
                 readonly property string objName: "beamZ"
             }

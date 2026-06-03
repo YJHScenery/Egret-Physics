@@ -111,6 +111,7 @@ ColumnLayout {
             Column {
                 id: shapeColumn
                 width: parent.width
+                
                 spacing: 4
 
                 Repeater {
