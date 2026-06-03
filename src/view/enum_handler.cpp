@@ -63,6 +63,20 @@ namespace egret
         return toQmlShapeId(stringToShape(str));
     }
 
+    QString EnumHandler::fieldTypeToString(int typeId)
+    {
+        const auto ft = static_cast<FieldType>(typeId);
+        const std::string_view view{magic_enum::enum_name<FieldType>(ft)};
+        return QString::fromUtf8(view.data(), view.size());
+    }
+
+    QString EnumHandler::constraintTypeToString(int typeId)
+    {
+        const auto ct = static_cast<ConstraintType>(typeId);
+        const std::string_view view{magic_enum::enum_name<ConstraintType>(ct)};
+        return QString::fromUtf8(view.data(), view.size());
+    }
+
     void EnumHandler::registerEnums()
     {
         qRegisterMetaType<ShapeType>("egret::ShapeID");

@@ -18,6 +18,8 @@
 #include <QObject>
 #include <QString>
 #include "shape_base.h"
+#include "field_base.h"
+#include "constraints_base.h"
 #include <QQmlComponent>
 
 namespace egret
@@ -75,6 +77,10 @@ namespace egret
         Q_INVOKABLE static ShapeType stringToShape(const QString &str);
 
         Q_INVOKABLE static ShapeTypeQml stringToShapeQml(const QString &str);
+
+        Q_INVOKABLE static QString fieldTypeToString(int typeId);
+
+        Q_INVOKABLE static QString constraintTypeToString(int typeId);
 
         static void registerEnums();
     };
