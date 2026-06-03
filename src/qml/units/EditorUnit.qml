@@ -489,9 +489,9 @@ ColumnLayout {
         }
 
         ColumnLayout {
-            Layout.preferredWidth: 370
-            Layout.minimumWidth: 370
-            Layout.maximumWidth: 370
+            Layout.preferredWidth: 320
+            Layout.minimumWidth: 320
+            Layout.maximumWidth: 320
             Layout.fillHeight: true
             spacing: 12
 
@@ -627,6 +627,7 @@ ColumnLayout {
                     var data = {
                         entity_name: inspectorPanel.m_name,
                         entity_type: inspectorPanel.m_type,
+                        category: category,
                         load_time: inspectorPanel.m_loadTime,
                         position: [inspectorPanel.m_pos.x, inspectorPanel.m_pos.y, inspectorPanel.m_pos.z]
                     };
