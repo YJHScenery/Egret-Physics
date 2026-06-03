@@ -14,15 +14,15 @@
 
 namespace egret
 {
-    class UuidGenerator
+    class UniqueIDGenerator
     {
     public:
         // 禁止拷贝和赋值
-        UuidGenerator(const UuidGenerator&) = delete;
-        UuidGenerator& operator=(const UuidGenerator&) = delete;
+        UniqueIDGenerator(const UniqueIDGenerator&) = delete;
+        UniqueIDGenerator& operator=(const UniqueIDGenerator&) = delete;
 
         // 获取单例实例
-        static UuidGenerator& instance();
+        static UniqueIDGenerator& instance();
 
         // 生成UUID
         uint64_t generate();
@@ -35,10 +35,10 @@ namespace egret
 
     private:
         // 私有构造函数
-        UuidGenerator();
+        UniqueIDGenerator();
 
         // 析构函数
-        ~UuidGenerator() = default;
+        ~UniqueIDGenerator() = default;
 
         uint64_t getMachineId();
 

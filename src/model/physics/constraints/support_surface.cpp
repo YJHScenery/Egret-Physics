@@ -9,7 +9,7 @@
 #include "support_surface.h"
 
 #include "physical_entity.h"
-#include "uuid_generator.h"
+#include "unique_id_generator.h"
 
 namespace egret
 {

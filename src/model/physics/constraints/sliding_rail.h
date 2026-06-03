@@ -86,7 +86,7 @@ namespace egret
         ~SlidingRail() override = default;
 
         // 禁止拷贝，允许移动
-        SlidingRail(SlidingRail&&) = default;
+        SlidingRail(SlidingRail&&)  noexcept = default;
         SlidingRail& operator=(SlidingRail&&) = default;
 
         // ==================== 约束接口重写 ====================
