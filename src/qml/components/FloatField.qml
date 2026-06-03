@@ -31,8 +31,11 @@ Item {
     property int decimals: 3
     property real value: 0
 
+    // ── 前缀 / 后缀（如单位 "m"、"°"） ──
+    property string suffix: ""
+
     implicitHeight: 28
-    implicitWidth: 120
+    implicitWidth: suffix !== "" ? 140 : 120
 
     function clampValue(v) {
         return Math.max(from, Math.min(to, v));
@@ -47,9 +50,8 @@ Item {
         if (Math.abs(clamped - value) > 0.0000001) {
             value = clamped;
         }
-        if (!field.activeFocus) {
-            field.text = formatValue(value);
-        }
+        // 始终更新文本显示：外部 setValue（如预设按钮）在编辑中也需要即时反映
+        field.text = formatValue(value);
     }
 
     Rectangle {
@@ -68,7 +70,7 @@ Item {
             horizontalAlignment: Text.AlignLeft
             verticalAlignment: Text.AlignVCenter
             leftPadding: 10
-            rightPadding: 10
+            rightPadding: suffix !== "" ? suffixLabel.implicitWidth + 14 : 10
             selectByMouse: true
             inputMethodHints: Qt.ImhFormattedNumbersOnly
             background: null
@@ -88,6 +90,18 @@ Item {
                 root.setValue(parsed);
                 text = formatValue(root.value);
             }
+        }
+
+        // ── 后缀标签（单位） ──
+        Text {
+            id: suffixLabel
+            anchors.right: parent.right
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.suffix
+            color: "#9EC4EA"
+            font.pixelSize: 11
+            visible: root.suffix !== ""
         }
     }
 
