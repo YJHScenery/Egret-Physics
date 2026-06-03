@@ -64,6 +64,7 @@ ColumnLayout {
                 property real gridSpacing: 100
                 property int gridCount: 401
                 property point lastMousePoint: Qt.point(0, 0)
+                property bool gizmoActive: false
 
                 function clamp(value, minValue, maxValue) {
                     return Math.max(minValue, Math.min(maxValue, value));
@@ -95,6 +96,32 @@ ColumnLayout {
 
                 function toRenderVector(x, y, z) {
                     return Qt.vector3d(x, z, y);
+                }
+
+                // ── Quick3D (y-up) → 数学坐标系 (z-up) 逆向转换 ──
+                // 正向: buildQuick3DRenderPosition  (math.y, math.z, math.x)
+                // 逆向: (q3d.z, q3d.x, q3d.y)
+
+                function fromRenderPosition(pos) {
+                    return Qt.vector3d(pos.z, pos.x, pos.y);
+                }
+
+                // 正向: buildQuick3DRenderRotation  (math.scalar, math.y, math.z, math.x)
+                // 逆向: (q3d.scalar, q3d.z, q3d.x, q3d.y)
+
+                function fromRenderRotation(quat) {
+                    return Qt.quaternion(quat.scalar, quat.z, quat.x, quat.y);
+                }
+
+                // Gizmo 拖拽松手后，将 Quick3D 坐标同步到 inspectorPanel（数学 z-up）
+                function syncGizmoToInspector() {
+                    if (!editorGizmo.targetNode) return;
+                    var q3dPos = editorGizmo.targetNode.position;
+                    var q3dRot = editorGizmo.targetNode.rotation;
+                    inspectorPanel.m_pos = fromRenderPosition(q3dPos);
+                    inspectorPanel.m_rotation = fromRenderRotation(q3dRot);
+                    console.log("Gizmo released — math pos:", inspectorPanel.m_pos,
+                                "math rot:", inspectorPanel.m_rotation);
                 }
 
                 function updateCameraPose() {
@@ -216,6 +243,56 @@ ColumnLayout {
 
                             }
                         }
+
+                    }
+                }
+
+                // ── Gizmo 叠加层 (独立 View3D, Offscreen, 透明背景) ──
+
+                View3D {
+                    id: gizmoView
+                    anchors.fill: parent
+                    renderMode: View3D.Offscreen
+                    camera: gizmoCamera
+                    z: 1
+
+                    environment: SceneEnvironment {
+                        clearColor: "#00000000"
+                        backgroundMode: SceneEnvironment.Transparent
+                    }
+
+                    PerspectiveCamera {
+                        id: gizmoCamera
+                        position: editorCamera.position
+                        rotation: editorCamera.rotation
+                        clipNear: editorCamera.clipNear
+                        clipFar: editorCamera.clipFar
+                        fieldOfView: editorCamera.fieldOfView
+                    }
+
+                    DirectionalLight {
+                        eulerRotation: Qt.vector3d(-35, 25, 15)
+                        brightness: 1.6
+                    }
+
+                    TransformGizmo {
+                        id: editorGizmo
+                        view3d: gizmoView
+                        camera: gizmoCamera
+                        visible: targetNode !== null
+                        canScale: false
+
+                        // 动态缩放：gizmo 大小随相机距离变化
+                        size: {
+                            var dist = absolutePosition.minus(gizmoCamera.position).length();
+                            return Math.max(0.1, 0.125 * dist);
+                        }
+
+                        Component.onCompleted: {
+                            console.log("TransformGizmo created — view3d:",
+                                        view3d ? "OK" : "NULL",
+                                        "camera:", camera ? "OK" : "NULL")
+                        }
                     }
                 }
 
@@ -276,41 +353,68 @@ ColumnLayout {
                     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                     preventStealing: true
 
+                    // ── 辅助：将选中实体的数据加载到 inspectorPanel ──
+                    function loadModelToInspector(modelName) {
+                        var models = ModelManager.findModelsByName(modelName);
+                        if (models.length === 0) return false;
+
+                        var model = models[0];
+                        inspectorPanel.m_name = model.name;
+                        inspectorPanel.m_mass = model.mass;
+                        inspectorPanel.m_loadTime = model.loadTime;
+                        inspectorPanel.m_restitution = model.restitution;
+                        inspectorPanel.m_pos = Qt.vector3d(model.pos.x, model.pos.y, model.pos.z);
+                        inspectorPanel.m_scale = Qt.vector3d(model.scale.x, model.scale.y, model.scale.z);
+                        inspectorPanel.m_rotation = model.rotation;
+                        inspectorPanel.m_initialVelo = model.initialVelo;
+                        inspectorPanel.m_initialAnguVelo = model.initialAnguVelo;
+
+                        inspectorPanel.m_baseColor = model.materials.baseColor;
+                        inspectorPanel.m_metalness = model.materials.metalness;
+                        inspectorPanel.m_roughness = model.materials.roughness;
+
+                        inspectorColumn.syncTypeAndGeometryToUi(model);
+                        operatingButton.isCreateMode = false;
+                        return true;
+                    }
+
                     onPressed: function (mouse) {
                         editorCanvas.lastMousePoint = Qt.point(mouse.x, mouse.y);
-                        if (mouse.button === Qt.LeftButton) {
-                            const pickResult = editorView.pick(mouse.x, mouse.y);
-                            if (pickResult && pickResult.objectHit) {
-                                editorCanvas.selectedObjectName = pickResult.objectHit.objectName;
-                                // inspectorPanel.m_pos.x =
-                                var models = ModelManager.findModelsByName(editorCanvas.selectedObjectName);
-                                if (models.length > 0) {
-                                    var model = models[0];
+                        if (mouse.button !== Qt.LeftButton) return;
 
-                                    // 通用属性
-                                    inspectorPanel.m_name = model.name;
-                                    inspectorPanel.m_mass = model.mass;
-                                    inspectorPanel.m_loadTime = model.loadTime;
-                                    inspectorPanel.m_restitution = model.restitution;
-                                    inspectorPanel.m_pos = Qt.vector3d(model.pos.x, model.pos.y, model.pos.z);
-                                    inspectorPanel.m_scale = Qt.vector3d(model.scale.x, model.scale.y, model.scale.z);
-                                    inspectorPanel.m_rotation = model.rotation;
-                                    inspectorPanel.m_initialVelo = model.initialVelo;
-                                    inspectorPanel.m_initialAnguVelo = model.initialAnguVelo;
-
-                                    // 材质属性
-                                    inspectorPanel.m_baseColor = model.materials.baseColor;
-                                    inspectorPanel.m_metalness = model.materials.metalness;
-                                    inspectorPanel.m_roughness = model.materials.roughness;
-
-                                    // 类型 + 几何参数 — 委托给独立函数
-                                    inspectorColumn.syncTypeAndGeometryToUi(model);
-
-                                    operatingButton.isCreateMode = false;
+                        // 优先检测 Gizmo 交互（在独立的 gizmoView 中拾取）
+                        if (editorGizmo.visible) {
+                            const gizmoPick = gizmoView.pick(mouse.x, mouse.y);
+                            if (gizmoPick && gizmoPick.objectHit) {
+                                editorGizmo.handlePress(gizmoPick);
+                                if (editorGizmo.activeElement !== TransformGizmo.UIElement.None) {
+                                    editorCanvas.gizmoActive = true;
+                                    return;
                                 }
-                            } else {
-                                editorCanvas.selectedObjectName = "";
                             }
+                        }
+
+                        // 场景物体拾取（在 editorView 中）
+                        const pickResult = editorView.pick(mouse.x, mouse.y);
+                        if (!pickResult || !pickResult.objectHit) {
+                            // 点击空白：取消选中 + detach Gizmo
+                            editorCanvas.selectedObjectName = "";
+                            editorGizmo.detach();
+                            editorCanvas.gizmoActive = false;
+                            return;
+                        }
+
+                        const objName = pickResult.objectHit.objectName;
+
+                        // 点击实体模型 → 选中 + attach Gizmo
+                        editorCanvas.selectedObjectName = objName;
+                        editorCanvas.gizmoActive = false;
+                        if (loadModelToInspector(objName)) {
+                            console.log("Attaching gizmo to:", objName,
+                                        "pos:", pickResult.objectHit.position);
+                            editorGizmo.attachTo(pickResult.objectHit);
+                            console.log("Gizmo visible:", editorGizmo.visible,
+                                        "targetNode:", editorGizmo.targetNode ? "set" : "null");
                         }
                     }
 
@@ -319,6 +423,19 @@ ColumnLayout {
                         const dy = mouse.y - editorCanvas.lastMousePoint.y;
                         editorCanvas.lastMousePoint = Qt.point(mouse.x, mouse.y);
 
+                        // ── Gizmo 拖拽中 ──
+                        if (editorGizmo.activeElement !== TransformGizmo.UIElement.None) {
+                            editorGizmo.handleDrag(dx, dy);
+                            return;
+                        }
+
+                        // ── Hover 追踪（Gizmo 可见时，在 gizmoView 中拾取） ──
+                        if (editorGizmo.visible && mouse.buttons === Qt.NoButton) {
+                            const gizmoPick = gizmoView.pick(mouse.x, mouse.y);
+                            editorGizmo.handleHover(gizmoPick);
+                        }
+
+                        // ── 相机轨道（右键 / 中键） ──
                         if ((mouse.buttons & Qt.RightButton) !== 0) {
                             editorCanvas.orbitYaw -= dx * 0.22;
                             editorCanvas.orbitPitch = editorCanvas.clamp(editorCanvas.orbitPitch - dy * 0.2, 10, 85);
@@ -329,6 +446,17 @@ ColumnLayout {
                             editorCanvas.orbitTargetX -= dx * 1.6;
                             editorCanvas.orbitTargetY += dy * 1.6;
                             editorCanvas.updateCameraPose();
+                        }
+                    }
+
+                    onReleased: function (mouse) {
+                        if (mouse.button === Qt.LeftButton
+                            && editorCanvas.gizmoActive
+                            && editorGizmo.activeElement !== TransformGizmo.UIElement.None) {
+                            // Gizmo 拖拽松手：先 handleRelease，再同步坐标到 inspectorPanel
+                            editorGizmo.handleRelease();
+                            editorCanvas.syncGizmoToInspector();
+                            editorCanvas.gizmoActive = false;
                         }
                     }
 
@@ -1561,8 +1689,11 @@ ColumnLayout {
                                     ModelManager.addModelByJsonString(inspectorPanel.serializeToJson());
                                     console.log("Create Successfully");
                                 } else {
+                                    // 修改前先 detach Gizmo，避免 Repeater3D 重建后持有悬空 Node 引用
+                                    editorGizmo.detach();
+                                    editorCanvas.gizmoActive = false;
                                     ModelManager.modifyModelByJsonString(inspectorPanel.serializeToJson());
-                                    console.log("Modify Successfully");
+                                    console.log("Modify Successfully — gizmo detached before model refresh");
                                 }
                             }
                         }
