@@ -89,12 +89,6 @@ namespace egret
         // Ċ = n · (v_entity - v_anchor)
         double dv = n.dot(vEntity - vAnchor);
 
-        // 如果相对速度是收缩方向（dv <= 0），不施加约束
-        // 只有当摆动物体正在远离锚点时才施加约束
-        if (dv <= 0) {
-            return;
-        }
-
         // 获取摆动物体的质量（锚点质量为0，不参与修正）
         double mEntity = m_entity->getMass();
 
@@ -102,17 +96,21 @@ namespace egret
             return; // 摆动物体是固定的，无法修正
         }
 
-        // 有效质量就是摆动物体的质量
-        double invMeff = 1.0 / mEntity;
+        // 如果相对速度是收缩方向（dv <= 0），不施加约束
+        // 只有当摆动物体正在远离锚点时才施加约束
+        if (dv <= 0) {
+            return;
+        }
 
-        // 计算冲量标量
-        // λ = -Ċ / M_eff
-        double lambda = -dv / invMeff;
-
-        // 应用冲量：只修正摆动物体
-        // Δv = λ * n / m
-        Eigen::Vector3d deltaV = lambda * n / mEntity;
-        m_entity->setSpeed(vEntity + deltaV);
+        // 能量守恒的速度重定向：将速度中的向外径向分量去除，
+        // 同时将去除的能量转移到切向分量上，保持速率不变。
+        // 物理上，理想绳约束力始终垂直于速度（不做功），
+        // 仅改变速度方向，不改变其大小。
+        Eigen::Vector3d vTangent = vEntity - dv * n;
+        double tangentNorm = vTangent.norm();
+        if (tangentNorm > 1e-10) {
+            m_entity->setSpeed(vTangent * (vEntity.norm() / tangentNorm));
+        }
     }
 
     void SimplePendulum::applyPositionConstraint(double dt)
@@ -143,6 +141,30 @@ namespace egret
         // 修正摆动物体的位置（锚点不能移动）
         Eigen::Vector3d newEntityPos = entityPos - n * error;
         m_entity->setPosition(newEntityPos);
+
+        // 位置修正改变了重力势能，需同步调整动能以保持总能量守恒。
+        // ΔPE = m·g·Δp = m·g·(-n·error) = -m·error·(g·n)
+        // 令 ΔKE = -ΔPE，即 ½·m·(v'² - v²) = m·error·(g·n)
+        // → v'² = v² - 2·error·(a·n)    （a = F/m，对单摆即重力加速度g）
+        Eigen::Vector3d vEntity = m_entity->getVelocity();
+        double mEntity = m_entity->getMass();
+        Eigen::Vector3d acceleration = m_entity->getJoinForce() / mEntity;
+
+        double speedSq = vEntity.squaredNorm();
+        double energyComp = -2.0 * error * acceleration.dot(n);
+        double targetSpeedSq = speedSq + energyComp;
+        if (targetSpeedSq < 0.0) {
+            targetSpeedSq = 0.0;
+        }
+        double targetSpeed = std::sqrt(targetSpeedSq);
+
+        // 重定向速度到切向，使用势能补偿后的目标速率
+        double radialV = n.dot(vEntity);
+        Eigen::Vector3d vTangent = vEntity - radialV * n;
+        double tangentNorm = vTangent.norm();
+        if (tangentNorm > 1e-10) {
+            m_entity->setSpeed(vTangent * (targetSpeed / tangentNorm));
+        }
     }
 
     std::unique_ptr<PhysicsAbstract> SimplePendulum::clone(const std::uint64_t id) const
