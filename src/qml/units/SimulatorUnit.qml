@@ -827,7 +827,7 @@ ColumnLayout {
                                 font.pixelSize: 11
 
                                 onTextChanged: {
-                                    //  console.log(bodyId + ": " + bodyVelocity);
+                                    console.log(bodyId + ": " + bodyVelocity);
 
                                 }
                             }
@@ -838,7 +838,7 @@ ColumnLayout {
                                 //
                                 //
                                 onTextChanged: {
-                                    // console.log(bodyId + ": " + bodyPosition);
+                                    console.log(bodyId + ": " + bodyPosition);
                                 }
                             }
 

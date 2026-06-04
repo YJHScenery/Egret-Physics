@@ -330,7 +330,7 @@ namespace egret
         auto solver = std::make_unique<Solver>(
             config,
             std::make_unique<VelocityVerletIntegratorStrategy>(),
-            std::make_unique<MultiProcessBruteForceBroadPhaseStrategy>(),
+            std::make_unique<BruteForceBroadPhaseStrategy>(),
             std::make_unique<FrictionalContactResolverStrategy>());
 
         m_world = std::make_unique<WorldSceneManager>(std::move(solver));
@@ -693,195 +693,53 @@ namespace egret
             return;
         }
 
-        m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
-        std::uint64_t id1 = m_world->spawnSphere("123", {0, 0, 300}, {0, 0, 0}, 10, 10);
-        std::uint64_t id2 = m_world->spawnSphere("456", {0, 0, 400}, {0, 0, 0}, 10, 0);
-        // 创建一个弹性系数 50 N/m、原长 300m 的弹簧，连接 bodyA 和 bodyB
-        m_world->createSpring("MySpring", 50.0, 100.0, id2, id1);
-        // std::uint64_t idBox = m_world->spawnBox("", {0, 0, 50}, {0, 0, 0}, {100, 100, 30}, 1);
-        //
-        // auto box = m_world->getEntity(idBox);
-        //
-        // Eigen::Matrix3d R;
-        // double angle = 30.0 * M_PI / 180.0;  // 转为弧度
-        // double c = std::cos(angle);
-        // double s = std::sin(angle);
-        //
-        // R << 1, 0,  0,
-        //      0, c, -s,
-        //      0, s,  c;
-        //
-        // box->setRotation(R);
-        // box->setAngular({10, 10, 10});
-
-        std::uint64_t id3 = m_world->spawnSphere("1", {100, 100, 490}, {0, 0,  0}, 10, 10);
-        // std::uint64_t idBox1 = m_world->spawnBox("2", {0, 0, 100}, {0, 0, 0}, {10, 10, 30}, 10);
         std::uint64_t idBox2 = m_world->spawnBox("3", {0, 0, 0}, {0, 0, 0}, {10000, 10000, 130}, 0);
 
 
-        std::uint64_t id4 = m_world->spawnSphere("阻力测试", {300, 200, 400}, {0, 200, 0}, 10, 100);
+
+        m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
+        std::uint64_t id1 = m_world->spawnSphere("123", {0, 0, 300}, {0, 0, 0}, 10, 10);
+        std::uint64_t id2 = m_world->spawnSphere("456", {0, 0, 400}, {0, 0, 0}, 10, 0);
+        m_world->createSpring("MySpring", 50.0, 100.0, id2, id1);
+
+
+        std::uint64_t id4 = m_world->spawnSphere("456", {0, 100, 800}, {0, 0, 0}, 10, 5);
+        m_world->createSimplePendulum("", 100, {0, 0, 800}, id4);
+
+
+        std::uint64_t id5 = m_world->spawnSphere("阻力测试", {300, 200, 400}, {0, 200, 0}, 10, 100);
         std::unique_ptr<AirResistance> airResistance = std::make_unique<AirResistance>(UniqueIDGenerator::instance().generate());
-        // airResistance->registerEntity(m_world->getEntity(id4));
-        auto body = dynamic_cast<RigidBody*>(m_world->getEntity(id4));
+        auto body = dynamic_cast<RigidBody*>(m_world->getEntity(id5));
         airResistance->addEntity(body, DragConfig{
             .model = DragModel::Quadratic,
             .dragCoefficient = 0.47,
-            // .crossSectionArea = quickSquare(dynamic_cast<ShapeSphere*>(body->getShape().get())->getRadius()) * PI
         });
+
+
+        std::uint64_t id6 = m_world->spawnSphere("123", {-100, 100, 300}, {0, 0, 0}, 10, 10);
+        std::uint64_t id7 = m_world->spawnSphere("456", {-100, 100, 400}, {0, 0, 0}, 10, 0);
+        m_world->createSpring("MySpring", 50.0, 100.0, id6, id7);
+        auto body2 = dynamic_cast<RigidBody*>(m_world->getEntity(id6));
+        airResistance->addEntity(body2, DragConfig{
+            .model = DragModel::Quadratic,
+            .dragCoefficient = 0.07,
+        });
+
+
 
         m_world->registerConstraint("Air Resistance", std::move(airResistance));
 
-
-        qDebug() << id1 << id2 << id3 << idBox2;
-
-
-        for (int i = 0; i < 100; ++i) {
-            m_world->spawnSphere("并行测试" + std::to_string(i), {300, 210 + i * 10.0, 420 + i * 20.0}, {0, 0, 0}, 10, 10);
-        }
-        m_world->spawnSphere("并行测试2", {300, 220, 440}, {0, 0, 0}, 10, 10);
-        m_world->spawnSphere("并行测试3", {300, 230, 450}, {0, 0, 0}, 10, 10);
-
-        // === SlidingRail 滑轨约束测试 ===
-        // 测试 1：圆柱螺旋线轨道
-        // 螺旋线半径 150，轴向速度 30，4 圈（≈ 8π）
-        // 在螺旋线起点附近生成两个球体，注册到滑轨上
-        // {
-        //     constexpr double helixRadius = 150.0;
-        //     constexpr double helixAxialSpeed = 30.0;
-        //     constexpr double helixEndT = 8.0 * std::numbers::pi;
         //
-        //     const double startX = 0.0;
-        //     const double startY = 0.0;
-        //     const double startZ = 200.0;
+        // qDebug() << id1 << id2 << id3 << idBox2;
         //
-        //     // 在螺旋线起点附近创建两个测试球体
-        //     std::uint64_t railBody1 = m_world->spawnSphere(
-        //         "RailBall1", {startX + 0, startY + 0, startZ + 0},
-        //         {50, 0, 0}, 10, 10);
-        //     std::uint64_t railBody2 = m_world->spawnSphere(
-        //         "RailBall2", {startX + 0, startY + 0, startZ + 100},
-        //         {80, 0, 30}, 10, 10);
         //
-        //     auto helix = std::make_unique<CurveHelix>(
-        //         helixRadius, helixAxialSpeed, helixEndT);
-        //     m_world->createSlidingRail("HelixRail", std::move(helix),
-        //                                {railBody1, railBody2});
+        // for (int i = 0; i < 100; ++i) {
+        //     m_world->spawnSphere("并行测试" + std::to_string(i), {300, 210 + i * 10.0, 420 + i * 20.0}, {0, 0, 0}, 10, 10);
         // }
+        // m_world->spawnSphere("并行测试2", {300, 220, 440}, {0, 0, 0}, 10, 10);
+        // m_world->spawnSphere("并行测试3", {300, 230, 450}, {0, 0, 0}, 10, 10);
 
-        // 测试 2：贝塞尔曲线轨道
-        // 3 个控制点，形成一条从 (0, 400, 300) 到 (300, 700, 300) 的弧线
-        // {
-        //     std::vector<Eigen::Vector3d> controlPoints = {
-        //         {0.0, 400.0, 300.0},
-        //         {150.0, 550.0, 500.0},
-        //         {300.0, 700.0, 300.0},
-        //     };
-        //
-        //     std::uint64_t railBody3 = m_world->spawnSphere(
-        //         "RailBall3", {0, 400, 300},
-        //         {30, 30, 10}, 10, 10);
-        //
-        //     auto bezier = std::make_unique<CurveBezier>(std::move(controlPoints));
-        //     m_world->createSlidingRail("BezierRail", std::move(bezier),
-        //                                {railBody3});
-        // }
 
-        // // m_world->createConnectingLine("114514", 140, id1, id2);
-        //
-        //
-        // std::uint64_t id3 = m_world->spawnSphere("123", {10, 120, 120}, {0, 0, 0}, 10, 10);
-        // m_world->createSimplePendulum("1", 150, {10, 200, 200}, id3);
-        // // m_world->createSpring("MySpring2", 50.0, 100.0, id3, id1);
-        //
-        // qDebug() << id1 << id2 << id3;
-        //
-        // m_surfaceModel.setPlaneExtent(2000.0);
-        //
-        // // === 创建 Bezier 曲面 SupportSurface 用于测试 ===
-        // // 4x4 控制点网格，形成一个中心隆起的缓坡曲面
-        // // 偏移到 (300, -150, 0) 处，避免与地面平面重叠
-        // using CP = std::array<std::array<Eigen::Vector3d, 4>, 4>;
-        // CP bezierCP = {
-        //     {
-        //         {
-        //             {
-        //                 Eigen::Vector3d{0, 0, 0}, Eigen::Vector3d{100, 0, 10},
-        //                 Eigen::Vector3d{200, 0, 10}, Eigen::Vector3d{300, 0, 0}
-        //             }
-        //         },
-        //         {
-        //             {
-        //                 Eigen::Vector3d{0, 100, 10}, Eigen::Vector3d{100, 100, 60},
-        //                 Eigen::Vector3d{200, 100, 80}, Eigen::Vector3d{300, 100, 10}
-        //             }
-        //         },
-        //         {
-        //             {
-        //                 Eigen::Vector3d{0, 200, 10}, Eigen::Vector3d{100, 200, 80},
-        //                 Eigen::Vector3d{200, 200, 60}, Eigen::Vector3d{300, 200, 10}
-        //             }
-        //         },
-        //         {
-        //             {
-        //                 Eigen::Vector3d{0, 300, 0}, Eigen::Vector3d{100, 300, 10},
-        //                 Eigen::Vector3d{200, 300, 10}, Eigen::Vector3d{300, 300, 0}
-        //             }
-        //         }
-        //     }
-        // };
-        //
-        // // 整体偏移到场景中的目标位置
-        // const Eigen::Vector3d bezierOffset{200, -150, 100};
-        //
-        // for (auto& row : bezierCP) {
-        //     for (auto& cp : row) {
-        //         cp += bezierOffset;
-        //     }
-        // }
-        //
-        // // 在 Bezier 曲面上方生成两个测试球体
-        // std::uint64_t id4 = m_world->spawnSphere("b1", {300, -50, 500}, {0, 0, 0}, 10, 10);
-        // std::uint64_t id5 = m_world->spawnSphere("b2", {250, 100, 450}, {0, 0, 0}, 10, 10);
-        //
-        //
-        // m_world->createSpring("MySpring2", 50.0, 100.0, id5, id1);
-        // m_world->createSpring("MySpring2", 50.0, 100.0, id5, id4);
-        //
-        // auto bezier = std::make_unique<SurfaceBezier>(bezierCP);
-        // m_world->createSupportSurface(
-        //     "BezierHill",
-        //     std::move(bezier),
-        //     0.6, // 恢复系数 0.6
-        //     {id4, id5} // 注册到这个曲面的实体
-        // );
-        //
-        //
-        // std::uint64_t id8 = m_world->spawnSphere("c1", {400, 300, 500}, {0, 0, 0}, 10, 10);
-        // std::uint64_t id9 = m_world->spawnSphere("c2", {460, 360, 450}, {0, 0, 0}, 10, 10);
-        //
-        // m_world->createRod("rod", sqrt(3600 + 3600 + 2500), id8, id9);
-        //
-        // std::uint64_t id10 = m_world->spawnSphere("1", {100, 100, 100}, {0, 0, 0}, 10, 10);
-        // std::uint64_t id11 = m_world->spawnSphere("2", {200, 160, 180}, {0, 0, 0}, 10, 60);
-        //
-        // m_world->createRod("rod", 141, id10, id11);
-        //
-        // // 收集所有实体 ID 用于地面注册
-        // std::vector<std::uint64_t> allIds = {
-        //     id1, id2, id3, id4, id5, id8, id9, id10, id11
-        // };
-        //
-        // // 注册地面
-        // auto plane = std::make_unique<SurfacePlane>(
-        //     Eigen::Vector3d(0, 0, 0),
-        //     Eigen::Vector3d::UnitZ());
-        //
-        // m_world->createSupportSurface(
-        //     "Ground",
-        //     std::move(plane),
-        //     1.0,
-        //     allIds
-        // );
 
         m_entityCount = static_cast<int>(m_world->getBodyCount());
     }
