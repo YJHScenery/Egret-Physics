@@ -49,6 +49,8 @@ namespace egret
                                double dt,
                                const SolverConfig &config,
                                SolverStats &stats) const = 0;
+
+        [[nodiscard]] virtual std::string_view name() const = 0;
     };
 }
 

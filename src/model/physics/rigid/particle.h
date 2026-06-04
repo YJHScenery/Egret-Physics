@@ -30,8 +30,8 @@ namespace egret
      *              适合用于模拟尘埃、烟雾、小型物体等不需要考虑旋转的场景。
      *
      * @invariant   m_mass >= 0，质量为0表示静态质点
-     * @invariant   转动惯量始终返回 0，角动量始终返回零向量
-     * @remark      质点比刚体计算开销更低，适合大规模粒子系统
+     * @invariant   角动量始终返回零向量，力矩不产生效果
+     * @remark      质点不响应旋转动力学，适合大规模粒子系统
      * @see         PhysicalEntity, RigidBody, Force
      */
     class Particle : public PhysicalEntity
@@ -39,21 +39,9 @@ namespace egret
     public:
         Particle(const Eigen::Vector3d &position, const Eigen::Vector3d &speed, double mass, std::uint64_t id);
 
-        void applyForce(double time) override;
-
-        void movePosition(double time) override;
-
-        void applyTorque(double time) override;
-
-        void rotate(double time) override;
-
-        double getRotationalInertia(const Axis &axis) override;
+        [[nodiscard]] bool hasRotation() const override;
 
         Eigen::Vector3d getTorque() override;
-
-        Eigen::Vector3d getJoinForce() override;
-
-        Eigen::Vector3d getMomentum() override;
 
         Eigen::Vector3d getAngularMomentum() override;
 

@@ -73,7 +73,7 @@ namespace egret
         }
     }
 
-    WorldSceneManager::WorldSceneManager(std::unique_ptr<SolverBase> solver) : m_solver(std::move(solver))
+    WorldSceneManager::WorldSceneManager(std::unique_ptr<Solver> solver) : m_solver(std::move(solver))
     {
     }
 
@@ -1088,6 +1088,11 @@ namespace egret
     {
         rebuildSolverConstraintCache();
         return {m_solverConstraints.data(), m_solverConstraints.size()};
+    }
+
+    std::string_view WorldSceneManager::getIntegratorName() const
+    {
+        return m_solver->getIntegratorName();
     }
 
     ConstraintRecord* WorldSceneManager::findConstraint(const std::uint64_t id)

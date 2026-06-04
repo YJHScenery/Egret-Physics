@@ -164,7 +164,7 @@ namespace egret
      * @invariant   positionIterations > 0
      * @invariant   penetrationSlop >= 0
      * @invariant   positionCorrectionBeta 在 [0, 1] 范围内
-     * @see         Solver, SolverBase
+     * @see         Solver
      */
     struct SolverConfig
     {
@@ -254,7 +254,7 @@ namespace egret
      *              用于返回求解器的执行结果。
      *
      * @invariant   dt > 0
-     * @see         SolverBase, SolverStats
+     * @see         Solver, SolverStats
      */
     struct SolverStepResult
     {

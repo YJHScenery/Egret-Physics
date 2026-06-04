@@ -155,6 +155,9 @@ namespace egret
         /** QML 直接使用的曲线列表模型。 */
         [[nodiscard]] SceneCurveModel* curveModel();
 
+        /** 获取当前的积分策略器名称 */
+        [[nodiscard]] Q_INVOKABLE QString getIntegratorName() const;
+
         /** 开始运行。 */
         Q_INVOKABLE void play();
 

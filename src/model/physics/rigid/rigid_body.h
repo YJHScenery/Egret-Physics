@@ -43,21 +43,9 @@ namespace egret
 		RigidBody(const Eigen::Vector3d& position, Eigen::Vector3d speed, double mass, std::uint64_t id);
 		RigidBody(const Eigen::Vector3d &position, const Eigen::Vector3d &speed, double mass, std::vector<Force> forces, std::uint64_t id);
 
-		void applyForce(double time) override;
-
-		void movePosition(double time) override;
-
-		void applyTorque(double time) override;
-
-		void rotate(double time) override;
-
-		double getRotationalInertia(const Axis &axis) override;
+		[[nodiscard]] bool hasRotation() const override;
 
 		Eigen::Vector3d getTorque() override;
-
-		Eigen::Vector3d getJoinForce() override;
-
-		Eigen::Vector3d getMomentum() override;
 
 		Eigen::Vector3d getAngularMomentum() override;
 

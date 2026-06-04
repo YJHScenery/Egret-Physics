@@ -126,7 +126,7 @@ namespace egret
         std::vector<ConstraintRecord> constraints;
     };
 
-    class SolverBase;
+    class Solver;
 
     /**
      * @brief       用于视图层渲染的轻量化数据快照。
@@ -229,7 +229,7 @@ namespace egret
          * @brief 构造世界场景管理器。
          * @param solver 负责推进世界状态的求解器实例。
          */
-        explicit WorldSceneManager(std::unique_ptr<SolverBase> solver);
+        explicit WorldSceneManager(std::unique_ptr<Solver> solver);
 
         /** 默认虚析构。 */
         ~WorldSceneManager() override = default;
@@ -713,6 +713,13 @@ namespace egret
          */
         [[nodiscard]] std::span<const ConstraintsBase *> getConstraints() const override;
 
+        /**
+         * @brief 返回当前所用积分策略器的名称
+         * @return integrator->name()
+         * @see @class IntegratorStrategy
+         */
+        [[nodiscard]] std::string_view getIntegratorName() const;
+
     private:
         /**
          * @brief 重建求解器缓存，确保句柄指向当前记录地址。
@@ -778,7 +785,7 @@ namespace egret
         const ConstraintRecord *findConstraint(std::uint64_t id) const;
 
         /** 求解器所有权。 */
-        std::unique_ptr<SolverBase> m_solver;
+        std::unique_ptr<Solver> m_solver;
 
         /** 世界实体记录。 */
         std::vector<std::unique_ptr<BodyRecord>> m_bodies;

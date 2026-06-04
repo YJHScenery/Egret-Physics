@@ -37,7 +37,7 @@ namespace egret
      * @details     PhysicalEntity 是所有物理实体（刚体、粒子等）的抽象基类，
      *              提供位置、速度、质量、受力、力矩等通用属性和接口。
      *              采用组合模式，通过 Transform 管理空间变换，通过 ShapeBase 管理碰撞形状。
-     *              支持多态继承，派生类需要实现 applyForce、movePosition 等虚函数。
+     *              派生类通过覆写 hasRotation() 声明是否具有转动自由度。
      *
      * @invariant   m_mass >= 0，质量为0表示静态体（不参与积分）
      * @invariant   m_restitution 在 [0, 1] 范围内，表示碰撞恢复系数
@@ -137,32 +137,38 @@ namespace egret
 
         [[nodiscard]] std::shared_ptr<ShapeBase> getShape() const { return m_shape; }
 
-        // 匀加速直线运动
-        virtual void applyForce(double time) = 0; // 应用所有的力，更新位置信息
+        /**
+         * @brief 查询实体是否具有旋转自由度。
+         * @details 默认返回 false，表示实体仅具有平动自由度（如 Particle）。
+         *          RigidBody 覆写返回 true，表示具有完整的转动自由度。
+         *          积分策略据此决定是否执行角速度与姿态的积分。
+         * @return true 表示实体支持转动积分，false 表示仅平动。
+         */
+        [[nodiscard]] virtual bool hasRotation() const;
 
-        // 匀速直线运动
-        virtual void movePosition(double time) = 0; // 根据当前速度移动相应时间
-
-        // 转动：消费累积力矩，更新角速度与姿态（与 applyForce 行为对称）
-        virtual void applyTorque(double time) = 0;
-
-        // 匀速转动
-        virtual void rotate(double time) = 0;
-
-        // 动量
-        virtual Eigen::Vector3d getMomentum() = 0;
+        /**
+         * @brief 获取线动量。
+         * @details 默认实现：m_mass * m_speed。
+         */
+        virtual Eigen::Vector3d getMomentum();
 
         // 角动量
         virtual Eigen::Vector3d getAngularMomentum() = 0;
 
-        // 转动惯量
-        virtual double getRotationalInertia(const Axis &axis) = 0;
+        /**
+         * @brief 获取绕指定轴的转动惯量（平行轴定理）。
+         * @details 默认实现：distance² × mass，将实体视作点质量。
+         */
+        virtual double getRotationalInertia(const Axis &axis);
 
         // 力矩
         virtual Eigen::Vector3d getTorque() = 0;
 
-        // 获取合力
-        virtual Eigen::Vector3d getJoinForce() = 0;
+        /**
+         * @brief 获取所有累积力的合力。
+         * @details 默认实现：遍历 m_forces 累加各力向量。
+         */
+        virtual Eigen::Vector3d getJoinForce();
 
     protected:
         PhysicalEntity(const PhysicalEntity &) = default;
