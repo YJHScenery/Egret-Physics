@@ -25,13 +25,23 @@ namespace egret
     /**
      * @brief       半隐式 Euler 积分策略类。
      * @details     SemiImplicitEulerIntegratorStrategy 继承自 IntegratorStrategy，
-     *              实现半隐式 Euler 积分算法。
-     *              该策略优先更新速度，再更新位置，适合第一版稳定推进。
-     *              半隐式 Euler 比显式 Euler 更稳定，适合物理模拟。
+     *              实现半隐式 Euler 积分算法，是积分公式的唯一所有者。
      *
-     * @invariant   integrate() 方法先更新速度再更新位置
+     *              ## 平动（所有实体）
+     *              a = F/m → v += a·dt → x += v·dt
+     *              使用新速度更新位置是半隐式 Euler 的核心特征。
+     *
+     *              ## 转动（仅 hasRotation() == true 的实体，如 RigidBody）
+     *              α = I⁻¹·τ → ω += α·dt → 四元数姿态积分
+     *              逆惯量矩阵 I⁻¹ 由 Solver::updateBodyInertiaCache 预计算，
+     *              存储在 SolverBodyHandle::inverseInertiaTensor 中。
+     *
+     *              跳过条件：enableIntegration == false、inverseMass <= 0、isFixed() == true。
+     *
+     * @invariant   integrate() 方法先更新速度再更新位置（半隐式顺序）
+     * @invariant   转动积分仅对 hasRotation() 为 true 的实体执行
      * @remark      SemiImplicitEulerIntegratorStrategy 是具体实现类，可以直接实例化
-     * @see         IntegratorStrategy, SolverSceneSnapshotBase, SolverConfig
+     * @see         IntegratorStrategy, PhysicalEntity, RigidBody, SolverSceneSnapshotBase
      */
     class SemiImplicitEulerIntegratorStrategy final : public IntegratorStrategy
     {
@@ -53,6 +63,8 @@ namespace egret
                        double dt,
                        const SolverConfig &config,
                        SolverStats &stats) const override;
+
+        std::string_view name() const override;
     };
 }
 

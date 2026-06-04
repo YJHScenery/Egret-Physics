@@ -16,8 +16,6 @@
 
 #include "particle.h"
 
-#include <cmath>
-
 namespace egret
 {
     Particle::Particle(const Eigen::Vector3d &position, const Eigen::Vector3d &speed, double mass, std::uint64_t id)
@@ -25,65 +23,15 @@ namespace egret
     {
     }
 
-    void Particle::applyForce(const double time)
+    bool Particle::hasRotation() const
     {
-        if (m_mass <= 0.0) {
-            movePosition(time);
-            return;
-        }
-
-        // 半隐式欧拉：先更新速度，再用新速度更新位置
-        const Eigen::Vector3d acceleration{getJoinForce() / m_mass};
-        m_speed += acceleration * time;
-        m_transform.setTranslation(m_transform.getTranslation() + m_speed * time);
-    }
-
-    void Particle::movePosition(const double time)
-    {
-        m_transform.setTranslation(m_transform.getTranslation() + m_speed * time);
-    }
-
-    void Particle::applyTorque(const double time)
-    {
-        // 质点不存在转动，忽略力矩的作用
-    }
-
-    void Particle::rotate(const double time)
-    {
-        // 质点不存在转动，忽略旋转
-    }
-
-    double Particle::getRotationalInertia(const Axis &axis)
-    {
-        // 原代码：
-        // const double distance{axis.basePoint.cross(axis.rotationAxis).norm() / axis.basePoint.norm()};
-        // return pow(distance, 2) * m_mass;
-        // 新代码说明：避免轴基点接近原点时发生除零，并保持点质点惯性模型的一致性。
-        const Eigen::Vector3d direction = axis.rotationAxis.normalized();
-        const Eigen::Vector3d relativePosition = m_transform.getTranslation() - axis.basePoint;
-        const double distance = relativePosition.cross(direction).norm();
-        return std::pow(distance, 2.0) * m_mass;
+        return false;
     }
 
     Eigen::Vector3d Particle::getTorque()
     {
         // 质点不存在转动，返回零向量
         return Eigen::Vector3d::Zero();
-    }
-
-    Eigen::Vector3d Particle::getJoinForce()
-    {
-        Eigen::Vector3d joinForce{};
-        for (const Force &force : m_forces)
-        {
-            joinForce += force.force;
-        }
-        return joinForce;
-    }
-
-    Eigen::Vector3d Particle::getMomentum()
-    {
-        return m_mass * m_speed;
     }
 
     Eigen::Vector3d Particle::getAngularMomentum()

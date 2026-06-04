@@ -89,15 +89,6 @@ namespace egret
         entity->upsertForce(gravityForce);
     }
 
-    void GravitationalField::applyForce(const double time)
-    {
-        if (m_fixed) {
-            return;
-        }
-
-        Particle::applyForce(time);
-    }
-
     void GravitationalField::setFixed(const bool fixed)
     {
         m_fixed = fixed;

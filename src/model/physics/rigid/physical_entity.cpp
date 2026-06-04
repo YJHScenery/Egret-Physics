@@ -15,6 +15,7 @@
  */
 
 #include "physical_entity.h"
+#include <cmath>
 
 namespace egret
 {
@@ -110,5 +111,32 @@ namespace egret
         }
     }
 
+    bool PhysicalEntity::hasRotation() const
+    {
+        return false;
+    }
+
+    Eigen::Vector3d PhysicalEntity::getJoinForce()
+    {
+        Eigen::Vector3d joinForce{};
+        for (const Force &force : m_forces)
+        {
+            joinForce += force.force;
+        }
+        return joinForce;
+    }
+
+    Eigen::Vector3d PhysicalEntity::getMomentum()
+    {
+        return m_mass * m_speed;
+    }
+
+    double PhysicalEntity::getRotationalInertia(const Axis &axis)
+    {
+        const Eigen::Vector3d direction = axis.rotationAxis.normalized();
+        const Eigen::Vector3d relativePosition = m_transform.getTranslation() - axis.basePoint;
+        const double distance = relativePosition.cross(direction).norm();
+        return std::pow(distance, 2.0) * m_mass;
+    }
 
 }

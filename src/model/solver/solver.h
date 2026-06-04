@@ -1,7 +1,7 @@
 /**
  * @file        solver.h
- * @brief       物理求解器基类头文件，定义求解器的抽象接口。
- * @details     定义 SolverBase 类，作为物理模拟固定步长求解器的抽象接口，
+ * @brief       物理求解器头文件，定义固定步长求解器。
+ * @details     定义 Solver 类，作为物理模拟固定步长求解器的实现，
  *              接收场景快照和固定 dt 进行物理计算。
  *
  * @author      作者姓名 <作者邮箱>
@@ -30,50 +30,8 @@ namespace egret
     class ContactResolverStrategy;
 
     /**
-     * @brief       模型层固定步长求解器的抽象接口。
-     * @details     SolverBase 是物理模拟固定步长求解器的抽象接口，
-     *              接收场景快照和固定 dt 进行物理计算。
-     *              约定：
-     *              1. 接收一个场景快照和一个固定 dt。
-     *              2. 通过非拥有式句柄原地修改场景状态。
-     *              3. 返回本帧统计信息。
-     *              采用策略模式，派生类实现具体的求解逻辑。
-     *
-     * @invariant   step() 方法在每次调用后更新场景状态
-     * @invariant   setConfig() 方法更新求解器配置
-     * @remark      SolverBase 是抽象接口，不能直接实例化
-     * @see         Solver, SolverSceneSnapshotBase, SolverConfig, SolverStepResult
-     */
-    class SolverBase
-    {
-    public:
-        /** 接口安全所需的虚析构函数。 */
-        virtual ~SolverBase() = default;
-
-        /**
-         * @brief 对当前世界快照执行一次固定步长求解。
-         * @param scene 可变场景快照适配器。
-         * @param dt 固定步长，单位为秒。
-         * @return 每步统计与附加元信息。
-         */
-        [[nodiscard]] virtual SolverStepResult step(SolverSceneSnapshotBase &scene, double dt) = 0;
-
-        /**
-         * @brief 替换运行时配置。
-         * @param config 新的求解器配置。
-         */
-        virtual void setConfig(const SolverConfig &config) = 0;
-
-        /**
-         * @brief 返回当前运行时配置。
-         * @return 当前生效配置的只读引用。
-         */
-        [[nodiscard]] virtual const SolverConfig &getConfig() const = 0;
-    };
-
-    /**
      * @brief       带策略扩展点的流水线式求解器类。
-     * @details     Solver 继承自 SolverBase，实现带策略扩展点的流水线式求解器。
+     * @details     Solver 实现带策略扩展点的流水线式求解器。
      *              该类先给出第一版实现所需的具体 API 形状。
      *              采用策略模式，通过 IntegratorStrategy、BroadPhaseStrategy、
      *              ContactResolverStrategy 等策略组合实现求解流水线。
@@ -84,9 +42,9 @@ namespace egret
      * @invariant   m_contactResolver 是接触解算策略实例
      * @invariant   m_config 是求解器配置
      * @remark      Solver 是具体实现类，可以直接实例化
-     * @see         SolverBase, IntegratorStrategy, BroadPhaseStrategy, ContactResolverStrategy
+     * @see         IntegratorStrategy, BroadPhaseStrategy, ContactResolverStrategy
      */
-    class Solver final : public SolverBase
+    class Solver final
     {
     public:
         /**
@@ -101,17 +59,28 @@ namespace egret
                std::unique_ptr<BroadPhaseStrategy> broadPhase,
                std::unique_ptr<ContactResolverStrategy> contactResolver);
 
-        /** 默认化的虚析构函数。 */
-        ~Solver() override = default;
+        /** 默认析构函数。 */
+        ~Solver();
 
-        /** 见 SolverBase::step。 */
-        [[nodiscard]] SolverStepResult step(SolverSceneSnapshotBase &scene, double dt) override;
+        /**
+         * @brief 对当前世界快照执行一次固定步长求解。
+         * @param scene 可变场景快照适配器。
+         * @param dt 固定步长，单位为秒。
+         * @return 每步统计与附加元信息。
+         */
+        [[nodiscard]] SolverStepResult step(SolverSceneSnapshotBase &scene, double dt);
 
-        /** 见 SolverBase::setConfig。 */
-        void setConfig(const SolverConfig &config) override;
+        /**
+         * @brief 替换运行时配置。
+         * @param config 新的求解器配置。
+         */
+        void setConfig(const SolverConfig &config);
 
-        /** 见 SolverBase::getConfig。 */
-        [[nodiscard]] const SolverConfig &getConfig() const override;
+        /**
+         * @brief 返回当前运行时配置。
+         * @return 当前生效配置的只读引用。
+         */
+        [[nodiscard]] const SolverConfig &getConfig() const;
 
         /**
          * @brief 在运行时替换积分策略。
@@ -130,6 +99,8 @@ namespace egret
          * @param contactResolver 新的接触解算策略实例。
          */
         void setContactResolver(std::unique_ptr<ContactResolverStrategy> contactResolver);
+
+        [[nodiscard]] std::string_view getIntegratorName() const;
 
     private:
         /**

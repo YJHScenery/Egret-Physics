@@ -59,8 +59,6 @@ namespace egret
 
         void applyToEntity(PhysicalEntity* entity) override;
 
-        void applyForce(double time) override;
-
         void setFixed(bool fixed);
 
         [[nodiscard]] bool isFixed() const override;

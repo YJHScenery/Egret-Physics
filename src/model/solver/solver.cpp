@@ -1,7 +1,7 @@
 /**
  * @file        solver.cpp
- * @brief       物理求解器基类实现文件，定义求解器的抽象接口。
- * @details     实现 SolverBase 类的各项成员函数。
+ * @brief       物理求解器实现文件。
+ * @details     实现 Solver 类的各项成员函数。
  *
  * @author      作者姓名 <作者邮箱>
  * @date        2026-05-04
@@ -99,7 +99,11 @@ namespace egret
                                                                                m_contactResolver(
                                                                                    std::move(contactResolver))
     {
+
     }
+
+    Solver::~Solver() = default;
+
 
     SolverStepResult Solver::step(SolverSceneSnapshotBase& scene, const double dt)
     {
@@ -178,6 +182,11 @@ namespace egret
     void Solver::setContactResolver(std::unique_ptr<ContactResolverStrategy> contactResolver)
     {
         m_contactResolver = std::move(contactResolver);
+    }
+
+    std::string_view Solver::getIntegratorName() const
+    {
+        return m_integrator->name();
     }
 
     void Solver::updateBodyInertiaCache(SolverSceneSnapshotBase& scene) const

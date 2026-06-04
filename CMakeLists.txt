@@ -263,6 +263,8 @@ set(CPP_FILES
         src/model/strategy/integrator_strategy/integrator_strategy.h
         src/model/strategy/integrator_strategy/semi_implicit_euler_integrator.h
         src/model/strategy/integrator_strategy/semi_implicit_euler_integrator.cpp
+        src/model/strategy/integrator_strategy/velocity_verlet_integrator.h
+        src/model/strategy/integrator_strategy/velocity_verlet_integrator.cpp
 
         src/view_model/simulator/scene_manager.cpp
         src/view_model/simulator/scene_manager.h

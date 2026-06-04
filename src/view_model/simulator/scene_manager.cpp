@@ -69,6 +69,7 @@
 #include "constants.h"
 
 #include "unique_id_generator.h"
+#include "integrator_strategy/velocity_verlet_integrator.h"
 
 namespace egret
 {
@@ -335,7 +336,7 @@ namespace egret
 
         auto solver = std::make_unique<Solver>(
             config,
-            std::make_unique<SemiImplicitEulerIntegratorStrategy>(),
+            std::make_unique<VelocityVerletIntegratorStrategy>(),
             std::make_unique<BruteForceBroadPhaseStrategy>(),
             std::make_unique<FrictionlessContactResolverStrategy>());
 
@@ -423,6 +424,12 @@ namespace egret
     SceneCurveModel* SceneManagerViewModel::curveModel()
     {
         return &m_curveModel;
+    }
+
+    QString SceneManagerViewModel::getIntegratorName() const
+    {
+        const std::string_view name{m_world->getIntegratorName()};
+        return QString::fromUtf8(name.data(), name.size());
     }
 
     void SceneManagerViewModel::play()
@@ -723,28 +730,28 @@ namespace egret
         // 测试 1：圆柱螺旋线轨道
         // 螺旋线半径 150，轴向速度 30，4 圈（≈ 8π）
         // 在螺旋线起点附近生成两个球体，注册到滑轨上
-        {
-            constexpr double helixRadius = 150.0;
-            constexpr double helixAxialSpeed = 30.0;
-            constexpr double helixEndT = 8.0 * std::numbers::pi;
-
-            const double startX = 0.0;
-            const double startY = 0.0;
-            const double startZ = 200.0;
-
-            // 在螺旋线起点附近创建两个测试球体
-            std::uint64_t railBody1 = m_world->spawnSphere(
-                "RailBall1", {startX + 0, startY + 0, startZ + 0},
-                {50, 0, 0}, 10, 10);
-            std::uint64_t railBody2 = m_world->spawnSphere(
-                "RailBall2", {startX + 0, startY + 0, startZ + 100},
-                {80, 0, 30}, 10, 10);
-
-            auto helix = std::make_unique<CurveHelix>(
-                helixRadius, helixAxialSpeed, helixEndT);
-            m_world->createSlidingRail("HelixRail", std::move(helix),
-                                       {railBody1, railBody2});
-        }
+        // {
+        //     constexpr double helixRadius = 150.0;
+        //     constexpr double helixAxialSpeed = 30.0;
+        //     constexpr double helixEndT = 8.0 * std::numbers::pi;
+        //
+        //     const double startX = 0.0;
+        //     const double startY = 0.0;
+        //     const double startZ = 200.0;
+        //
+        //     // 在螺旋线起点附近创建两个测试球体
+        //     std::uint64_t railBody1 = m_world->spawnSphere(
+        //         "RailBall1", {startX + 0, startY + 0, startZ + 0},
+        //         {50, 0, 0}, 10, 10);
+        //     std::uint64_t railBody2 = m_world->spawnSphere(
+        //         "RailBall2", {startX + 0, startY + 0, startZ + 100},
+        //         {80, 0, 30}, 10, 10);
+        //
+        //     auto helix = std::make_unique<CurveHelix>(
+        //         helixRadius, helixAxialSpeed, helixEndT);
+        //     m_world->createSlidingRail("HelixRail", std::move(helix),
+        //                                {railBody1, railBody2});
+        // }
 
         // 测试 2：贝塞尔曲线轨道
         // 3 个控制点，形成一条从 (0, 400, 300) 到 (300, 700, 300) 的弧线
