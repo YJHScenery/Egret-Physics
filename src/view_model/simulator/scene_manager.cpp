@@ -326,7 +326,7 @@ namespace egret
         auto solver = std::make_unique<Solver>(
             config,
             std::make_unique<VelocityVerletIntegratorStrategy>(),
-            std::make_unique<BruteForceBroadPhaseStrategy>(),
+            std::make_unique<MultiProcessBruteForceBroadPhaseStrategy>(),
             std::make_unique<FrictionalContactResolverStrategy>());
 
         m_world = std::make_unique<WorldSceneManager>(std::move(solver));

@@ -5,6 +5,7 @@
 #ifndef EGRET_PHYSICS_MULTIPROCESSBRUTEFORCEBROADPHASE_H
 #define EGRET_PHYSICS_MULTIPROCESSBRUTEFORCEBROADPHASE_H
 #include "broad_phase_strategy.h"
+#include "boost/asio/thread_pool.hpp"
 
 namespace egret
 {
@@ -28,6 +29,12 @@ namespace egret
                                  const SolverConfig& config,
                                  std::vector<SolverBodyPair>& outPairs,
                                  SolverStats& stats) const override;
+
+    private:
+        inline const static unsigned int concurrency = std::thread::hardware_concurrency();
+
+        mutable boost::asio::thread_pool threadPool{concurrency == 0 ? 4 : concurrency};
+
     };
 } // egret
 
