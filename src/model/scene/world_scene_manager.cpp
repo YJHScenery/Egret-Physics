@@ -267,7 +267,7 @@ namespace egret
         auto bodyRecord = std::make_unique<BodyRecord>();
         const std::uint64_t id{UniqueIDGenerator::instance().generate()};
         bodyRecord->name = bodyName;
-        bodyRecord->entity = unique_ptr_cast<PhysicalEntity, PhysicsAbstract>(std::move(entity->clone(id)));
+        bodyRecord->entity = entity;
         bodyRecord->entity->setShape(std::move(shape));
         m_bodies.push_back(std::move(bodyRecord));
 
