@@ -317,6 +317,8 @@ set(CPP_FILES
         src/model/physics/constraints/sliding_rail.h
         src/model/physics/constraints/air_resistance.cpp
         src/model/physics/constraints/air_resistance.h
+        src/model/strategy/broad_phase_strategy/multi_process_brute_force_broad_phase.cpp
+        src/model/strategy/broad_phase_strategy/multi_process_brute_force_broad_phase.h
 
 )
 
