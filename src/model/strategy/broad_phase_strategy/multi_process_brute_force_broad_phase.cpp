@@ -49,9 +49,7 @@ namespace egret
         }
 
         // ---------- 2. 准备并行处理 ----------
-        const unsigned int concurrency = std::thread::hardware_concurrency();
         const unsigned int numThreads = (concurrency == 0) ? 4 : concurrency;
-        boost::asio::thread_pool threadPool(numThreads);
 
         // 每个线程独立的结果容器
         std::vector<std::vector<SolverBodyPair>> threadResults(numThreads);
