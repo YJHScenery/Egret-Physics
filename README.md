@@ -1,6 +1,6 @@
 # Egret Physics
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-GPLv3-green.svg)
 
 一个现代化的物理模拟引擎，支持刚体动力学、碰撞检测和约束求解。
@@ -30,12 +30,12 @@
 
 ### 第三方库
 
-| 库         | 版本 | 许可证 |
-|-----------|---------|---------|
-| Boost     | 1.90.0 | Boost Software License 1.0 |
-| Eigen     | 5.0.0 | Mozilla Public License 2.0 |
-| magic_enum | 0.9.8 | MIT License |
-| Qt        | 6.9.3 | LGPLv3/GPLv3 |
+| 库                                    | 版本 | 许可证 |
+|--------------------------------------|---------|---------|
+| [Boost](https://www.boost.org/)      | 1.90.0 | Boost Software License 1.0 |
+| [Eigen](https://libeigen.gitlab.io/) | 5.0.0 | Mozilla Public License 2.0 |
+| [Magic Enum](https://github.com/Neargye/magic_enum)     | 0.9.8 | MIT License |
+| [Qt](https://www.qt.io/)             | 6.9.3 | LGPLv3/GPLv3 |
 
 ### 其他组件
 
