@@ -17,20 +17,6 @@
 #include "scene_manager.h"
 #include <QCryptographicHash>
 
-
-// 原代码：
-// namespace egret {
-//
-// class SceneManager {
-//
-// };
-//
-// } // egret
-//
-// 新代码说明：
-// 1. 将原来的空壳类替换为可直接暴露给 QML 的 ViewModel 门面对象。
-// 2. 该对象负责驱动模型层世界管理器、维护固定步长累积，并刷新 QML 渲染数据。
-
 #include <algorithm>
 #include <cmath>
 #include <numbers>
@@ -42,6 +28,7 @@
 
 #include "world_scene_manager.h"
 #include "broad_phase_strategy/brute_force_broad_phase.h"
+#include "broad_phase_strategy/multi_process_brute_force_broad_phase.h"
 #include "contact_strategy/frictionless_contact_resolver.h"
 #include "integrator_strategy/semi_implicit_euler_integrator.h"
 #include <QJsonDocument>
@@ -742,6 +729,15 @@ namespace egret
 
 
         qDebug() << id1 << id2 << id3 << idBox2;
+
+
+        // for (int i = 0; i < 100; ++i) {
+        //     m_world->spawnSphere("并行测试" + std::to_string(i), {300, 210 + i * 10.0, 420 + i * 20.0}, {0, 0, 0}, 10, 10);
+        //
+        // }
+        m_world->spawnSphere("并行测试2", {300, 220, 440}, {0, 0, 0}, 10, 10);
+        m_world->spawnSphere("并行测试3", {300, 230, 450}, {0, 0, 0}, 10, 10);
+
         // === SlidingRail 滑轨约束测试 ===
         // 测试 1：圆柱螺旋线轨道
         // 螺旋线半径 150，轴向速度 30，4 圈（≈ 8π）
