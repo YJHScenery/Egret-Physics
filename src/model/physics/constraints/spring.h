@@ -59,7 +59,7 @@ namespace egret
         [[nodiscard]] ConstraintType getType() const override;
 
         // 力注入路径 —— 胡克定律
-        void applyConstraintForces(double dt) override;
+        void applyConstraintForces() override;
 
         // 以下虚函数为空实现，弹簧不直接修正速度/位置
         void applyVelocityConstraint(double dt) override { std::ignore = dt; }

@@ -27,8 +27,8 @@ namespace egret
         , m_entityA(entityA)
         , m_entityB(entityB)
     {
-        registerEntity(entityA);
-        registerEntity(entityB);
+        ConstraintsBase::registerEntity(entityA);
+        ConstraintsBase::registerEntity(entityB);
 
         // 若未指定原长（≤0），取两实体的初始距离
         if (restLength <= 0.0)
@@ -52,9 +52,8 @@ namespace egret
         return ConstraintType::Spring;
     }
 
-    void Spring::applyConstraintForces(double dt)
+    void Spring::applyConstraintForces()
     {
-        std::ignore = dt;
 
         if (m_entityA == nullptr || m_entityB == nullptr)
         {
@@ -64,10 +63,6 @@ namespace egret
         PhysicalEntity* entityA = m_entityA;
         PhysicalEntity* entityB = m_entityB;
 
-        if (entityA == nullptr || entityB == nullptr)
-        {
-            return;
-        }
 
         const Eigen::Vector3d posA = entityA->getPositionCR();
         const Eigen::Vector3d posB = entityB->getPositionCR();
@@ -108,10 +103,6 @@ namespace egret
         const PhysicalEntity* entityA = m_entityA;
         const PhysicalEntity* entityB = m_entityB;
 
-        if (entityA == nullptr || entityB == nullptr)
-        {
-            return 0.0;
-        }
 
         const double dist = (entityB->getPositionCR() - entityA->getPositionCR()).norm();
         return std::abs(dist - m_restLength);

@@ -15,13 +15,13 @@
  */
 
 #include "model_item_data.h"
-#include <QUuid>
 #include <QJsonDocument>
 #include <QQmlEngine>
 
 #include "logger.h"
 #include "resource_helper.h"
 #include "shape_base.h"
+#include "unique_id_generator.h"
 
 namespace egret
 {
@@ -234,7 +234,7 @@ namespace egret
         m_data.m_materials = std::make_shared<MaterialData>(nullptr);
         // 防止 QML 通过 materials 属性接管 MaterialData 所有权
         QQmlEngine::setObjectOwnership(m_data.m_materials.get(), QQmlEngine::CppOwnership);
-        m_data.m_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        m_data.m_id = QString::number(UniqueIDGenerator::instance().generate());
 
         m_data.m_scale = QVector3D(1.0f, 1.0f, 1.0f);
         m_data.m_rotation = QQuaternion();

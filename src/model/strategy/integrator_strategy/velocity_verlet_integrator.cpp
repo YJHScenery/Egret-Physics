@@ -154,7 +154,7 @@ namespace egret
                 if (constraint == nullptr || !constraint->isEnabled()) {
                     continue;
                 }
-                constraint->applyConstraintForces(dt);
+                constraint->applyConstraintForces();
             }
         }
 

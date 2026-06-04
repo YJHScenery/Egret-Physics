@@ -129,9 +129,8 @@ namespace egret
          *          其中 k 为罚刚度 (m_penaltyStiffness)。
          *          该力通过 upsertForce 注入实体力累加器，
          *          与场力一起在积分阶段被处理。
-         * @param dt 固定时间步长。
          */
-        void applyConstraintForces(double dt) override;
+        void applyConstraintForces() override;
 
         // ==================== 曲面管理 ====================
 

@@ -127,9 +127,8 @@ namespace egret
          *          分解为切向分量（沿轨道方向）和法向分量（垂直轨道方向），
          *          注入法向反作用力以抵消偏离轨道的力分量。
          *          若作用点（曲线最近点）偏离质心，同时注入等效力矩。
-         * @param dt 固定时间步长。
          */
-        void applyConstraintForces(double dt) override;
+        void applyConstraintForces() override;
 
         /**
          * @brief 计算约束误差。
@@ -316,12 +315,10 @@ namespace egret
          * @param entity   物理实体指针。
          * @param t        实体在曲线上的参数 t。
          * @param closest  曲线上最近点的坐标。
-         * @param dt       固定时间步长。
          */
         void applyReactionForce(PhysicalEntity* entity,
                                 double t,
-                                const Eigen::Vector3d& closest,
-                                double dt) const;
+                                const Eigen::Vector3d& closest) const;
 
         // ==================== 常量 ====================
 

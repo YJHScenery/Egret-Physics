@@ -37,8 +37,8 @@ namespace egret
         , m_entityA(entityA)
         , m_entityB(entityB)
     {
-        registerEntity(entityA);
-        registerEntity(entityB);
+        ConstraintsBase::registerEntity(entityA);
+        ConstraintsBase::registerEntity(entityB);
     }
 
     ConstraintType ConnectingRod::getType() const

@@ -124,8 +124,7 @@ namespace egret
 
     void SlidingRail::applyReactionForce(PhysicalEntity* entity,
                                          const double t,
-                                         const Eigen::Vector3d& closest,
-                                         const double /*dt*/) const
+                                         const Eigen::Vector3d& closest) const
     {
         if (entity == nullptr || entity->isFixed()) {
             return;
@@ -171,7 +170,7 @@ namespace egret
         }
     }
 
-    void SlidingRail::applyConstraintForces(const double dt)
+    void SlidingRail::applyConstraintForces()
     {
         if (!m_enabled || m_curve == nullptr) {
             return;
@@ -205,7 +204,7 @@ namespace egret
                 m_entityParamMap[entity->getId()] = t;
             }
 
-            applyReactionForce(entity, t, closest, dt);
+            applyReactionForce(entity, t, closest);
         }
     }
 

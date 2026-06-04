@@ -26,14 +26,11 @@ namespace egret
         return ConstraintType::SupportSurface;
     }
 
-    void SupportSurface::applyConstraintForces(double dt)
+    void SupportSurface::applyConstraintForces()
     {
         if (!m_enabled || m_surface == nullptr || m_penaltyStiffness <= 0.0) {
             return;
         }
-
-        std::ignore = dt;
-
         // 曲面类型决定了罚力策略。平面曲面的 signedDistance 精确（欧几里得距离），
         // 罚力 + 冲量双修正工作良好。曲线曲面（球/柱/Bezier）的碰撞检测基于
         // 局部切平面近似，signedDistance 可能有偏差，高刚度罚力 + 冲量双修正

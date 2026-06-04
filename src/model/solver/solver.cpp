@@ -263,7 +263,7 @@ namespace egret
                 continue;
             }
 
-            constraint->applyConstraintForces(dt);
+            constraint->applyConstraintForces();
         }
     }
 
