@@ -25,7 +25,7 @@
 
 #include "view_model/simulator/scene_manager.h"
 #include "basic_utils.h"
-#include "logger.h"
+#include "async_logger.h"
 #include "qt_component_helper.h"
 #include "os/windows/windows_config.h"
 #include "resource_helper.h"
@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
 
     QObject::connect(&app, &QGuiApplication::aboutToQuit, exitReady);
 
-    setWindowsTerminalUtf8();
+    setTerminalUtf8();
 
     CustomMessageHandler::setOutputTarget("./logs/qdebug_output.log");
     CustomMessageHandler::install();
