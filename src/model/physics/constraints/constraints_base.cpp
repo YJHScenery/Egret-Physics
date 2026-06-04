@@ -67,9 +67,8 @@ namespace egret
         return m_entityIdMap.find(entityId) != m_entityIdMap.end();
     }
 
-    void ConstraintsBase::applyConstraintForces(double dt)
+    void ConstraintsBase::applyConstraintForces()
     {
-        std::ignore = dt;
         // 默认空实现，力型约束（如 Spring）重写此方法
     }
 

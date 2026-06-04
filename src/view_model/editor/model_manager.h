@@ -26,7 +26,6 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QDebug>
-#include <QUuid>
 #include <QSharedPointer>
 #include "physical_entity.h"
 
@@ -102,11 +101,11 @@ namespace egret
         Q_INVOKABLE bool importFromFile(const QString &filePath);
 
         // 查找和筛选
-        Q_INVOKABLE QList<ModelItemData *> findModelsByName(const QString &name);
+        Q_INVOKABLE [[nodiscard]] QList<ModelItemData *> findModelsByName(const QString &name);
 
-        Q_INVOKABLE QList<ModelItemData *> findModelsBySource(const QString &source);
+        Q_INVOKABLE [[nodiscard]] QList<ModelItemData *> findModelsBySource(const QString &source);
 
-        Q_INVOKABLE QList<ModelItemData *> getModelsByCategory(int category) const;
+        Q_INVOKABLE [[nodiscard]] QList<ModelItemData *> getModelsByCategory(int category) const;
 
         // 批量修改
         Q_INVOKABLE void setModelsPosition(const QVector3D &position, const QStringList &ids = QStringList());
@@ -151,7 +150,6 @@ namespace egret
 
         static bool validateModel(const ModelItemData *model);
 
-        static QString generateUniqueId();
     };
 
     QList<ModelItemData *> createDefaultModels();

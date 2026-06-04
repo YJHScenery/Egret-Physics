@@ -18,9 +18,9 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QDebug>
-#include <QUuid>
 #include <QQmlEngine>
 #include "logger.h"
+#include "unique_id_generator.h"
 #include "serialize/transform_transformer.h"
 
 namespace egret
@@ -40,7 +40,7 @@ namespace egret
         if (!validateModel(model))
             return false;
 
-        QString id = model->id().isEmpty() ? generateUniqueId() : model->id();
+        QString id = model->id().isEmpty() ? QString::number(UniqueIDGenerator::instance().generate()) : model->id();
         model->setId(id);
 
         if (m_models.contains(id)) {
@@ -523,10 +523,6 @@ namespace egret
         return model != nullptr;
     }
 
-    QString ModelManager::generateUniqueId()
-    {
-        return QUuid::createUuid().toString(QUuid::WithoutBraces);
-    }
 
     void ModelManager::emitModelListChanged()
     {

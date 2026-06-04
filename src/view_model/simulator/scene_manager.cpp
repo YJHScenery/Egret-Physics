@@ -48,6 +48,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
+#include "air_resistance.h"
 #include "shape_box.h"
 #include "shape_sphere.h"
 #include "shape_cylinder.h"
@@ -725,6 +726,20 @@ namespace egret
         std::uint64_t id3 = m_world->spawnSphere("1", {100, 100, 490}, {0, 0,  0}, 10, 10);
         // std::uint64_t idBox1 = m_world->spawnBox("2", {0, 0, 100}, {0, 0, 0}, {10, 10, 30}, 10);
         std::uint64_t idBox2 = m_world->spawnBox("3", {0, 0, 0}, {0, 0, 0}, {1000, 1000, 130}, 0);
+
+
+        std::uint64_t id4 = m_world->spawnSphere("阻力测试", {300, 200, 400}, {0, 200, 0}, 10, 100);
+        std::unique_ptr<AirResistance> airResistance = std::make_unique<AirResistance>(UniqueIDGenerator::instance().generate());
+        // airResistance->registerEntity(m_world->getEntity(id4));
+        auto body = dynamic_cast<RigidBody*>(m_world->getEntity(id4));
+        airResistance->addEntity(body, DragConfig{
+            .model = DragModel::Quadratic,
+            .dragCoefficient = 0.47,
+            // .crossSectionArea = quickSquare(dynamic_cast<ShapeSphere*>(body->getShape().get())->getRadius()) * PI
+        });
+
+        m_world->registerConstraint("Air Resistance", std::move(airResistance));
+
 
         qDebug() << id1 << id2 << id3 << idBox2;
         // === SlidingRail 滑轨约束测试 ===

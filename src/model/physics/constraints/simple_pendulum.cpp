@@ -18,9 +18,7 @@
 
 namespace egret
 {
-    SimplePendulum::SimplePendulum()
-    {
-    }
+    SimplePendulum::SimplePendulum() = default;
 
     SimplePendulum::SimplePendulum(double length, const Eigen::Vector3d& anchorPos, PhysicalEntity* entity,
                                    std::uint64_t id)
@@ -29,8 +27,8 @@ namespace egret
           , m_entity(entity)
     {
         // 将锚点和摆动物体注册到约束器
-        registerEntity(&m_anchor);
-        registerEntity(entity);
+        ConstraintsBase::registerEntity(&m_anchor);
+        ConstraintsBase::registerEntity(entity);
         // 设置约束长度
         m_length = length;
     }
@@ -43,8 +41,8 @@ namespace egret
           , m_entity(entity)
     {
         // 将锚点和摆动物体注册到约束器
-        registerEntity(&m_anchor);
-        registerEntity(entity);
+        ConstraintsBase::registerEntity(&m_anchor);
+        ConstraintsBase::registerEntity(entity);
         // 设置约束长度
         m_length = length;
         // 设置路径点

@@ -34,9 +34,7 @@ namespace egret
 
         ConnectingLine, SimplePendulum, ConnectingRod, SlidingRail,
 
-        Spring,
-
-        SupportSurface,
+        Spring, SupportSurface, AirResistance,
 
         Abstract = 127,
 
@@ -99,14 +97,14 @@ namespace egret
          *          如果实体已注册，则忽略（幂等）。
          * @param entity 要注册的物理实体指针。
          */
-        void registerEntity(PhysicalEntity* entity);
+        virtual void registerEntity(PhysicalEntity* entity);
 
         /**
          * @brief 从约束器中移除实体。
          * @param entityId 要移除的实体 ID。
          * @return 如果实体之前已注册则返回 true。
          */
-        bool unregisterEntity(std::uint64_t entityId);
+        virtual bool unregisterEntity(std::uint64_t entityId);
 
         /**
          * @brief 检查实体是否已注册。
@@ -134,7 +132,7 @@ namespace egret
         [[nodiscard]] virtual double computeConstraintError() const = 0;
 
         // 将约束力注入到受约束实体的力累加器中（积分前调用）
-        virtual void applyConstraintForces(double dt);
+        virtual void applyConstraintForces();
 
         // 获取参考长度（用于渲染和调试）
         [[nodiscard]] virtual double getReferenceLength() const { return 0.0; }
