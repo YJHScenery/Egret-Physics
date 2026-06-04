@@ -147,7 +147,7 @@ namespace egret
         virtual void applyTorque(double time) = 0;
 
         // 匀速转动
-        virtual void rotate(double time, Eigen::Matrix4d rotation) = 0;
+        virtual void rotate(double time) = 0;
 
         // 动量
         virtual Eigen::Vector3d getMomentum() = 0;
@@ -162,7 +162,7 @@ namespace egret
         virtual Eigen::Vector3d getTorque() = 0;
 
         // 获取合力
-        virtual Force getJoinForce() = 0;
+        virtual Eigen::Vector3d getJoinForce() = 0;
 
     protected:
         PhysicalEntity(const PhysicalEntity &) = default;

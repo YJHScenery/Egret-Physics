@@ -44,7 +44,7 @@ namespace egret
         }
 
         // 半隐式欧拉：先更新速度，再用新速度更新位置
-        const Eigen::Vector3d acceleration{getJoinForce().force / m_mass};
+        const Eigen::Vector3d acceleration{getJoinForce() / m_mass};
         m_speed += acceleration * time;
         m_transform.setTranslation(m_transform.getTranslation() + m_speed * time);
     }
@@ -90,7 +90,7 @@ namespace egret
         }
     }
 
-    void RigidBody::rotate(const double time, Eigen::Matrix4d rotation)
+    void RigidBody::rotate(const double time)
     {
         // 独立匀速转动：不处理力矩，仅用当前角速度积分姿态。
         // 供需要分离角速度更新与姿态更新的特殊场景使用。
@@ -99,7 +99,7 @@ namespace egret
         }
 
         Eigen::Quaterniond currentRot = m_transform.getRotation();
-        Eigen::Quaterniond omegaQuat(0, m_angular.x(), m_angular.y(), m_angular.z());
+        const Eigen::Quaterniond omegaQuat(0, m_angular.x(), m_angular.y(), m_angular.z());
 
         // 四元数微分：d(q)/dt = 0.5 * ω_q * q
         Eigen::Quaterniond deltaQ = omegaQuat * currentRot;
@@ -130,13 +130,13 @@ namespace egret
         return totalTorque;
     }
 
-    Force RigidBody::getJoinForce()
+    Eigen::Vector3d RigidBody::getJoinForce()
     {
         Force joinForce{};
         for (const auto& [force, _2] : m_forces) {
             joinForce.force += force;
         }
-        return joinForce;
+        return joinForce.force;
     }
 
     Eigen::Vector3d RigidBody::getMomentum()
@@ -149,9 +149,10 @@ namespace egret
         if (!m_shape) {
             return Eigen::Vector3d::Zero();
         }
-        Eigen::Matrix3d I_local = m_shape->getInertiaTensor(m_mass);
-        Eigen::Matrix3d R = m_transform.getRotationMatrix();
-        Eigen::Matrix3d I_world = R * I_local * R.transpose();
+        const Eigen::Matrix3d I_local = m_shape->getInertiaTensor(m_mass);
+        const Eigen::Matrix3d R = m_transform.getRotationMatrix();
+        const Eigen::Matrix3d I_world = R * I_local * R.transpose();
+
         return I_world * m_angular;
     }
 

@@ -27,64 +27,84 @@ namespace egret
         return &inst;
     }
 
-    EnumHandler::ShapeTypeQml EnumHandler::toQmlShapeId(ShapeType shapeID)
-    {
-        return static_cast<ShapeTypeQml>(shapeID);
-    }
+    // EnumHandler::ShapeTypeQml EnumHandler::toQmlShapeId(ShapeType shapeID)
+    // {
+    //     return static_cast<ShapeTypeQml>(shapeID);
+    // }
+    //
+    // ShapeType EnumHandler::toShapeId(ShapeTypeQml shapeID)
+    // {
+    //     return static_cast<ShapeType>(shapeID);
+    // }
 
-    ShapeType EnumHandler::toShapeId(ShapeTypeQml shapeID)
-    {
-        return static_cast<ShapeType>(shapeID);
-    }
+    // QString EnumHandler::shapeToString(ShapeType shapeID)
+    // {
+    //     const std::string_view view{magic_enum::enum_name<ShapeType>(shapeID)};
+    //     return QString::fromUtf8(view.data(), view.size());
+    // }
 
-    QString EnumHandler::shapeToString(ShapeType shapeID)
-    {
-        const std::string_view view{magic_enum::enum_name<ShapeType>(shapeID)};
-        return QString::fromUtf8(view.data(), view.size());
-    }
 
-    QString EnumHandler::shapeToString(ShapeTypeQml shapeID)
-    {
-        return shapeToString(toShapeId(shapeID));
-    }
+    //
+    // ShapeType EnumHandler::stringToShape(const QString &str)
+    // {
+    //     auto result{magic_enum::enum_cast<ShapeType>(str.toStdString())};
+    //     if (result.has_value())
+    //     {
+    //         return result.value();
+    //     }
+    //     return ShapeType::Unknown;
+    // }
+    //
+    // EnumHandler::ShapeTypeQml EnumHandler::stringToShapeQml(const QString &str)
+    // {
+    //     return toQmlShapeId(stringToShape(str));
+    // }
 
-    ShapeType EnumHandler::stringToShape(const QString &str)
+    QString EnumHandler::shapeTypeToString(int shapeID)
     {
-        auto result{magic_enum::enum_cast<ShapeType>(str.toStdString())};
-        if (result.has_value())
-        {
-            return result.value();
-        }
-        return ShapeType::Unknown;
-    }
-
-    EnumHandler::ShapeTypeQml EnumHandler::stringToShapeQml(const QString &str)
-    {
-        return toQmlShapeId(stringToShape(str));
+        const auto st = static_cast<ShapeType>(shapeID);
+        const std::string_view view{magic_enum::enum_name<ShapeType>(st)};
+        return QString::fromUtf8(view.data(), static_cast<qsizetype>(view.size()));
     }
 
     QString EnumHandler::fieldTypeToString(int typeId)
     {
         const auto ft = static_cast<FieldType>(typeId);
         const std::string_view view{magic_enum::enum_name<FieldType>(ft)};
-        return QString::fromUtf8(view.data(), view.size());
+        return QString::fromUtf8(view.data(), static_cast<qsizetype>(view.size()));
     }
 
     QString EnumHandler::constraintTypeToString(int typeId)
     {
         const auto ct = static_cast<ConstraintType>(typeId);
         const std::string_view view{magic_enum::enum_name<ConstraintType>(ct)};
-        return QString::fromUtf8(view.data(), view.size());
+        return QString::fromUtf8(view.data(), static_cast<qsizetype>(view.size()));
     }
 
     void EnumHandler::registerEnums()
     {
         qRegisterMetaType<ShapeType>("egret::ShapeID");
-        qmlRegisterUncreatableType<EnumHandler>(
+
+        /// 注册三种枚举为独立的 QML 类型
+        qmlRegisterUncreatableType<ShapeTypeQmlObj>(
             "EnumHandler",
             1,
             0,
-            "ShapeID",
-            "Access to ShapeID enum only");
+            "ShapeType",
+            "ShapeType enum - direct access only");
+
+        qmlRegisterUncreatableType<FieldTypeQmlObj>(
+            "EnumHandler",
+            1,
+            0,
+            "FieldType",
+            "FieldType enum - direct access only");
+
+        qmlRegisterUncreatableType<ConstraintTypeQmlObj>(
+            "EnumHandler",
+            1,
+            0,
+            "ConstraintType",
+            "ConstraintType enum - direct access only");
     }
 } // egret

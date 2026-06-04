@@ -35,9 +35,9 @@ namespace egret
 
         // 组合成64位ID
         // 格式: [38位时间戳][10位机器ID][10位进程ID][6位保留][16位计数器]
-        const uint64_t uuid = (timestamp << 26) | (machine << 16) | (process << 6) | counter;
+        const uint64_t uniqueId = (timestamp << 26) | (machine << 16) | (process << 6) | counter;
 
-        return uuid;
+        return uniqueId;
     }
 
     void UniqueIDGenerator::resetCounter()

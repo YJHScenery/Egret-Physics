@@ -26,7 +26,6 @@ import "qrc:/components/components"
 import "qrc:/components/components/theme"
 
 // ── 场景实体列表面板 (左侧三栏) ──
-
 ColumnLayout {
     id: root
 
@@ -51,11 +50,30 @@ ColumnLayout {
 
     // ── 根据类别解析类型名称 ──
     function resolveTypeName(modelData) {
-        switch (modelData.category) {
-            case 1: return EnumHandler.fieldTypeToString(modelData.type);
-            case 2: return EnumHandler.constraintTypeToString(modelData.type);
-            default: return EnumHandler.shapeToString(modelData.type);
+        // 可直接引用枚举值进行比较（无需函数调用）
+        const type = modelData.type;
+        switch (modelData.category){
+            case 0:{
+                // if (type === ShapeType.Box)             return qsTr("盒体");
+                // if (type === ShapeType.Sphere)          return qsTr("球体");
+                // if (type === ShapeType.Cylinder)        return qsTr("圆柱");
+                // if (type === ShapeType.Rod)             return qsTr("杆");
+                return EnumHandler.shapeTypeToString(type); // fallback
+            }
+            case 1: {
+                // if (type === FieldType.Gravity)    return qsTr("重力场");
+                // if (type === FieldType.Gravitation) return qsTr("引力场");
+                return EnumHandler.fieldTypeToString(type);   // fallback
+            }
+            case 2: {
+                // if (type === ConstraintType.Spring) return qsTr("弹簧");
+                return EnumHandler.constraintTypeToString(type);
+            }
+            default: {
+                return qsTr("Unknown");
+            }
         }
+
     }
 
     Component.onCompleted: {
@@ -70,9 +88,9 @@ ColumnLayout {
         }
     }
 
-    // ═══════════════════════════════════════════
+
     // 实体列表 (Shape)
-    // ═══════════════════════════════════════════
+
     GlassPanel {
         id: shapePanel
         Layout.fillWidth: true
@@ -133,9 +151,7 @@ ColumnLayout {
         }
     }
 
-    // ═══════════════════════════════════════════
     // 力场列表 (Field)
-    // ═══════════════════════════════════════════
     GlassPanel {
         id: fieldPanel
         Layout.fillWidth: true
@@ -194,9 +210,7 @@ ColumnLayout {
         }
     }
 
-    // ═══════════════════════════════════════════
     // 约束器列表 (Constraint)
-    // ═══════════════════════════════════════════
     GlassPanel {
         id: constraintPanel
         Layout.fillWidth: true
@@ -255,9 +269,7 @@ ColumnLayout {
         }
     }
 
-    // ═══════════════════════════════════════════
     // 列表项代理组件
-    // ═══════════════════════════════════════════
     Component {
         id: listItemDelegate
 

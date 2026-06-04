@@ -33,7 +33,7 @@ namespace egret
         }
 
         // 半隐式欧拉：先更新速度，再用新速度更新位置
-        const Eigen::Vector3d acceleration{getJoinForce().force / m_mass};
+        const Eigen::Vector3d acceleration{getJoinForce() / m_mass};
         m_speed += acceleration * time;
         m_transform.setTranslation(m_transform.getTranslation() + m_speed * time);
     }
@@ -48,7 +48,7 @@ namespace egret
         // 质点不存在转动，忽略力矩的作用
     }
 
-    void Particle::rotate(const double time, Eigen::Matrix4d rotation)
+    void Particle::rotate(const double time)
     {
         // 质点不存在转动，忽略旋转
     }
@@ -71,17 +71,12 @@ namespace egret
         return Eigen::Vector3d::Zero();
     }
 
-    Force Particle::getJoinForce()
+    Eigen::Vector3d Particle::getJoinForce()
     {
-        Force joinForce{};
-        // 原代码：
-        // for (const auto& [_, force] : m_forces) {
-        //     joinForce.force += force;
-        // }
-        // 新代码说明：Force 不是二元组，改为按成员遍历，确保可正确汇总所有外力。
+        Eigen::Vector3d joinForce{};
         for (const Force &force : m_forces)
         {
-            joinForce.force += force.force;
+            joinForce += force.force;
         }
         return joinForce;
     }

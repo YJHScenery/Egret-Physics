@@ -45,19 +45,19 @@ namespace egret
 
         void applyTorque(double time) override;
 
-        void rotate(double time, Eigen::Matrix4d rotation) override;
+        void rotate(double time) override;
 
         double getRotationalInertia(const Axis &axis) override;
 
         Eigen::Vector3d getTorque() override;
 
-        Force getJoinForce() override;
+        Eigen::Vector3d getJoinForce() override;
 
         Eigen::Vector3d getMomentum() override;
 
         Eigen::Vector3d getAngularMomentum() override;
 
-        std::unique_ptr<PhysicsAbstract> clone(std::uint64_t id) const override;
+        [[nodiscard]] std::unique_ptr<PhysicsAbstract> clone(std::uint64_t id) const override;
 
     protected:
         Particle() = default;
