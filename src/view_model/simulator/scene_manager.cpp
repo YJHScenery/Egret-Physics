@@ -13,6 +13,9 @@
  * @ingroup     ViewModel
  * @defgroup    组名 (如果文件定义了一个模块组)
  */
+#if _WIN32
+#define _WIN32_WINNT 0x0A00
+#endif
 
 #include "scene_manager.h"
 #include <QCryptographicHash>
@@ -42,7 +45,7 @@
 #include "shape_factory_registry.h"
 #include "rigid_body.h"
 #include "gravitational_field.h"
-#include "logger.h"
+#include "async_logger.h"
 #include "model_item_data.h"
 #include "transform_transformer.h"
 #include "magic_enum.hpp"
@@ -59,6 +62,7 @@
 #include "unique_id_generator.h"
 #include "contact_strategy/frictional_contact_resolver.h"
 #include "integrator_strategy/velocity_verlet_integrator.h"
+
 
 namespace egret
 {
@@ -712,7 +716,7 @@ namespace egret
 
         std::uint64_t id3 = m_world->spawnSphere("1", {100, 100, 490}, {0, 0,  0}, 10, 10);
         // std::uint64_t idBox1 = m_world->spawnBox("2", {0, 0, 100}, {0, 0, 0}, {10, 10, 30}, 10);
-        std::uint64_t idBox2 = m_world->spawnBox("3", {0, 0, 0}, {0, 0, 0}, {1000, 1000, 130}, 0);
+        std::uint64_t idBox2 = m_world->spawnBox("3", {0, 0, 0}, {0, 0, 0}, {10000, 10000, 130}, 0);
 
 
         std::uint64_t id4 = m_world->spawnSphere("阻力测试", {300, 200, 400}, {0, 200, 0}, 10, 100);
@@ -731,10 +735,9 @@ namespace egret
         qDebug() << id1 << id2 << id3 << idBox2;
 
 
-        // for (int i = 0; i < 100; ++i) {
-        //     m_world->spawnSphere("并行测试" + std::to_string(i), {300, 210 + i * 10.0, 420 + i * 20.0}, {0, 0, 0}, 10, 10);
-        //
-        // }
+        for (int i = 0; i < 100; ++i) {
+            m_world->spawnSphere("并行测试" + std::to_string(i), {300, 210 + i * 10.0, 420 + i * 20.0}, {0, 0, 0}, 10, 10);
+        }
         m_world->spawnSphere("并行测试2", {300, 220, 440}, {0, 0, 0}, 10, 10);
         m_world->spawnSphere("并行测试3", {300, 230, 450}, {0, 0, 0}, 10, 10);
 

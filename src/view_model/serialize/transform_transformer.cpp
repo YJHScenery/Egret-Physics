@@ -23,7 +23,7 @@
 #include "shape_base.h"
 #include <magic_enum.hpp>
 
-#include "logger.h"
+#include "async_logger.h"
 
 namespace egret
 {

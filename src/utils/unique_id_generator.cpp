@@ -53,9 +53,9 @@ namespace egret
     }
 
     UniqueIDGenerator::UniqueIDGenerator() :
-            m_counter(0),
-            m_gen(m_rd()),
-            m_dist(0, 0xFFFF)
+        m_counter(0),
+        m_gen(m_rd()),
+        m_dist(0, 0xFFFF)
     {
         // 初始化机器ID（0-1023）
         m_machineId = getMachineId();
@@ -73,12 +73,6 @@ namespace egret
 
     uint64_t UniqueIDGenerator::getProcessId()
     {
-#ifdef _WIN32
-        return getWindowsCurrentProcessId() & 0x3FFull;
-#else
-        return getpid() & 0x3FF;
-#endif
+        return getCurrentProcessId() & 0x3FFull;
     }
-
-
 } // egret
