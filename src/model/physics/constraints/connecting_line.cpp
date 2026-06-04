@@ -107,12 +107,6 @@ namespace egret
             // 速度约束: Ċ = n · (v1 - v0)
             double dv = n.dot(v1 - v0);
 
-            // 如果相对速度是收缩方向（dv <= 0），不施加约束
-            // 只有当距离超过限制且物体正在远离时才施加约束
-            if (dv <= 0) {
-                return;
-            }
-
             // 计算有效质量
             double m0 = m_entityA->getMass();
             double m1 = m_entityB->getMass();
@@ -131,18 +125,30 @@ namespace egret
                 return;
             }
 
-            // 计算冲量标量
-            // λ = -Ċ / M_eff
-            double lambda = -dv / invMeff;
-
-            // 应用冲量
-            // Δv0 = -λ * n / m0
-            // Δv1 = λ * n / m1
-            if (m0 > 0) {
-                m_entityA->setSpeed(v0 - lambda * n * invM0);
+            // 如果相对速度是收缩方向（dv <= 0），不施加约束
+            // 只有当距离超过限制且物体正在远离时才施加约束
+            if (dv <= 0) {
+                return;
             }
-            if (m1 > 0) {
-                m_entityB->setSpeed(v1 + lambda * n * invM1);
+
+            // 能量守恒的速度重定向：消除相对速度的径向分量，
+            // 同时保持相对速度大小不变，将能量重新分配到切向。
+            // 相对速度 v_rel = v1 - v0
+            {
+                Eigen::Vector3d vRel = v1 - v0;
+                Eigen::Vector3d vRelTangent = vRel - dv * n;
+                double tangentNorm = vRelTangent.norm();
+                if (tangentNorm > 1e-10) {
+                    Eigen::Vector3d vRelNew = vRelTangent * (vRel.norm() / tangentNorm);
+                    Eigen::Vector3d deltaVRel = vRelNew - vRel;
+                    double totalMass = m0 + m1;
+                    if (m0 > 0) {
+                        m_entityA->setSpeed(v0 - deltaVRel * (m1 / totalMass));
+                    }
+                    if (m1 > 0) {
+                        m_entityB->setSpeed(v1 + deltaVRel * (m0 / totalMass));
+                    }
+                }
             }
             return;
         }
@@ -166,11 +172,6 @@ namespace egret
 
         double dv = n.dot(v1 - v0);
 
-        // 只有当物体正在远离时才施加约束
-        if (dv <= 0) {
-            return;
-        }
-
         double m0 = m_entityA->getMass();
         double m1 = m_entityB->getMass();
 
@@ -186,13 +187,27 @@ namespace egret
             return;
         }
 
-        double lambda = -dv / invMeff;
-
-        if (m0 > 0) {
-            m_entityA->setSpeed(v0 - lambda * n * invM0);
+        // 只有当物体正在远离时才施加约束
+        if (dv <= 0) {
+            return;
         }
-        if (m1 > 0) {
-            m_entityB->setSpeed(v1 + lambda * n * invM1);
+
+        // 能量守恒的速度重定向
+        {
+            Eigen::Vector3d vRel = v1 - v0;
+            Eigen::Vector3d vRelTangent = vRel - dv * n;
+            double tangentNorm = vRelTangent.norm();
+            if (tangentNorm > 1e-10) {
+                Eigen::Vector3d vRelNew = vRelTangent * (vRel.norm() / tangentNorm);
+                Eigen::Vector3d deltaVRel = vRelNew - vRel;
+                double totalMass = m0 + m1;
+                if (m0 > 0) {
+                    m_entityA->setSpeed(v0 - deltaVRel * (m1 / totalMass));
+                }
+                if (m1 > 0) {
+                    m_entityB->setSpeed(v1 + deltaVRel * (m0 / totalMass));
+                }
+            }
         }
     }
 
@@ -233,6 +248,29 @@ namespace egret
 
             m_entityA->setPosition(newPos0);
             m_entityB->setPosition(newPos1);
+
+            // 能量守恒的速度重定向：消除相对径向分量，保持速率不变
+            {
+                Eigen::Vector3d v0 = m_entityA->getVelocity();
+                Eigen::Vector3d v1 = m_entityB->getVelocity();
+                Eigen::Vector3d vRel = v1 - v0;
+                double dvRel = direction.dot(vRel);
+                if (dvRel > 0) {
+                    Eigen::Vector3d vRelTangent = vRel - dvRel * direction;
+                    double tangentNorm = vRelTangent.norm();
+                    if (tangentNorm > 1e-10) {
+                        Eigen::Vector3d vRelNew = vRelTangent * (vRel.norm() / tangentNorm);
+                        Eigen::Vector3d deltaVRel = vRelNew - vRel;
+                        double totalMass = m0 + m1;
+                        if (m0 > 0) {
+                            m_entityA->setSpeed(v0 - deltaVRel * (m1 / totalMass));
+                        }
+                        if (m1 > 0) {
+                            m_entityB->setSpeed(v1 + deltaVRel * (m0 / totalMass));
+                        }
+                    }
+                }
+            }
             return;
         }
 
@@ -300,6 +338,29 @@ namespace egret
 
         m_entityA->setPosition(newStartPos);
         m_entityB->setPosition(newEndPos);
+
+        // 能量守恒的速度重定向：消除相对径向分量，保持速率不变
+        {
+            Eigen::Vector3d v0 = m_entityA->getVelocity();
+            Eigen::Vector3d v1 = m_entityB->getVelocity();
+            Eigen::Vector3d vRel = v1 - v0;
+            double dvRel = direction.dot(vRel);
+            if (dvRel > 0) {
+                Eigen::Vector3d vRelTangent = vRel - dvRel * direction;
+                double tangentNorm = vRelTangent.norm();
+                if (tangentNorm > 1e-10) {
+                    Eigen::Vector3d vRelNew = vRelTangent * (vRel.norm() / tangentNorm);
+                    Eigen::Vector3d deltaVRel = vRelNew - vRel;
+                    double totalMass = m0 + m1;
+                    if (m0 > 0) {
+                        m_entityA->setSpeed(v0 - deltaVRel * (m1 / totalMass));
+                    }
+                    if (m1 > 0) {
+                        m_entityB->setSpeed(v1 + deltaVRel * (m0 / totalMass));
+                    }
+                }
+            }
+        }
     }
 
     double ConnectingLine::computeConstraintError() const
