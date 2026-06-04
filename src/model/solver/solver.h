@@ -54,7 +54,7 @@ namespace egret
          * @param broadPhase 广相位策略（AABB 候选对生成）。
          * @param contactResolver 接触解算策略（无摩擦法向冲量）。
          */
-        Solver(const SolverConfig &config,
+        Solver(const SolverConfig& config,
                std::unique_ptr<IntegratorStrategy> integrator,
                std::unique_ptr<BroadPhaseStrategy> broadPhase,
                std::unique_ptr<ContactResolverStrategy> contactResolver);
@@ -68,19 +68,19 @@ namespace egret
          * @param dt 固定步长，单位为秒。
          * @return 每步统计与附加元信息。
          */
-        [[nodiscard]] SolverStepResult step(SolverSceneSnapshotBase &scene, double dt);
+        [[nodiscard]] SolverStepResult step(SolverSceneSnapshotBase& scene, double dt);
 
         /**
          * @brief 替换运行时配置。
          * @param config 新的求解器配置。
          */
-        void setConfig(const SolverConfig &config);
+        void setConfig(const SolverConfig& config);
 
         /**
          * @brief 返回当前运行时配置。
          * @return 当前生效配置的只读引用。
          */
-        [[nodiscard]] const SolverConfig &getConfig() const;
+        [[nodiscard]] const SolverConfig& getConfig() const;
 
         /**
          * @brief 在运行时替换积分策略。
@@ -107,13 +107,13 @@ namespace egret
          * @brief 更新所有物体的逆惯量矩阵缓存。
          * @param scene 可变场景快照。
          */
-        void updateBodyInertiaCache(SolverSceneSnapshotBase &scene) const;
+        void updateBodyInertiaCache(SolverSceneSnapshotBase& scene) const;
 
         /**
          * @brief 第 1 阶段：维护外力累加器并应用场。
          * @param scene 可变场景快照。
          */
-        void updateExternalForces(SolverSceneSnapshotBase &scene) const;
+        void updateExternalForces(SolverSceneSnapshotBase& scene) const;
 
         /**
          * @brief 第 1.5 阶段：应用约束力（如弹簧力）到实体力累加器。
@@ -124,7 +124,7 @@ namespace egret
          * @param dt 固定步长。
          * @param stats 可变步骤统计。
          */
-        void applyConstraintForces(SolverSceneSnapshotBase &scene, double dt, SolverStats &stats) const;
+        void applyConstraintForces(SolverSceneSnapshotBase& scene, double dt, SolverStats& stats) const;
 
         /**
          * @brief 第 2 阶段：生成广相位候选对。
@@ -132,9 +132,8 @@ namespace egret
          * @param pairs 输出候选对。
          * @param stats 可变步骤统计。
          */
-        void runBroadPhase(const SolverSceneSnapshotBase &scene,
-                           std::vector<SolverBodyPair> &pairs,
-                           SolverStats &stats) const;
+        void runBroadPhase(const SolverSceneSnapshotBase& scene, std::vector<SolverBodyPair>& pairs,
+                           SolverStats& stats) const;
 
         /**
          * @brief 第 3 阶段：生成窄相位接触约束。
@@ -143,10 +142,10 @@ namespace egret
          * @param constraints 输出接触约束。
          * @param stats 可变步骤统计。
          */
-        static void runNarrowPhase(const SolverSceneSnapshotBase &scene,
-                                   const std::vector<SolverBodyPair> &pairs,
-                                   std::vector<SolverContactConstraint> &constraints,
-                                   SolverStats &stats);
+        static void runNarrowPhase(const SolverSceneSnapshotBase& scene,
+                                   const std::vector<SolverBodyPair>& pairs,
+                                   std::vector<SolverContactConstraint>& constraints,
+                                   SolverStats& stats);
 
         /**
          * @brief 第 3 阶段（CCD版本）：生成窄相位接触约束（基于连续碰撞检测）。
@@ -156,11 +155,11 @@ namespace egret
          * @param constraints 输出接触约束。
          * @param stats 可变步骤统计。
          */
-        static void runNarrowPhaseCcd(const SolverSceneSnapshotBase &scene,
-                                      const std::vector<SolverBodyPair> &pairs,
+        static void runNarrowPhaseCcd(const SolverSceneSnapshotBase& scene,
+                                      const std::vector<SolverBodyPair>& pairs,
                                       double dt,
-                                      std::vector<SolverContactConstraint> &constraints,
-                                      SolverStats &stats);
+                                      std::vector<SolverContactConstraint>& constraints,
+                                      SolverStats& stats);
 
         /**
          * @brief 第 3 阶段（TOI事件队列版本）：收集所有CCD碰撞事件。
@@ -170,11 +169,11 @@ namespace egret
          * @param events 输出碰撞事件列表（按TOI排序）。
          * @param stats 可变步骤统计。
          */
-        static void runNarrowPhaseCcdEvents(const SolverSceneSnapshotBase &scene,
-                                            const std::vector<SolverBodyPair> &pairs,
+        static void runNarrowPhaseCcdEvents(const SolverSceneSnapshotBase& scene,
+                                            const std::vector<SolverBodyPair>& pairs,
                                             double dt,
-                                            std::vector<CcdCollisionEvent> &events,
-                                            SolverStats &stats);
+                                            std::vector<CcdCollisionEvent>& events,
+                                            SolverStats& stats);
 
         /**
          * @brief 使用TOI事件队列执行时间步进求解。
@@ -183,10 +182,10 @@ namespace egret
          * @param events 碰撞事件列表。
          * @param stats 可变步骤统计。
          */
-        void stepWithToiQueue(SolverSceneSnapshotBase &scene,
+        void stepWithToiQueue(SolverSceneSnapshotBase& scene,
                               double dt,
-                              std::vector<CcdCollisionEvent> &events,
-                              SolverStats &stats) const;
+                              std::vector<CcdCollisionEvent>& events,
+                              SolverStats& stats) const;
 
         /**
          * @brief 第 4 阶段：接触解算（法向冲量 + 位置修正）。
@@ -195,10 +194,10 @@ namespace egret
          * @param constraints 接触约束。
          * @param stats 可变步骤统计。
          */
-        void resolveContacts(SolverSceneSnapshotBase &scene,
+        void resolveContacts(SolverSceneSnapshotBase& scene,
                              double dt,
-                             const std::vector<SolverContactConstraint> &constraints,
-                             SolverStats &stats) const;
+                             const std::vector<SolverContactConstraint>& constraints,
+                             SolverStats& stats) const;
 
         /**
          * @brief 第 5 阶段：使用所选积分策略推进状态。
@@ -206,7 +205,7 @@ namespace egret
          * @param dt 固定步长。
          * @param stats 可变步骤统计。
          */
-        void integrate(SolverSceneSnapshotBase &scene, double dt, SolverStats &stats) const;
+        void integrate(SolverSceneSnapshotBase& scene, double dt, SolverStats& stats) const;
 
         /**
          * @brief 在积分前应用速度约束和角速度约束。
@@ -216,7 +215,7 @@ namespace egret
          * @param dt 固定步长。
          * @param stats 可变步骤统计。
          */
-        void applyVelocityAndAngularConstraints(SolverSceneSnapshotBase &scene, double dt, SolverStats &stats) const;
+        void applyVelocityAndAngularConstraints(SolverSceneSnapshotBase& scene, double dt, SolverStats& stats) const;
 
         /**
          * @brief 在积分后应用位置约束。
@@ -226,14 +225,14 @@ namespace egret
          * @param dt 固定步长。
          * @param stats 可变步骤统计。
          */
-        void applyPositionConstraints(SolverSceneSnapshotBase &scene, double dt, SolverStats &stats) const;
+        void applyPositionConstraints(SolverSceneSnapshotBase& scene, double dt, SolverStats& stats) const;
 
         /**
          * @brief 在积分后计算用于诊断的能量统计。
          * @param scene 场景快照。
          * @param stats 可变步骤统计。
          */
-        static void updateEnergyStats(const SolverSceneSnapshotBase &scene, SolverStats &stats);
+        static void updateEnergyStats(const SolverSceneSnapshotBase& scene, SolverStats& stats);
 
         /** 所有阶段共用的运行时配置。 */
         SolverConfig m_config{};

@@ -69,6 +69,7 @@
 #include "constants.h"
 
 #include "unique_id_generator.h"
+#include "contact_strategy/frictional_contact_resolver.h"
 #include "integrator_strategy/velocity_verlet_integrator.h"
 
 namespace egret
@@ -338,7 +339,7 @@ namespace egret
             config,
             std::make_unique<VelocityVerletIntegratorStrategy>(),
             std::make_unique<BruteForceBroadPhaseStrategy>(),
-            std::make_unique<FrictionlessContactResolverStrategy>());
+            std::make_unique<FrictionalContactResolverStrategy>());
 
         m_world = std::make_unique<WorldSceneManager>(std::move(solver));
         m_world->clear();

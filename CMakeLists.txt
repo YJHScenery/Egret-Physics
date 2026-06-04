@@ -259,6 +259,8 @@ set(CPP_FILES
         src/model/strategy/contact_strategy/contact_resolver_strategy.h
         src/model/strategy/contact_strategy/frictionless_contact_resolver.h
         src/model/strategy/contact_strategy/frictionless_contact_resolver.cpp
+        src/model/strategy/contact_strategy/frictional_contact_resolver.h
+        src/model/strategy/contact_strategy/frictional_contact_resolver.cpp
 
         src/model/strategy/integrator_strategy/integrator_strategy.h
         src/model/strategy/integrator_strategy/semi_implicit_euler_integrator.h
@@ -313,6 +315,8 @@ set(CPP_FILES
         src/utils/io/qdebug_handler.cpp
         src/model/physics/constraints/sliding_rail.cpp
         src/model/physics/constraints/sliding_rail.h
+        src/model/physics/constraints/air_resistance.cpp
+        src/model/physics/constraints/air_resistance.h
 
 )
 

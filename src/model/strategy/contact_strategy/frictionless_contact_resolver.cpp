@@ -22,36 +22,32 @@
 
 namespace egret
 {
-    void FrictionlessContactResolverStrategy::resolveContacts(SolverSceneSnapshotBase &scene,
-                                                              const std::span<const SolverContactConstraint> constraints,
+    void FrictionlessContactResolverStrategy::resolveContacts(SolverSceneSnapshotBase& scene,
+                                                              const std::span<const SolverContactConstraint>
+                                                              constraints,
                                                               const double dt,
-                                                              const SolverConfig &config,
-                                                              SolverStats &stats) const
+                                                              const SolverConfig& config,
+                                                              SolverStats& stats) const
     {
         std::ignore = dt;
 
         auto bodies = scene.getBodies();
 
-        for (std::uint32_t velIter = 0; velIter < config.velocityIterations; ++velIter)
-        {
-            for (const SolverContactConstraint &constraint : constraints)
-            {
-                if (constraint.bodyAIndex >= bodies.size() || constraint.bodyBIndex >= bodies.size())
-                {
+        for (std::uint32_t velIter = 0; velIter < config.velocityIterations; ++velIter) {
+            for (const SolverContactConstraint& constraint : constraints) {
+                if (constraint.bodyAIndex >= bodies.size() || constraint.bodyBIndex >= bodies.size()) {
                     continue;
                 }
 
-                SolverBodyHandle &bodyA = bodies[constraint.bodyAIndex];
-                SolverBodyHandle &bodyB = bodies[constraint.bodyBIndex];
+                SolverBodyHandle& bodyA = bodies[constraint.bodyAIndex];
+                SolverBodyHandle& bodyB = bodies[constraint.bodyBIndex];
 
-                if (bodyA.entity == nullptr || bodyB.entity == nullptr)
-                {
+                if (bodyA.entity == nullptr || bodyB.entity == nullptr) {
                     continue;
                 }
 
                 Eigen::Vector3d rawNormal = constraint.contact.normal;
-                if (!rawNormal.allFinite() || rawNormal.squaredNorm() < 1e-12)
-                {
+                if (!rawNormal.allFinite() || rawNormal.squaredNorm() < 1e-12) {
                     continue;
                 }
                 const Eigen::Vector3d normal = rawNormal.normalized();
@@ -61,8 +57,8 @@ namespace egret
                 const Eigen::Vector3d velocityB = bodyB.entity->getVelocity();
                 const Eigen::Vector3d angularB = bodyB.entity->getAngularVelocity();
 
-                if (!velocityA.allFinite() || !velocityB.allFinite() || !angularA.allFinite() || !angularB.allFinite())
-                {
+                if (!velocityA.allFinite() || !velocityB.allFinite() || !angularA.allFinite() || !angularB.
+                    allFinite()) {
                     continue;
                 }
 
@@ -85,48 +81,40 @@ namespace egret
                 effectiveMass += rA_cross_n.dot(bodyA.inverseInertiaTensor * rA_cross_n);
                 effectiveMass += rB_cross_n.dot(bodyB.inverseInertiaTensor * rB_cross_n);
 
-                if (!std::isfinite(effectiveMass) || effectiveMass <= 0.0)
-                {
+                if (!std::isfinite(effectiveMass) || effectiveMass <= 0.0) {
                     continue;
                 }
 
-                if (relativeNormalVelocity < 0.0)
-                {
-                    const double impulseMagnitude = -(1.0 + constraint.restitution) * relativeNormalVelocity / effectiveMass;
-                    if (!std::isfinite(impulseMagnitude))
-                    {
+                if (relativeNormalVelocity < 0.0) {
+                    const double impulseMagnitude = -(1.0 + constraint.restitution) * relativeNormalVelocity /
+                        effectiveMass;
+                    if (!std::isfinite(impulseMagnitude)) {
                         continue;
                     }
                     const Eigen::Vector3d impulse = impulseMagnitude * normal;
 
-                    if (bodyA.inverseMass > 0.0)
-                    {
+                    if (bodyA.inverseMass > 0.0) {
                         Eigen::Vector3d nextSpeed = velocityA - impulse * bodyA.inverseMass;
-                        if (nextSpeed.allFinite())
-                        {
+                        if (nextSpeed.allFinite()) {
                             bodyA.entity->setSpeed(nextSpeed);
                         }
 
                         const Eigen::Vector3d angularImpulse = rA.cross(-impulse);
                         Eigen::Vector3d nextAngular = angularA + bodyA.inverseInertiaTensor * angularImpulse;
-                        if (nextAngular.allFinite())
-                        {
+                        if (nextAngular.allFinite()) {
                             bodyA.entity->setAngular(nextAngular);
                         }
                     }
 
-                    if (bodyB.inverseMass > 0.0)
-                    {
+                    if (bodyB.inverseMass > 0.0) {
                         Eigen::Vector3d nextSpeed = velocityB + impulse * bodyB.inverseMass;
-                        if (nextSpeed.allFinite())
-                        {
+                        if (nextSpeed.allFinite()) {
                             bodyB.entity->setSpeed(nextSpeed);
                         }
 
                         const Eigen::Vector3d angularImpulse = rB.cross(impulse);
                         Eigen::Vector3d nextAngular = angularB + bodyB.inverseInertiaTensor * angularImpulse;
-                        if (nextAngular.allFinite())
-                        {
+                        if (nextAngular.allFinite()) {
                             bodyB.entity->setAngular(nextAngular);
                         }
                     }
@@ -134,66 +122,55 @@ namespace egret
             }
         }
 
-        for (std::uint32_t posIter = 0; posIter < config.positionIterations; ++posIter)
-        {
-            for (const SolverContactConstraint &constraint : constraints)
-            {
-                if (constraint.bodyAIndex >= bodies.size() || constraint.bodyBIndex >= bodies.size())
-                {
+        for (std::uint32_t posIter = 0; posIter < config.positionIterations; ++posIter) {
+            for (const SolverContactConstraint& constraint : constraints) {
+                if (constraint.bodyAIndex >= bodies.size() || constraint.bodyBIndex >= bodies.size()) {
                     continue;
                 }
 
-                SolverBodyHandle &bodyA = bodies[constraint.bodyAIndex];
-                SolverBodyHandle &bodyB = bodies[constraint.bodyBIndex];
+                SolverBodyHandle& bodyA = bodies[constraint.bodyAIndex];
+                SolverBodyHandle& bodyB = bodies[constraint.bodyBIndex];
 
-                if (bodyA.entity == nullptr || bodyB.entity == nullptr)
-                {
+                if (bodyA.entity == nullptr || bodyB.entity == nullptr) {
                     continue;
                 }
 
                 Eigen::Vector3d rawNormal = constraint.contact.normal;
-                if (!rawNormal.allFinite() || rawNormal.squaredNorm() < 1e-12)
-                {
+                if (!rawNormal.allFinite() || rawNormal.squaredNorm() < 1e-12) {
                     continue;
                 }
                 const Eigen::Vector3d normal = rawNormal.normalized();
                 const double invMassSum = bodyA.inverseMass + bodyB.inverseMass;
 
-                if (!std::isfinite(invMassSum) || invMassSum <= 0.0)
-                {
+                if (!std::isfinite(invMassSum) || invMassSum <= 0.0) {
                     continue;
                 }
 
                 const double penetration = std::max(constraint.contact.penetration - config.penetrationSlop, 0.0);
-                if (!std::isfinite(penetration))
-                {
+                if (!std::isfinite(penetration)) {
                     continue;
                 }
-                if (penetration > 0.0)
-                {
+                if (penetration > 0.0) {
                     const double correctionMagnitude = penetration * config.positionCorrectionBeta / invMassSum;
-                    if (!std::isfinite(correctionMagnitude))
-                    {
+                    if (!std::isfinite(correctionMagnitude)) {
                         continue;
                     }
                     const Eigen::Vector3d correction = correctionMagnitude * normal;
 
-                    if (bodyA.inverseMass > 0.0)
-                    {
-                        Eigen::Vector3d correctedPosition = bodyA.entity->getPosition() - correction * bodyA.inverseMass;
+                    if (bodyA.inverseMass > 0.0) {
+                        Eigen::Vector3d correctedPosition = bodyA.entity->getPosition() - correction * bodyA.
+                            inverseMass;
 
-                        if (correctedPosition.allFinite())
-                        {
+                        if (correctedPosition.allFinite()) {
                             bodyA.entity->setPosition(correctedPosition);
                         }
                     }
 
-                    if (bodyB.inverseMass > 0.0)
-                    {
-                        Eigen::Vector3d correctedPosition = bodyB.entity->getPosition() + correction * bodyB.inverseMass;
+                    if (bodyB.inverseMass > 0.0) {
+                        Eigen::Vector3d correctedPosition = bodyB.entity->getPosition() + correction * bodyB.
+                            inverseMass;
 
-                        if (correctedPosition.allFinite())
-                        {
+                        if (correctedPosition.allFinite()) {
                             bodyB.entity->setPosition(correctedPosition);
                         }
                     }
