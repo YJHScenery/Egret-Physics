@@ -39,6 +39,6 @@ namespace egret
             body.entity->applyTorque(dt);
         }
 
-        stats.resolvedContactCount += 0;
+        std::ignore = stats.resolvedContactCount;
     }
 }

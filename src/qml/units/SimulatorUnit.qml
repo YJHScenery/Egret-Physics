@@ -44,6 +44,7 @@ ColumnLayout {
 
     property int extraDataBlocks: 0
     property int dataBlockWidth: 230
+    
 
     function addDataBlock() {
         extraDataBlocks += 1;
@@ -602,7 +603,7 @@ ColumnLayout {
                         spacing: 10
 
                         Repeater {
-                            model: ["重力场 g = " + resourceHelper.getStandardGravity() + "m/s^2", "积分器: RK4 (Adaptive)", "碰撞模型: Impulse + Friction", "约束求解: Sequential Impulse", "误差阈值: 1e-6"]
+                            model: ["重力场 g = " + resourceHelper.getStandardGravity() + "m/s^2", "积分器: Semi Implicit Euler", "碰撞模型: CCD", "约束求解: Sequential Impulse", "误差阈值: 1e-6"]
 
                             delegate: Rectangle {
                                 id: repeatItem

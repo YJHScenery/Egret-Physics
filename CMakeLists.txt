@@ -254,15 +254,15 @@ set(CPP_FILES
 
         src/model/strategy/broad_phase_strategy/broad_phase_strategy.h
         src/model/strategy/broad_phase_strategy/brute_force_broad_phase.h
-        src/model/strategy/broad_phase_strategy/implementation.cpp
+        src/model/strategy/broad_phase_strategy/brute_force_broad_phase.cpp
 
         src/model/strategy/contact_strategy/contact_resolver_strategy.h
         src/model/strategy/contact_strategy/frictionless_contact_resolver.h
-        src/model/strategy/contact_strategy/implementation.cpp
+        src/model/strategy/contact_strategy/frictionless_contact_resolver.cpp
 
         src/model/strategy/integrator_strategy/integrator_strategy.h
         src/model/strategy/integrator_strategy/semi_implicit_euler_integrator.h
-        src/model/strategy/integrator_strategy/implementation.cpp
+        src/model/strategy/integrator_strategy/semi_implicit_euler_integrator.cpp
 
         src/view_model/simulator/scene_manager.cpp
         src/view_model/simulator/scene_manager.h

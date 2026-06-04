@@ -25,26 +25,15 @@
 namespace egret
 {
     /**
-     * @brief       枚举类型处理器类，定义物理形状等枚举类型。
-     * @details     EnumHandler 继承自 QObject，是枚举类型处理器类，
-     *              定义物理形状等枚举类型，供 QML 和 C++ 共享使用。
-     *              提供 ShapeIDQml 枚举，与 ShapeType 枚举对应。
-     *              提供枚举类型转换函数（字符串转枚举、枚举转字符串）。
-     *              支持 QML 调用和静态方法调用。
-     *              采用单例模式，全局唯一实例。
-     *
-     * @invariant   instance() 返回全局唯一实例
-     * @invariant   ShapeIDQml 与 ShapeType 枚举值一一对应
-     * @remark      EnumHandler 是 QObject，支持 QML 调用
-     * @see         QObject, ShapeType, ShapeIDQml
+     * @brief       QML 形状枚举包装类
+     * @details     独立于 EnumHandler 的轻量 QObject，只包含一个 Q_ENUM，
+     *              供 QML 直接引用枚举值（如 ShapeType.Box），不与其他枚举互相干扰。
      */
-    class EnumHandler : public QObject
+    class ShapeTypeQmlObj : public QObject
     {
         Q_OBJECT
-        QML_ELEMENT
-
     public:
-        enum class ShapeTypeQml : int
+        enum class Enum : int
         {
             Unknown = 0,
 
@@ -61,22 +50,105 @@ namespace egret
 
             Other = 255
         };
-        Q_ENUM(ShapeTypeQml)
+        Q_ENUM(Enum)
+    };
 
-        explicit EnumHandler(QObject *parent = nullptr) : QObject(parent) {}
+    /**
+     * @brief       QML 场类型枚举包装类
+     * @details     独立于 EnumHandler 的轻量 QObject，只包含一个 Q_ENUM，
+     *              供 QML 直接引用枚举值（如 FieldType.Gravity）。
+     */
+    class FieldTypeQmlObj : public QObject
+    {
+        Q_OBJECT
+    public:
+        enum class Enum : int
+        {
+            Unknown = 0,
 
-        static EnumHandler *instance();
+            Gravity, Gravitation,
 
-        static ShapeTypeQml toQmlShapeId(ShapeType shapeID);
-        static ShapeType toShapeId(ShapeTypeQml shapeID);
+            Abstract = 127,
 
-        Q_INVOKABLE static QString shapeToString(ShapeType shapeID);
+            Other = 255,
+        };
+        Q_ENUM(Enum)
+    };
 
-        Q_INVOKABLE static QString shapeToString(ShapeTypeQml shapeID);
+    /**
+     * @brief       QML 约束类型枚举包装类
+     * @details     独立于 EnumHandler 的轻量 QObject，只包含一个 Q_ENUM，
+     *              供 QML 直接引用枚举值（如 ConstraintType.Spring）。
+     */
+    class ConstraintTypeQmlObj : public QObject
+    {
+        Q_OBJECT
+    public:
+        enum class Enum : int
+        {
+            Unknown = 0,
 
-        Q_INVOKABLE static ShapeType stringToShape(const QString &str);
+            ConnectingLine, SimplePendulum, ConnectingRod, SlidingRail,
 
-        Q_INVOKABLE static ShapeTypeQml stringToShapeQml(const QString &str);
+            Spring,
+
+            SupportSurface,
+
+            Abstract = 127,
+
+            Other = 255,
+        };
+
+
+        Q_ENUM(Enum)
+    };
+
+
+    /**
+     * @brief       枚举类型处理器类，定义物理形状等枚举类型。
+     * @details     EnumHandler 继承自 QObject，是枚举类型处理器类，
+     *              定义物理形状等枚举类型，供 QML 和 C++ 共享使用。
+     *              提供 ShapeIDQml 枚举，与 ShapeType 枚举对应。
+     *              提供枚举类型转换函数（字符串转枚举、枚举转字符串）。
+     *              支持 QML 调用和静态方法调用。
+     *              采用单例模式，全局唯一实例。
+     *
+     * @invariant   instance() 返回全局唯一实例
+     * @invariant   ShapeIDQml 与 ShapeType 枚举值一一对应
+     * @remark      EnumHandler 是 QObject，支持 QML 调用
+     * @see         QObject, ShapeType, ShapeIDQml
+     */
+    class EnumHandler : public QObject
+    {
+        Q_OBJECT
+
+    public:
+        /// @brief C++ 类型别名：指向 QML 形状枚举包装类
+        using ShapeTypeQml = ShapeTypeQmlObj::Enum;
+        /// @brief C++ 类型别名：指向 QML 场类型枚举包装类
+        using FieldTypeQml = FieldTypeQmlObj::Enum;
+        /// @brief C++ 类型别名：指向 QML 约束类型枚举包装类
+        using ConstraintTypeQml = ConstraintTypeQmlObj::Enum;
+
+        explicit EnumHandler(QObject* parent = nullptr) : QObject(parent)
+        {
+        }
+
+        static EnumHandler* instance();
+
+        // static ShapeTypeQml toQmlShapeId(ShapeType shapeID);
+        //
+        // static ShapeType toShapeId(ShapeTypeQml shapeID);
+        //
+        // Q_INVOKABLE static QString shapeToString(ShapeType shapeID);
+        //
+        //
+        // Q_INVOKABLE static ShapeType stringToShape(const QString& str);
+        //
+        // Q_INVOKABLE static ShapeTypeQml stringToShapeQml(const QString& str);
+
+
+        Q_INVOKABLE static QString shapeTypeToString(int shapeID);
 
         Q_INVOKABLE static QString fieldTypeToString(int typeId);
 
@@ -84,7 +156,6 @@ namespace egret
 
         static void registerEnums();
     };
-
 } // egret
 
 #endif // EGRET_PHYSICS_ENUM_HANDLER_H
