@@ -113,6 +113,20 @@ namespace egret
 
         /** 碰撞发生的时间（Time of Impact），范围 [0, dt]。 */
         double toi{0.0};
+
+        // ---- 以下字段由接触解算器管理，用于跨帧热启动与冲量累积 ----
+
+        /** 累积法向冲量（用于热启动与增量求解）。序列冲量解算器每轮仅施加增量。 */
+        double accumulatedNormalImpulse{0.0};
+
+        /** 累积切向摩擦冲量（第一切向）。 */
+        double accumulatedTangentImpulse1{0.0};
+
+        /** 累积切向摩擦冲量（第二切向）。 */
+        double accumulatedTangentImpulse2{0.0};
+
+        /** Coulomb 摩擦系数（通常取两个物体摩擦系数的组合值）。 */
+        double frictionCoefficient{0.5};
     };
 
     /**
