@@ -105,6 +105,10 @@ namespace egret
             }
             return angularSpeed;
         }
+        case KineticEnergyRole:
+        {
+            return QVariant{item.kineticEnergy};
+        }
         case ColorRole:
         {
             return QVariant{item.color};

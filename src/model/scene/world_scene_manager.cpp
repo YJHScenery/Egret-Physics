@@ -453,6 +453,23 @@ namespace egret
             item.velocity = {velocity.y(), velocity.z(), velocity.x()};
             item.angularVelocity = {angularVelocity.y(), angularVelocity.z(), angularVelocity.x()};
 
+            // 动能 = 平动 + 转动
+            // {
+            //     const double mass = body->entity->getMass();
+            //     double ke = 0.5 * mass * velocity.squaredNorm();
+            //
+            //     if (body->entity->hasRotation()) {
+            //         const Eigen::Matrix3d R = transform.getRotationMatrix();
+            //         const Eigen::Vector3d wLocal = R.transpose() * angularVelocity;
+            //         const Eigen::Matrix3d I_local = body->entity->getShape()->getInertiaTensor(mass);
+            //         ke += 0.5 * wLocal.dot(I_local * wLocal);
+            //     }
+            //
+            //     item.kineticEnergy = ke;
+            // }
+
+            item.kineticEnergy = body->entity->getKineticEnergy();
+
             items.push_back(std::move(item));
         }
 

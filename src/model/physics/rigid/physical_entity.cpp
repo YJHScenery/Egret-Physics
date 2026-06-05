@@ -25,7 +25,7 @@ namespace egret
     }
 
     PhysicalEntity::PhysicalEntity(const Eigen::Vector3d& position, Eigen::Vector3d speed, const double mass, std::uint64_t id)
-        : PhysicsAbstract(id), m_speed(std::move(speed)), m_mass(mass), m_id(id)
+        : PhysicsAbstract(id), m_velocity(std::move(speed)), m_mass(mass), m_id(id)
     {
         m_transform.setTranslation(position);
     }
@@ -128,7 +128,7 @@ namespace egret
 
     Eigen::Vector3d PhysicalEntity::getMomentum()
     {
-        return m_mass * m_speed;
+        return m_mass * m_velocity;
     }
 
     double PhysicalEntity::getRotationalInertia(const Axis &axis)

@@ -158,6 +158,9 @@ namespace egret
 
         Eigen::Vector3d angularVelocity{};
 
+        /** 动能（平动 + 转动），单位：焦耳。 */
+        double kineticEnergy{0.0};
+
         /** 十六进制颜色字符串，供 QML 直接使用。 */
         std::string color;
 

@@ -75,13 +75,13 @@ namespace egret
 
         [[nodiscard]] const std::vector<Torque> &getTorquesCR() const { return m_torques; }
 
-        [[nodiscard]] Eigen::Vector3d getVelocity() const { return m_speed; }
+        [[nodiscard]] Eigen::Vector3d getVelocity() const { return m_velocity; }
 
-        [[nodiscard]] const Eigen::Vector3d &getSpeedCR() const { return m_speed; }
+        [[nodiscard]] const Eigen::Vector3d &getSpeedCR() const { return m_velocity; }
 
-        [[nodiscard]] Eigen::Vector3d getAngularVelocity() const { return m_angular; }
+        [[nodiscard]] Eigen::Vector3d getAngularVelocity() const { return m_angularVelocity; }
 
-        [[nodiscard]] const Eigen::Vector3d &getAngularCR() const { return m_angular; }
+        [[nodiscard]] const Eigen::Vector3d &getAngularCR() const { return m_angularVelocity; }
 
         [[nodiscard]] double getMass() const { return m_mass; }
 
@@ -127,9 +127,9 @@ namespace egret
          */
         void clearTorques() { m_torques.clear(); }
 
-        void setSpeed(const Eigen::Vector3d &speed) { m_speed = speed; }
+        void setSpeed(const Eigen::Vector3d &speed) { m_velocity = speed; }
 
-        void setAngular(const Eigen::Vector3d &angular) { m_angular = angular; }
+        void setAngular(const Eigen::Vector3d &angular) { m_angularVelocity = angular; }
 
         void setShape(const std::shared_ptr<ShapeBase> &shape) { m_shape = shape; }
 
@@ -155,6 +155,8 @@ namespace egret
         // 角动量
         virtual Eigen::Vector3d getAngularMomentum() = 0;
 
+        virtual double getKineticEnergy() = 0;
+
         /**
          * @brief 获取绕指定轴的转动惯量（平行轴定理）。
          * @details 默认实现：distance² × mass，将实体视作点质量。
@@ -177,9 +179,9 @@ namespace egret
 
         Transform m_transform{}; // 世界变换（包含位置、旋转、缩放）
 
-        Eigen::Vector3d m_speed{}; // 参考点的速度
+        Eigen::Vector3d m_velocity{}; // 参考点的速度
 
-        Eigen::Vector3d m_angular{}; // 参考点的角速度
+        Eigen::Vector3d m_angularVelocity{}; // 参考点的角速度
 
         std::vector<Force> m_forces; // 受力组/N
 
