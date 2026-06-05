@@ -806,9 +806,7 @@ namespace egret
     std::uint64_t WorldSceneManager::createConnectingLine(const std::string& name,
                                                           const double length,
                                                           const std::uint64_t entityStartId,
-                                                          const std::uint64_t entityEndId,
-                                                          const std::initializer_list<Eigen::Vector3d>&
-                                                          turningPositions)
+                                                          const std::uint64_t entityEndId)
     {
         BodyRecord* startBody = findBody(entityStartId);
         BodyRecord* endBody = findBody(entityEndId);
@@ -818,8 +816,7 @@ namespace egret
         }
 
         auto constraint = std::make_shared<ConnectingLine>(
-            length, startBody->entity.get(), endBody->entity.get(), UniqueIDGenerator::instance().generate(),
-            turningPositions);
+            length, startBody->entity.get(), endBody->entity.get(), UniqueIDGenerator::instance().generate());
 
         return registerConstraint(name, constraint);
     }
@@ -1026,55 +1023,6 @@ namespace egret
             return 0.0;
         }
         return record->constraint->computeConstraintError();
-    }
-
-    bool WorldSceneManager::addTurningPoint(const std::uint64_t constraintId,
-                                            const size_t index,
-                                            const Eigen::Vector3d& pos)
-    {
-        ConstraintRecord* record = findConstraint(constraintId);
-        if (record == nullptr || record->constraint == nullptr) {
-            return false;
-        }
-
-        if (record->constraint->getType() == ConstraintType::ConnectingLine) {
-            auto* connectingLine = dynamic_cast<ConnectingLine*>(record->constraint.get());
-            connectingLine->addPathTurningPoint(index, pos);
-            return true;
-        }
-        return false;
-    }
-
-    bool WorldSceneManager::removeTurningPoint(const std::uint64_t constraintId, const size_t index)
-    {
-        ConstraintRecord* record = findConstraint(constraintId);
-        if (record == nullptr || record->constraint == nullptr) {
-            return false;
-        }
-
-        if (record->constraint->getType() == ConstraintType::ConnectingLine) {
-            auto* connectingLine = dynamic_cast<ConnectingLine*>(record->constraint.get());
-            connectingLine->removePathTurningPoint(index);
-            return true;
-        }
-        return false;
-    }
-
-    bool WorldSceneManager::changeTurningPoint(const std::uint64_t constraintId,
-                                               const size_t index,
-                                               const Eigen::Vector3d& newPos)
-    {
-        ConstraintRecord* record = findConstraint(constraintId);
-        if (record == nullptr || record->constraint == nullptr) {
-            return false;
-        }
-
-        if (record->constraint->getType() == ConstraintType::ConnectingLine) {
-            auto* connectingLine = dynamic_cast<ConnectingLine*>(record->constraint.get());
-            connectingLine->changePathTurningPoint(index, newPos);
-            return true;
-        }
-        return false;
     }
 
     std::span<ConstraintsBase*> WorldSceneManager::getConstraints()

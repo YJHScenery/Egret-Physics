@@ -544,19 +544,17 @@ namespace egret
                                          const std::shared_ptr<ConstraintsBase> &constraint);
 
         /**
-         * @brief 创建并注册折线约束器。
+         * @brief 创建并注册连接线约束器。
          * @param name 约束名称。
-         * @param length 最大折线长度。
+         * @param length 约束长度。
          * @param entityStartId 起始实体 ID。
          * @param entityEndId 终止实体 ID。
-         * @param turningPositions 路径点列表（可选）。
          * @return 新约束的 ID，失败返回 0。
          */
         std::uint64_t createConnectingLine(const std::string &name,
                                            double length,
                                            std::uint64_t entityStartId,
-                                           std::uint64_t entityEndId,
-                                           const std::initializer_list<Eigen::Vector3d> &turningPositions = {});
+                                           std::uint64_t entityEndId);
 
         /**
          * @brief 创建并注册折线约束器。
@@ -674,32 +672,6 @@ namespace egret
          * @return 约束误差值。
          */
         [[nodiscard]] double getConstraintError(std::uint64_t id) const;
-
-        /**
-         * @brief 添加路径点。
-         * @param constraintId 约束 ID。
-         * @param index 插入位置索引。
-         * @param pos 路径点位置。
-         * @return 操作是否成功。
-         */
-        bool addTurningPoint(std::uint64_t constraintId, size_t index, const Eigen::Vector3d &pos);
-
-        /**
-         * @brief 移除路径点。
-         * @param constraintId 约束 ID。
-         * @param index 路径点索引。
-         * @return 操作是否成功。
-         */
-        bool removeTurningPoint(std::uint64_t constraintId, size_t index);
-
-        /**
-         * @brief 修改路径点。
-         * @param constraintId 约束 ID。
-         * @param index 路径点索引。
-         * @param newPos 新位置。
-         * @return 操作是否成功。
-         */
-        bool changeTurningPoint(std::uint64_t constraintId, size_t index, const Eigen::Vector3d &newPos);
 
         /**
          * @brief 返回活动约束的可变连续视图。

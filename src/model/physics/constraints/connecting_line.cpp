@@ -19,9 +19,7 @@
 
 namespace egret
 {
-    ConnectingLine::ConnectingLine() : ConstraintsBase()
-    {
-    }
+    ConnectingLine::ConnectingLine() = default;
 
     ConnectingLine::ConnectingLine(const std::uint64_t id) : ConstraintsBase(id)
     {
@@ -32,44 +30,8 @@ namespace egret
           , m_entityA(entityStart)
           , m_entityB(entityEnd)
     {
-        registerEntity(entityStart);
-        registerEntity(entityEnd);
-    }
-
-    ConnectingLine::ConnectingLine(double length, PhysicalEntity* entityStart, PhysicalEntity* entityEnd, const std::uint64_t id,
-                                   const std::initializer_list<Eigen::Vector3d>& turningPositions)
-        : ConnectingLine(length, entityStart, entityEnd, id)
-    {
-        m_pathPositions = turningPositions;
-    }
-
-    void ConnectingLine::addPathTurningPoint(size_t index, const Eigen::Vector3d& pos)
-    {
-        if (index >= m_pathPositions.size()) {
-            return;
-        }
-        m_pathPositions.insert(m_pathPositions.begin() + static_cast<long long>(index), pos);
-    }
-
-    void ConnectingLine::removePathTurningPoint(size_t index)
-    {
-        if (index >= m_pathPositions.size()) {
-            return;
-        }
-        m_pathPositions.erase(m_pathPositions.begin() + static_cast<long long>(index));
-    }
-
-    void ConnectingLine::changePathTurningPoint(size_t index, const Eigen::Vector3d& newPos)
-    {
-        if (index >= m_pathPositions.size()) {
-            return;
-        }
-        m_pathPositions[index] = newPos;
-    }
-
-    size_t ConnectingLine::getPathPosSize() const
-    {
-        return m_pathPositions.size();
+        ConstraintsBase::registerEntity(entityStart);
+        ConstraintsBase::registerEntity(entityEnd);
     }
 
     ConstraintType ConnectingLine::getType() const
@@ -83,85 +45,11 @@ namespace egret
             return;
         }
 
-        if (m_pathPositions.empty()) {
-            // 无路径点，简单的两点距离速度约束
-            Eigen::Vector3d p0 = m_entityA->getPositionCR();
-            Eigen::Vector3d p1 = m_entityB->getPositionCR();
-            Eigen::Vector3d dp = p1 - p0;
-            double dist = dp.norm();
-
-            // 如果距离小于约束长度，不施加速度约束
-            if (dist <= m_length || dist < 1e-10) {
-                return;
-            }
-
-            // 单位方向向量
-            Eigen::Vector3d n = dp / dist;
-
-            // 获取速度
-            Eigen::Vector3d v0 = m_entityA->getVelocity();
-            Eigen::Vector3d v1 = m_entityB->getVelocity();
-
-            // 相对速度在约束方向上的分量
-            // 约束方程: C = ||p1-p0|| - L = 0
-            // 速度约束: Ċ = n · (v1 - v0)
-            double dv = n.dot(v1 - v0);
-
-            // 计算有效质量
-            double m0 = m_entityA->getMass();
-            double m1 = m_entityB->getMass();
-
-            // 处理质量为零的情况
-            if (m0 <= 0 && m1 <= 0) {
-                return;
-            }
-
-            // 有效质量: M_eff = 1/(1/m0 + 1/m1)
-            double invM0 = (m0 > 0) ? 1.0 / m0 : 0.0;
-            double invM1 = (m1 > 0) ? 1.0 / m1 : 0.0;
-            double invMeff = invM0 + invM1;
-
-            if (invMeff < 1e-10) {
-                return;
-            }
-
-            // 如果相对速度是收缩方向（dv <= 0），不施加约束
-            // 只有当距离超过限制且物体正在远离时才施加约束
-            if (dv <= 0) {
-                return;
-            }
-
-            // 能量守恒的速度重定向：消除相对速度的径向分量，
-            // 同时保持相对速度大小不变，将能量重新分配到切向。
-            // 相对速度 v_rel = v1 - v0
-            {
-                Eigen::Vector3d vRel = v1 - v0;
-                Eigen::Vector3d vRelTangent = vRel - dv * n;
-                double tangentNorm = vRelTangent.norm();
-                if (tangentNorm > 1e-10) {
-                    Eigen::Vector3d vRelNew = vRelTangent * (vRel.norm() / tangentNorm);
-                    Eigen::Vector3d deltaVRel = vRelNew - vRel;
-                    double totalMass = m0 + m1;
-                    if (m0 > 0) {
-                        m_entityA->setSpeed(v0 - deltaVRel * (m1 / totalMass));
-                    }
-                    if (m1 > 0) {
-                        m_entityB->setSpeed(v1 + deltaVRel * (m0 / totalMass));
-                    }
-                }
-            }
-            return;
-        }
-
-        // 带路径点的折线速度约束（简化实现）
-        // 对于折线约束，速度约束比较复杂，这里采用简化策略：
-        // 只在物体远离时施加阻尼
         Eigen::Vector3d p0 = m_entityA->getPositionCR();
         Eigen::Vector3d p1 = m_entityB->getPositionCR();
         Eigen::Vector3d dp = p1 - p0;
         double dist = dp.norm();
 
-        // 如果直接距离小于约束长度，不施加约束
         if (dist <= m_length || dist < 1e-10) {
             return;
         }
@@ -169,7 +57,6 @@ namespace egret
         Eigen::Vector3d n = dp / dist;
         Eigen::Vector3d v0 = m_entityA->getVelocity();
         Eigen::Vector3d v1 = m_entityB->getVelocity();
-
         double dv = n.dot(v1 - v0);
 
         double m0 = m_entityA->getMass();
@@ -179,20 +66,12 @@ namespace egret
             return;
         }
 
-        double invM0 = (m0 > 0) ? 1.0 / m0 : 0.0;
-        double invM1 = (m1 > 0) ? 1.0 / m1 : 0.0;
-        double invMeff = invM0 + invM1;
-
-        if (invMeff < 1e-10) {
-            return;
-        }
-
-        // 只有当物体正在远离时才施加约束
         if (dv <= 0) {
             return;
         }
 
-        // 能量守恒的速度重定向
+        // 能量守恒的速度重定向：消除相对速度的径向分量，
+        // 同时保持相对速度大小不变，将能量重新分配到切向。
         {
             Eigen::Vector3d vRel = v1 - v0;
             Eigen::Vector3d vRelTangent = vRel - dv * n;
@@ -217,129 +96,32 @@ namespace egret
             return;
         }
 
-        if (m_pathPositions.empty()) {
-            // 无路径点，退化为简单的两点距离约束
-            Eigen::Vector3d p0 = m_entityA->getPositionCR();
-            Eigen::Vector3d p1 = m_entityB->getPositionCR();
-            double dist = (p1 - p0).norm();
+        Eigen::Vector3d p0 = m_entityA->getPositionCR();
+        Eigen::Vector3d p1 = m_entityB->getPositionCR();
+        double dist = (p1 - p0).norm();
 
-            if (dist <= m_length || dist < 1e-10) {
-                return;
-            }
-
-            // 计算需要修正的距离
-            double error = dist - m_length;
-            Eigen::Vector3d direction = (p1 - p0) / dist;
-
-            double m0 = m_entityA->getMass();
-            double m1 = m_entityB->getMass();
-
-            // 处理质量无限大的情况
-            if (m0 <= 0 && m1 <= 0) {
-                return; // 两个都是固定物体，无法修正
-            }
-
-            // 按质量比例分配修正量
-            double corr0 = (m1 > 0) ? error * m1 / (m0 + m1) : 0.0;
-            double corr1 = (m0 > 0) ? error * m0 / (m0 + m1) : 0.0;
-
-            Eigen::Vector3d newPos0 = p0 + direction * corr0;
-            Eigen::Vector3d newPos1 = p1 - direction * corr1;
-
-            m_entityA->setPosition(newPos0);
-            m_entityB->setPosition(newPos1);
-
-            // 能量守恒的速度重定向：消除相对径向分量，保持速率不变
-            {
-                Eigen::Vector3d v0 = m_entityA->getVelocity();
-                Eigen::Vector3d v1 = m_entityB->getVelocity();
-                Eigen::Vector3d vRel = v1 - v0;
-                double dvRel = direction.dot(vRel);
-                if (dvRel > 0) {
-                    Eigen::Vector3d vRelTangent = vRel - dvRel * direction;
-                    double tangentNorm = vRelTangent.norm();
-                    if (tangentNorm > 1e-10) {
-                        Eigen::Vector3d vRelNew = vRelTangent * (vRel.norm() / tangentNorm);
-                        Eigen::Vector3d deltaVRel = vRelNew - vRel;
-                        double totalMass = m0 + m1;
-                        if (m0 > 0) {
-                            m_entityA->setSpeed(v0 - deltaVRel * (m1 / totalMass));
-                        }
-                        if (m1 > 0) {
-                            m_entityB->setSpeed(v1 + deltaVRel * (m0 / totalMass));
-                        }
-                    }
-                }
-            }
+        if (dist <= m_length || dist < 1e-10) {
             return;
         }
 
-        // 带路径点的折线约束
-        // 1. 首先检查两个物体之间的直接距离
-        // 如果直接距离已经小于等于约束长度，说明物体已经在约束范围内，不需要修正
-        Eigen::Vector3d startPos = m_entityA->getPositionCR();
-        Eigen::Vector3d endPos = m_entityB->getPositionCR();
-        double directDist = (endPos - startPos).norm();
+        double error = dist - m_length;
+        Eigen::Vector3d direction = (p1 - p0) / dist;
 
-        // 如果两个物体已经非常接近（距离小于等于约束长度），不施加约束
-        // 这防止了当物体碰撞时约束器错误地施加力
-        if (directDist <= m_length || directDist < 1e-10) {
-            return;
-        }
-
-        // 2. 计算当前折线总长度
-        double totalLength = 0.0;
-        std::vector<double> segmentLengths;
-
-        Eigen::Vector3d prevPos = startPos;
-        segmentLengths.push_back((m_pathPositions[0] - prevPos).norm());
-        totalLength += segmentLengths.back();
-
-        for (size_t i = 0; i < m_pathPositions.size() - 1; ++i) {
-            segmentLengths.push_back((m_pathPositions[i + 1] - m_pathPositions[i]).norm());
-            totalLength += segmentLengths.back();
-        }
-
-        segmentLengths.push_back((endPos - m_pathPositions.back()).norm());
-        totalLength += segmentLengths.back();
-
-        // 3. 检查约束是否违反
-        if (totalLength <= m_length) {
-            return;
-        }
-
-        // 4. 计算修正量
-        double error = totalLength - m_length;
-
-        // 5. 按距离比例分配修正量给两个物体
         double m0 = m_entityA->getMass();
         double m1 = m_entityB->getMass();
 
         if (m0 <= 0 && m1 <= 0) {
-            return; // 两个都是固定物体
+            return;
         }
 
-        // 修正方向：从起点到终点
-        Eigen::Vector3d direction = (endPos - startPos);
-        double fullDist = direction.norm();
-        if (fullDist < 1e-10) {
-            return; // 两点重合
-        }
-        direction.normalize();
+        double corr0 = (m1 > 0) ? error * m1 / (m0 + m1) : 0.0;
+        double corr1 = (m0 > 0) ? error * m0 / (m0 + m1) : 0.0;
 
-        // 按质量比例计算两端的修正量
-        double totalMass = m0 + m1;
-        double corr0 = (m1 > 0) ? error * m1 / totalMass : 0.0;
-        double corr1 = (m0 > 0) ? error * m0 / totalMass : 0.0;
+        m_entityA->setPosition(p0 + direction * corr0);
+        m_entityB->setPosition(p1 - direction * corr1);
 
-        // 6. 修正物体位置
-        Eigen::Vector3d newStartPos = startPos + direction * corr0;
-        Eigen::Vector3d newEndPos = endPos - direction * corr1;
-
-        m_entityA->setPosition(newStartPos);
-        m_entityB->setPosition(newEndPos);
-
-        // 能量守恒的速度重定向：消除相对径向分量，保持速率不变
+        // 能量守恒的速度重定向：消除相对径向分量，保持速率不变。
+        // 两体位置修正为质心保持，总势能不变，仅需重定向相对速度。
         {
             Eigen::Vector3d v0 = m_entityA->getVelocity();
             Eigen::Vector3d v1 = m_entityB->getVelocity();
@@ -365,27 +147,12 @@ namespace egret
 
     double ConnectingLine::computeConstraintError() const
     {
-        if (m_entityA == nullptr || m_entityB == nullptr || m_pathPositions.empty()) {
+        if (m_entityA == nullptr || m_entityB == nullptr) {
             return 0.0;
         }
 
-        double totalLength = 0.0;
-        Eigen::Vector3d prevPos = m_entityA->getPositionCR();
-
-        // 累加起始点到第一个路径点的距离
-        totalLength += (m_pathPositions[0] - prevPos).norm();
-
-        // 累加路径点之间的距离
-        for (size_t i = 0; i < m_pathPositions.size() - 1; ++i) {
-            totalLength += (m_pathPositions[i + 1] - m_pathPositions[i]).norm();
-        }
-
-        // 累加最后一个路径点到结束点的距离
-        Eigen::Vector3d endPos = m_entityB->getPositionCR();
-        totalLength += (endPos - m_pathPositions.back()).norm();
-
-        // 返回超出长度（如果 totalLength <= m_length，误差为 0）
-        return std::max(0.0, totalLength - m_length);
+        const double dist = (m_entityB->getPositionCR() - m_entityA->getPositionCR()).norm();
+        return std::max(0.0, dist - m_length);
     }
 
     void ConnectingLine::applyAngularVelocityConstraint(double dt)
@@ -399,5 +166,22 @@ namespace egret
         auto constraint = std::make_unique<ConnectingLine>(*this);
         constraint->setId(id);
         return constraint;
+    }
+
+    ConnectingLine::ConnectingLine(const ConnectingLine& other)
+    {
+        m_entityA = other.m_entityA;
+        m_entityB = other.m_entityB;
+        m_length = other.m_length;
+    }
+
+    ConnectingLine& ConnectingLine::operator=(const ConnectingLine& other)
+    {
+        if (this != &other) {
+            m_entityA = other.m_entityA;
+            m_entityB = other.m_entityB;
+            m_length = other.m_length;
+        }
+        return *this;
     }
 } // egret
