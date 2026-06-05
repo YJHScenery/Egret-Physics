@@ -17,6 +17,7 @@
 #ifndef EGRET_PHYSICS_WORLD_SCENE_MANAGER_H
 #define EGRET_PHYSICS_WORLD_SCENE_MANAGER_H
 
+#include <deque>
 #include <memory>
 #include <optional>
 #include <string>
@@ -127,6 +128,38 @@ namespace egret
     };
 
     class Solver;
+
+    // ========================================================================
+    //  追踪数据结构
+    // ========================================================================
+
+    /** 每个仿真步的追踪快照。 */
+    struct TrackingSnapshot
+    {
+        double simTime{0.0};
+        std::array<double, 3> position{0.0, 0.0, 0.0};
+        std::array<double, 3> velocity{0.0, 0.0, 0.0};
+        std::array<double, 3> angularVelocity{0.0, 0.0, 0.0};
+        double kineticEnergy{0.0};
+    };
+
+    /**
+     * @brief 单个实体的追踪缓冲区。
+     * @details 在 refreshBodyModel() 时自动追加快照，超限时丢弃旧数据。
+     */
+    struct TrackingBuffer
+    {
+        bool active{false};
+        /** 暂停采集：为 true 时 refreshBodyModel 跳过追加快照。 */
+        bool paused{false};
+        /** 位标志：bit0=位置, bit1=速度, bit2=角速度, bit3=动能 */
+        std::uint32_t flags{0};
+        std::deque<TrackingSnapshot> snapshots;
+    };
+
+    // ========================================================================
+    //  渲染数据
+    // ========================================================================
 
     /**
      * @brief       用于视图层渲染的轻量化数据快照。

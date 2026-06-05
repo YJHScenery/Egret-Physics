@@ -21,6 +21,7 @@ import QtQuick.Layouts 1.15
 import QtQuick3D 6.9
 import EnumHandler 1.0
 import ModelManager 1.0
+import QtQuick.Dialogs
 
 import EgretPhysics 1.0
 
@@ -37,6 +38,44 @@ ColumnLayout {
 
 
     spacing: 14
+
+    FileDialog {
+        id: saveTrackDataFileDialog
+        title: "保存追踪数据"
+        fileMode: FileDialog.SaveFile
+        currentFolder: documentsFolder
+        defaultSuffix: "xlsx"
+        nameFilters: [
+            "Microsoft Excel Shell (*.xlsx)"
+        ]
+
+        property string bodyName: ""
+
+        onAccepted: {
+            var fileUrl = selectedFile;
+            var localPath = fileUrl.toString().replace(/^file:\/\/\//, "");
+
+            // 1. 开始录制：激活追踪 + 设置路径 + 启动定时刷新
+            sceneController.startRecording(bodyName, localPath);
+
+            // 2. 同步 QML 追踪状态
+            simulatorRoot.ensureTrackingEntry(bodyName);
+            simulatorRoot.trackingMap[bodyName].position = true;
+            simulatorRoot.trackingMap[bodyName].velocity = true;
+            simulatorRoot.trackingMap[bodyName].angularVelocity = true;
+            simulatorRoot.trackingMap[bodyName].kineticEnergy = true;
+            simulatorRoot.trackingVersion++;
+
+            // 3. 设置录制状态（控制按钮可见性）
+            simulatorRoot.recordingState[bodyName] = "recording";
+
+            console.log("开始录制: " + localPath);
+        }
+
+        onRejected: {
+            console.log("用户取消保存")
+        }
+    }
 
     function formatVec(x, y, z) {
         return "(" + x.toFixed(2) + ", " + y.toFixed(2) + ", " + z.toFixed(2) + ")";
@@ -122,6 +161,11 @@ ColumnLayout {
                         onTriggered: function () {
                             trackingMap[bodyId].position = !trackingMap[bodyId].position;
                             trackingVersion++;
+                            sceneController.setBodyTracking(bodyId,
+                                trackingMap[bodyId].position,
+                                trackingMap[bodyId].velocity,
+                                trackingMap[bodyId].angularVelocity,
+                                trackingMap[bodyId].kineticEnergy);
                         }
                     },
                     {
@@ -131,6 +175,11 @@ ColumnLayout {
                         onTriggered: function () {
                             trackingMap[bodyId].velocity = !trackingMap[bodyId].velocity;
                             trackingVersion++;
+                            sceneController.setBodyTracking(bodyId,
+                                trackingMap[bodyId].position,
+                                trackingMap[bodyId].velocity,
+                                trackingMap[bodyId].angularVelocity,
+                                trackingMap[bodyId].kineticEnergy);
                         }
                     },
                     {
@@ -140,6 +189,11 @@ ColumnLayout {
                         onTriggered: function () {
                             trackingMap[bodyId].angularVelocity = !trackingMap[bodyId].angularVelocity;
                             trackingVersion++;
+                            sceneController.setBodyTracking(bodyId,
+                                trackingMap[bodyId].position,
+                                trackingMap[bodyId].velocity,
+                                trackingMap[bodyId].angularVelocity,
+                                trackingMap[bodyId].kineticEnergy);
                         }
                     },
                     {
@@ -149,6 +203,11 @@ ColumnLayout {
                         onTriggered: function () {
                             trackingMap[bodyId].kineticEnergy = !trackingMap[bodyId].kineticEnergy;
                             trackingVersion++;
+                            sceneController.setBodyTracking(bodyId,
+                                trackingMap[bodyId].position,
+                                trackingMap[bodyId].velocity,
+                                trackingMap[bodyId].angularVelocity,
+                                trackingMap[bodyId].kineticEnergy);
                         }
                     }
                 ]
@@ -168,6 +227,11 @@ ColumnLayout {
 
     /** 追踪版本计数器 — 用于触发 QML 绑定重新求值（深层 var 对象变更检测） */
     property int trackingVersion: 0
+
+    /**
+     * 录制状态映射：{ bodyId: "none" | "recording" | "paused" }
+     */
+    property var recordingState: ({})
 
     // function addDataBlock() {
     //     extraDataBlocks += 1;
@@ -1002,8 +1066,70 @@ ColumnLayout {
                                     font.bold: true
                                     Layout.fillWidth: true
                                 }
-                                // 保存按钮 — 点击导出该实体的追踪数据
+
+                                // ---- 录制控制按钮（录制中/暂停时显示） ----
+                                Item {
+                                    property string state: {
+                                        simulatorRoot.trackingVersion;
+                                        return simulatorRoot.recordingState[bodyId] || "none";
+                                    }
+                                    visible: state === "recording" || state === "paused"
+                                    Layout.preferredWidth: state === "none" ? 0 : 52
+                                    Layout.preferredHeight: 20
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        spacing: 4
+
+                                        // 暂停 / 恢复
+                                        Text {
+                                            text: parent.parent.state === "paused" ? "▶" : "⏸"
+                                            font.pixelSize: 13
+                                            color: mousePauseResume.containsMouse ? "#FFFFFF" : "#8DB3D9"
+                                            MouseArea {
+                                                id: mousePauseResume
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                hoverEnabled: true
+                                                onClicked: {
+                                                    if (simulatorRoot.recordingState[bodyId] === "paused") {
+                                                        sceneController.resumeRecording(bodyId);
+                                                        simulatorRoot.recordingState[bodyId] = "recording";
+                                                    } else {
+                                                        sceneController.pauseRecording(bodyId);
+                                                        simulatorRoot.recordingState[bodyId] = "paused";
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // 停止录制
+                                        Text {
+                                            text: "⏹"
+                                            font.pixelSize: 13
+                                            color: mouseStop.containsMouse ? "#FF6B6B" : "#8DB3D9"
+                                            MouseArea {
+                                                id: mouseStop
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                hoverEnabled: true
+                                                onClicked: {
+                                                    sceneController.stopRecording(bodyId);
+                                                    simulatorRoot.recordingState[bodyId] = "none";
+                                                    simulatorRoot.trackingVersion++;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // ---- 保存按钮（非录制时显示） ----
                                 Text {
+                                    property string state: {
+                                        simulatorRoot.trackingVersion;
+                                        return simulatorRoot.recordingState[bodyId] || "none";
+                                    }
+                                    visible: state === "none"
                                     text: "💾"
                                     font.pixelSize: 14
                                     color: mouseSave.containsMouse ? "#FFFFFF" : "#8DB3D9"
@@ -1013,8 +1139,8 @@ ColumnLayout {
                                         cursorShape: Qt.PointingHandCursor
                                         hoverEnabled: true
                                         onClicked: {
-                                            console.log("导出数据: 实体 " + bodyId);
-                                            // TODO: Step 5 — 实现文件保存逻辑
+                                            saveTrackDataFileDialog.bodyName = bodyId;
+                                            saveTrackDataFileDialog.open();
                                         }
                                     }
                                 }

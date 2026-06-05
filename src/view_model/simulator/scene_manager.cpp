@@ -25,6 +25,9 @@
 #include <numbers>
 #include <unordered_set>
 #include <QFile>
+#include <QTextStream>
+#include <QtConcurrent>
+#include <xlsxdocument.h>
 
 #include <QMatrix4x4>
 #include <QVector3D>
@@ -115,6 +118,9 @@ namespace egret
         m_timer.setInterval(16);
         m_timer.setTimerType(Qt::PreciseTimer);
         connect(&m_timer, &QTimer::timeout, this, &SceneManagerViewModel::onFrameTick);
+
+        m_flushTimer.setInterval(2000);
+        connect(&m_flushTimer, &QTimer::timeout, this, &SceneManagerViewModel::flushRecordings);
 
         initialize();
         rebuildDemoWorld();
@@ -775,6 +781,29 @@ namespace egret
             item.color = QString::fromStdString(renderItem.color);
             item.label = QString::fromStdString(renderItem.label);
 
+            // ---- 追踪数据采集 ----
+            const auto trackIt = m_trackingBuffers.find(renderItem.id);
+            if (trackIt != m_trackingBuffers.end() && trackIt->active && !trackIt->paused) {
+                TrackingSnapshot snap;
+                snap.simTime = m_simTime;
+                snap.position = {static_cast<double>(item.centerPos[0]),
+                                 static_cast<double>(item.centerPos[1]),
+                                 static_cast<double>(item.centerPos[2])};
+                snap.velocity = {static_cast<double>(item.velocity[0]),
+                                 static_cast<double>(item.velocity[1]),
+                                 static_cast<double>(item.velocity[2])};
+                snap.angularVelocity = {static_cast<double>(item.angularVelocity[0]),
+                                        static_cast<double>(item.angularVelocity[1]),
+                                        static_cast<double>(item.angularVelocity[2])};
+                snap.kineticEnergy = item.kineticEnergy;
+
+                trackIt->snapshots.push_back(snap);
+                constexpr int kMaxSnapshotsPerBody = 65535;
+                if (trackIt->snapshots.size() > kMaxSnapshotsPerBody) {
+                    trackIt->snapshots.pop_front();
+                }
+            }
+
             items.push_back(std::move(item));
         }
 
@@ -1028,6 +1057,286 @@ namespace egret
         const double t = (planeZ - rayOrigin.z()) / rayDirection.z();
         *hitPoint = rayOrigin + rayDirection * t;
         return true;
+    }
+
+    // ========================================================================
+    //  数据追踪实现
+    // ========================================================================
+
+    /** 每个实体最多保留的快照数（超出时丢弃最早的）。 */
+    static constexpr std::size_t kMaxSnapshotsPerBody = 10000;
+
+    void SceneManagerViewModel::setBodyTracking(const QString &bodyId,
+                                                const bool trackPosition,
+                                                const bool trackVelocity,
+                                                const bool trackAngularVelocity,
+                                                const bool trackKineticEnergy)
+    {
+        bool ok = false;
+        const std::uint64_t id = bodyId.toULongLong(&ok);
+        if (!ok) return;
+
+        auto &buf = m_trackingBuffers[id];
+        if (trackPosition || trackVelocity || trackAngularVelocity || trackKineticEnergy) {
+            buf.active = true;
+            std::uint32_t flags = 0;
+            if (trackPosition)         flags |= 1u << 0;
+            if (trackVelocity)         flags |= 1u << 1;
+            if (trackAngularVelocity)  flags |= 1u << 2;
+            if (trackKineticEnergy)    flags |= 1u << 3;
+            buf.flags = flags;
+        } else {
+            buf.active = false;
+            buf.flags = 0;
+        }
+    }
+
+    int SceneManagerViewModel::getSnapshotCount(const QString &bodyId) const
+    {
+        bool ok = false;
+        const std::uint64_t id = bodyId.toULongLong(&ok);
+        if (!ok) return 0;
+
+        const auto it = m_trackingBuffers.find(id);
+        if (it == m_trackingBuffers.end() || !it->active) return 0;
+        return static_cast<int>(it->snapshots.size());
+    }
+
+    void SceneManagerViewModel::ensureBodyTracking(const QString &bodyId)
+    {
+        bool ok = false;
+        const std::uint64_t id = bodyId.toULongLong(&ok);
+        if (!ok) return;
+
+        auto &buf = m_trackingBuffers[id];
+        if (!buf.active) {
+            buf.active = true;
+            buf.flags = 0xF; // 全部 4 项：位置 | 速度 | 角速度 | 动能
+        }
+    }
+
+    void SceneManagerViewModel::exportTrackingAsync(const QString &bodyId,
+                                                    const QString &filePath) const
+    {
+        bool ok = false;
+        const std::uint64_t id = bodyId.toULongLong(&ok);
+        if (!ok) return;
+
+        const auto it = m_trackingBuffers.find(id);
+        if (it == m_trackingBuffers.end() || !it->active) return;
+
+        // 拷贝快照（主线程只读），避免后台写入时与 refreshBodyModel 竞态
+        const std::vector<TrackingSnapshot> copy(it->snapshots.begin(),
+                                                  it->snapshots.end());
+        const std::uint32_t flags = it->flags;
+
+        std::ignore = QtConcurrent::run([copy, flags, filePath] {
+            QXlsx::Document xlsx;
+            int col = 0;
+
+            // 表头
+            xlsx.write(1, ++col, QStringLiteral("simTime"));
+            if (flags & (1u << 0)) {
+                xlsx.write(1, ++col, QStringLiteral("pos_x"));
+                xlsx.write(1, ++col, QStringLiteral("pos_y"));
+                xlsx.write(1, ++col, QStringLiteral("pos_z"));
+            }
+            if (flags & (1u << 1)) {
+                xlsx.write(1, ++col, QStringLiteral("vel_x"));
+                xlsx.write(1, ++col, QStringLiteral("vel_y"));
+                xlsx.write(1, ++col, QStringLiteral("vel_z"));
+            }
+            if (flags & (1u << 2)) {
+                xlsx.write(1, ++col, QStringLiteral("ang_x"));
+                xlsx.write(1, ++col, QStringLiteral("ang_y"));
+                xlsx.write(1, ++col, QStringLiteral("ang_z"));
+            }
+            if (flags & (1u << 3)) {
+                xlsx.write(1, ++col, QStringLiteral("kineticEnergy"));
+            }
+
+            // 数据行
+            int row = 1;
+            for (const auto &snap : copy) {
+                ++row;
+                col = 0;
+                xlsx.write(row, ++col, snap.simTime);
+                if (flags & (1u << 0)) {
+                    xlsx.write(row, ++col, snap.position[0]);
+                    xlsx.write(row, ++col, snap.position[1]);
+                    xlsx.write(row, ++col, snap.position[2]);
+                }
+                if (flags & (1u << 1)) {
+                    xlsx.write(row, ++col, snap.velocity[0]);
+                    xlsx.write(row, ++col, snap.velocity[1]);
+                    xlsx.write(row, ++col, snap.velocity[2]);
+                }
+                if (flags & (1u << 2)) {
+                    xlsx.write(row, ++col, snap.angularVelocity[0]);
+                    xlsx.write(row, ++col, snap.angularVelocity[1]);
+                    xlsx.write(row, ++col, snap.angularVelocity[2]);
+                }
+                if (flags & (1u << 3)) {
+                    xlsx.write(row, ++col, snap.kineticEnergy);
+                }
+            }
+
+            std::ignore = xlsx.saveAs(filePath);
+        });
+    }
+
+    bool SceneManagerViewModel::saveTrackingXlsx(const QString &bodyId,
+                                                 const QString &filePath) const
+    {
+        qDebug() << filePath << bodyId;
+
+        bool ok = false;
+        const std::uint64_t id = bodyId.toULongLong(&ok);
+        if (!ok) {
+            qDebug() << "Not OK";
+            return false;
+        }
+
+        const auto it = m_trackingBuffers.find(id);
+        if (it == m_trackingBuffers.end() || !it->active || it->snapshots.empty()) {
+
+            qDebug() << "Not OK: " << "it == m_trackingBuffers.end() || !it->active || it->snapshots.empty()";
+            return false;
+        }
+
+        QXlsx::Document xlsx;
+        const std::uint32_t f = it->flags;
+        int col = 0;
+
+        // 写入表头行
+        xlsx.write(1, ++col, QStringLiteral("simTime"));
+        if (f & (1u << 0)) {
+            xlsx.write(1, ++col, QStringLiteral("pos_x"));
+            xlsx.write(1, ++col, QStringLiteral("pos_y"));
+            xlsx.write(1, ++col, QStringLiteral("pos_z"));
+        }
+        if (f & (1u << 1)) {
+            xlsx.write(1, ++col, QStringLiteral("vel_x"));
+            xlsx.write(1, ++col, QStringLiteral("vel_y"));
+            xlsx.write(1, ++col, QStringLiteral("vel_z"));
+        }
+        if (f & (1u << 2)) {
+            xlsx.write(1, ++col, QStringLiteral("ang_x"));
+            xlsx.write(1, ++col, QStringLiteral("ang_y"));
+            xlsx.write(1, ++col, QStringLiteral("ang_z"));
+        }
+        if (f & (1u << 3)) {
+            xlsx.write(1, ++col, QStringLiteral("kineticEnergy"));
+        }
+
+        // 逐行写入快照数据
+        int row = 1;
+        for (const auto &snap : it->snapshots) {
+            ++row;
+            col = 0;
+            xlsx.write(row, ++col, snap.simTime);
+            if (f & (1u << 0)) {
+                xlsx.write(row, ++col, snap.position[0]);
+                xlsx.write(row, ++col, snap.position[1]);
+                xlsx.write(row, ++col, snap.position[2]);
+            }
+            if (f & (1u << 1)) {
+                xlsx.write(row, ++col, snap.velocity[0]);
+                xlsx.write(row, ++col, snap.velocity[1]);
+                xlsx.write(row, ++col, snap.velocity[2]);
+            }
+            if (f & (1u << 2)) {
+                xlsx.write(row, ++col, snap.angularVelocity[0]);
+                xlsx.write(row, ++col, snap.angularVelocity[1]);
+                xlsx.write(row, ++col, snap.angularVelocity[2]);
+            }
+            if (f & (1u << 3)) {
+                xlsx.write(row, ++col, snap.kineticEnergy);
+            }
+        }
+
+        const bool status{xlsx.saveAs(filePath)};
+        qDebug() << status;
+        return status;
+    }
+
+    void SceneManagerViewModel::startRecording(const QString &bodyId,
+                                               const QString &filePath)
+    {
+        bool ok = false;
+        const std::uint64_t id = bodyId.toULongLong(&ok);
+        if (!ok) return;
+
+        // 激活追踪（幂等）
+        ensureBodyTracking(bodyId);
+
+        // 设置录制路径
+        m_recordingPaths[id] = filePath;
+
+        // 启动定时刷新（幂等）
+        if (!m_flushTimer.isActive()) {
+            m_flushTimer.start();
+        }
+    }
+
+    void SceneManagerViewModel::pauseRecording(const QString &bodyId)
+    {
+        bool ok = false;
+        const std::uint64_t id = bodyId.toULongLong(&ok);
+        if (!ok) return;
+
+        auto it = m_trackingBuffers.find(id);
+        if (it != m_trackingBuffers.end()) {
+            it->paused = true;
+        }
+    }
+
+    void SceneManagerViewModel::resumeRecording(const QString &bodyId)
+    {
+        bool ok = false;
+        const std::uint64_t id = bodyId.toULongLong(&ok);
+        if (!ok) return;
+
+        auto it = m_trackingBuffers.find(id);
+        if (it != m_trackingBuffers.end()) {
+            it->paused = false;
+        }
+    }
+
+    void SceneManagerViewModel::stopRecording(const QString &bodyId)
+    {
+        bool ok = false;
+        const std::uint64_t id = bodyId.toULongLong(&ok);
+        if (!ok) return;
+
+        // 1. 最终刷新
+        auto pathIt = m_recordingPaths.find(id);
+        if (pathIt != m_recordingPaths.end()) {
+            exportTrackingAsync(bodyId, pathIt.value());
+            m_recordingPaths.erase(pathIt);
+        }
+
+        // 2. 清空缓冲区 + 停用追踪
+        auto bufIt = m_trackingBuffers.find(id);
+        if (bufIt != m_trackingBuffers.end()) {
+            bufIt->snapshots.clear();
+            bufIt->active = false;
+            bufIt->paused = false;
+            bufIt->flags = 0;
+        }
+
+        // 所有录制停止后关闭定时器
+        if (m_recordingPaths.isEmpty()) {
+            m_flushTimer.stop();
+        }
+    }
+
+    void SceneManagerViewModel::flushRecordings()
+    {
+        for (auto it = m_recordingPaths.begin(); it != m_recordingPaths.end(); ++it) {
+            // 将 id 转为字符串再调用已有方法
+            exportTrackingAsync(QString::number(it.key()), it.value());
+        }
     }
 
     // void SceneManagerViewModel::setDragActive(const bool active)

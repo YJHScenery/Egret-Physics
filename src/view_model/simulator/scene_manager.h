@@ -19,6 +19,7 @@
 #define EGRET_PHYSICS_SCENE_MANAGER_VIEWMODEL_H
 
 #include <QElapsedTimer>
+#include <QMap>
 #include <QObject>
 #include <QTimer>
 #include <QVariantMap>
@@ -137,6 +138,72 @@ namespace egret
          * @details 物理积分始终以 fixedStepMs 为步长求解，缩放仅影响累加器的推进速率。
          */
         Q_INVOKABLE void setTimeScale(double scale);
+
+        // ====================================================================
+        //  数据追踪接口
+        // ====================================================================
+
+        /**
+         * @brief 设置指定实体的追踪属性。
+         * @param bodyId  实体 ID 字符串。
+         * @param trackPosition   是否追踪位置。
+         * @param trackVelocity   是否追踪速度。
+         * @param trackAngularVelocity  是否追踪角速度。
+         * @param trackKineticEnergy  是否追踪动能。
+         * @details 至少一项为 true 时激活追踪；全部为 false 时停用。
+         */
+        Q_INVOKABLE void setBodyTracking(const QString &bodyId,
+                                         bool trackPosition,
+                                         bool trackVelocity,
+                                         bool trackAngularVelocity,
+                                         bool trackKineticEnergy);
+
+        /** 获取指定实体的快照数量。 */
+        Q_INVOKABLE int getSnapshotCount(const QString &bodyId) const;
+
+        /**
+         * @brief 将指定实体的追踪数据导出为 Excel (.xlsx) 文件。
+         * @param bodyId  实体 ID 字符串。
+         * @param filePath  导出文件路径。
+         * @return 成功返回 true。
+         */
+        Q_INVOKABLE bool saveTrackingXlsx(const QString &bodyId,
+                                          const QString &filePath) const;
+
+        /**
+         * @brief 确保指定实体的追踪已激活（幂等）。
+         * @details 若缓冲区未激活，自动开启全部 4 项追踪属性。
+         *          已激活则保持现有 flags 不变。
+         */
+        Q_INVOKABLE void ensureBodyTracking(const QString &bodyId);
+
+        /**
+         * @brief 异步导出追踪数据到 xlsx（线程池）。
+         * @details 拷贝当前快照后通过 QtConcurrent::run 写入文件。
+         *          快照数为 0 时也创建仅含表头的文件。
+         */
+        Q_INVOKABLE void exportTrackingAsync(const QString &bodyId,
+                                             const QString &filePath) const;
+
+        /**
+         * @brief 开始录制：激活追踪并每 2 秒自动刷新 xlsx。
+         * @details 调用后数据持续积累到同一文件，无需再次手动导出。
+         *          同一 body 重复调用会更新路径。
+         */
+        Q_INVOKABLE void startRecording(const QString &bodyId,
+                                        const QString &filePath);
+
+        /** 暂停采集（文件仍会定时刷新，但新快照不再追加）。 */
+        Q_INVOKABLE void pauseRecording(const QString &bodyId);
+
+        /** 恢复采集。 */
+        Q_INVOKABLE void resumeRecording(const QString &bodyId);
+
+        /**
+         * @brief 停止录制：最终刷新 → 清空快照 → 关闭文件。
+         * @details 调用后缓冲区被清空，追踪停用，保存按钮恢复可用。
+         */
+        Q_INVOKABLE void stopRecording(const QString &bodyId);
 
         /** QML 直接使用的实体列表模型。 */
         [[nodiscard]] SceneBodyModel* bodyModel();
@@ -350,6 +417,18 @@ namespace egret
 
         /** QML 可直接使用的曲线模型。 */
         SceneCurveModel m_curveModel;
+
+        /** 追踪数据缓冲区，按实体 ID 索引。 */
+        QMap<std::uint64_t, TrackingBuffer> m_trackingBuffers;
+
+        /** 录制中的导出路径，按实体 ID 索引。有路径 = 正在录制。 */
+        QMap<std::uint64_t, QString> m_recordingPaths;
+
+        /** 定时刷新录制文件（每 2 秒触发一次）。 */
+        QTimer m_flushTimer;
+
+        /** 将所有录制中的缓冲区导出到各自文件。 */
+        void flushRecordings();
 
         /** 模型层世界管理器。 */
         std::unique_ptr<WorldSceneManager> m_world;

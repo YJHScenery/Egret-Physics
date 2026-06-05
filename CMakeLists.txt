@@ -329,8 +329,18 @@ add_executable(${PROJECT_NAME}
         resources/app.rc
 )
 
+# QXlsx 静态库（手动创建导入目标，因 cmake config 的相对路径与实际目录布局不一致）
+add_library(QXlsx::QXlsx STATIC IMPORTED)
+target_include_directories(QXlsx::QXlsx INTERFACE "${CMAKE_SOURCE_DIR}/dependency/include/qxlsx_qt6_1.5.0/QXlsxQt6")
+set_target_properties(QXlsx::QXlsx PROPERTIES
+        IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/dependency/lib/QXlsxQt6/QXlsxQt6.lib"
+        IMPORTED_LOCATION_DEBUG "${CMAKE_SOURCE_DIR}/dependency/lib/QXlsxQt6/QXlsxQt6d.lib"
+        INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::GuiPrivate"
+)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
         ${QT_MODULES_LIST_WITH_PREFIX}
+        QXlsx::QXlsx
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
