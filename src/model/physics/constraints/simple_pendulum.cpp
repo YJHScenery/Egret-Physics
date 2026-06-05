@@ -64,7 +64,6 @@ namespace egret
     // ========================================================================
     // 锚点操作
     // ========================================================================
-
     void SimplePendulum::setAnchorPos(const Eigen::Vector3d& anchorPos)
     {
         m_anchor.setPosition(anchorPos);
@@ -78,7 +77,6 @@ namespace egret
     // ========================================================================
     // 约束类型
     // ========================================================================
-
     ConstraintType SimplePendulum::getType() const
     {
         return ConstraintType::SimplePendulum;
@@ -87,7 +85,6 @@ namespace egret
     // ========================================================================
     // 速度约束（能量守恒重定向）
     // ========================================================================
-
     void SimplePendulum::applyVelocityConstraint(double dt)
     {
         std::ignore = dt;
