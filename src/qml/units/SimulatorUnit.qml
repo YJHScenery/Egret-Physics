@@ -495,9 +495,9 @@ ColumnLayout {
 
         ColumnLayout {
             id: rightInfoColumn
-            Layout.preferredWidth: simulatorRoot.infoPanelVisible ? 320 : 0
-            Layout.minimumWidth: simulatorRoot.infoPanelVisible ? 320 : 0
-            Layout.maximumWidth: simulatorRoot.infoPanelVisible ? 320 : 0
+            Layout.preferredWidth: simulatorRoot.infoPanelVisible ? 260 : 0
+            Layout.minimumWidth: simulatorRoot.infoPanelVisible ? 260 : 0
+            Layout.maximumWidth: simulatorRoot.infoPanelVisible ? 260 : 0
             Layout.fillHeight: true
             visible: simulatorRoot.infoPanelVisible
             opacity: simulatorRoot.infoPanelVisible ? 1 : 0
@@ -511,13 +511,13 @@ ColumnLayout {
 
                 MetricCard {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 56
+                    Layout.preferredHeight: 36
                     metricName: "积分步长"
                     metricValue: Number(sceneController.fixedStepMs).toFixed(2)
                     metricUnit: "ms"
                     metricColor: theme.accent
-                    nameFontSize: 10
-                    valueFontSize: 18
+                    nameFontSize: 12
+                    valueFontSize: 14
                     unitFontSize: 10
                     dotSize: 8
                     contentPadding: 10
@@ -526,13 +526,13 @@ ColumnLayout {
 
                 MetricCard {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 56
+                    Layout.preferredHeight: 36
                     metricName: "实时帧率"
                     metricValue: Number(sceneController.fps).toFixed(1)
                     metricUnit: "FPS"
                     metricColor: theme.success
-                    nameFontSize: 10
-                    valueFontSize: 18
+                    nameFontSize: 12
+                    valueFontSize: 14
                     unitFontSize: 10
                     dotSize: 8
                     contentPadding: 10
@@ -541,13 +541,13 @@ ColumnLayout {
 
                 MetricCard {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 56
+                    Layout.preferredHeight: 36
                     metricName: "活动刚体"
                     metricValue: sceneController.entityCount
                     metricUnit: "obj"
                     metricColor: theme.warning
-                    nameFontSize: 10
-                    valueFontSize: 18
+                    nameFontSize: 12
+                    valueFontSize: 14
                     unitFontSize: 10
                     dotSize: 8
                     contentPadding: 10
@@ -557,9 +557,9 @@ ColumnLayout {
 
             GlassPanel {
                 id: infoPanel
-                Layout.preferredWidth: simulatorRoot.infoPanelVisible ? 320 : 0
-                Layout.minimumWidth: simulatorRoot.infoPanelVisible ? 320 : 0
-                Layout.maximumWidth: simulatorRoot.infoPanelVisible ? 320 : 0
+                Layout.preferredWidth: simulatorRoot.infoPanelVisible ? 260 : 0
+                Layout.minimumWidth: simulatorRoot.infoPanelVisible ? 260 : 0
+                Layout.maximumWidth: simulatorRoot.infoPanelVisible ? 260 : 0
                 Layout.fillHeight: true
                 visible: simulatorRoot.infoPanelVisible
                 opacity: simulatorRoot.infoPanelVisible ? 1 : 0
@@ -600,7 +600,7 @@ ColumnLayout {
 
                     ColumnLayout {
                         width: Math.max(0, infoScrollView.availableWidth - infoScrollView.rightPadding)
-                        spacing: 10
+                        spacing: 6
 
                         Repeater {
                             model: ["重力场 g = " + resourceHelper.getStandardGravity() + "m/s^2", "积分器: " + sceneController.getIntegratorName(), "碰撞模型: CCD", "约束求解: Sequential Impulse", "误差阈值: 1e-6"]
@@ -608,7 +608,7 @@ ColumnLayout {
                             delegate: Rectangle {
                                 id: repeatItem
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 42
+                                Layout.preferredHeight: 30
                                 property bool hovered: false
                                 radius: 9
                                 color: hovered ? "#122c5d" : "#12365D"
@@ -646,9 +646,9 @@ ColumnLayout {
 
             GlassPanel {
                 id: controlPanel
-                Layout.preferredWidth: simulatorRoot.infoPanelVisible ? 320 : 0
-                Layout.minimumWidth: simulatorRoot.infoPanelVisible ? 320 : 0
-                Layout.maximumWidth: simulatorRoot.infoPanelVisible ? 320 : 0
+                Layout.preferredWidth: simulatorRoot.infoPanelVisible ? 260 : 0
+                Layout.minimumWidth: simulatorRoot.infoPanelVisible ? 260 : 0
+                Layout.maximumWidth: simulatorRoot.infoPanelVisible ? 260 : 0
                 visible: simulatorRoot.infoPanelVisible
                 opacity: simulatorRoot.infoPanelVisible ? 1 : 0
                 enabled: simulatorRoot.infoPanelVisible
@@ -760,9 +760,9 @@ ColumnLayout {
     GlassPanel {
         id: dataStreamPanel
         Layout.fillWidth: true
-        Layout.preferredHeight: simulatorRoot.dataStreamVisible ? 170 : 0
-        Layout.minimumHeight: simulatorRoot.dataStreamVisible ? 170 : 0
-        Layout.maximumHeight: simulatorRoot.dataStreamVisible ? 170 : 0
+        Layout.preferredHeight: simulatorRoot.dataStreamVisible ? 160 : 0
+        Layout.minimumHeight: simulatorRoot.dataStreamVisible ? 160 : 0
+        Layout.maximumHeight: simulatorRoot.dataStreamVisible ? 160 : 0
         visible: simulatorRoot.dataStreamVisible
         opacity: simulatorRoot.dataStreamVisible ? 1 : 0
         enabled: simulatorRoot.dataStreamVisible
