@@ -42,6 +42,10 @@ ColumnLayout {
         return "(" + x.toFixed(2) + ", " + y.toFixed(2) + ", " + z.toFixed(2) + ")";
     }
 
+    function formatVecWithMagnitude(x, y, z) {
+        return formatVec(x, y, z) + "[" + (Math.sqrt(x ** 2 + y ** 2 + z ** 2)).toFixed(2) + "]"
+    }
+
     // property int extraDataBlocks: 0
     property int dataBlockWidth: 230
 
@@ -1035,7 +1039,7 @@ ColumnLayout {
                                     return simulatorRoot.isTracking(bodyId, "velocity");
                                 }
                                 visible: show
-                                text: "速度: " + simulatorRoot.formatVec(bodyVelocity[2], bodyVelocity[0], bodyVelocity[1])
+                                text: "速度: " + simulatorRoot.formatVecWithMagnitude(bodyVelocity[2], bodyVelocity[0], bodyVelocity[1])
                                 color: "#9EC4EA"
                                 font.pixelSize: 11
                             }
@@ -1047,8 +1051,8 @@ ColumnLayout {
                                     return simulatorRoot.isTracking(bodyId, "angularVelocity");
                                 }
                                 visible: show
-                                text: "⍺: " + (typeof bodyAngularVelocity !== 'undefined'
-                                    ? simulatorRoot.formatVec(bodyAngularVelocity[2], bodyAngularVelocity[0], bodyAngularVelocity[1])
+                                text: "角速度: " + (typeof bodyAngularVelocity !== 'undefined'
+                                    ? simulatorRoot.formatVecWithMagnitude(bodyAngularVelocity[2], bodyAngularVelocity[0], bodyAngularVelocity[1])
                                     : "N/A")
                                 color: "#9EC4EA"
                                 font.pixelSize: 11
@@ -1061,9 +1065,7 @@ ColumnLayout {
                                     return simulatorRoot.isTracking(bodyId, "kineticEnergy");
                                 }
                                 visible: show
-                                text: "Ek: " + (typeof bodyKineticEnergy !== 'undefined'
-                                    ? Number(bodyKineticEnergy).toFixed(2) + " J"
-                                    : "N/A")
+                                text: "动能: " + Number(bodyKineticEnergy).toFixed(2) + " J"
                                 color: "#9EC4EA"
                                 font.pixelSize: 11
                             }

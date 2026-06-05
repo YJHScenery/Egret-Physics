@@ -757,6 +757,8 @@ namespace egret
             item.angularVelocity[1] = static_cast<float>(renderItem.angularVelocity.y());
             item.angularVelocity[2] = static_cast<float>(renderItem.angularVelocity.z());
 
+            item.kineticEnergy = renderItem.kineticEnergy;
+
             item.centerPos[0] = static_cast<float>(renderItem.position.x());
             item.centerPos[1] = static_cast<float>(renderItem.position.y());
             item.centerPos[2] = static_cast<float>(renderItem.position.z());

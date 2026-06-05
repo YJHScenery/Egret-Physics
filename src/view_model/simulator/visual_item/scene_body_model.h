@@ -63,6 +63,9 @@ namespace egret
         /** 角速度（x, y, z）。 */
         std::array<double, 3> angularVelocity{0.0, 0.0, 0.0};
 
+        /** 动能（平动 + 转动），单位：焦耳。 */
+        double kineticEnergy{0.0};
+
         /** 颜色。 */
         QString color;
 
@@ -98,6 +101,7 @@ namespace egret
             RotationRole,
             VelocityRole,
             AngularVelocityRole,
+            KineticEnergyRole,
             ColorRole,
             LabelRole,
         };

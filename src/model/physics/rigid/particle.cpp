@@ -40,6 +40,11 @@ namespace egret
         return Eigen::Vector3d::Zero();
     }
 
+    double Particle::getKineticEnergy()
+    {
+        return 0.5 * m_mass * m_velocity.squaredNorm();
+    }
+
     std::unique_ptr<PhysicsAbstract> Particle::clone(std::uint64_t id) const
     {
         auto entity = std::make_unique<Particle>(*this);

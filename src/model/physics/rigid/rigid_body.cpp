@@ -62,7 +62,19 @@ namespace egret
         const Eigen::Matrix3d R = m_transform.getRotationMatrix();
         const Eigen::Matrix3d I_world = R * I_local * R.transpose();
 
-        return I_world * m_angular;
+        return I_world * m_angularVelocity;
+    }
+
+    double RigidBody::getKineticEnergy()
+    {
+        double ke = 0.5 * m_mass * m_velocity.squaredNorm();
+
+        const Eigen::Matrix3d R = m_transform.getRotationMatrix();
+        const Eigen::Vector3d wLocal = R.transpose() * m_angularVelocity;
+        const Eigen::Matrix3d I_local = m_shape->getInertiaTensor(m_mass);
+        ke += 0.5 * wLocal.dot(I_local * wLocal);
+
+        return ke;
     }
 
     std::unique_ptr<PhysicsAbstract> RigidBody::clone(std::uint64_t id) const

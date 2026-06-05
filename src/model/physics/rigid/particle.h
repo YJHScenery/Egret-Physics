@@ -45,6 +45,8 @@ namespace egret
 
         Eigen::Vector3d getAngularMomentum() override;
 
+        double getKineticEnergy() override;
+
         [[nodiscard]] std::unique_ptr<PhysicsAbstract> clone(std::uint64_t id) const override;
 
     protected:
