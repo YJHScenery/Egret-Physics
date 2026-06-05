@@ -729,17 +729,6 @@ namespace egret
 
         m_world->registerConstraint("Air Resistance", std::move(airResistance));
 
-        //
-        // qDebug() << id1 << id2 << id3 << idBox2;
-        //
-        //
-        // for (int i = 0; i < 100; ++i) {
-        //     m_world->spawnSphere("并行测试" + std::to_string(i), {300, 210 + i * 10.0, 420 + i * 20.0}, {0, 0, 0}, 10, 10);
-        // }
-        // m_world->spawnSphere("并行测试2", {300, 220, 440}, {0, 0, 0}, 10, 10);
-        // m_world->spawnSphere("并行测试3", {300, 230, 450}, {0, 0, 0}, 10, 10);
-
-
 
         m_entityCount = static_cast<int>(m_world->getBodyCount());
     }
