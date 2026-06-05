@@ -42,13 +42,132 @@ ColumnLayout {
         return "(" + x.toFixed(2) + ", " + y.toFixed(2) + ", " + z.toFixed(2) + ")";
     }
 
-    property int extraDataBlocks: 0
+    // property int extraDataBlocks: 0
     property int dataBlockWidth: 230
 
+    // ============ 数据追踪状态 ============
 
-    function addDataBlock() {
-        extraDataBlocks += 1;
+    /**
+     * 追踪状态映射。
+     * 结构: { bodyId: { position: bool, velocity: bool, angularVelocity: bool, kineticEnergy: bool } }
+     */
+    property var trackingMap: ({})
+
+    /** 当前被 pick 的物体 ID（用于构建弹出菜单） */
+    property string pickedBodyId: ""
+
+    /** 上下文菜单弹出位置 */
+    property point contextMenuPos: Qt.point(0, 0)
+
+    /** 上下文菜单可见性 */
+    property bool contextMenuVisible: false
+
+    /** 确保 bodyId 在 trackingMap 中有条目 */
+    function ensureTrackingEntry(bodyId) {
+        if (!trackingMap[bodyId]) {
+            trackingMap[bodyId] = {
+                position: false,
+                velocity: false,
+                angularVelocity: false,
+                kineticEnergy: false
+            };
+        }
     }
+
+    /** 检查 bodyId 是否有任何追踪项被勾选 */
+    function hasTrackingData(bodyId) {
+        var entry = trackingMap[bodyId];
+        if (!entry) return false;
+        return entry.position || entry.velocity || entry.angularVelocity || entry.kineticEnergy;
+    }
+
+    /** 检查 bodyId 的指定属性是否被追踪 */
+    function isTracking(bodyId, propertyName) {
+        var entry = trackingMap[bodyId];
+        if (!entry) return false;
+        return entry[propertyName] === true;
+    }
+
+    /** 检查是否有任何物体被追踪（用于控制空状态提示的可见性） */
+    function hasAnyTrackingData() {
+        for (var key in trackingMap) {
+            if (hasTrackingData(key)) return true;
+        }
+        return false;
+    }
+
+    /** 构建指定物体的上下文菜单项数组 */
+    function buildContextMenu(bodyId) {
+        ensureTrackingEntry(bodyId);
+
+        return [
+            {
+                text: "查看参数",
+                onTriggered: function () {
+                    console.log("查看参数: body-" + bodyId);
+                    // TODO: 打开参数面板
+                }
+            },
+            {
+                text: "跟踪数据",
+                submenu: [
+                    {
+                        text: "位置",
+                        checkable: true,
+                        checked: trackingMap[bodyId].position,
+                        onTriggered: function () {
+                            trackingMap[bodyId].position = !trackingMap[bodyId].position;
+                            trackingVersion++;
+                        }
+                    },
+                    {
+                        text: "速度",
+                        checkable: true,
+                        checked: trackingMap[bodyId].velocity,
+                        onTriggered: function () {
+                            trackingMap[bodyId].velocity = !trackingMap[bodyId].velocity;
+                            trackingVersion++;
+                        }
+                    },
+                    {
+                        text: "角速度",
+                        checkable: true,
+                        checked: trackingMap[bodyId].angularVelocity,
+                        onTriggered: function () {
+                            trackingMap[bodyId].angularVelocity = !trackingMap[bodyId].angularVelocity;
+                            trackingVersion++;
+                        }
+                    },
+                    {
+                        text: "动能",
+                        checkable: true,
+                        checked: trackingMap[bodyId].kineticEnergy,
+                        onTriggered: function () {
+                            trackingMap[bodyId].kineticEnergy = !trackingMap[bodyId].kineticEnergy;
+                            trackingVersion++;
+                        }
+                    }
+                ]
+            },
+            {
+                separator: true
+            },
+            {
+                text: "附加 Gizmo",
+                onTriggered: function () {
+                    console.log("附加 Gizmo: body-" + bodyId);
+                    // TODO: 附加 Gizmo
+                }
+            }
+        ];
+    }
+
+    /** 追踪版本计数器 — 用于触发 QML 绑定重新求值（深层 var 对象变更检测） */
+    property int trackingVersion: 0
+
+    // function addDataBlock() {
+    //     extraDataBlocks += 1;
+    // }
 
     RowLayout {
         Layout.fillWidth: true
@@ -74,6 +193,7 @@ ColumnLayout {
                 property real gridSpacing: 50
                 // property string activeDragBodyId: ""
                 property point lastMousePoint: Qt.point(0, 0)
+                property point pressPoint: Qt.point(0, 0)
 
                 function clamp(value, minValue, maxValue) {
                     return Math.max(minValue, Math.min(maxValue, value));
@@ -449,10 +569,13 @@ ColumnLayout {
                     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                     preventStealing: true
 
+                    property var contextMenuPopup: null
+
                     onPressed: function (mouse) {
                         canvas3d.lastMousePoint = Qt.point(mouse.x, mouse.y);
+                        canvas3d.pressPoint = Qt.point(mouse.x, mouse.y);
                         if (mouse.button === Qt.LeftButton) {
-                            
+                            // 左键按下：留待 onReleased 判断是否为点击 pick
                         }
                     }
 
@@ -466,12 +589,58 @@ ColumnLayout {
                             canvas3d.orbitPitch = canvas3d.clamp(canvas3d.orbitPitch - dy * 0.22, -90, 90);
                             canvas3d.updateCameraPose();
                         }
-
                     }
 
                     onReleased: function (mouse) {
                         if (mouse.button === Qt.LeftButton) {
+                            // 判断是否为点击（位移 < 5px 视为点击，否则为拖拽）
+                            const dx = mouse.x - canvas3d.pressPoint.x;
+                            const dy = mouse.y - canvas3d.pressPoint.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
 
+                            if (dist < 5) {
+                                // 关闭已存在的菜单
+                                if (mouseLayer.contextMenuPopup) {
+                                    mouseLayer.contextMenuPopup.close();
+                                    mouseLayer.contextMenuPopup.destroy();
+                                    mouseLayer.contextMenuPopup = null;
+                                }
+
+                                // 尝试 pick 3D 物体
+                                const pickResult = sceneView.pick(mouse.x, mouse.y);
+                                if (pickResult && pickResult.objectHit) {
+                                    const objName = pickResult.objectHit.objectName;
+                                    if (objName && objName.startsWith("body-")) {
+                                        const bodyId = objName.substring(5);
+                                        simulatorRoot.pickedBodyId = bodyId;
+
+                                        // 构建菜单项
+                                        const items = simulatorRoot.buildContextMenu(bodyId);
+
+                                        // 创建 EgretPopupMenu
+                                        const popup = contextMenuFactory.createObject(canvas3d, {
+                                            "menuItems": items,
+                                            "x": mouse.x,
+                                            "y": mouse.y
+                                        });
+
+                                        popup.menuClosed.connect(function () {
+                                            if (mouseLayer.contextMenuPopup) {
+                                                mouseLayer.contextMenuPopup.destroy();
+                                                mouseLayer.contextMenuPopup = null;
+                                            }
+                                            simulatorRoot.contextMenuVisible = false;
+                                        });
+
+                                        mouseLayer.contextMenuPopup = popup;
+                                        popup.open();
+                                        simulatorRoot.contextMenuVisible = true;
+                                    }
+                                } else {
+                                    // 点击空白
+                                    simulatorRoot.contextMenuVisible = false;
+                                }
+                            }
                         }
                     }
 
@@ -480,6 +649,12 @@ ColumnLayout {
                         canvas3d.orbitDistance = canvas3d.clamp(canvas3d.orbitDistance * factor, 120, 8000);
                         canvas3d.updateCameraPose();
                     }
+                }
+
+                // ---- 上下文菜单工厂 ----
+                Component {
+                    id: contextMenuFactory
+                    EgretPopupMenu {}
                 }
             }
         }
@@ -751,9 +926,9 @@ ColumnLayout {
     GlassPanel {
         id: dataStreamPanel
         Layout.fillWidth: true
-        Layout.preferredHeight: simulatorRoot.dataStreamVisible ? 160 : 0
-        Layout.minimumHeight: simulatorRoot.dataStreamVisible ? 160 : 0
-        Layout.maximumHeight: simulatorRoot.dataStreamVisible ? 160 : 0
+        Layout.preferredHeight: simulatorRoot.dataStreamVisible ? 180 : 0
+        Layout.minimumHeight: simulatorRoot.dataStreamVisible ? 180 : 0
+        Layout.maximumHeight: simulatorRoot.dataStreamVisible ? 180 : 0
         visible: simulatorRoot.dataStreamVisible
         opacity: simulatorRoot.dataStreamVisible ? 1 : 0
         enabled: simulatorRoot.dataStreamVisible
@@ -765,7 +940,7 @@ ColumnLayout {
         Flickable {
             id: dataStreamFlick
             anchors.fill: parent
-            anchors.margins: 6
+            anchors.margins: 3
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             contentWidth: dataStreamRow.implicitWidth
@@ -794,6 +969,13 @@ ColumnLayout {
                     model: sceneController.bodyModel
 
                     delegate: Rectangle {
+                        // 通过 trackingVersion 触发重新求值，实现深层 var 变更检测
+                        property bool isTracked: {
+                            simulatorRoot.trackingVersion;
+                            return simulatorRoot.hasTrackingData(bodyId);
+                        }
+                        visible: isTracked
+
                         width: simulatorRoot.dataBlockWidth
                         height: dataStreamFlick.height
                         radius: 10
@@ -804,80 +986,132 @@ ColumnLayout {
                         Column {
                             anchors.fill: parent
                             anchors.margins: 10
-                            spacing: 6
+                            spacing: 4
 
-                            Text {
-                                text: "实体 " + bodyId
-                                color: "#EAF5FF"
-                                font.pixelSize: 12
-                                font.bold: true
-                            }
-                            Text {
-                                text: "速度: " + simulatorRoot.formatVec(bodyVelocity[2], bodyVelocity[0], bodyVelocity[1])
-                                color: "#9EC4EA"
-                                font.pixelSize: 11
-
-                                onTextChanged: {
-                                    console.log(bodyId + ": " + bodyVelocity);
-
+                            // 标题行
+                            RowLayout {
+                                width: parent.width
+                                Text {
+                                    text: "实体 " + bodyId
+                                    color: "#EAF5FF"
+                                    font.pixelSize: 12
+                                    font.bold: true
+                                    Layout.fillWidth: true
+                                }
+                                // 保存按钮 — 点击导出该实体的追踪数据
+                                Text {
+                                    text: "💾"
+                                    font.pixelSize: 14
+                                    color: mouseSave.containsMouse ? "#FFFFFF" : "#8DB3D9"
+                                    MouseArea {
+                                        id: mouseSave
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        hoverEnabled: true
+                                        onClicked: {
+                                            console.log("导出数据: 实体 " + bodyId);
+                                            // TODO: Step 5 — 实现文件保存逻辑
+                                        }
+                                    }
                                 }
                             }
+
+                            // 位置（追踪时显示）
                             Text {
+                                property bool show: {
+                                    simulatorRoot.trackingVersion;
+                                    return simulatorRoot.isTracking(bodyId, "position");
+                                }
+                                visible: show
                                 text: "位置: " + simulatorRoot.formatVec(bodyPosition[2], bodyPosition[0], bodyPosition[1])
                                 color: "#9EC4EA"
                                 font.pixelSize: 11
-                                //
-                                //
-                                onTextChanged: {
-                                    console.log(bodyId + ": " + bodyPosition);
-                                }
                             }
 
+                            // 速度（追踪时显示）
+                            Text {
+                                property bool show: {
+                                    simulatorRoot.trackingVersion;
+                                    return simulatorRoot.isTracking(bodyId, "velocity");
+                                }
+                                visible: show
+                                text: "速度: " + simulatorRoot.formatVec(bodyVelocity[2], bodyVelocity[0], bodyVelocity[1])
+                                color: "#9EC4EA"
+                                font.pixelSize: 11
+                            }
 
+                            // 角速度（追踪时显示）
+                            Text {
+                                property bool show: {
+                                    simulatorRoot.trackingVersion;
+                                    return simulatorRoot.isTracking(bodyId, "angularVelocity");
+                                }
+                                visible: show
+                                text: "⍺: " + (typeof bodyAngularVelocity !== 'undefined'
+                                    ? simulatorRoot.formatVec(bodyAngularVelocity[2], bodyAngularVelocity[0], bodyAngularVelocity[1])
+                                    : "N/A")
+                                color: "#9EC4EA"
+                                font.pixelSize: 11
+                            }
+
+                            // 动能（追踪时显示）
+                            Text {
+                                property bool show: {
+                                    simulatorRoot.trackingVersion;
+                                    return simulatorRoot.isTracking(bodyId, "kineticEnergy");
+                                }
+                                visible: show
+                                text: "Ek: " + (typeof bodyKineticEnergy !== 'undefined'
+                                    ? Number(bodyKineticEnergy).toFixed(2) + " J"
+                                    : "N/A")
+                                color: "#9EC4EA"
+                                font.pixelSize: 11
+                            }
                         }
                     }
                 }
 
-                Repeater {
-                    model: simulatorRoot.extraDataBlocks
+                // Repeater {
+                //     model: simulatorRoot.extraDataBlocks
+                //
+                //     delegate: Rectangle {
+                //         width: simulatorRoot.dataBlockWidth
+                //         height: dataStreamFlick.height
+                //         radius: 10
+                //         color: "#0F2B4A"
+                //         border.width: 1
+                //         border.color: "#244A70"
+                //
+                //         Text {
+                //             anchors.centerIn: parent
+                //             text: "空数据块"
+                //             color: "#7FA6C8"
+                //             font.pixelSize: 12
+                //         }
+                //     }
+                // }
 
-                    delegate: Rectangle {
-                        width: simulatorRoot.dataBlockWidth
-                        height: dataStreamFlick.height
-                        radius: 10
-                        color: "#0F2B4A"
-                        border.width: 1
-                        border.color: "#244A70"
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "空数据块"
-                            color: "#7FA6C8"
-                            font.pixelSize: 12
-                        }
-                    }
-                }
-
+                // ---- 空状态提示：无追踪数据时显示 ----
                 Rectangle {
-                    width: 90
+                    width: Math.max(220, dataStreamFlick.width - 20)
                     height: dataStreamFlick.height
                     radius: 10
                     color: "#0D2748"
                     border.width: 1
                     border.color: "#2C5D88"
 
+                    property bool show: {
+                        simulatorRoot.trackingVersion;
+                        return !simulatorRoot.hasAnyTrackingData();
+                    }
+                    visible: show
+
                     Text {
                         anchors.centerIn: parent
-                        text: "+"
-                        color: "#8DB3D9"
-                        font.pixelSize: 28
-                        font.bold: true
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: simulatorRoot.addDataBlock()
+                        text: "点击 3D 物体 → 跟踪数据 → 勾选属性"
+                        color: "#5A7D9E"
+                        font.pixelSize: 13
+                        font.italic: true
                     }
                 }
             }

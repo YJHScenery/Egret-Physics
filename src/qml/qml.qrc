@@ -7,6 +7,7 @@
         <file>components/basic/EgretPushButton.qml</file>
         <file>components/basic/EgretSeparator.qml</file>
         <file>components/EgretMenuBar.qml</file>
+        <file>components/EgretPopupMenu.qml</file>
         <file>components/GlassPanel.qml</file>
         <file>components/LeftNavPanel.qml</file>
         <file>components/MetricCard.qml</file>

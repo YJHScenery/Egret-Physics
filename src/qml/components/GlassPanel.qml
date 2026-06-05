@@ -71,7 +71,7 @@ Rectangle {
             id: bodyItem
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.margins: 12
+            Layout.margins: 8
         }
     }
 }
