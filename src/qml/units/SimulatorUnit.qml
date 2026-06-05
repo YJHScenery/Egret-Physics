@@ -72,7 +72,7 @@ ColumnLayout {
                 property real lineThickness: 0.45
                 property int gridCount: 41
                 property real gridSpacing: 50
-                property string activeDragBodyId: ""
+                // property string activeDragBodyId: ""
                 property point lastMousePoint: Qt.point(0, 0)
 
                 function clamp(value, minValue, maxValue) {
@@ -452,12 +452,7 @@ ColumnLayout {
                     onPressed: function (mouse) {
                         canvas3d.lastMousePoint = Qt.point(mouse.x, mouse.y);
                         if (mouse.button === Qt.LeftButton) {
-                            const pickResult = sceneView.pick(mouse.x, mouse.y);
-                            if (pickResult && pickResult.objectHit && pickResult.objectHit.objectName.indexOf("body-") === 0) {
-                                const idText = pickResult.objectHit.objectName.substring(5);
-                                canvas3d.activeDragBodyId = idText;
-                                sceneController.beginBodyDrag(canvas3d.activeDragBodyId, mouse.x, mouse.y, width, height, canvas3d.cameraState(), "xy_plane");
-                            }
+                            
                         }
                     }
 
@@ -472,15 +467,11 @@ ColumnLayout {
                             canvas3d.updateCameraPose();
                         }
 
-                        if ((mouse.buttons & Qt.LeftButton) !== 0 && canvas3d.activeDragBodyId !== "") {
-                            sceneController.updateBodyDrag(mouse.x, mouse.y, width, height, canvas3d.cameraState());
-                        }
                     }
 
                     onReleased: function (mouse) {
                         if (mouse.button === Qt.LeftButton) {
-                            canvas3d.activeDragBodyId = "";
-                            sceneController.endBodyDrag();
+
                         }
                     }
 

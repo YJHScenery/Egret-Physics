@@ -81,8 +81,6 @@ namespace egret
 
         Q_PROPERTY(double timeScale READ timeScale NOTIFY timeScaleChanged)
 
-        Q_PROPERTY(bool dragActive READ isDragActive NOTIFY dragActiveChanged)
-
         Q_PROPERTY(SceneBodyModel *bodyModel READ bodyModel CONSTANT)
 
         Q_PROPERTY(SceneConstraintModel *constraintModel READ constraintModel CONSTANT)
@@ -140,9 +138,6 @@ namespace egret
          */
         Q_INVOKABLE void setTimeScale(double scale);
 
-        /** 当前是否处于拖拽状态。 */
-        [[nodiscard]] bool isDragActive() const;
-
         /** QML 直接使用的实体列表模型。 */
         [[nodiscard]] SceneBodyModel* bodyModel();
 
@@ -178,12 +173,6 @@ namespace egret
 
         Q_INVOKABLE void loadSceneFromJsonString(const QString& jsonString);
 
-        // /** 生成一个默认球体。 */
-        // Q_INVOKABLE void spawnSphere();
-        //
-        // /** 生成一个默认盒体。 */
-        // Q_INVOKABLE void spawnBox();
-
         /**
          * @brief 将屏幕坐标映射到世界 XY 平面（z 固定）上的点。
          * @param screenX 屏幕像素 X。
@@ -200,37 +189,6 @@ namespace egret
                                                                              double viewportHeight,
                                                                              const QVariantMap& cameraState,
                                                                              double planeZ);
-
-        /**
-         * @brief 开始拖拽指定实体。
-         */
-        Q_INVOKABLE bool beginBodyDrag(const QString& bodyId,
-                                       double screenX,
-                                       double screenY,
-                                       double viewportWidth,
-                                       double viewportHeight,
-                                       const QVariantMap& cameraState,
-                                       const QString& mode = "xy_plane");
-
-        /**
-         * @brief 更新当前拖拽。
-         */
-        Q_INVOKABLE bool updateBodyDrag(double screenX,
-                                        double screenY,
-                                        double viewportWidth,
-                                        double viewportHeight,
-                                        const QVariantMap& cameraState);
-
-        /**
-         * @brief 结束拖拽。
-         */
-        Q_INVOKABLE void endBodyDrag();
-
-        [[nodiscard]] Q_INVOKABLE static QVector3D buildRenderScale(std::uint32_t type,
-                                                                    const QVector3D& modelScale,
-                                                                    const QVector3D& boxSize_optional,
-                                                                    double radius_optional, double height_optional,
-                                                                    double length_optional);
 
         [[nodiscard]]Q_INVOKABLE static QVector3D buildRenderPosition(const QVector3D& position);
 
@@ -344,9 +302,6 @@ namespace egret
                                                          Eigen::Vector3d* hitPoint,
                                                          QString* error = nullptr);
 
-        /** 更新拖拽状态并发信号。 */
-        void setDragActive(bool active);
-
         /** 当前运行状态。 */
         bool m_running{false};
 
@@ -377,21 +332,6 @@ namespace egret
 
         /** 固定步长累加器。 */
         double m_accumulator{0.0};
-
-        /** 当前是否正在拖拽实体。 */
-        bool m_dragActive{false};
-
-        /** 当前拖拽对象 ID。 */
-        std::uint64_t m_dragBodyId{0};
-
-        /** 拖拽模式：xy_plane / axis_x / axis_y / axis_z。 */
-        QString m_dragMode{"xy_plane"};
-
-        /** 拖拽开始时实体世界坐标。 */
-        Eigen::Vector3d m_dragStartBodyPosition{Eigen::Vector3d::Zero()};
-
-        /** 拖拽开始时射线与约束平面的交点。 */
-        Eigen::Vector3d m_dragStartPlanePoint{Eigen::Vector3d::Zero()};
 
         /** 帧计时器，用于驱动实时步进。 */
         QTimer m_timer;
