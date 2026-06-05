@@ -23,6 +23,7 @@
 #include <QHash>
 #include <QString>
 #include <QVariant>
+#include <array>
 #include <magic_enum.hpp>
 #include <vector>
 
@@ -48,16 +49,19 @@ namespace egret
         quint32 kind;
 
         /** 渲染中心位置（x, y, z）。 */
-        double centerPos[3]{0.0, 0.0, 0.0};
+        std::array<double, 3> centerPos{0.0, 0.0, 0.0};
 
-        double scale[3]{1.0, 1.0, 1.0};
+        /** 渲染缩放（x, y, z）。 */
+        std::array<double, 3> scale{1.0, 1.0, 1.0};
 
         /** 旋转四元数 (w, x, y, z)。 */
-        double rotation[4]{1.0, 0.0, 0.0, 0.0};
+        std::array<double, 4> rotation{1.0, 0.0, 0.0, 0.0};
 
-        double velocity[3]{0.0, 0.0, 0.0};
+        /** 线速度（x, y, z）。 */
+        std::array<double, 3> velocity{0.0, 0.0, 0.0};
 
-        double angularVelocity[3]{0.0, 0.0, 0.0};
+        /** 角速度（x, y, z）。 */
+        std::array<double, 3> angularVelocity{0.0, 0.0, 0.0};
 
         /** 颜色。 */
         QString color;
