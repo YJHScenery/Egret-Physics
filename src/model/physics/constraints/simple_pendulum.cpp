@@ -1,7 +1,8 @@
 /**
-* @file        simple_pendulum.cpp
+ * @file        simple_pendulum.cpp
  * @brief       单摆约束器实现文件
- * @details     实现SimplePendulum类的各项成员函数。
+ * @details     实现SimplePendulum类的各项成员函数，
+ *              包含自适应能量补偿逻辑。
  *
  * @author      作者姓名 <作者邮箱>
  * @date        2026-04-26
@@ -15,39 +16,54 @@
  */
 
 #include "simple_pendulum.h"
+#include "physical_entity.h"
+#include <cmath>
 
 namespace egret
 {
+    // ========================================================================
+    // 构造 / 拷贝
+    // ========================================================================
+
     SimplePendulum::SimplePendulum() = default;
+
+    SimplePendulum::SimplePendulum(const SimplePendulum& other)
+        : ConstraintsBase(other)
+          , m_anchor(other.m_anchor)
+          , m_entity(other.m_entity)
+          , m_length(other.m_length)
+    {
+        m_hasForceHistory = false;
+        m_lastForceDir = Eigen::Vector3d::Zero();
+    }
+
+    SimplePendulum& SimplePendulum::operator=(const SimplePendulum& other)
+    {
+        if (this != &other) {
+            ConstraintsBase::operator=(other);
+            m_anchor = other.m_anchor;
+            m_entity = other.m_entity;
+            m_length = other.m_length;
+            m_hasForceHistory = false;
+            m_lastForceDir = Eigen::Vector3d::Zero();
+        }
+        return *this;
+    }
 
     SimplePendulum::SimplePendulum(double length, const Eigen::Vector3d& anchorPos, PhysicalEntity* entity,
                                    std::uint64_t id)
-        : ConnectingLine(id) // 锚点质量为0（固定点）
+        : ConstraintsBase(id)
           , m_anchor(anchorPos, Eigen::Vector3d{0, 0, 0}, 0.0, id)
           , m_entity(entity)
+          , m_length(length)
     {
-        // 将锚点和摆动物体注册到约束器
         ConstraintsBase::registerEntity(&m_anchor);
         ConstraintsBase::registerEntity(entity);
-        // 设置约束长度
-        m_length = length;
     }
 
-    SimplePendulum::SimplePendulum(double length, const Eigen::Vector3d& anchorPos, PhysicalEntity* entity,
-                                   const std::uint64_t id,
-                                   const std::initializer_list<Eigen::Vector3d>& turningPositions)
-        : ConnectingLine(id)
-          , m_anchor(anchorPos, Eigen::Vector3d{0, 0, 0}, 0.0, id) // 锚点质量为0（固定点）
-          , m_entity(entity)
-    {
-        // 将锚点和摆动物体注册到约束器
-        ConstraintsBase::registerEntity(&m_anchor);
-        ConstraintsBase::registerEntity(entity);
-        // 设置约束长度
-        m_length = length;
-        // 设置路径点
-        m_pathPositions = turningPositions;
-    }
+    // ========================================================================
+    // 锚点操作
+    // ========================================================================
 
     void SimplePendulum::setAnchorPos(const Eigen::Vector3d& anchorPos)
     {
@@ -59,53 +75,52 @@ namespace egret
         return m_anchor.getPosition();
     }
 
+    // ========================================================================
+    // 约束类型
+    // ========================================================================
+
+    ConstraintType SimplePendulum::getType() const
+    {
+        return ConstraintType::SimplePendulum;
+    }
+
+    // ========================================================================
+    // 速度约束（能量守恒重定向）
+    // ========================================================================
+
     void SimplePendulum::applyVelocityConstraint(double dt)
     {
+        std::ignore = dt;
+
         if (m_entity == nullptr) {
             return;
         }
 
-        // 获取位置
         Eigen::Vector3d anchorPos = m_anchor.getPositionCR();
         Eigen::Vector3d entityPos = m_entity->getPositionCR();
-
-        // 计算方向和距离
         Eigen::Vector3d dp = entityPos - anchorPos;
         double dist = dp.norm();
 
-        // 如果绳子未被拉伸（距离 <= 长度），不激活约束
         if (dist <= m_length || dist < 1e-10) {
             return;
         }
 
-        // 单位方向向量（从锚点指向摆动物体）
         Eigen::Vector3d n = dp / dist;
-
-        // 获取速度
         Eigen::Vector3d vAnchor = m_anchor.getVelocity();
         Eigen::Vector3d vEntity = m_entity->getVelocity();
-
-        // 相对速度在约束方向上的分量
-        // Ċ = n · (v_entity - v_anchor)
         double dv = n.dot(vEntity - vAnchor);
 
-        // 获取摆动物体的质量（锚点质量为0，不参与修正）
         double mEntity = m_entity->getMass();
-
         if (mEntity <= 0) {
-            return; // 摆动物体是固定的，无法修正
+            return;
         }
 
-        // 如果相对速度是收缩方向（dv <= 0），不施加约束
-        // 只有当摆动物体正在远离锚点时才施加约束
+        // 仅当物体向外运动时激活
         if (dv <= 0) {
             return;
         }
 
-        // 能量守恒的速度重定向：将速度中的向外径向分量去除，
-        // 同时将去除的能量转移到切向分量上，保持速率不变。
-        // 物理上，理想绳约束力始终垂直于速度（不做功），
-        // 仅改变速度方向，不改变其大小。
+        // 能量守恒速度重定向：去除向外径向分量，保持速率不变
         Eigen::Vector3d vTangent = vEntity - dv * n;
         double tangentNorm = vTangent.norm();
         if (tangentNorm > 1e-10) {
@@ -113,59 +128,126 @@ namespace egret
         }
     }
 
+    // ========================================================================
+    // 位置约束（含自适应能量补偿）
+    // ========================================================================
+
     void SimplePendulum::applyPositionConstraint(double dt)
     {
+        std::ignore = dt;
+
         if (m_entity == nullptr) {
             return;
         }
 
-        // 获取位置
         Eigen::Vector3d anchorPos = m_anchor.getPositionCR();
         Eigen::Vector3d entityPos = m_entity->getPositionCR();
-
-        // 计算方向和距离
         Eigen::Vector3d dp = entityPos - anchorPos;
         double dist = dp.norm();
 
-        // 如果绳子未被拉伸（距离 <= 长度），不激活约束
         if (dist <= m_length || dist < 1e-10) {
             return;
         }
 
-        // 计算需要修正的距离
         double error = dist - m_length;
-
-        // 单位方向向量（从锚点指向摆动物体）
         Eigen::Vector3d n = dp / dist;
 
-        // 修正摆动物体的位置（锚点不能移动）
-        Eigen::Vector3d newEntityPos = entityPos - n * error;
-        m_entity->setPosition(newEntityPos);
+        // 修正位置
+        m_entity->setPosition(entityPos - n * error);
 
-        // 位置修正改变了重力势能，需同步调整动能以保持总能量守恒。
-        // ΔPE = m·g·Δp = m·g·(-n·error) = -m·error·(g·n)
-        // 令 ΔKE = -ΔPE，即 ½·m·(v'² - v²) = m·error·(g·n)
-        // → v'² = v² - 2·error·(a·n)    （a = F/m，对单摆即重力加速度g）
+        // 自适应能量补偿
         Eigen::Vector3d vEntity = m_entity->getVelocity();
-        double mEntity = m_entity->getMass();
-        Eigen::Vector3d acceleration = m_entity->getJoinForce() / mEntity;
-
-        double speedSq = vEntity.squaredNorm();
-        double energyComp = -2.0 * error * acceleration.dot(n);
-        double targetSpeedSq = speedSq + energyComp;
-        if (targetSpeedSq < 0.0) {
-            targetSpeedSq = 0.0;
-        }
-        double targetSpeed = std::sqrt(targetSpeedSq);
-
-        // 重定向速度到切向，使用势能补偿后的目标速率
-        double radialV = n.dot(vEntity);
-        Eigen::Vector3d vTangent = vEntity - radialV * n;
-        double tangentNorm = vTangent.norm();
-        if (tangentNorm > 1e-10) {
-            m_entity->setSpeed(vTangent * (targetSpeed / tangentNorm));
-        }
+        m_entity->setSpeed(compensateEnergy(vEntity, n, error));
     }
+
+    // ========================================================================
+    // 自适应能量补偿（内联实现）
+    // ========================================================================
+
+    Eigen::Vector3d SimplePendulum::compensateEnergy(
+        const Eigen::Vector3d& currentV,
+        const Eigen::Vector3d& correctionN,
+        double error) const
+    {
+        const double mEntity = m_entity->getMass();
+        if (mEntity <= 0.0) {
+            return currentV;
+        }
+
+        // ---- 检测合力方向稳定性 ----
+        const Eigen::Vector3d currentForce = m_entity->getJoinForce();
+        const double forceNorm = currentForce.norm();
+
+        bool useConservative = false;
+
+        if (forceNorm > 1e-10) {
+            const Eigen::Vector3d forceDir = currentForce / forceNorm;
+
+            if (!m_hasForceHistory) {
+                m_hasForceHistory = true;
+                m_lastForceDir = forceDir;
+                useConservative = true;
+            } else {
+                const double similarity = m_lastForceDir.dot(forceDir);
+                m_lastForceDir = forceDir;
+                useConservative = (similarity >= kForceStabilityThreshold);
+            }
+        }
+        // 无力作用：不补偿势能，仅做动能守恒重定向
+
+        // ---- 计算目标速率 ----
+        double targetSpeedSq = currentV.squaredNorm();
+
+        if (useConservative) {
+            // 势能补偿：v'² = v² - 2·error·(a·n)
+            const Eigen::Vector3d acceleration = currentForce / mEntity;
+            targetSpeedSq += -2.0 * error * acceleration.dot(correctionN);
+            if (targetSpeedSq < 0.0) {
+                targetSpeedSq = 0.0;
+            }
+        }
+        // 否则保持 |v| 不变（targetSpeedSq 不变）
+
+        const double targetSpeed = std::sqrt(targetSpeedSq);
+
+        // ---- 重定向到切向 ----
+        const double radialV = correctionN.dot(currentV);
+        const Eigen::Vector3d vTangent = currentV - radialV * correctionN;
+        const double tangentNorm = vTangent.norm();
+
+        if (tangentNorm < 1e-10) {
+            return Eigen::Vector3d::Zero();
+        }
+
+        return vTangent * (targetSpeed / tangentNorm);
+    }
+
+    // ========================================================================
+    // 角速度约束（不参与）
+    // ========================================================================
+
+    void SimplePendulum::applyAngularVelocityConstraint(double dt)
+    {
+        std::ignore = dt;
+    }
+
+    // ========================================================================
+    // 约束误差计算
+    // ========================================================================
+
+    double SimplePendulum::computeConstraintError() const
+    {
+        if (m_entity == nullptr) {
+            return 0.0;
+        }
+
+        const double dist = (m_entity->getPositionCR() - m_anchor.getPositionCR()).norm();
+        return std::max(0.0, dist - m_length);
+    }
+
+    // ========================================================================
+    // 克隆
+    // ========================================================================
 
     std::unique_ptr<PhysicsAbstract> SimplePendulum::clone(const std::uint64_t id) const
     {

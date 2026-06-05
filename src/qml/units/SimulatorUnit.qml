@@ -296,7 +296,7 @@ ColumnLayout {
                                 // ---- 主体直线（非弹簧类型） ----
                                 // 使用薄盒体渲染为线段，长度为两端实体间的实际距离
                                 Model {
-                                    visible: (constraintKind === 1 || constraintKind === 3) && slackRatio >= 0.9
+                                    visible: (constraintKind === 1 || constraintKind === 2 || constraintKind === 3) && slackRatio >= 0.9
 
                                     x: constraintNode.renderPosA.x + constraintNode.direction.x * 0.5
                                     y: constraintNode.renderPosA.y + constraintNode.direction.y * 0.5
@@ -364,7 +364,7 @@ ColumnLayout {
 
                                 // 贝塞尔曲线（LineStrip 图元）
                                 Model {
-                                    visible: constraintKind === 1 && slackRatio < 0.9
+                                    visible: (constraintKind === 1 || constraintKind === 2) && slackRatio < 0.9
 
                                     geometry: BezierCurveGeometry {
                                         controlPoints: [
