@@ -18,7 +18,7 @@
 #include <QJsonDocument>
 #include <QQmlEngine>
 
-#include "logger.h"
+#include "async_logger.h"
 #include "resource_helper.h"
 #include "shape_base.h"
 #include "unique_id_generator.h"

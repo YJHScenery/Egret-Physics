@@ -17,8 +17,8 @@
 #define EGRET_PHYSICS_WINDOWS_CONFIG_H
 #include <cstdint>
 
-void setWindowsTerminalUtf8();
+void setTerminalUtf8();
 
-std::uint64_t getWindowsCurrentProcessId();
+std::uint64_t getCurrentProcessId();
 
 #endif // EGRET_PHYSICS_WINDOWS_CONFIG_H

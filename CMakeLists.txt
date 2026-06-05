@@ -164,8 +164,8 @@ set(CPP_FILES
         src/utils/io/database_controller.h
         src/utils/io/json_controller.cpp
         src/utils/io/json_controller.h
-        src/utils/io/logger.cpp
-        src/utils/io/logger.h
+        src/utils/io/async_logger.cpp
+        src/utils/io/async_logger.h
         src/utils/language/cpp_property.cpp
 
         src/model/geometry/surface/surface_base.h

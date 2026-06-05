@@ -87,6 +87,7 @@ namespace egret
         /** 设置原长。 */
         void setRestLength(double restLength) { m_restLength = restLength; }
 
+        Spring() = delete;
     protected:
         /** 起点实体指针。 */
         PhysicalEntity* m_entityA{nullptr};
@@ -95,7 +96,7 @@ namespace egret
         PhysicalEntity* m_entityB{nullptr};
 
     private:
-        Spring() = delete;
+
 
         /** 弹性系数 k（N/m）。 */
         double m_stiffness{};
