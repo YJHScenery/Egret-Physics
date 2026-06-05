@@ -1116,7 +1116,7 @@ namespace egret
     }
 
     void SceneManagerViewModel::exportTrackingAsync(const QString &bodyId,
-                                                    const QString &filePath) const
+                                                    const QString &filePath)
     {
         bool ok = false;
         const std::uint64_t id = bodyId.toULongLong(&ok);
@@ -1125,12 +1125,19 @@ namespace egret
         const auto it = m_trackingBuffers.find(id);
         if (it == m_trackingBuffers.end() || !it->active) return;
 
+        // 防止同一文件并发写入：上一次导出未完成则跳过
+        if (it->exporting.loadRelaxed()) return;
+        it->exporting.storeRelaxed(1);
+
         // 拷贝快照（主线程只读），避免后台写入时与 refreshBodyModel 竞态
         const std::vector<TrackingSnapshot> copy(it->snapshots.begin(),
                                                   it->snapshots.end());
         const std::uint32_t flags = it->flags;
 
-        std::ignore = QtConcurrent::run([copy, flags, filePath] {
+        // 捕获原子指针，工作线程完成后清零
+        QAtomicInt *pExporting = &it->exporting;
+
+        std::ignore = QtConcurrent::run([copy, flags, filePath, pExporting] {
             QXlsx::Document xlsx;
             int col = 0;
 
@@ -1182,6 +1189,7 @@ namespace egret
             }
 
             std::ignore = xlsx.saveAs(filePath);
+            pExporting->storeRelaxed(0);
         });
     }
 

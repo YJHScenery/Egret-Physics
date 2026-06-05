@@ -183,7 +183,7 @@ namespace egret
          *          快照数为 0 时也创建仅含表头的文件。
          */
         Q_INVOKABLE void exportTrackingAsync(const QString &bodyId,
-                                             const QString &filePath) const;
+                                             const QString &filePath);
 
         /**
          * @brief 开始录制：激活追踪并每 2 秒自动刷新 xlsx。

@@ -1060,15 +1060,14 @@ ColumnLayout {
                             // 标题行
                             RowLayout {
                                 width: parent.width
-                                
+                                spacing: 6
+
                                 Text {
                                     text: "实体 " + bodyId
                                     color: "#EAF5FF"
                                     font.pixelSize: 12
                                     font.bold: true
-                                    Layout.fillWidth: true
                                 }
-
 
                                 // ---- 录制控制按钮（录制中/暂停时显示） ----
                                 Item {
@@ -1079,7 +1078,7 @@ ColumnLayout {
                                     }
                                     visible: state === "recording" || state === "paused"
                                     Layout.preferredWidth: state === "none" ? 0 : 44
-                                    Layout.preferredHeight: 16
+                                    Layout.preferredHeight: 18
 
                                     RowLayout {
                                         anchors.fill: parent
@@ -1087,8 +1086,8 @@ ColumnLayout {
 
                                         // 暂停 / 恢复
                                         Item {
-                                            Layout.preferredWidth: 16
-                                            Layout.preferredHeight: 16
+                                            Layout.preferredWidth: 18
+                                            Layout.preferredHeight: 18
                                             Image {
                                                 id: imgPauseResume
                                                 anchors.fill: parent
@@ -1124,8 +1123,8 @@ ColumnLayout {
 
                                         // 停止
                                         Item {
-                                            Layout.preferredWidth: 16
-                                            Layout.preferredHeight: 16
+                                            Layout.preferredWidth: 18
+                                            Layout.preferredHeight: 18
                                             Image {
                                                 id: imgStop
                                                 anchors.fill: parent
@@ -1163,8 +1162,8 @@ ColumnLayout {
                                         return simulatorRoot.recordingState[bodyId] || "none";
                                     }
                                     visible: state === "none"
-                                    Layout.preferredWidth: 16
-                                    Layout.preferredHeight: 16
+                                    Layout.preferredWidth: 18
+                                    Layout.preferredHeight: 18
 
                                     Image {
                                         id: imgSave
@@ -1187,6 +1186,7 @@ ColumnLayout {
                                         hoverEnabled: true
                                         onClicked: {
                                             saveTrackDataFileDialog.bodyName = bodyId;
+                                            // const now = new Date();
                                             saveTrackDataFileDialog.open();
                                         }
                                     }

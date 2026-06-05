@@ -19,6 +19,7 @@
 
 #include <deque>
 #include <memory>
+#include <QAtomicInt>
 #include <optional>
 #include <string>
 #include <vector>
@@ -155,6 +156,8 @@ namespace egret
         /** 位标志：bit0=位置, bit1=速度, bit2=角速度, bit3=动能 */
         std::uint32_t flags{0};
         std::deque<TrackingSnapshot> snapshots;
+        /** 导出互斥锁：0=空闲，1=正在导出。防止并发写同一文件。 */
+        QAtomicInt exporting{0};
     };
 
     // ========================================================================
