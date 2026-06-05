@@ -6,7 +6,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-set(CMAKE_PREFIX_PATH "D:/Qt/6.9.3/msvc2022_64")
+# set(CMAKE_PREFIX_PATH "D:/Qt/6.9.3/msvc2022_64")
 
 option(BUILD_DOCS "Build documentation with Doxygen" ON)
 

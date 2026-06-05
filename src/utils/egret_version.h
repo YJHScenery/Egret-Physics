@@ -199,12 +199,12 @@ namespace egret
     template <typename Prefix, typename Hyphen, typename Suffix, typename T, T... Values>
     static constexpr std::string_view formatted_version_v =
         FormattedVersionFormatter<Prefix, Hyphen, Suffix, T, Values...>::value;
-
+    
 #define CREATE_FORMATTED_VERSION_V(Prefix, Hyphen, Suffix, T, ...) \
 formatted_version_v< \
-decltype(BOOST_HANA_STRING(Prefix)), \
-decltype(BOOST_HANA_STRING(Hyphen)), \
-decltype(BOOST_HANA_STRING(Suffix)), \
+std::remove_const_t<decltype(BOOST_HANA_STRING(Prefix))>, \
+std::remove_const_t<decltype(BOOST_HANA_STRING(Hyphen))>, \
+std::remove_const_t<decltype(BOOST_HANA_STRING(Suffix))>, \
 T, \
 ##__VA_ARGS__>
 
