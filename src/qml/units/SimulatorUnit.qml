@@ -18,6 +18,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Controls.Basic 2.15 as Basic
 import QtQuick.Layouts 1.15
+import QtQuick.Effects
 import QtQuick3D 6.9
 import EnumHandler 1.0
 import ModelManager 1.0
@@ -1059,6 +1060,7 @@ ColumnLayout {
                             // 标题行
                             RowLayout {
                                 width: parent.width
+                                
                                 Text {
                                     text: "实体 " + bodyId
                                     color: "#EAF5FF"
@@ -1067,25 +1069,42 @@ ColumnLayout {
                                     Layout.fillWidth: true
                                 }
 
+
                                 // ---- 录制控制按钮（录制中/暂停时显示） ----
                                 Item {
+                                    id: recCtrls
                                     property string state: {
                                         simulatorRoot.trackingVersion;
                                         return simulatorRoot.recordingState[bodyId] || "none";
                                     }
                                     visible: state === "recording" || state === "paused"
-                                    Layout.preferredWidth: state === "none" ? 0 : 52
-                                    Layout.preferredHeight: 20
+                                    Layout.preferredWidth: state === "none" ? 0 : 44
+                                    Layout.preferredHeight: 16
 
                                     RowLayout {
                                         anchors.fill: parent
-                                        spacing: 4
+                                        spacing: 6
 
                                         // 暂停 / 恢复
-                                        Text {
-                                            text: parent.parent.state === "paused" ? "▶" : "⏸"
-                                            font.pixelSize: 13
-                                            color: mousePauseResume.containsMouse ? "#FFFFFF" : "#8DB3D9"
+                                        Item {
+                                            Layout.preferredWidth: 16
+                                            Layout.preferredHeight: 16
+                                            Image {
+                                                id: imgPauseResume
+                                                anchors.fill: parent
+                                                source: recCtrls.state === "paused"
+                                                    ? "qrc:/main_icons/assets/icons/record_resume.svg"
+                                                    : "qrc:/main_icons/assets/icons/record_pause.svg"
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            MultiEffect {
+                                                anchors.fill: imgPauseResume
+                                                source: imgPauseResume
+                                                colorization: 1.0
+                                                colorizationColor: mousePauseResume.containsMouse ? "#FFFFFF" : "#8DB3D9"
+                                                brightness: mousePauseResume.containsMouse ? 0.9 : 0.7
+                                                enabled: true
+                                            }
                                             MouseArea {
                                                 id: mousePauseResume
                                                 anchors.fill: parent
@@ -1103,11 +1122,24 @@ ColumnLayout {
                                             }
                                         }
 
-                                        // 停止录制
-                                        Text {
-                                            text: "⏹"
-                                            font.pixelSize: 13
-                                            color: mouseStop.containsMouse ? "#FF6B6B" : "#8DB3D9"
+                                        // 停止
+                                        Item {
+                                            Layout.preferredWidth: 16
+                                            Layout.preferredHeight: 16
+                                            Image {
+                                                id: imgStop
+                                                anchors.fill: parent
+                                                source: "qrc:/main_icons/assets/icons/record_stop.svg"
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            MultiEffect {
+                                                anchors.fill: imgStop
+                                                source: imgStop
+                                                colorization: 1.0
+                                                colorizationColor: mouseStop.containsMouse ? "#FF6B6B" : "#8DB3D9"
+                                                brightness: mouseStop.containsMouse ? 0.9 : 0.7
+                                                enabled: true
+                                            }
                                             MouseArea {
                                                 id: mouseStop
                                                 anchors.fill: parent
@@ -1124,15 +1156,30 @@ ColumnLayout {
                                 }
 
                                 // ---- 保存按钮（非录制时显示） ----
-                                Text {
+                                Item {
+                                    id: recSave
                                     property string state: {
                                         simulatorRoot.trackingVersion;
                                         return simulatorRoot.recordingState[bodyId] || "none";
                                     }
                                     visible: state === "none"
-                                    text: "💾"
-                                    font.pixelSize: 14
-                                    color: mouseSave.containsMouse ? "#FFFFFF" : "#8DB3D9"
+                                    Layout.preferredWidth: 16
+                                    Layout.preferredHeight: 16
+
+                                    Image {
+                                        id: imgSave
+                                        anchors.fill: parent
+                                        source: "qrc:/main_icons/assets/icons/record_save.svg"
+                                        fillMode: Image.PreserveAspectFit
+                                    }
+                                    MultiEffect {
+                                        anchors.fill: imgSave
+                                        source: imgSave
+                                        colorization: 1.0
+                                        colorizationColor: mouseSave.containsMouse ? "#FFFFFF" : "#8DB3D9"
+                                        brightness: mouseSave.containsMouse ? 0.9 : 0.7
+                                        enabled: true
+                                    }
                                     MouseArea {
                                         id: mouseSave
                                         anchors.fill: parent
