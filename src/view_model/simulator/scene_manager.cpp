@@ -394,10 +394,10 @@ namespace egret
         emit timeScaleChanged();
     }
 
-    bool SceneManagerViewModel::isDragActive() const
-    {
-        return m_dragActive;
-    }
+    // bool SceneManagerViewModel::isDragActive() const
+    // {
+    //     return m_dragActive;
+    // }
 
     SceneBodyModel* SceneManagerViewModel::bodyModel()
     {
@@ -464,7 +464,7 @@ namespace egret
     void SceneManagerViewModel::reset()
     {
         pause();
-        endBodyDrag();
+        // endBodyDrag();
         initialize();
         rebuildDemoWorld();
         refreshBodyModel();
@@ -532,126 +532,126 @@ namespace egret
         result.insert("z", hitPoint.z());
         return result;
     }
-
-    bool SceneManagerViewModel::beginBodyDrag(const QString& bodyId,
-                                              const double screenX,
-                                              const double screenY,
-                                              const double viewportWidth,
-                                              const double viewportHeight,
-                                              const QVariantMap& cameraState,
-                                              const QString& mode)
-    {
-        if (m_world == nullptr) {
-            return false;
-        }
-
-        const quint64 id = bodyId.toULongLong();
-
-        const std::optional<Eigen::Vector3d> bodyPosition = m_world->getBodyPosition(id);
-        if (!bodyPosition.has_value()) {
-            return false;
-        }
-
-        Eigen::Vector3d rayOrigin{};
-        Eigen::Vector3d rayDirection{};
-        if (!buildPickRay(screenX,
-                          screenY,
-                          viewportWidth,
-                          viewportHeight,
-                          cameraState,
-                          &rayOrigin,
-                          &rayDirection)) {
-            return false;
-        }
-
-        Eigen::Vector3d planePoint{};
-        if (!intersectRayWithPlaneZ(rayOrigin, rayDirection, bodyPosition->z(), &planePoint)) {
-            return false;
-        }
-
-        m_dragBodyId = id;
-        m_dragMode = mode;
-        m_dragStartBodyPosition = *bodyPosition;
-        m_dragStartPlanePoint = planePoint;
-        setDragActive(true);
-        return true;
-    }
-
-    bool SceneManagerViewModel::updateBodyDrag(const double screenX,
-                                               const double screenY,
-                                               const double viewportWidth,
-                                               const double viewportHeight,
-                                               const QVariantMap& cameraState)
-    {
-        if (!m_dragActive || m_world == nullptr || m_dragBodyId == 0) {
-            return false;
-        }
-
-        Eigen::Vector3d rayOrigin{};
-        Eigen::Vector3d rayDirection{};
-        if (!buildPickRay(screenX,
-                          screenY,
-                          viewportWidth,
-                          viewportHeight,
-                          cameraState,
-                          &rayOrigin,
-                          &rayDirection)) {
-            return false;
-        }
-
-        Eigen::Vector3d currentPlanePoint{};
-        if (!intersectRayWithPlaneZ(rayOrigin, rayDirection, m_dragStartBodyPosition.z(), &currentPlanePoint)) {
-            return false;
-        }
-
-        const Eigen::Vector3d dragDelta = currentPlanePoint - m_dragStartPlanePoint;
-        Eigen::Vector3d nextPosition = m_dragStartBodyPosition;
-
-        if (m_dragMode == "axis_x") {
-            nextPosition.x() += dragDelta.x();
-        }
-        else if (m_dragMode == "axis_y") {
-            nextPosition.y() += dragDelta.y();
-        }
-        else if (m_dragMode == "axis_z") {
-            nextPosition.z() += dragDelta.z();
-        }
-        else {
-            nextPosition.x() += dragDelta.x();
-            nextPosition.y() += dragDelta.y();
-        }
-
-        if (!m_world->setBodyPosition(m_dragBodyId, nextPosition)) {
-            return false;
-        }
-
-        refreshBodyModel();
-        refreshConstraintModel();
-        emit entityChanged();
-        return true;
-    }
-
-    void SceneManagerViewModel::endBodyDrag()
-    {
-        if (!m_dragActive) {
-            return;
-        }
-
-        m_dragBodyId = 0;
-        m_dragMode = "xy_plane";
-        m_dragStartBodyPosition = Eigen::Vector3d::Zero();
-        m_dragStartPlanePoint = Eigen::Vector3d::Zero();
-        setDragActive(false);
-    }
-
-    QVector3D SceneManagerViewModel::buildRenderScale(std::uint32_t type, const QVector3D& modelScale,
-                                                      const QVector3D& boxSize_optional, double radius_optional,
-                                                      double height_optional, double length_optional)
-    {
-        return TransformTransformer::buildQuick3DRenderScale(type, modelScale, boxSize_optional,
-                                                             radius_optional, height_optional,
-                                                             length_optional);
-    }
+    //
+    // bool SceneManagerViewModel::beginBodyDrag(const QString& bodyId,
+    //                                           const double screenX,
+    //                                           const double screenY,
+    //                                           const double viewportWidth,
+    //                                           const double viewportHeight,
+    //                                           const QVariantMap& cameraState,
+    //                                           const QString& mode)
+    // {
+    //     if (m_world == nullptr) {
+    //         return false;
+    //     }
+    //
+    //     const quint64 id = bodyId.toULongLong();
+    //
+    //     const std::optional<Eigen::Vector3d> bodyPosition = m_world->getBodyPosition(id);
+    //     if (!bodyPosition.has_value()) {
+    //         return false;
+    //     }
+    //
+    //     Eigen::Vector3d rayOrigin{};
+    //     Eigen::Vector3d rayDirection{};
+    //     if (!buildPickRay(screenX,
+    //                       screenY,
+    //                       viewportWidth,
+    //                       viewportHeight,
+    //                       cameraState,
+    //                       &rayOrigin,
+    //                       &rayDirection)) {
+    //         return false;
+    //     }
+    //
+    //     Eigen::Vector3d planePoint{};
+    //     if (!intersectRayWithPlaneZ(rayOrigin, rayDirection, bodyPosition->z(), &planePoint)) {
+    //         return false;
+    //     }
+    //
+    //     m_dragBodyId = id;
+    //     m_dragMode = mode;
+    //     m_dragStartBodyPosition = *bodyPosition;
+    //     m_dragStartPlanePoint = planePoint;
+    //     setDragActive(true);
+    //     return true;
+    // }
+    //
+    // bool SceneManagerViewModel::updateBodyDrag(const double screenX,
+    //                                            const double screenY,
+    //                                            const double viewportWidth,
+    //                                            const double viewportHeight,
+    //                                            const QVariantMap& cameraState)
+    // {
+    //     if (!m_dragActive || m_world == nullptr || m_dragBodyId == 0) {
+    //         return false;
+    //     }
+    //
+    //     Eigen::Vector3d rayOrigin{};
+    //     Eigen::Vector3d rayDirection{};
+    //     if (!buildPickRay(screenX,
+    //                       screenY,
+    //                       viewportWidth,
+    //                       viewportHeight,
+    //                       cameraState,
+    //                       &rayOrigin,
+    //                       &rayDirection)) {
+    //         return false;
+    //     }
+    //
+    //     Eigen::Vector3d currentPlanePoint{};
+    //     if (!intersectRayWithPlaneZ(rayOrigin, rayDirection, m_dragStartBodyPosition.z(), &currentPlanePoint)) {
+    //         return false;
+    //     }
+    //
+    //     const Eigen::Vector3d dragDelta = currentPlanePoint - m_dragStartPlanePoint;
+    //     Eigen::Vector3d nextPosition = m_dragStartBodyPosition;
+    //
+    //     if (m_dragMode == "axis_x") {
+    //         nextPosition.x() += dragDelta.x();
+    //     }
+    //     else if (m_dragMode == "axis_y") {
+    //         nextPosition.y() += dragDelta.y();
+    //     }
+    //     else if (m_dragMode == "axis_z") {
+    //         nextPosition.z() += dragDelta.z();
+    //     }
+    //     else {
+    //         nextPosition.x() += dragDelta.x();
+    //         nextPosition.y() += dragDelta.y();
+    //     }
+    //
+    //     if (!m_world->setBodyPosition(m_dragBodyId, nextPosition)) {
+    //         return false;
+    //     }
+    //
+    //     refreshBodyModel();
+    //     refreshConstraintModel();
+    //     emit entityChanged();
+    //     return true;
+    // }
+    //
+    // void SceneManagerViewModel::endBodyDrag()
+    // {
+    //     if (!m_dragActive) {
+    //         return;
+    //     }
+    //
+    //     m_dragBodyId = 0;
+    //     m_dragMode = "xy_plane";
+    //     m_dragStartBodyPosition = Eigen::Vector3d::Zero();
+    //     m_dragStartPlanePoint = Eigen::Vector3d::Zero();
+    //     setDragActive(false);
+    // }
+    //
+    // QVector3D SceneManagerViewModel::buildRenderScale(std::uint32_t type, const QVector3D& modelScale,
+    //                                                   const QVector3D& boxSize_optional, double radius_optional,
+    //                                                   double height_optional, double length_optional)
+    // {
+    //     return TransformTransformer::buildQuick3DRenderScale(type, modelScale, boxSize_optional,
+    //                                                          radius_optional, height_optional,
+    //                                                          length_optional);
+    // }
 
     QVector3D SceneManagerViewModel::buildRenderPosition(const QVector3D& position)
     {
@@ -1028,12 +1028,12 @@ namespace egret
         return true;
     }
 
-    void SceneManagerViewModel::setDragActive(const bool active)
-    {
-        if (m_dragActive == active) {
-            return;
-        }
-        m_dragActive = active;
-        emit dragActiveChanged();
-    }
+    // void SceneManagerViewModel::setDragActive(const bool active)
+    // {
+    //     if (m_dragActive == active) {
+    //         return;
+    //     }
+    //     m_dragActive = active;
+    //     emit dragActiveChanged();
+    // }
 }
