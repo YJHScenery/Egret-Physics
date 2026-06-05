@@ -15,20 +15,39 @@
  */
 #include "windows_config.h"
 
-#if (__has_include(<Windows.h>))
+#include <sys/stat.h>
+
+#if _WIN32
+
+#define WINVER 0x0A00
+#define _WIN32_WINNT 0x0A00
+
 #include <Windows.h>
-void setWindowsTerminalUtf8()
+
+void setTerminalUtf8()
 {
     SetConsoleOutputCP(CP_UTF8);
 }
 
-std::uint64_t getWindowsCurrentProcessId()
+std::uint64_t getCurrentProcessId()
 {
     return GetCurrentProcessId();
 }
+
+
 #else
-void setWindowsTerminalUtf8()
+
+#include <unistd.h>
+
+void setTerminalUtf8()
 {
     return;
 }
+
+std::uint64_t getCurrentProcessId()
+{
+    return static_cast<std::uint64_t>(getpid());
+}
+
+
 #endif

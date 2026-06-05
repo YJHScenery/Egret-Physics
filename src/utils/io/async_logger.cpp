@@ -14,7 +14,7 @@
  * @ingroup     Utils
  */
 
-#include "logger.h"
+#include "async_logger.h"
 
 #include <sstream>
 #include <iomanip>

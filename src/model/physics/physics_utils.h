@@ -21,7 +21,7 @@
 #include <optional>
 #include <memory>
 
-#include "logger.h"
+#include "async_logger.h"
 
 namespace egret
 {

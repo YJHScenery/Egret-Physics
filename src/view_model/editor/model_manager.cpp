@@ -19,7 +19,7 @@
 #include <QJsonDocument>
 #include <QDebug>
 #include <QQmlEngine>
-#include "logger.h"
+#include "async_logger.h"
 #include "unique_id_generator.h"
 #include "serialize/transform_transformer.h"
 

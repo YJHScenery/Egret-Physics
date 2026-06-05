@@ -33,7 +33,7 @@
 #include "shape_rod.h"
 #include "shape_sphere.h"
 #include "shape_spherical_shell.h"
-#include "logger.h"
+#include "async_logger.h"
 
 namespace egret
 {
