@@ -451,7 +451,7 @@ namespace egret
         obj["id"] = m_data.m_id;
         obj["name"] = m_data.m_name;
         obj["load_time"] = m_data.m_loadTime;
-        obj["type"] = QJsonValue{static_cast<std::int64_t>(m_data.m_type)};
+        obj["type"] = QJsonValue{static_cast<qint64>(m_data.m_type)};
         obj["pos"] = QJsonArray{m_data.m_pos.x(), m_data.m_pos.y(), m_data.m_pos.z()};
 
         if (m_data.m_category == 0) {
