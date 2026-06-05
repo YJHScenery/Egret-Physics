@@ -72,6 +72,11 @@ namespace egret
         // 默认空实现，力型约束（如 Spring）重写此方法
     }
 
+    void ConstraintsBase::applyConstraintTorques()
+    {
+        // 默认空实现
+    }
+
     void ConstraintsBase::setEnabled(bool enabled)
     {
         m_enabled = enabled;

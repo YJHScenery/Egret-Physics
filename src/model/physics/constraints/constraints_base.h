@@ -134,6 +134,8 @@ namespace egret
         // 将约束力注入到受约束实体的力累加器中（积分前调用）
         virtual void applyConstraintForces();
 
+        virtual void applyConstraintTorques();
+
         // 获取参考长度（用于渲染和调试）
         [[nodiscard]] virtual double getReferenceLength() const { return 0.0; }
 
