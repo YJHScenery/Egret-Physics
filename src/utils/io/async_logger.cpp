@@ -351,7 +351,7 @@ namespace egret
 #if defined(_MSC_VER)
         localtime_s(&tm, &tt);
 #else
-        localtime_r(&tt, &tm);
+        localtime_s(&tm, &tt);
 #endif
 
         std::ostringstream timestamp;

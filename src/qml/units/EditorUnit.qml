@@ -46,9 +46,9 @@ ColumnLayout {
 
         SceneEntityListPanel {
             id: sceneEntityListPanel
-            Layout.preferredWidth: 260
+            Layout.preferredWidth: 200
             Layout.minimumWidth: 200
-            Layout.maximumWidth: 320
+            Layout.maximumWidth: 240
             Layout.fillHeight: true
         }
 
@@ -279,7 +279,12 @@ ColumnLayout {
                     }
 
                     DirectionalLight {
-                        eulerRotation: Qt.vector3d(-35, 25, 15)
+                        eulerRotation: Qt.vector3d(-350, 250, 150)
+                        brightness: 1.6
+                    }
+
+                    DirectionalLight {
+                        eulerRotation: Qt.vector3d(-120, -120, 80)
                         brightness: 1.6
                     }
 
@@ -446,7 +451,7 @@ ColumnLayout {
                         // ── 相机轨道（右键 / 中键） ──
                         if ((mouse.buttons & Qt.RightButton) !== 0) {
                             editorCanvas.orbitYaw -= dx * 0.22;
-                            editorCanvas.orbitPitch = editorCanvas.clamp(editorCanvas.orbitPitch - dy * 0.2, 10, 85);
+                            editorCanvas.orbitPitch = editorCanvas.clamp(editorCanvas.orbitPitch - dy * 0.2, -85, 85);
                             editorCanvas.updateCameraPose();
                         }
 
@@ -497,9 +502,9 @@ ColumnLayout {
         }
 
         ColumnLayout {
-            Layout.preferredWidth: 320
-            Layout.minimumWidth: 320
-            Layout.maximumWidth: 320
+            Layout.preferredWidth: 280
+            Layout.minimumWidth: 280
+            Layout.maximumWidth: 280
             Layout.fillHeight: true
             spacing: 12
 
@@ -527,7 +532,7 @@ ColumnLayout {
                         spacing: 4
                         FloatField {
                             id: linearSpeedField
-                            Layout.preferredWidth: 80
+                            Layout.preferredWidth: 65
                             suffix: "m"
                             value: editorGizmo.linearSpeed
                             from: 0.001
@@ -559,7 +564,7 @@ ColumnLayout {
                         spacing: 4
                         FloatField {
                             id: angularSpeedField
-                            Layout.preferredWidth: 80
+                            Layout.preferredWidth: 65
                             suffix: "°"
                             value: editorGizmo.angularSpeed
                             from: 0.1
@@ -1859,7 +1864,7 @@ ColumnLayout {
 
     GlassPanel {
         Layout.fillWidth: true
-        Layout.preferredHeight: 170
+        Layout.preferredHeight: 140
         title: "时间轴 / Timeline"
 
         RowLayout {

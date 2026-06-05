@@ -96,7 +96,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.minimumHeight: 80
-        Layout.preferredHeight: Math.min(80 + shapeModels.length * 26, 400)
+        Layout.preferredHeight: Math.min(80 + shapeModels.length * 18, 400)
         title: "实体列表"
 
         ScrollView {
@@ -131,7 +131,7 @@ ColumnLayout {
                 id: shapeColumn
                 width: parent.width
                 
-                spacing: 4
+                spacing: 2
 
                 Repeater {
                     model: root.shapeModels
@@ -157,7 +157,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.minimumHeight: 80
-        Layout.preferredHeight: Math.min(80 + fieldModels.length * 26, 400)
+        Layout.preferredHeight: Math.min(80 + fieldModels.length * 18, 400)
         title: "场列表"
 
         ScrollView {
@@ -191,7 +191,7 @@ ColumnLayout {
             Column {
                 id: fieldColumn
                 width: parent.width
-                spacing: 4
+                spacing: 2
 
                 Repeater {
                     model: root.fieldModels
@@ -216,7 +216,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.minimumHeight: 80
-        Layout.preferredHeight: Math.min(80 + constraintModels.length * 26, 400)
+        Layout.preferredHeight: Math.min(80 + constraintModels.length * 18, 400)
         title: "约束器列表"
 
         ScrollView {
@@ -250,7 +250,7 @@ ColumnLayout {
             Column {
                 id: constraintColumn
                 width: parent.width
-                spacing: 4
+                spacing: 2
 
                 Repeater {
                     model: root.constraintModels
@@ -276,7 +276,7 @@ ColumnLayout {
         Rectangle {
             id: itemRect
             width: parent ? parent.width : 200
-            height: 42
+            height: 28
             radius: 6
             color: "#0D2748"
             border.width: 1
@@ -284,15 +284,15 @@ ColumnLayout {
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 10
-                anchors.rightMargin: 8
-                spacing: 8
+                anchors.leftMargin: 7
+                anchors.rightMargin: 5
+                spacing: 6
 
                 // ── 可见性指示器 ──
                 Rectangle {
-                    width: 10
-                    height: 10
-                    radius: 5
+                    width: 8
+                    height: 8
+                    radius: 4
                     color: modelData.visible ? "#27B5FF" : "#3A5068"
                 }
 
@@ -300,7 +300,7 @@ ColumnLayout {
                 Label {
                     text: modelData.name ? modelData.name : ("未命名-" + index)
                     color: "#D4EAFB"
-                    font.pixelSize: 13
+                    font.pixelSize: 11
                     font.bold: true
                     elide: Text.ElideRight
                     Layout.fillWidth: true
@@ -320,7 +320,7 @@ ColumnLayout {
                         anchors.centerIn: parent
                         text: root.resolveTypeName(modelData)
                         color: "#9ABFE3"
-                        font.pixelSize: 11
+                        font.pixelSize: 10
                     }
                 }
             }

@@ -30,10 +30,10 @@ import "qrc:/units/units"
 ApplicationWindow {
     id: window
 
-    width: 1920
-    height: 1080
-    minimumWidth: 1920
-    minimumHeight: 1080
+    width: 1440
+    height: 960
+    minimumWidth: 1440
+    minimumHeight: 960
 
     visible: true
     title: "Egret Physics - Classical Mechanics Studio"

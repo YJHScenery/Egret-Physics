@@ -50,7 +50,7 @@ Rectangle {
         }
     }
 
-    ColumnLayout {
+    RowLayout {
         anchors.fill: parent
         anchors.margins: root.contentPadding
         spacing: root.contentSpacing

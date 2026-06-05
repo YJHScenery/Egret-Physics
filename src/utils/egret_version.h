@@ -200,20 +200,27 @@ namespace egret
     static constexpr std::string_view formatted_version_v =
         FormattedVersionFormatter<Prefix, Hyphen, Suffix, T, Values...>::value;
     
-#define CREATE_FORMATTED_VERSION_V(Prefix, Hyphen, Suffix, T, ...) \
-formatted_version_v< \
-std::remove_const_t<decltype(BOOST_HANA_STRING(Prefix))>, \
-std::remove_const_t<decltype(BOOST_HANA_STRING(Hyphen))>, \
-std::remove_const_t<decltype(BOOST_HANA_STRING(Suffix))>, \
-T, \
-##__VA_ARGS__>
+    // 1. 先将 BOOST_HANA_STRING 的结果绑定到 constexpr 变量，再取类型
+    //    必须分两步，因为 BOOST_HANA_STRING 内部定义 struct，不能放在 decltype 未求值表达式中
+    constexpr auto PrefixHanaStr = BOOST_HANA_STRING("v");
+    constexpr auto HyphenHanaStr = BOOST_HANA_STRING(".");
+    constexpr auto SuffixHanaStr = BOOST_HANA_STRING(PREFIX_GIT_VERSION_FULL);
 
-    static constexpr std::string_view WHOLE_EGRET_VERSION_STRING = CREATE_FORMATTED_VERSION_V(
-        "v", ".", PREFIX_GIT_VERSION_FULL,
-        unsigned int,
-        EGRET_PHYSICS_VERSION_MAJOR_UINT,
-        EGRET_PHYSICS_VERSION_MINOR_UINT,
-        EGRET_PHYSICS_VERSION_PATCH_UINT)    ;
+    using PrefixType = std::remove_const_t<decltype(PrefixHanaStr)>;
+    using HyphenType = std::remove_const_t<decltype(HyphenHanaStr)>;
+    using SuffixType = std::remove_const_t<decltype(SuffixHanaStr)>;
+
+    // 2. 再用这些类型去实例化模板
+    static constexpr std::string_view WHOLE_EGRET_VERSION_STRING =
+        FormattedVersionFormatter<
+            PrefixType,
+            HyphenType,
+            SuffixType,
+            unsigned int,
+            EGRET_PHYSICS_VERSION_MAJOR_UINT,
+            EGRET_PHYSICS_VERSION_MINOR_UINT,
+            EGRET_PHYSICS_VERSION_PATCH_UINT
+        >::value;
 }
 
 
