@@ -30,6 +30,7 @@ Item {
     property real stepSize: 0.1
     property int decimals: 3
     property real value: 0
+    property bool readOnly: false
 
     // ── 前缀 / 后缀（如单位 "m"、"°"） ──
     property string suffix: ""
@@ -57,15 +58,16 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: theme.radiusS
-        color: theme.bg1
+        color: root.readOnly ? "#0D1F35" : theme.bg1
         border.width: 1
-        border.color: field.activeFocus ? theme.accent : theme.border
+        border.color: root.readOnly ? "#1E3A5C" : (field.activeFocus ? theme.accent : theme.border)
 
         TextField {
             id: field
             anchors.fill: parent
+            readOnly: root.readOnly
             text: formatValue(root.value)
-            color: "#FFFFFF"
+            color: root.readOnly ? "#6A8FB0" : "#FFFFFF"
             font.pixelSize: 12
             horizontalAlignment: Text.AlignLeft
             verticalAlignment: Text.AlignVCenter

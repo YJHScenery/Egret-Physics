@@ -51,7 +51,7 @@ ColumnLayout {
         var count = sceneEntityListPanel.selectedEntityIds.length;
         if (tid === 1 || tid === 3 || tid === 5) return count === 2;  // 连接线/连接杆/弹簧
         if (tid === 2) return count === 1;                              // 单摆
-        if (tid === 6) return count >= 1;                              // 支撑曲面
+        if (tid === 7) return count >= 1;                              // 空气阻力
         return true;
     }
 
@@ -785,12 +785,27 @@ ColumnLayout {
                         // 角速度：仅实体
                         readonly property bool isAngularVelocityVisible: isShapeCategory
 
-                        // 材质：实体 或 支撑曲面
+                        // 材质：仅实体
                         readonly property bool isMaterialVisible: isShapeCategory
-                            || (isConstraintCategory && EditorParameterManager.currentTypeId === 6)
 
                         Component.onCompleted: {
                             geometryParams = EditorParameterManager.currentParameters;
+                        }
+
+                        // 参数变化时自动同步 geometryParams（切换类别/类型时触发）
+                        Connections {
+                            target: EditorParameterManager
+                            function onCurrentParametersChanged() {
+                                inspectorColumn.geometryParams = EditorParameterManager.currentParameters;
+                            }
+                        }
+
+                        // ── 约束长度是否锁定（连接线/杆选中2个实体时自动计算） ──
+                        readonly property bool constraintLengthReadOnly: {
+                            if (!isConstraintCategory) return false;
+                            var tid = EditorParameterManager.currentTypeId;
+                            if (tid !== 1 && tid !== 3) return false;  // 仅连接线和连接杆
+                            return sceneEntityListPanel.selectedEntityIds.length === 2;
                         }
 
                         // 根据 model 的 typeId 更新所有 UI 状态（由 pick 调用）
@@ -1128,8 +1143,8 @@ ColumnLayout {
                                         // 单摆：1 实体 + 锚点
                                         sceneEntityListPanel.minSelection = 1;
                                         sceneEntityListPanel.maxSelection = 1;
-                                    } else if (tid === 6) {
-                                        // 支撑曲面：≥1
+                                    } else if (tid === 7) {
+                                        // 空气阻力：≥1
                                         sceneEntityListPanel.minSelection = 1;
                                         sceneEntityListPanel.maxSelection = 999;
                                     } else {
@@ -1139,16 +1154,38 @@ ColumnLayout {
                                 }
                             }
 
+                            // ── 实体选择变化：连接线/杆自动计算长度 ──
+                            Connections {
+                                target: sceneEntityListPanel
+                                function onSelectionChanged(entityIds) {
+                                    var tid = EditorParameterManager.currentTypeId;
+                                    if ((tid !== 1 && tid !== 3) || entityIds.length !== 2) return;
+
+                                    var m1 = ModelManager.getModel(entityIds[0]);
+                                    var m2 = ModelManager.getModel(entityIds[1]);
+                                    if (!m1 || !m2) return;
+
+                                    var p1 = m1.pos;
+                                    var p2 = m2.pos;
+                                    var dx = p2.x - p1.x;
+                                    var dy = p2.y - p1.y;
+                                    var dz = p2.z - p1.z;
+                                    var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                                    EditorParameterManager.setParameterValue("length", dist);
+                                }
+                            }
+
                             // ── 类型提示 ──
                             Label {
                                 id: selectionHint
                                 text: {
                                     var tid = EditorParameterManager.currentTypeId;
-                                    if (tid === 1) return "连接线需选择 2 个实体（在左侧实体列表中点击选择）";
+                                    if (tid === 1) return "连接线需选择 2 个实体 — 长度自动计算";
                                     if (tid === 2) return "单摆需选择 1 个实体 + 设置锚点位置";
-                                    if (tid === 3) return "连接杆需选择 2 个实体（在左侧实体列表中点击选择）";
+                                    if (tid === 3) return "连接杆需选择 2 个实体 — 长度自动计算";
                                     if (tid === 5) return "弹簧需选择 2 个实体（在左侧实体列表中点击选择）";
-                                    if (tid === 6) return "支撑曲面需选择至少 1 个实体";
+                                    if (tid === 7) return "空气阻力需选择至少 1 个实体";
                                     return "";
                                 }
                                 color: "#8FB8E0"
@@ -1261,6 +1298,8 @@ ColumnLayout {
                                             stepSize: modelData.step !== undefined ? modelData.step : 0.1
                                             decimals: modelData.decimals !== undefined ? modelData.decimals : 3
                                             value: modelData.value
+                                            readOnly: modelData.key === "length" && inspectorColumn.constraintLengthReadOnly
+                                            suffix: modelData.key === "length" && inspectorColumn.constraintLengthReadOnly ? "(auto)" : ""
                                             onValueChanged: EditorParameterManager.setParameterValue(modelData.key, value)
                                         }
                                     }
@@ -1356,14 +1395,14 @@ ColumnLayout {
                             }
                         }
 
-                        // 子类型选择 — 第 1 层（如 Constraint=SupportSurface → Surface 类型）
+                        // 子类型选择 — 第 1 层（如 Constraint=AirResistance → DragModel 类型）
                         Column {
                             visible: EditorParameterManager.hasSubTypes
                             width: parent.width
                             Layout.fillWidth: true
 
                             Label {
-                                text: "曲面类型"
+                                text: "阻力模型"
                                 color: "#BFD8F4"
                             }
                             ComboBox {
