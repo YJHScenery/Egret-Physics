@@ -20,6 +20,7 @@
 #include "shape_base.h"
 #include "field_base.h"
 #include "constraints_base.h"
+#include "air_resistance.h"
 #include "surface_base.h"
 #include "curve_base.h"
 
@@ -280,23 +281,12 @@ namespace egret
             0
         });
 
-        // SupportSurface — 触发子类型链
+        // AirResistance — 触发 DragModel 子类型链
         m_constraintSchemas.append({
-            static_cast<int>(ConstraintType::SupportSurface),
-            QStringLiteral("支撑曲面"),
-            {
-                {
-                    QStringLiteral("restitution"), QStringLiteral("恢复系数"),
-                    QStringLiteral("float"), -1.0,
-                    -1.0, 1.0, 0.05, 3
-                },
-                {
-                    QStringLiteral("frictionCoeff"), QStringLiteral("摩擦系数"),
-                    QStringLiteral("float"), 0.0,
-                    0.0, 10.0, 0.05, 3
-                },
-            },
-            1 // subCategory = Surface
+            static_cast<int>(ConstraintType::AirResistance),
+            QStringLiteral("空气阻力"),
+            {},  // AirResistance 无独立参数，所有参数在 DragModel 子类型中
+            3    // subCategory = DragModel
         });
 
         
@@ -413,6 +403,59 @@ namespace egret
             0
         });
 
+        
+        //  DragModel 子类别 (DragModel 枚举)
+        
+
+        m_dragModelSchemas.append({
+            static_cast<int>(DragModel::Linear),
+            QStringLiteral("线性阻力"),
+            {
+                {
+                    QStringLiteral("linear_coeff"), QStringLiteral("线性阻尼系数 b (N·s/m)"),
+                    QStringLiteral("float"), 0.01,
+                    0.0, 100000.0, 0.001, 5
+                },
+            },
+            0
+        });
+
+        m_dragModelSchemas.append({
+            static_cast<int>(DragModel::Quadratic),
+            QStringLiteral("平方阻力"),
+            {
+                {
+                    QStringLiteral("drag_coefficient"), QStringLiteral("阻力系数 Cd"),
+                    QStringLiteral("float"), 0.47,
+                    0.0, 100.0, 0.01, 3
+                },
+                {
+                    QStringLiteral("cross_section_area"), QStringLiteral("迎风截面积 A (m²)"),
+                    QStringLiteral("float"), 1.0,
+                    0.0, 100000.0, 0.01, 3
+                },
+                {
+                    QStringLiteral("fluid_density"), QStringLiteral("流体密度 ρ (kg/m³)"),
+                    QStringLiteral("float"), 1.225,
+                    0.0, 10000.0, 0.001, 4
+                },
+            },
+            0
+        });
+
+        m_dragModelSchemas.append({
+            static_cast<int>(DragModel::Constant),
+            QStringLiteral("恒定阻力"),
+            {
+                {
+                    QStringLiteral("constant_magnitude"), QStringLiteral("恒定阻力大小 c (N)"),
+                    QStringLiteral("float"), 1.0,
+                    0.0, 100000.0, 0.1, 3
+                },
+            },
+            0
+        });
+
         // 初始化默认值
         resetToDefaults();
     }
@@ -476,6 +519,7 @@ namespace egret
         switch (subCategory) {
         case 1: return m_surfaceSchemas;
         case 2: return m_curveSchemas;
+        case 3: return m_dragModelSchemas;
         default: return m_surfaceSchemas; // 不会到达
         }
     }

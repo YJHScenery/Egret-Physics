@@ -459,7 +459,7 @@ namespace egret
 
         /**
          * @brief 根据子类别枚举获取对应的 schema 列表。
-         * @param subCategory 0 = 无, 1 = Surface, 2 = Curve。
+         * @param subCategory 0 = 无, 1 = Surface, 2 = Curve, 3 = DragModel。
          * @return 对应子类别的 schema 列表引用。
          */
         [[nodiscard]] const QList<TypeParameterSchema> &schemasForSubCategory(
@@ -482,6 +482,9 @@ namespace egret
         /** Curve 子类别下的所有类型 schema（Bezier / ConicSection / Helix）。 */
         QList<TypeParameterSchema> m_curveSchemas;
 
+        /** DragModel 子类别下的所有类型 schema（Linear / Quadratic / Constant）。 */
+        QList<TypeParameterSchema> m_dragModelSchemas;
+
         /** 当前实体类别。 */
         int m_currentCategory = 0; // Shape
 
@@ -497,7 +500,7 @@ namespace egret
         /**
          * @brief 当 m_hasSubTypes==false 时，此值为 0。
          * @details 当 m_hasSubTypes==true 时，此值指示当前主类型的子类别：
-         *          1 = Surface, 2 = Curve。
+         *          1 = Surface, 2 = Curve, 3 = DragModel。
          */
         int m_currentSubCategory = 0;
 
