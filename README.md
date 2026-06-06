@@ -48,9 +48,9 @@
 
 ### 前提条件
 
-- CMake 3.30.1 或更高版本
-- Qt 6.9.3（需包含 Core、Gui、Widgets、Quick、Qml、Quick3D、Sql 模块）
-- MSVC 2022（Windows）或兼容的 C++ 编译器
+- CMake 3.30.1 或更高版本（若不兼容，自行修改 CMakeLists.txt，最低支持版本尚不明确）
+- Qt 6.9.3（需包含 Core、Gui、Widgets、Quick、Qml、Quick3D、Sql 模块）或兼容版本
+- MSVC 2022（Windows）或兼容的 C++ 编译器（少数代码可能在其他编译器中无法工作）
 
 ### 构建说明
 
@@ -78,6 +78,8 @@ cmake --build . --config Release
 # Linux（如适用）
 ./Egret_Physics
 ```
+
+**注意** QXlsx 模块尚未提供 Linux/MacOS 平台的静态链接库支持
 
 ## 项目结构
 
@@ -186,6 +188,7 @@ scene->clear();
 cd build
 ctest -C Release
 ```
+**注意** 单元测试已暂停维护，鉴于作者对单元测试的了解极其浅薄，因此无法保证其能正常工作。
 
 ## 许可证
 

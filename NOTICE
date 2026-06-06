@@ -10,7 +10,7 @@ project, as well as the project's own copyright and license information.
 ---------------------------------------------------------------------------
 Library Name:      Egret Physics
 Version:           1.0.0
-Copyright:         Copyright (C) 2026 Egret Physics Authors
+Copyright:         Copyright (C) 2026 Ye Jinghao <jehorm19831@163.com>
 License:           GNU General Public License v3.0 (GPLv3)
 License File:      LICENSE
 Description:       A physics simulation engine with rigid body dynamics
@@ -52,8 +52,6 @@ Components Used:
   - Eigen/Core
   - Eigen/Geometry
   - Eigen/Dense
-  - Eigen/Sparse
-  - Eigen/Eigenvalues
 
 ---------------------------------------------------------------------------
 4. MAGIC_ENUM LIBRARY
@@ -62,7 +60,7 @@ Library Name:      magic_enum
 Version:           0.9.8
 Copyright:         Copyright (C) 2019 - 2024 Daniil Goncharov <neargye@gmail.com>
 License:           MIT License
-License File:      dependency/include/magic_enum_0.9.8/magic_enum/magic_enum.hpp
+License File:      dependency/include/magic_enum_0.9.8/magic_enum/LICENSE
 Path:              dependency/include/magic_enum_0.9.8/
 
 Components Used:
@@ -95,6 +93,19 @@ Modules Used:
   - Qt6Sql
 
 ---------------------------------------------------------------------------
+6. QXlsx LIBRARY
+---------------------------------------------------------------------------
+Library Name:      QXlsx
+Version:           1.5.0
+Copyright:         Copyright 2017-, https://github.com/j2doll/QXlsx
+License:           MIT License
+License File:      dependency/include/qxlsx_qt6_1.5.0/LICENSE
+Path:              dependency/include/qxlsx_qt6_1.5.0/QXlsxQt6
+
+Components Used:
+  - xlsxdocument.h
+
+---------------------------------------------------------------------------
 LICENSE COMPLIANCE NOTES
 ---------------------------------------------------------------------------
 
@@ -119,6 +130,10 @@ THIRD-PARTY LIBRARY LICENSE COMPATIBILITY:
    - Qt Core, Gui, Widgets are available under LGPLv3
    - Quick, Qml, Quick3D may require GPL compliance
    - This project uses Qt under GPLv3 terms to ensure full compliance
+
+5. QXlsx (MIT)
+   - MIT License is permissive and compatible with GPLv3
+   - Redistribution permitted with proper copyright notices
 
 ---------------------------------------------------------------------------
 ADDITIONAL INFORMATION
