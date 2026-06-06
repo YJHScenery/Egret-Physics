@@ -63,6 +63,8 @@ namespace egret
             normals.clear();
             indices.clear();
         }
+
+        bool checkConvexity() const;
     };
 }
 #endif //EGRET_PHYSICS_GEOMETRY_UTILS_H

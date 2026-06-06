@@ -324,6 +324,7 @@ set(CPP_FILES
         src/model/physics/rigid/shape/standard/convex_mesh.cpp
         src/model/physics/rigid/shape/standard/convex_mesh.h
         src/model/geometry/geometry_utils.h
+        src/model/geometry/geometry_utils.cpp
 
 )
 
