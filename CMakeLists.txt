@@ -128,6 +128,7 @@ include_directories(
         src/view_model/
         src/model/strategy
         src/view_model/simulator
+        src/view_model/simulator/visual_item
         src/view_model/serialize
         src/view_model/editor
         src/view
@@ -319,6 +320,7 @@ set(CPP_FILES
         src/model/physics/constraints/air_resistance.h
         src/model/strategy/broad_phase_strategy/multi_process_brute_force_broad_phase.cpp
         src/model/strategy/broad_phase_strategy/multi_process_brute_force_broad_phase.h
+        src/view_model/simulator/visual_item/basic_render_item.h
 
 )
 

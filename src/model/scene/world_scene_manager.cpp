@@ -387,14 +387,14 @@ namespace egret
             const Eigen::Vector3d angularVelocity = body->entity->getAngularVelocity();
 
             SceneRenderItem item{};
-            item.id = body->entity->getId();
-            item.kind = static_cast<std::uint32_t>(body->entity->getShape()->getType());
-            item.name = body->name;
+            item.basic.id = body->entity->getId();
+            item.basic.kind = static_cast<std::uint32_t>(body->entity->getShape()->getType());
+            item.basic.name = body->name;
 
-            item.label = body->name.empty()
+            item.basic.label = body->name.empty()
                              ? (std::string("Body ") + std::to_string(body->entity->getId()))
                              : body->name;
-            item.color = body->entity->getMass() <= 0.0 ? "#6C7A89" : "#3EC5FF";
+            item.basic.color = body->entity->getMass() <= 0.0 ? "#6C7A89" : "#3EC5FF";
 
             const Transform& transform = body->entity->getTransform();
             const Eigen::Vector3d modelScale = transform.getScale();
@@ -447,7 +447,7 @@ namespace egret
             const Eigen::Vector3d scale = {modelScale.x(), modelScale.y(), modelScale.z()};
             const Eigen::Vector3d boxSize = {boxSizeX, boxSizeY, boxSizeZ};
             const Eigen::Vector3d renderScale = TransformTransformer::buildQuick3DRenderScale(
-                item.kind, scale, boxSize, modelRadius, modelHeight, modelLength);
+                item.basic.kind, scale, boxSize, modelRadius, modelHeight, modelLength);
             item.scale = renderScale;
             item.rotation = {modelRotation.w(), modelRotation.y(), modelRotation.z(), modelRotation.x()};
             item.position = {position.y(), position.z(), position.x()};
@@ -507,8 +507,8 @@ namespace egret
             const Eigen::Vector3d posB = entityB->getPositionCR();
 
             SceneConstraintRenderItem item{};
-            item.id = constraint->getId();
-            item.kind = static_cast<std::uint32_t>(constraint->getType());
+            item.basic.id = constraint->getId();
+            item.basic.kind = static_cast<std::uint32_t>(constraint->getType());
             item.entityIdA = entityA->getId();
             item.entityIdB = entityB->getId();
 
@@ -533,18 +533,18 @@ namespace egret
                                           : 1.0;
             if (slackRatio < 0.85) {
                 // 松弛：淡橙黄色
-                item.color = "#E8B84B";
+                item.basic.color = "#E8B84B";
             }
             else if (slackRatio < 1.0) {
                 // 接近绷紧：介于橙黄和亮青之间
-                item.color = "#7FCCD4";
+                item.basic.color = "#7FCCD4";
             }
             else {
                 // 绷紧：亮青色
-                item.color = "#4FC3F7";
+                item.basic.color = "#4FC3F7";
             }
 
-            item.label = constraintRecord->name.empty()
+            item.basic.label = constraintRecord->name.empty()
                              ? (std::string("Constraint ") + std::to_string(constraint->getId()))
                              : constraintRecord->name;
 
