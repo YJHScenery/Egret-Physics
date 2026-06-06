@@ -48,9 +48,11 @@ public:
 
     void applyToEntity(PhysicalEntity* entity) override;
 
-    FieldType getType() const override;
+    [[nodiscard]] FieldType getType() const override;
 
-    std::unique_ptr<PhysicsAbstract> clone(std::uint64_t id) const override;
+    Eigen::Vector3d getGravity() const;
+
+    [[nodiscard]] std::unique_ptr<PhysicsAbstract> clone(std::uint64_t id) const override;
 
 private:
 

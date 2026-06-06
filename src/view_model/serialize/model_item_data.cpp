@@ -457,12 +457,13 @@ namespace egret
     {
         QJsonObject obj;
         // 公共字段
-        obj["category"] = m_data.m_category;
-        obj["id"] = m_data.m_id;
-        obj["name"] = m_data.m_name;
+        obj["category"]  = m_data.m_category;
+        obj["id"]        = m_data.m_id;
+        obj["name"]      = m_data.m_name;
         obj["load_time"] = m_data.m_loadTime;
-        obj["type"] = QJsonValue{static_cast<qint64>(m_data.m_type)};
-        obj["pos"] = QJsonArray{m_data.m_pos.x(), m_data.m_pos.y(), m_data.m_pos.z()};
+        obj["type"]      = QJsonValue{static_cast<qint64>(m_data.m_type)};
+        obj["pos"]       = QJsonArray{m_data.m_pos.x(), m_data.m_pos.y(), m_data.m_pos.z()};
+        obj["visible"]   = m_data.m_visible;
 
         if (m_data.m_category == 0) {
             // ============ Shape ============
@@ -522,6 +523,9 @@ namespace egret
                 setPos(QVector3D(static_cast<float>(posArr[0].toDouble()), static_cast<float>(posArr[1].toDouble()),
                                  static_cast<float>(posArr[2].toDouble())));
             }
+        }
+        if (json.contains("visible")) {
+            setVisible(json["visible"].toBool());
         }
 
         if (m_data.m_category == 0) {
@@ -588,7 +592,7 @@ namespace egret
                 || k == "radius" || k == "height" || k == "length"
                 || k == "pos" || k == "scale" || k == "rotation"
                 || k == "initial_velocity" || k == "initial_angular_velocity"
-                || k == "materials") {
+                || k == "materials" || k == "visible") {
                 continue;
             }
             m_data.m_payload[k] = it.value();

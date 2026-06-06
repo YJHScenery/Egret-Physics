@@ -61,6 +61,11 @@ namespace egret
         return FieldType::Gravity;
     }
 
+    Eigen::Vector3d GravityField::getGravity() const
+    {
+        return m_gravity;
+    }
+
     std::unique_ptr<PhysicsAbstract> GravityField::clone(std::uint64_t id) const
     {
         auto field = std::make_unique<GravityField>(*this);

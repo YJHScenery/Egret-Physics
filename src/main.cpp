@@ -99,7 +99,8 @@ int main(int argc, char* argv[])
     egret::FileHandler fileHandler;
 
     QQmlApplicationEngine engine;
-    egret::ModelManager::instance()->addModels(egret::createDefaultModels());
+    // egret::ModelManager::instance()->addModels(egret::createDefaultModels());
+    // egret::ModelManager::instance()->addModels(egret::createDefaultModels());
 
     engine.rootContext()->setContextProperty("sceneController", &sceneController);
     engine.rootContext()->setContextProperty("qtHelper", &qtHelper);

@@ -27,6 +27,7 @@ namespace egret
 {
     ModelManager::ModelManager(QObject* parent) : QObject(parent)
     {
+        // loadFromJson("C:/Users/jehor/Desktop/114514.json");
     }
 
     ModelManager* ModelManager::instance()

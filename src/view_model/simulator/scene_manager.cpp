@@ -49,7 +49,11 @@
 #include "shape_cylinder.h"
 #include "shape_factory_registry.h"
 #include "rigid_body.h"
+#include "gravity_field.h"
 #include "gravitational_field.h"
+#include "constraints/connecting_line.h"
+#include "constraints/simple_pendulum.h"
+#include "constraints/spring.h"
 #include "async_logger.h"
 #include "model_item_data.h"
 #include "transform_transformer.h"
@@ -133,188 +137,292 @@ namespace egret
         m_frameClock.start();
     }
 
-    SceneRecord SceneManagerViewModel::createSceneFromJsonString(const QString& jsonString)
+    // -----------------------------------------------------------------------
+    //  内部辅助 — JSON 解析 helper
+    // -----------------------------------------------------------------------
+
+    namespace
     {
-        QJsonParseError parseError{};
-        const QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8(), &parseError);
-        if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
-            return {};
-        }
-
-        const QJsonObject root = doc.object();
-        if (!root.contains("models") || !root.value("models").isArray()) {
-            return {};
-        }
-
-        const QJsonArray modelsArray = root.value("models").toArray();
-        SceneRecord record{};
-        record.bodies.reserve(modelsArray.size());
-
-        std::unordered_set<std::uint64_t> usedIds;
-        std::uint64_t fallbackId = 1;
-
-        const auto readVector3 = [](const QJsonValue& value, const Eigen::Vector3d& fallback)
+        Eigen::Vector3d readVec3(const QJsonValue& v, const Eigen::Vector3d& fallback = Eigen::Vector3d::Zero())
         {
-            if (value.isArray()) {
-                const QJsonArray arr = value.toArray();
-                if (arr.size() >= 3) {
-                    return Eigen::Vector3d(arr[0].toDouble(), arr[1].toDouble(), arr[2].toDouble());
-                }
+            if (v.isArray()) {
+                const QJsonArray a = v.toArray();
+                if (a.size() >= 3)
+                    return {a[0].toDouble(), a[1].toDouble(), a[2].toDouble()};
             }
-            if (value.isObject()) {
-                const QJsonObject obj = value.toObject();
-                if (obj.contains("x") && obj.contains("y") && obj.contains("z")) {
-                    return Eigen::Vector3d(obj.value("x").toDouble(), obj.value("y").toDouble(),
-                                           obj.value("z").toDouble());
-                }
+            if (v.isObject()) {
+                const QJsonObject o = v.toObject();
+                return {o.value("x").toDouble(), o.value("y").toDouble(), o.value("z").toDouble()};
             }
             return fallback;
-        };
+        }
 
-        const auto readQuaternion = [](const QJsonValue& value, const Eigen::Quaterniond& fallback)
+        Eigen::Quaterniond readQuat(const QJsonValue& v,
+                                    const Eigen::Quaterniond& fallback = Eigen::Quaterniond::Identity())
         {
-            if (!value.isArray()) {
-                return fallback;
-            }
-            const QJsonArray arr = value.toArray();
-            if (arr.size() < 4) {
-                return fallback;
-            }
-            return Eigen::Quaterniond(arr[0].toDouble(), arr[1].toDouble(), arr[2].toDouble(), arr[3].toDouble());
-        };
+            if (!v.isArray()) return fallback;
+            const QJsonArray a = v.toArray();
+            if (a.size() < 4) return fallback;
+            return {a[0].toDouble(), a[1].toDouble(), a[2].toDouble(), a[3].toDouble()};
+        }
 
-        const auto hashIdString = [](const QString& value)
+        /** 将 QJsonObject 中的形状参数填入 ShapeLoadInfo。 */
+        void fillShapeLoadInfo(const QJsonObject& obj, std::uint32_t typeId, ShapeLoadInfo& info)
         {
-            const QByteArray hash = QCryptographicHash::hash(value.toUtf8(), QCryptographicHash::Sha1);
-            std::uint64_t id = 0;
-            for (int i = 0; i < 8 && i < hash.size(); ++i) {
-                id = (id << 8) | static_cast<unsigned char>(hash[i]);
-            }
-            return id;
-        };
-
-        for (const QJsonValue& entry : modelsArray) {
-            if (!entry.isObject()) {
-                continue;
-            }
-
-            const QJsonObject obj = entry.toObject();
-
-            const QString name = obj.value("name").toString("Unnamed");
-            const double mass = obj.value("mass").toDouble();
-            const double restitution = obj.contains("restitution") ? obj.value("restitution").toDouble() : 1.0;
-
-            const std::uint32_t type = static_cast<std::uint32_t>(obj.value("type").toInteger());
-
-            const Eigen::Vector3d position = readVector3(obj.value("pos"), Eigen::Vector3d::Zero());
-            const Eigen::Vector3d scale = readVector3(obj.value("scale"), Eigen::Vector3d(1.0, 1.0, 1.0));
-            const Eigen::Quaterniond rotation = readQuaternion(obj.value("rotation"), Eigen::Quaterniond::Identity());
-
-            const Eigen::Vector3d initialVelocity = readVector3(obj.value("initial_velocity"), Eigen::Vector3d::Zero());
-            const Eigen::Vector3d initialAngularVelocity = readVector3(obj.value("initial_angular_velocity"),
-                                                                       Eigen::Vector3d::Zero());
-
-            const bool hasBoxSize = obj.contains("box_size");
-            const bool hasRadius = obj.contains("radius") || obj.contains("circle_radius");
-            const bool hasHeight = obj.contains("height");
-            const bool hasLength = obj.contains("length");
-
-            ShapeLoadInfo shapeInfo{};
-
-            if (magic_enum::enum_contains<ShapeType>(type) || type != static_cast<std::uint32_t>(ShapeType::Unknown)) {
-                shapeInfo.typeId = type;
-            }
-            else {
-                shapeInfo.typeId = static_cast<std::uint32_t>(ShapeType::Unknown);
-                LOG_WARN_LITERAL("Unknown Shape ID");
-            }
-
-            const auto readRadius = [&]()
-            {
-                return obj.contains("radius")
-                           ? obj.value("radius").toDouble()
-                           : obj.value("circle_radius").toDouble();
-            };
-
-            switch (static_cast<ShapeType>(type)) {
-            case ShapeType::Box: {
-                if (!hasBoxSize) {
-                    LOG_WARN_LITERAL("Missing box_size for Box");
-                    continue;
-                }
-                const Eigen::Vector3d size = readVector3(obj.value("box_size"), Eigen::Vector3d(1.0, 1.0, 1.0));
-                shapeInfo.numberParams["size"] = {size.x(), size.y(), size.z()};
+            info.typeId = typeId;
+            switch (static_cast<ShapeType>(typeId)) {
+            case ShapeType::Box:
+                if (obj.contains("box_size"))
+                    info.numberParams["size"] = [&]
+                    {
+                        const Eigen::Vector3d s = readVec3(obj["box_size"], {1, 1, 1});
+                        return std::vector{s.x(), s.y(), s.z()};
+                    }();
                 break;
-            }
             case ShapeType::Cylinder:
-            case ShapeType::CylindricalShell: {
-                if (!hasRadius || !hasHeight) {
-                    LOG_WARN_LITERAL("Missing radius/height for Cylinder");
-                    continue;
-                }
-                const double radius = readRadius();
-                const double height = obj.value("height").toDouble();
-                shapeInfo.numberParams["radius"] = {radius};
-                shapeInfo.numberParams["height"] = {height};
+            case ShapeType::CylindricalShell:
+                info.numberParams["radius"] = {
+                    obj.contains("radius") ? obj["radius"].toDouble() : obj.value("circle_radius").toDouble()
+                };
+                info.numberParams["height"] = {obj["height"].toDouble()};
                 break;
-            }
             case ShapeType::Disk:
             case ShapeType::Ring:
             case ShapeType::Sphere:
-            case ShapeType::SphericalShell: {
-                if (!hasRadius) {
-                    LOG_WARN_LITERAL("Missing radius for round shape");
-                    continue;
-                }
-                const double radius = readRadius();
-                shapeInfo.numberParams["radius"] = {radius};
+            case ShapeType::SphericalShell:
+                info.numberParams["radius"] = {
+                    obj.contains("radius") ? obj["radius"].toDouble() : obj.value("circle_radius").toDouble()
+                };
                 break;
-            }
-            case ShapeType::Rod: {
-                if (!hasLength) {
-                    LOG_WARN_LITERAL("Missing length for Rod");
-                    continue;
-                }
-                const double length = obj.value("length").toDouble();
-                shapeInfo.numberParams["length"] = {length};
+            case ShapeType::Rod:
+                info.numberParams["length"] = {obj["length"].toDouble()};
                 break;
+            default: break;
             }
-            default:
-                LOG_WARN_LITERAL("Unknown Shape ID");
-                continue;
+        }
+
+        /** 解析 DragConfig 子对象。 */
+        DragConfig parseDragConfig(const QJsonObject& obj)
+        {
+            DragConfig cfg;
+            if (obj.contains("model")) {
+                const QString m = obj["model"].toString();
+                if (m == "Linear") cfg.model = DragModel::Linear;
+                else if (m == "Constant") cfg.model = DragModel::Constant;
+                else cfg.model = DragModel::Quadratic;
             }
+            if (obj.contains("linear_coeff")) cfg.linearCoeff = obj["linear_coeff"].toDouble();
+            if (obj.contains("drag_coefficient")) cfg.dragCoefficient = obj["drag_coefficient"].toDouble();
+            if (obj.contains("cross_section_area")) cfg.crossSectionArea = obj["cross_section_area"].toDouble();
+            if (obj.contains("fluid_density")) cfg.fluidDensity = obj["fluid_density"].toDouble();
+            if (obj.contains("constant_magnitude")) cfg.constantMagnitude = obj["constant_magnitude"].toDouble();
+            if (obj.contains("rotational_linear_coeff")) cfg.rotationalLinearCoeff = obj["rotational_linear_coeff"].
+                toDouble();
+            if (obj.contains("rotational_quadratic_coeff")) cfg.rotationalQuadraticCoeff = obj[
+                "rotational_quadratic_coeff"].toDouble();
+            if (obj.contains("enable_rotational_drag")) cfg.enableRotationalDrag = obj["enable_rotational_drag"].
+                toBool();
+            return cfg;
+        }
+    } // anonymous namespace
+
+    // -----------------------------------------------------------------------
+    //  createSceneFromJsonString — 三遍创建
+    // -----------------------------------------------------------------------
+
+    SceneRecord SceneManagerViewModel::createSceneFromJsonString(const QString& jsonString)
+    {
+        // 1. 基础 JSON 解析
+        const QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
+        if (!doc.isObject()) return {};
+
+        const QJsonObject root = doc.object();
+        if (!root.contains("models") || !root["models"].isArray()) return {};
+
+        const QJsonArray models = root["models"].toArray();
+
+        // 2. 收集原始数据（不创建物理对象）—— 将 JSON 拍平为 vector<QJsonObject>
+        struct RawEntry
+        {
+            int category;
+            QJsonObject obj;
+        };
+
+        std::vector<RawEntry> entries;
+        entries.reserve(models.size());
+        for (const QJsonValueConstRef& val : models) {
+            if (!val.isObject()) continue;
+            const QJsonObject obj = val.toObject();
+            entries.push_back({obj.value("category").toInt(0), obj});
+        }
+
+        SceneRecord record;
+        // 字符串 JSON ID → entity 指针（用于约束的 entity_ids 解析）
+        std::unordered_map<std::uint64_t, PhysicalEntity*> strIdToEntity;
+
+        std::unordered_set<std::uint64_t> usedIds;
+
+        // ================================================================
+        //  第一遍 — Shape（category = 0）
+        // ================================================================
+        for (const RawEntry& entry : entries) {
+            if (entry.category != 0) continue;
+            const QJsonObject& obj = entry.obj;
+
+            const std::uint32_t typeId = static_cast<std::uint32_t>(obj["type"].toInteger());
+            ShapeLoadInfo shapeInfo;
+            fillShapeLoadInfo(obj, typeId, shapeInfo);
 
             std::unique_ptr<ShapeBase> shape = ShapeFactoryRegistry::instance().create(shapeInfo);
-            if (shape == nullptr) {
-                LOG_WARN_LITERAL("Shape Created Failed");
+            if (!shape) {
+                LOG_WARN("Shape 创建失败");
+                LOG_WARN(obj["name"].toString().toStdString());
                 continue;
             }
 
+            const std::uint64_t bodyId = obj["id"].toString().toULongLong();
+            auto rb = std::make_shared<RigidBody>(
+                readVec3(obj["pos"]), readVec3(obj["initial_velocity"]),
+                obj["mass"].toDouble(1.0), bodyId);
 
-            auto entity = std::make_shared<RigidBody>(position, initialVelocity, mass,
-                                                      UniqueIDGenerator::instance().generate());
-            entity->setRotation(rotation);
-            entity->setScale(scale);
+            rb->setRotation(readQuat(obj["rotation"]));
+            rb->setScale(readVec3(obj["scale"], {1, 1, 1}));
+            rb->setRestitution(obj.contains("restitution") ? obj["restitution"].toDouble() : 1.0);
+            rb->setAngular(readVec3(obj["initial_angular_velocity"]));
+            rb->setShape(std::shared_ptr<ShapeBase>(std::move(shape)));
 
-            // qDebug() << __func__ << scale.x() << scale.y() << scale.z();
-            entity->setRestitution(restitution);
-            entity->setAngular(initialAngularVelocity);
-            entity->setShape(std::shared_ptr<ShapeBase>(std::move(shape)));
-
-            BodyRecord body{};
-            const QString idText = obj.value("id").toString();
-            std::uint64_t bodyId = idText.isEmpty() ? 0 : hashIdString(idText);
-            if (bodyId == 0 || usedIds.contains(bodyId)) {
-                while (usedIds.contains(fallbackId) || fallbackId == 0) {
-                    ++fallbackId;
-                }
-                bodyId = fallbackId++;
-            }
-            usedIds.insert(bodyId);
-
-            body.name = name.toStdString();
-            body.entity = std::move(entity);
+            BodyRecord body;
+            body.name = obj["name"].toString().toStdString();
+            body.entity = std::move(rb);
+            const QString sid = obj["id"].toString();
+            if (!sid.isEmpty()) {
+                strIdToEntity[sid.toULongLong()] = body.entity.get();
+            };
             record.bodies.push_back(std::move(body));
+        }
+
+        // ================================================================
+        //  第二遍 — Field（category = 1）
+        // ================================================================
+        for (const RawEntry& entry : entries) {
+            if (entry.category != 1) continue;
+            const QJsonObject& obj = entry.obj;
+            const std::uint32_t ftype = static_cast<std::uint32_t>(obj["type"].toInteger());
+            const QJsonObject fd = obj.value("field_data").toObject();
+
+            if (ftype == 1) {
+                // Gravity
+                const std::uint64_t fid = obj["id"].toString().toULongLong();
+                auto field = std::make_shared<GravityField>(
+                    readVec3(fd["gravity"], {0, 0, -9.81}),
+                    readVec3(fd["reference_point"]), 0);
+                field->setId(fid);
+                record.fields.push_back({obj["name"].toString().toStdString(), std::move(field)});
+            }
+            else if (ftype == 2) {
+                // Gravitation
+                const std::uint64_t fid = obj["id"].toString().toULongLong();
+                auto gf = std::make_shared<GravitationalField>(
+                    readVec3(obj["pos"]),
+                    readVec3(fd["speed"]),
+                    fd["mass"].toDouble(0),
+                    fd.contains("coupling") ? fd["coupling"].toDouble() : G,
+                    fd["fixed"].toBool(false), 0);
+                gf->setId(fid);
+
+                BodyRecord body;
+                body.name = obj["name"].toString().toStdString();
+                body.entity = std::static_pointer_cast<PhysicalEntity>(gf);
+                body.entity->setShape(std::make_unique<ShapeSphere>(10.0));
+                record.bodies.push_back(std::move(body));
+
+                FieldRecord fr;
+                fr.name = obj["name"].toString().toStdString();
+                fr.field = std::static_pointer_cast<FieldBase>(gf);
+                record.fields.push_back(std::move(fr));
+
+                const QString sidStr = obj["id"].toString();
+                if (!sidStr.isEmpty()) strIdToEntity[sidStr.toULongLong()] = record.bodies.back().entity.get();
+            }
+        }
+
+        // ================================================================
+        //  第三遍 — Constraint（category = 2）
+        // ================================================================
+        for (const RawEntry& entry : entries) {
+            if (entry.category != 2) continue;
+            const QJsonObject& obj = entry.obj;
+            const std::uint32_t ctype = static_cast<std::uint32_t>(obj["type"].toInteger());
+            const QJsonObject cd = obj.value("constraint_data").toObject();
+            const QJsonArray eids = obj.value("entity_ids").toArray();
+
+            // qDebug() << eids;
+            // qDebug() << ctype;
+            // qDebug() << entry.category << entry.obj;
+            const std::uint64_t cid = obj["id"].toString().toULongLong();
+
+            // ConstraintType: ConnectingLine=1, SimplePendulum=2, ConnectingRod=3,
+            //                 Spring=5, AirResistance=7
+            if (ctype == magic_enum::enum_integer(ConstraintType::ConnectingLine) && eids.size() >= 2) {
+                // ConnectingLine
+                auto* a = strIdToEntity[eids[0].toString().toULongLong()];
+                auto* b = strIdToEntity[eids[1].toString().toULongLong()];
+                if (a && b) {
+                    auto c = std::make_shared<ConnectingLine>(cd["length"].toDouble(), a, b, cid);
+                    record.constraints.push_back({obj["name"].toString().toStdString(), std::move(c)});
+                }
+                // else {
+                //     qDebug() << a << " " << b << " " << cid;
+                //     qDebug() << "Invalid Pointer";
+                // }
+            }
+            else if (ctype == magic_enum::enum_integer(ConstraintType::SimplePendulum) && !eids.empty()) {
+                // SimplePendulum
+                auto* body = strIdToEntity[eids[0].toString().toULongLong()];
+                if (body) {
+                    auto c = std::make_shared<SimplePendulum>(
+                        cd["length"].toDouble(),
+                        readVec3(cd["anchor_pos"]), body, cid);
+                    record.constraints.push_back({obj["name"].toString().toStdString(), std::move(c)});
+                }
+            }
+            else if (ctype == magic_enum::enum_integer(ConstraintType::ConnectingRod) && eids.size() >= 2) {
+                // ConnectingRod
+                auto* a = strIdToEntity[eids[0].toString().toULongLong()];
+                auto* b = strIdToEntity[eids[1].toString().toULongLong()];
+                if (a && b) {
+                    auto c = std::make_shared<ConnectingRod>(cd["length"].toDouble(), a, b, cid);
+                    record.constraints.push_back({obj["name"].toString().toStdString(), std::move(c)});
+                }
+            }
+            else if (ctype == magic_enum::enum_integer(ConstraintType::Spring) && eids.size() >= 2) {
+                // Spring
+                auto* a = strIdToEntity[eids[0].toString().toULongLong()];
+                auto* b = strIdToEntity[eids[1].toString().toULongLong()];
+                if (a && b) {
+                    auto c = std::make_shared<Spring>(
+                        cd["stiffness"].toDouble(), cd["rest_length"].toDouble(), a, b, cid);
+                    record.constraints.push_back({obj["name"].toString().toStdString(), std::move(c)});
+                }
+            }
+            else if (ctype == magic_enum::enum_integer(ConstraintType::AirResistance)) {
+                // AirResistance
+                auto constraint = std::make_shared<AirResistance>(0);
+                constraint->setId(cid);
+                if (cd.contains("drag_config"))
+                    constraint->setDefaultDragConfig(parseDragConfig(cd["drag_config"].toObject()));
+
+                if (cd.contains("entity_overrides") && cd["entity_overrides"].isArray()) {
+                    for (const QJsonValueConstRef& ov : cd["entity_overrides"].toArray()) {
+                        if (!ov.isObject()) continue;
+                        const QJsonObject eo = ov.toObject();
+                        auto* pe = strIdToEntity[eo["entity_id"].toString().toULongLong()];
+                        if (auto* rb = dynamic_cast<RigidBody*>(pe))
+                            constraint->addEntity(rb, parseDragConfig(eo));
+                    }
+                }
+                record.constraints.push_back({obj["name"].toString().toStdString(), std::move(constraint)});
+            }
         }
 
         return record;
@@ -326,9 +434,9 @@ namespace egret
         if (!file.open(QIODevice::ReadOnly)) {
             return {};
         }
-        QByteArray data = file.readAll();
+        const QByteArray data = file.readAll();
         file.close();
-        return createSceneFromJsonString(data);
+        return createSceneFromJsonString(QString::fromUtf8(data));
     }
 
     void SceneManagerViewModel::initialize()
@@ -430,7 +538,7 @@ namespace egret
     QString SceneManagerViewModel::getIntegratorName() const
     {
         const std::string_view name{m_world->getIntegratorName()};
-        return QString::fromUtf8(name.data(), name.size());
+        return QString::fromUtf8(name.data(), static_cast<qsizetype>(name.size()));
     }
 
     void SceneManagerViewModel::play()
@@ -497,10 +605,71 @@ namespace egret
 
     void SceneManagerViewModel::loadSceneFronJsonFile(const QString& fileName)
     {
+        QFile file(fileName);
+        if (!file.open(QIODevice::ReadOnly)) {
+            LOG_WARN("loadSceneFronJsonFile: 无法打开文件 %s");
+            LOG_WARN(fileName.toStdString());
+            return;
+        }
+        const QByteArray data = file.readAll();
+        file.close();
+        loadSceneFromJsonString(QString::fromUtf8(data));
     }
 
     void SceneManagerViewModel::loadSceneFromJsonString(const QString& jsonString)
     {
+        if (m_world == nullptr) {
+            LOG_WARN_LITERAL("loadSceneFromJsonString: WorldSceneManager 未初始化");
+            return;
+        }
+
+        // 1. 解析 JSON → SceneRecord（创建物理对象）
+        SceneRecord record = createSceneFromJsonString(jsonString);
+        if (record.bodies.empty() && record.fields.empty() && record.constraints.empty()) {
+            LOG_WARN_LITERAL("loadSceneFromJsonString: 场景解析结果为空");
+            return;
+        }
+
+        // 2. 清空当前世界并注册新场景
+        m_world->clear();
+        m_world->registerScene(record);
+
+        // qDebug() << record.fields.size();
+        // qDebug() << record.constraints.size();
+        //
+        // qDebug() << record.fields[0].name.c_str() << record.constraints[0].name.c_str();
+        // qDebug() << record.fields[0].field->getId() << magic_enum::enum_name<FieldType>(
+        //     record.fields[0].field->getType());
+        // qDebug() << dynamic_cast<GravityField*>(record.fields[0].field.get())->getGravity().norm();
+        //
+        // for (auto i: record.bodies) {
+        //     qDebug() << i.name.c_str() << i.entity->getId();
+        // }
+        //
+        // for (auto i: record.constraints) {
+        //     qDebug() << i.name.c_str();
+        //     qDebug() << i.constraint->getId();
+        //     for (auto j: i.constraint->getConstrainedEntities()) {
+        //         qDebug() << dynamic_cast<PhysicalEntity*>(j)->getId();
+        //     }
+        // }
+
+        // 3. 重置仿真状态
+        m_simTime = 0.0;
+        m_stepCount = 0;
+        m_accumulator = 0.0;
+        m_entityCount = static_cast<int>(m_world->getBodyCount());
+
+        // 4. 刷新视图模型
+        refreshBodyModel();
+        refreshConstraintModel();
+        refreshSurfaceModel();
+        refreshCurveModel();
+
+        emit simTimeChanged();
+        emit stepCountChanged();
+        emit entityCountChanged();
+        emit entityChanged();
     }
 
     QVariantMap SceneManagerViewModel::mapScreenToWorldOnPlane(const double screenX,
@@ -702,6 +871,9 @@ namespace egret
             return;
         }
 
+        // loadSceneFronJsonFile("C:/Users/jehor/Desktop/114514.json");
+        // return;
+
         std::uint64_t idBox2 = m_world->spawnBox("3", {0, 0, 0}, {0, 0, 0}, {10000, 10000, 130}, 0);
 
 
@@ -716,9 +888,15 @@ namespace egret
 
 
         std::uint64_t id5 = m_world->spawnSphere("阻力测试", {300, 200, 400}, {0, 200, 0}, 10, 100);
-        std::unique_ptr<AirResistance> airResistance = std::make_unique<AirResistance>(
+        auto airResistance = std::make_unique<AirResistance>(
             UniqueIDGenerator::instance().generate());
         auto body = dynamic_cast<RigidBody*>(m_world->getEntity(id5));
+
+        if (body == nullptr) {
+            LOG_FATAL("SceneManagerViewModel::rebuildDemoWorld(): body is nullptr");
+            return;
+        }
+
         airResistance->addEntity(body, DragConfig{
                                      .model = DragModel::Quadratic,
                                      .dragCoefficient = 0.47,

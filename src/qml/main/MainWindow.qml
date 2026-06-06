@@ -99,6 +99,37 @@ ApplicationWindow {
         spacing: 8
 
         FileDialog {
+            id: openJsonFileDialog
+            title: "打开序列化场景文件"
+            fileMode: FileDialog.OpenFile
+            currentFolder: documentsFolder
+            nameFilters: [
+                "序列化场景 (*.json)",
+                "所有文件 (*)"
+            ]
+
+            property int mode: 0
+
+            onAccepted: {
+                var fileUrl = selectedFile
+                var localPath = fileUrl.toString().replace(/^file:\/\/\//, "")  // 简单转换
+
+
+                switch (mode){
+                    case 0:{
+                        sceneController.loadSceneFronJsonFile(localPath);
+                        break;
+                    }case 1: {
+                        ModelManager.loadFromJson(localPath);
+                        break;
+                    }
+                }
+            }
+            onRejected: {
+                console.log("用户取消打开")
+            }
+        }
+        FileDialog {
             id: saveJsonFileDialog
             title: "保存场景"
             fileMode: FileDialog.SaveFile
@@ -165,6 +196,21 @@ ApplicationWindow {
                             shortcut: "Ctrl+O",
                             onTriggered: function () {
                                 console.log("Open scene");
+
+                                switch (workspaceComboBox.currentIndex){
+                                    case 0:{
+                                        openJsonFileDialog.mode = 0;
+                                        openJsonFileDialog.open();
+                                        break;
+                                    }case 1:{
+                                        openJsonFileDialog.mode = 1;
+                                        openJsonFileDialog.open();
+                                        break;
+                                    }
+                                }
+
+
+
                             },
                             icon: "qrc:/main_icons/assets/icons/open.svg"
                         },
