@@ -19,9 +19,10 @@ namespace egret
         std::lock_guard<std::mutex> lock(m_mutex);
 
         // 时间戳部分（38位）- 毫秒级精度，可持续约8.7年
-        auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+        const std::int64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()
         ).count();
+
         const uint64_t timestamp = now & 0x3FFFFFFFFFULL; // 取低38位
 
         // 机器ID（10位，0-1023）

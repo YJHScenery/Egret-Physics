@@ -25,6 +25,7 @@
 #include <cmath>
 #include <numbers>
 #include <unordered_set>
+#include <QBuffer>
 #include <QFile>
 #include <QTextStream>
 #include <QtConcurrent>
@@ -539,6 +540,7 @@ namespace egret
         result.insert("z", hitPoint.z());
         return result;
     }
+
     //
     // bool SceneManagerViewModel::beginBodyDrag(const QString& bodyId,
     //                                           const double screenX,
@@ -703,7 +705,6 @@ namespace egret
         std::uint64_t idBox2 = m_world->spawnBox("3", {0, 0, 0}, {0, 0, 0}, {10000, 10000, 130}, 0);
 
 
-
         m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
         std::uint64_t id1 = m_world->spawnSphere("123", {0, 0, 300}, {0, 0, 0}, 10, 10);
         std::uint64_t id2 = m_world->spawnSphere("456", {0, 0, 400}, {0, 0, 0}, 10, 0);
@@ -715,12 +716,13 @@ namespace egret
 
 
         std::uint64_t id5 = m_world->spawnSphere("阻力测试", {300, 200, 400}, {0, 200, 0}, 10, 100);
-        std::unique_ptr<AirResistance> airResistance = std::make_unique<AirResistance>(UniqueIDGenerator::instance().generate());
+        std::unique_ptr<AirResistance> airResistance = std::make_unique<AirResistance>(
+            UniqueIDGenerator::instance().generate());
         auto body = dynamic_cast<RigidBody*>(m_world->getEntity(id5));
         airResistance->addEntity(body, DragConfig{
-            .model = DragModel::Quadratic,
-            .dragCoefficient = 0.47,
-        });
+                                     .model = DragModel::Quadratic,
+                                     .dragCoefficient = 0.47,
+                                 });
 
 
         std::uint64_t id6 = m_world->spawnSphere("123", {-100, 100, 300}, {0, 0, 0}, 10, 10);
@@ -728,10 +730,9 @@ namespace egret
         m_world->createSpring("MySpring", 50.0, 100.0, id6, id7);
         auto body2 = dynamic_cast<RigidBody*>(m_world->getEntity(id6));
         airResistance->addEntity(body2, DragConfig{
-            .model = DragModel::Quadratic,
-            .dragCoefficient = 0.07,
-        });
-
+                                     .model = DragModel::Quadratic,
+                                     .dragCoefficient = 0.07,
+                                 });
 
 
         m_world->registerConstraint("Air Resistance", std::move(airResistance));
@@ -806,7 +807,6 @@ namespace egret
 
     void SceneManagerViewModel::build3BodyModel() const
     {
-
         if (m_world == nullptr) {
             LOG_FATAL("SceneManagerViewModel::build3BodyModel(): m_world == nullptr");
             return;
@@ -846,7 +846,6 @@ namespace egret
         generateField({300, 0, -1}, {0, 75, 100}, 200, 50000);
         generateField({-150, 259.8, 100}, {-120, -45, 43}, 100, 50000);
         generateField({-150, -259.8, -300}, {-120, 45, 23}, 50, 50000);
-
     }
 
     void SceneManagerViewModel::refreshConstraintModel()
@@ -1055,14 +1054,8 @@ namespace egret
         return true;
     }
 
-    // ========================================================================
     //  数据追踪实现
-    // ========================================================================
-
-    /** 每个实体最多保留的快照数（超出时丢弃最早的）。 */
-    static constexpr std::size_t kMaxSnapshotsPerBody = 10000;
-
-    void SceneManagerViewModel::setBodyTracking(const QString &bodyId,
+    void SceneManagerViewModel::setBodyTracking(const QString& bodyId,
                                                 const bool trackPosition,
                                                 const bool trackVelocity,
                                                 const bool trackAngularVelocity,
@@ -1072,22 +1065,26 @@ namespace egret
         const std::uint64_t id = bodyId.toULongLong(&ok);
         if (!ok) return;
 
-        auto &buf = m_trackingBuffers[id];
+        auto buf = m_trackingBuffers.find(id);
+        if (buf == m_trackingBuffers.end()) {
+            return;
+        }
         if (trackPosition || trackVelocity || trackAngularVelocity || trackKineticEnergy) {
-            buf.active = true;
+            buf->active = true;
             std::uint32_t flags = 0;
-            if (trackPosition)         flags |= 1u << 0;
-            if (trackVelocity)         flags |= 1u << 1;
-            if (trackAngularVelocity)  flags |= 1u << 2;
-            if (trackKineticEnergy)    flags |= 1u << 3;
-            buf.flags = flags;
-        } else {
-            buf.active = false;
-            buf.flags = 0;
+            if (trackPosition) flags |= 1u << 0;
+            if (trackVelocity) flags |= 1u << 1;
+            if (trackAngularVelocity) flags |= 1u << 2;
+            if (trackKineticEnergy) flags |= 1u << 3;
+            buf->flags = flags;
+        }
+        else {
+            buf->active = false;
+            buf->flags = 0;
         }
     }
 
-    int SceneManagerViewModel::getSnapshotCount(const QString &bodyId) const
+    int SceneManagerViewModel::getSnapshotCount(const QString& bodyId) const
     {
         bool ok = false;
         const std::uint64_t id = bodyId.toULongLong(&ok);
@@ -1098,21 +1095,21 @@ namespace egret
         return static_cast<int>(it->snapshots.size());
     }
 
-    void SceneManagerViewModel::ensureBodyTracking(const QString &bodyId)
+    void SceneManagerViewModel::ensureBodyTracking(const QString& bodyId)
     {
         bool ok = false;
         const std::uint64_t id = bodyId.toULongLong(&ok);
         if (!ok) return;
 
-        auto &buf = m_trackingBuffers[id];
+        auto& buf = m_trackingBuffers[id];
         if (!buf.active) {
             buf.active = true;
             buf.flags = 0xF; // 全部 4 项：位置 | 速度 | 角速度 | 动能
         }
     }
 
-    void SceneManagerViewModel::exportTrackingAsync(const QString &bodyId,
-                                                    const QString &filePath)
+    void SceneManagerViewModel::exportTrackingAsync(const QString& bodyId,
+                                                    const QString& filePath)
     {
         bool ok = false;
         const std::uint64_t id = bodyId.toULongLong(&ok);
@@ -1121,76 +1118,139 @@ namespace egret
         const auto it = m_trackingBuffers.find(id);
         if (it == m_trackingBuffers.end() || !it->active) return;
 
-        // 防止同一文件并发写入：上一次导出未完成则跳过
+        // 获取已打开的文件句柄
+        const auto fileIt = m_recordingFiles.find(id);
+        if (fileIt == m_recordingFiles.end() || !fileIt.value()) return;
+
+        // 防止同一文件并发写入
         if (it->exporting.loadRelaxed()) return;
         it->exporting.storeRelaxed(1);
 
-        // 拷贝快照（主线程只读），避免后台写入时与 refreshBodyModel 竞态
+        // 拷贝快照（主线程只读）
         const std::vector<TrackingSnapshot> copy(it->snapshots.begin(),
-                                                  it->snapshots.end());
+                                                 it->snapshots.end());
         const std::uint32_t flags = it->flags;
 
-        // 捕获原子指针，工作线程完成后清零
-        QAtomicInt *pExporting = &it->exporting;
+        QAtomicInt* pExporting = &it->exporting;
+        QFile* pFile = fileIt.value().get();
 
-        std::ignore = QtConcurrent::run([copy, flags, filePath, pExporting] {
+        QXlsx::Format titleFormat;
+        titleFormat.setFontBold(true);
+
+        // 工作线程构建 xlsx → QBuffer；主线程写入已锁文件
+        std::ignore = QtConcurrent::run([titleFormat, copy, flags, pExporting, pFile, this]
+        {
             QXlsx::Document xlsx;
             int col = 0;
 
+            constexpr double columnWidth = 15.0;
+
             // 表头
-            xlsx.write(1, ++col, QStringLiteral("simTime"));
+            xlsx.write(1, ++col, QStringLiteral("时间"), titleFormat);
+            xlsx.setColumnWidth(col, columnWidth);
+            xlsx.setColumnWidth(++col, columnWidth);
+
             if (flags & (1u << 0)) {
-                xlsx.write(1, ++col, QStringLiteral("pos_x"));
-                xlsx.write(1, ++col, QStringLiteral("pos_y"));
-                xlsx.write(1, ++col, QStringLiteral("pos_z"));
+                xlsx.write(1, ++col, QStringLiteral("位置-x/m"), titleFormat);
+                xlsx.setColumnWidth(col, columnWidth);
+                xlsx.write(1, ++col, QStringLiteral("位置-y/m"), titleFormat);
+                xlsx.setColumnWidth(col, columnWidth);
+                xlsx.write(1, ++col, QStringLiteral("位置-z/m"), titleFormat);
+                xlsx.setColumnWidth(col, columnWidth);
+                xlsx.write(1, ++col, QStringLiteral("位置-标量/m"), titleFormat);
+                xlsx.setColumnWidth(col, columnWidth);
+                ++col;
+                xlsx.setColumnWidth(col, columnWidth);
             }
             if (flags & (1u << 1)) {
-                xlsx.write(1, ++col, QStringLiteral("vel_x"));
-                xlsx.write(1, ++col, QStringLiteral("vel_y"));
-                xlsx.write(1, ++col, QStringLiteral("vel_z"));
+                xlsx.write(1, ++col, QStringLiteral("速度-x/m·s⁻¹"), titleFormat);
+                xlsx.setColumnWidth(col, columnWidth);
+                xlsx.write(1, ++col, QStringLiteral("速度-y/m·s⁻¹"), titleFormat);
+                xlsx.setColumnWidth(col, columnWidth);
+                xlsx.write(1, ++col, QStringLiteral("速度-z/m·s⁻¹"), titleFormat);
+                xlsx.setColumnWidth(col, columnWidth);
+                xlsx.write(1, ++col, QStringLiteral("速度-标量/m·s⁻¹"), titleFormat);
+                xlsx.setColumnWidth(col, columnWidth);
+                ++col;
+                xlsx.setColumnWidth(col, columnWidth);
             }
             if (flags & (1u << 2)) {
-                xlsx.write(1, ++col, QStringLiteral("ang_x"));
-                xlsx.write(1, ++col, QStringLiteral("ang_y"));
-                xlsx.write(1, ++col, QStringLiteral("ang_z"));
+                xlsx.write(1, ++col, QStringLiteral("角速度-x/rad·s⁻¹"), titleFormat);
+                xlsx.setColumnWidth(col, columnWidth);
+                xlsx.write(1, ++col, QStringLiteral("角速度-y/rad·s⁻¹"), titleFormat);
+                xlsx.setColumnWidth(col, columnWidth);
+                xlsx.write(1, ++col, QStringLiteral("角速度-z/rad·s⁻¹"), titleFormat);
+                xlsx.setColumnWidth(col, columnWidth);
+                xlsx.write(1, ++col, QStringLiteral("角速度-标量/rad·s⁻¹"), titleFormat);
+                xlsx.setColumnWidth(col, columnWidth);
+                ++col;
+                xlsx.setColumnWidth(col, columnWidth);
             }
             if (flags & (1u << 3)) {
-                xlsx.write(1, ++col, QStringLiteral("kineticEnergy"));
+                xlsx.write(1, ++col, QStringLiteral("动能/J"), titleFormat);
+                xlsx.setColumnWidth(col, columnWidth);
+                ++col;
+                xlsx.setColumnWidth(col, columnWidth);
             }
 
             // 数据行
             int row = 1;
-            for (const auto &snap : copy) {
+            for (const auto& snap : copy) {
                 ++row;
                 col = 0;
                 xlsx.write(row, ++col, snap.simTime);
+
+                ++col;
                 if (flags & (1u << 0)) {
                     xlsx.write(row, ++col, snap.position[0]);
                     xlsx.write(row, ++col, snap.position[1]);
                     xlsx.write(row, ++col, snap.position[2]);
+                    xlsx.write(row, ++col, sqrtSumOfSquares<double>(snap.position));
+                    ++col;
                 }
+
                 if (flags & (1u << 1)) {
                     xlsx.write(row, ++col, snap.velocity[0]);
                     xlsx.write(row, ++col, snap.velocity[1]);
                     xlsx.write(row, ++col, snap.velocity[2]);
+                    xlsx.write(row, ++col, sqrtSumOfSquares<double>(snap.velocity));
+                    ++col;
                 }
+
                 if (flags & (1u << 2)) {
                     xlsx.write(row, ++col, snap.angularVelocity[0]);
                     xlsx.write(row, ++col, snap.angularVelocity[1]);
                     xlsx.write(row, ++col, snap.angularVelocity[2]);
+                    xlsx.write(row, ++col, sqrtSumOfSquares<double>(snap.angularVelocity));
+                    ++col;
                 }
+
                 if (flags & (1u << 3)) {
                     xlsx.write(row, ++col, snap.kineticEnergy);
+                    ++col;
                 }
             }
 
-            std::ignore = xlsx.saveAs(filePath);
-            pExporting->storeRelaxed(0);
+            // 保存到内存
+            QBuffer buffer;
+            buffer.open(QIODevice::WriteOnly);
+            std::ignore = xlsx.saveAs(&buffer);
+            const QByteArray data = buffer.data();
+
+            // 回到主线程写入已锁文件
+            QMetaObject::invokeMethod(this, [pFile, data, pExporting]
+            {
+                pFile->seek(0);
+                pFile->write(data);
+                pFile->resize(pFile->pos());
+                pFile->flush();
+                pExporting->storeRelaxed(0);
+            }, Qt::QueuedConnection);
         });
     }
 
-    bool SceneManagerViewModel::saveTrackingXlsx(const QString &bodyId,
-                                                 const QString &filePath) const
+    bool SceneManagerViewModel::saveTrackingXlsx(const QString& bodyId,
+                                                 const QString& filePath) const
     {
         qDebug() << filePath << bodyId;
 
@@ -1203,7 +1263,6 @@ namespace egret
 
         const auto it = m_trackingBuffers.find(id);
         if (it == m_trackingBuffers.end() || !it->active || it->snapshots.empty()) {
-
             qDebug() << "Not OK: " << "it == m_trackingBuffers.end() || !it->active || it->snapshots.empty()";
             return false;
         }
@@ -1235,7 +1294,7 @@ namespace egret
 
         // 逐行写入快照数据
         int row = 1;
-        for (const auto &snap : it->snapshots) {
+        for (const auto& snap : it->snapshots) {
             ++row;
             col = 0;
             xlsx.write(row, ++col, snap.simTime);
@@ -1264,8 +1323,8 @@ namespace egret
         return status;
     }
 
-    void SceneManagerViewModel::startRecording(const QString &bodyId,
-                                               const QString &filePath)
+    void SceneManagerViewModel::startRecording(const QString& bodyId,
+                                               const QString& filePath)
     {
         bool ok = false;
         const std::uint64_t id = bodyId.toULongLong(&ok);
@@ -1274,7 +1333,13 @@ namespace egret
         // 激活追踪（幂等）
         ensureBodyTracking(bodyId);
 
-        // 设置录制路径
+        // 打开文件并保持句柄（Windows 下锁定文件，禁止外部打开）
+        auto file = std::make_unique<QFile>(filePath);
+        if (!file->open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            qWarning() << "录制：无法打开文件" << filePath;
+            return;
+        }
+        m_recordingFiles[id] = std::move(file);
         m_recordingPaths[id] = filePath;
 
         // 启动定时刷新（幂等）
@@ -1283,7 +1348,7 @@ namespace egret
         }
     }
 
-    void SceneManagerViewModel::pauseRecording(const QString &bodyId)
+    void SceneManagerViewModel::pauseRecording(const QString& bodyId)
     {
         bool ok = false;
         const std::uint64_t id = bodyId.toULongLong(&ok);
@@ -1295,7 +1360,7 @@ namespace egret
         }
     }
 
-    void SceneManagerViewModel::resumeRecording(const QString &bodyId)
+    void SceneManagerViewModel::resumeRecording(const QString& bodyId)
     {
         bool ok = false;
         const std::uint64_t id = bodyId.toULongLong(&ok);
@@ -1307,7 +1372,7 @@ namespace egret
         }
     }
 
-    void SceneManagerViewModel::stopRecording(const QString &bodyId)
+    void SceneManagerViewModel::stopRecording(const QString& bodyId)
     {
         bool ok = false;
         const std::uint64_t id = bodyId.toULongLong(&ok);
@@ -1318,6 +1383,13 @@ namespace egret
         if (pathIt != m_recordingPaths.end()) {
             exportTrackingAsync(bodyId, pathIt.value());
             m_recordingPaths.erase(pathIt);
+        }
+
+        // 1.5 关闭并释放文件句柄（解除文件锁定）
+        auto fileIt = m_recordingFiles.find(id);
+        if (fileIt != m_recordingFiles.end() && fileIt.value()) {
+            fileIt.value()->close();
+            m_recordingFiles.erase(fileIt);
         }
 
         // 2. 清空缓冲区 + 停用追踪

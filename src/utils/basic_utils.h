@@ -21,38 +21,39 @@
 #include <type_traits>
 #include <concepts>
 #include <type_traits>
+#include <algorithm>
+#include <numeric>
+#include <ranges>
+#include <cmath>
 
 #define EGRET_PHYSICS_APPLICATION_DISPLAY_NAME "Egret Physics Studio"
 
 #define EGRET_PHYSICS_APPLICATION_NAME "EgretPhysicsStudio"
 
-
 #define DEBUG_MODE 1
 
 namespace egret
 {
+    /** @brief 快速乘方运算
+     *  @note 指数必须为编译期非负整数常量
+    */
     template <typename Base, std::integral Exponent, Exponent Ex>
     constexpr Base quickPower(Base base)
     {
-        if constexpr (Ex == 0)
-        {
+        if constexpr (Ex == 0) {
             return Base(1);
         }
-        else if constexpr (Ex < 0)
-        {
+        else if constexpr (Ex < 0) {
             return Base(1) / quickPower<Base, Exponent, -Ex>(base);
         }
-        else if constexpr (Ex == 1)
-        {
+        else if constexpr (Ex == 1) {
             return base;
         }
-        else if constexpr (Ex % 2 == 0)
-        {
+        else if constexpr (Ex % 2 == 0) {
             auto half = quickPower<Base, Exponent, Ex / 2>(base);
             return half * half;
         }
-        else
-        {
+        else {
             return base * quickPower<Base, Exponent, Ex - 1>(base);
         }
     }
@@ -63,5 +64,24 @@ namespace egret
     };
 
 
+    /// @brief  类型支持 sqrt、quickSquare 和加法运算
+    template <typename T>
+    concept NumericWithOps = requires(T a, T b)
+    {
+        { std::sqrt(a) } -> std::convertible_to<T>;
+        { quickSquare(a) } -> std::convertible_to<T>;
+        { a + b } -> std::convertible_to<T>;
+    };
+
+    /// @brief 计算容器中元素的平方和的算术平方根
+    template <NumericWithOps T, std::ranges::input_range Container>
+        requires std::same_as<T, std::ranges::range_value_t<Container>>
+    constexpr T sqrtSumOfSquares(const Container& container)
+    {
+        auto sum = std::accumulate(std::ranges::begin(container), std::ranges::end(container), T(0),
+                                   [](T acc, const T& val) { return acc + quickSquare(val); }
+        );
+        return std::sqrt(sum);
+    }
 }
 #endif // EGRET_PHYSICS_GEOMETRY_H

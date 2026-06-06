@@ -413,7 +413,7 @@ ColumnLayout {
                                 rotation: Qt.quaternion(renderRotation[0], renderRotation[1], renderRotation[2], renderRotation[3])
 
                                 materials: PrincipledMaterial {
-                                    baseColor: isSelected ? "#5CC8FF" : bodyColor
+                                    baseColor: isSelected ? "#5078a0" : bodyColor
                                     roughness: 0.18
                                     specularAmount: 0.7
                                     emissiveFactor: isSelected ? "#1A6AA6" : "#000000"

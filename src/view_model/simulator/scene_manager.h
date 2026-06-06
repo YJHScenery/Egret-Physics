@@ -36,6 +36,8 @@
 #include "world_scene_manager.h"
 #include <QQuaternion>
 
+class QFile;
+
 namespace egret
 {
     class WorldSceneManager;
@@ -47,6 +49,40 @@ namespace egret
     struct BodyRecord;
 
     struct SceneRecord;
+
+
+
+    // ========================================================================
+    //  追踪数据结构
+    // ========================================================================
+
+    /** 每个仿真步的追踪快照。 */
+    struct TrackingSnapshot
+    {
+        double simTime{0.0};
+        std::array<double, 3> position{0.0, 0.0, 0.0};
+        std::array<double, 3> velocity{0.0, 0.0, 0.0};
+        std::array<double, 3> angularVelocity{0.0, 0.0, 0.0};
+        double kineticEnergy{0.0};
+    };
+
+    /**
+     * @brief 单个实体的追踪缓冲区。
+     * @details 在 refreshBodyModel() 时自动追加快照，超限时丢弃旧数据。
+     */
+    struct TrackingBuffer
+    {
+
+        bool active{false};
+        /** 暂停采集：为 true 时 refreshBodyModel 跳过追加快照。 */
+        bool paused{false};
+        /** 位标志：bit0=位置, bit1=速度, bit2=角速度, bit3=动能 */
+        std::uint32_t flags{0};
+        std::deque<TrackingSnapshot> snapshots;
+        /** 导出互斥锁：0=空闲，1=正在导出。防止并发写同一文件。 */
+        QAtomicInt exporting{0};
+
+    };
 
     /**
      * @brief       Qt / ViewModel 层的场景门面对象。
@@ -423,6 +459,9 @@ namespace egret
 
         /** 录制中的导出路径，按实体 ID 索引。有路径 = 正在录制。 */
         QMap<std::uint64_t, QString> m_recordingPaths;
+
+        /** 录制中保持打开的文件句柄（锁定文件，禁止外部写入）。 */
+        QMap<std::uint64_t, std::shared_ptr<QFile>> m_recordingFiles;
 
         /** 定时刷新录制文件（每 2 秒触发一次）。 */
         QTimer m_flushTimer;

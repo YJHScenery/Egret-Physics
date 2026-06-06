@@ -95,8 +95,8 @@ ApplicationWindow {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 18
-        spacing: 14
+        anchors.margins: 12
+        spacing: 8
 
         FileDialog {
             id: saveJsonFileDialog
@@ -130,7 +130,6 @@ ApplicationWindow {
                 console.log("用户取消保存")
             }
         }
-
 
         EgretMenuBar {
             Layout.fillWidth: true
@@ -501,7 +500,7 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             property string currentRoute: "scene";
-            spacing: 14
+            spacing: 12
 
             SimulatorUnit {
                 id: simulatorUnit
