@@ -34,7 +34,7 @@ static bool registerStandardShape()
 {
     auto& reg = ShapeRegister::instance();
 
-    reg.registerJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Box,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Box), static_cast<std::uint32_t>(ShapeType::Box),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -47,7 +47,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Sphere,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Box), static_cast<std::uint32_t>(ShapeType::Sphere),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -61,7 +61,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Sphere, (std::uint32_t)ShapeType::Sphere,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Sphere), static_cast<std::uint32_t>(ShapeType::Sphere),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -75,7 +75,7 @@ static bool registerStandardShape()
                       });
 
     // Box 与 其他形状
-    reg.registerJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Cylinder,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Box), static_cast<std::uint32_t>(ShapeType::Cylinder),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -88,7 +88,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::CylindricalShell,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Box), static_cast<std::uint32_t>(ShapeType::CylindricalShell),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -101,7 +101,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Disk,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Box), static_cast<std::uint32_t>(ShapeType::Disk),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -114,7 +114,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Ring,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Box), static_cast<std::uint32_t>(ShapeType::Ring),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -127,7 +127,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::Rod,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Box), static_cast<std::uint32_t>(ShapeType::Rod),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -140,7 +140,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Box, (std::uint32_t)ShapeType::SphericalShell,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Box), static_cast<std::uint32_t>(ShapeType::SphericalShell),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -154,7 +154,7 @@ static bool registerStandardShape()
                       });
 
     // Cylinder 开头的组合
-    reg.registerJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::Cylinder,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Cylinder), static_cast<std::uint32_t>(ShapeType::Cylinder),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -167,7 +167,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::CylindricalShell,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Cylinder), static_cast<std::uint32_t>(ShapeType::CylindricalShell),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -180,7 +180,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::Disk,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Cylinder), static_cast<std::uint32_t>(ShapeType::Disk),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -193,7 +193,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::Ring,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Cylinder), static_cast<std::uint32_t>(ShapeType::Ring),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -206,7 +206,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::Rod,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Cylinder), static_cast<std::uint32_t>(ShapeType::Rod),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -219,7 +219,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::Sphere,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Cylinder), static_cast<std::uint32_t>(ShapeType::Sphere),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -232,7 +232,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Cylinder, (std::uint32_t)ShapeType::SphericalShell,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Cylinder), static_cast<std::uint32_t>(ShapeType::SphericalShell),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -246,7 +246,7 @@ static bool registerStandardShape()
                       });
 
     // Cylindrical shell 开头的组合
-    reg.registerJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::CylindricalShell,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::CylindricalShell), static_cast<std::uint32_t>(ShapeType::CylindricalShell),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -259,7 +259,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::Disk,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::CylindricalShell), static_cast<std::uint32_t>(ShapeType::Disk),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -272,7 +272,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::Ring,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::CylindricalShell), static_cast<std::uint32_t>(ShapeType::Ring),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -285,7 +285,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::Rod,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::CylindricalShell), static_cast<std::uint32_t>(ShapeType::Rod),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -298,7 +298,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::Sphere,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::CylindricalShell), static_cast<std::uint32_t>(ShapeType::Sphere),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -311,7 +311,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::CylindricalShell, (std::uint32_t)ShapeType::SphericalShell,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::CylindricalShell), static_cast<std::uint32_t>(ShapeType::SphericalShell),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -326,7 +326,7 @@ static bool registerStandardShape()
                       });
 
     // Disk 开头
-    reg.registerJudge((std::uint32_t)ShapeType::Disk, (std::uint32_t)ShapeType::Disk,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Disk), static_cast<std::uint32_t>(ShapeType::Disk),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -339,7 +339,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Disk, (std::uint32_t)ShapeType::Ring,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Disk), static_cast<std::uint32_t>(ShapeType::Ring),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -352,7 +352,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Disk, (std::uint32_t)ShapeType::Rod,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Disk), static_cast<std::uint32_t>(ShapeType::Rod),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -365,7 +365,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Disk, (std::uint32_t)ShapeType::Sphere,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Disk), static_cast<std::uint32_t>(ShapeType::Sphere),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -378,7 +378,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Disk, (std::uint32_t)ShapeType::SphericalShell,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Disk), static_cast<std::uint32_t>(ShapeType::SphericalShell),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -392,7 +392,7 @@ static bool registerStandardShape()
                       });
 
     // Ring 开头
-    reg.registerJudge((std::uint32_t)ShapeType::Ring, (std::uint32_t)ShapeType::Ring,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Ring), static_cast<std::uint32_t>(ShapeType::Ring),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -405,7 +405,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Ring, (std::uint32_t)ShapeType::Rod,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Ring), static_cast<std::uint32_t>(ShapeType::Rod),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -418,7 +418,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Ring, (std::uint32_t)ShapeType::Sphere,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Ring), static_cast<std::uint32_t>(ShapeType::Sphere),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -431,7 +431,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Ring, (std::uint32_t)ShapeType::SphericalShell,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Ring), static_cast<std::uint32_t>(ShapeType::SphericalShell),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -445,7 +445,7 @@ static bool registerStandardShape()
                       });
 
     // Rod 开头
-    reg.registerJudge((std::uint32_t)ShapeType::Rod, (std::uint32_t)ShapeType::Rod,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Rod), static_cast<std::uint32_t>(ShapeType::Rod),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -458,7 +458,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Rod, (std::uint32_t)ShapeType::Sphere,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Rod), static_cast<std::uint32_t>(ShapeType::Sphere),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -471,7 +471,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::Rod, (std::uint32_t)ShapeType::SphericalShell,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Rod), static_cast<std::uint32_t>(ShapeType::SphericalShell),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -485,7 +485,7 @@ static bool registerStandardShape()
                       });
 
     // Sphere 与 Spherical shell 的组合（spherical_shell - spherical_shell）
-    reg.registerJudge((std::uint32_t)ShapeType::Sphere, (std::uint32_t)ShapeType::SphericalShell,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::Sphere), static_cast<std::uint32_t>(ShapeType::SphericalShell),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
@@ -498,7 +498,7 @@ static bool registerStandardShape()
                           return false;
                       });
 
-    reg.registerJudge((std::uint32_t)ShapeType::SphericalShell, (std::uint32_t)ShapeType::SphericalShell,
+    reg.registerJudge(static_cast<std::uint32_t>(ShapeType::SphericalShell), static_cast<std::uint32_t>(ShapeType::SphericalShell),
                       [](const ShapeBase* ShapeA, const Transform& transA, const ShapeBase* ShapeB,
                          const Transform& transB,
                          ContactManifold& manifold)
