@@ -22,6 +22,9 @@ namespace egret
 {
     ShapeCylinder::ShapeCylinder(double radius, double height) : m_radius(radius), m_height(height)
     {
+        if (radius < 1e-12 || height < 1e-12) {
+            setValid(false);
+        }
     }
 
     ShapeType ShapeCylinder::getType() const
@@ -171,11 +174,17 @@ namespace egret
     void ShapeCylinder::setRadius(const double radius)
     {
         m_radius = radius;
+        if (m_radius < 1e-12) {
+            setValid(false);
+        }
     }
 
     void ShapeCylinder::setHeight(const double height)
     {
         m_height = height;
+        if (m_height < 1e-12) {
+            setValid(false);
+        }
     }
 
 } // egret

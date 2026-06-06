@@ -34,16 +34,25 @@ namespace egret
 
     ShapeBox::ShapeBox(const double length, const double width, const double height) : m_size(length, width, height)
     {
+        if (length < 1e-12 || width < 1e-12 || height < 1e-12) {
+            setValid(false);
+        }
     }
 
     void ShapeBox::setSize(Eigen::Vector3d size)
     {
         m_size = std::move(size);
+        if (size.x() < 1e-12 || size.y() < 1e-12 || size.z() < 1e-12) {
+            setValid(false);
+        }
     }
 
     void ShapeBox::setSize(const double length, const double width, const double height)
     {
         m_size = Eigen::Vector3d(length, width, height);
+        if (width < 1e-12 || height < 1e-12 || length < 1e-12) {
+            setValid(false);
+        }
     }
 
     Eigen::Vector3d ShapeBox::getHalfSize() const

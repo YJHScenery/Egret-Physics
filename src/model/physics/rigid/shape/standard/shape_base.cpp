@@ -20,8 +20,18 @@ namespace egret
     ShapeLoadInfo ShapeBase::getLoadInfo() const
     {
         ShapeLoadInfo info{};
-        info.typeId = (std::uint32_t)getType();
+        info.typeId = static_cast<std::uint32_t>(getType());
         return info;
+    }
+
+    bool ShapeBase::isValid() const
+    {
+        return m_valid;
+    }
+
+    void ShapeBase::setValid(const bool valid)
+    {
+        m_valid = valid;
     }
 
     ShapeType ShapeBase::getType() const

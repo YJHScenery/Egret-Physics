@@ -321,6 +321,9 @@ set(CPP_FILES
         src/model/strategy/broad_phase_strategy/multi_process_brute_force_broad_phase.cpp
         src/model/strategy/broad_phase_strategy/multi_process_brute_force_broad_phase.h
         src/view_model/simulator/visual_item/basic_render_item.h
+        src/model/physics/rigid/shape/standard/convex_mesh.cpp
+        src/model/physics/rigid/shape/standard/convex_mesh.h
+        src/model/geometry/geometry_utils.h
 
 )
 
