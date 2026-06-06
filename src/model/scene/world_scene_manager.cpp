@@ -389,6 +389,7 @@ namespace egret
             SceneRenderItem item{};
             item.id = body->entity->getId();
             item.kind = static_cast<std::uint32_t>(body->entity->getShape()->getType());
+            item.name = body->name;
 
             item.label = body->name.empty()
                              ? (std::string("Body ") + std::to_string(body->entity->getId()))

@@ -50,25 +50,28 @@ ColumnLayout {
             "Microsoft Excel Shell (*.xlsx)"
         ]
 
+        property string bodyID: ""
         property string bodyName: ""
+
+        selectedFile: "数据追踪-" + bodyName + "(" + bodyID + ").xlsx"
 
         onAccepted: {
             var fileUrl = selectedFile;
             var localPath = fileUrl.toString().replace(/^file:\/\/\//, "");
 
             // 1. 开始录制：激活追踪 + 设置路径 + 启动定时刷新
-            sceneController.startRecording(bodyName, localPath);
+            sceneController.startRecording(bodyID, localPath);
 
             // 2. 同步 QML 追踪状态
-            simulatorRoot.ensureTrackingEntry(bodyName);
-            simulatorRoot.trackingMap[bodyName].position = true;
-            simulatorRoot.trackingMap[bodyName].velocity = true;
-            simulatorRoot.trackingMap[bodyName].angularVelocity = true;
-            simulatorRoot.trackingMap[bodyName].kineticEnergy = true;
+            simulatorRoot.ensureTrackingEntry(bodyID);
+            simulatorRoot.trackingMap[bodyID].position = true;
+            simulatorRoot.trackingMap[bodyID].velocity = true;
+            simulatorRoot.trackingMap[bodyID].angularVelocity = true;
+            simulatorRoot.trackingMap[bodyID].kineticEnergy = true;
             simulatorRoot.trackingVersion++;
 
             // 3. 设置录制状态（控制按钮可见性）
-            simulatorRoot.recordingState[bodyName] = "recording";
+            simulatorRoot.recordingState[bodyID] = "recording";
 
             console.log("开始录制: " + localPath);
         }
@@ -258,6 +261,7 @@ ColumnLayout {
                 property real orbitTargetY: 0
                 property real orbitTargetZ: 0
                 property real lineThickness: 0.45
+                property string selectedBodyId: ""
                 property int gridCount: 41
                 property real gridSpacing: 50
                 // property string activeDragBodyId: ""
@@ -397,6 +401,8 @@ ColumnLayout {
 
                                 pickable: true
                                 
+                                property bool isSelected: canvas3d.selectedBodyId === bodyId
+
                                 source: resourceHelper.getSourceByShape(bodyKind)
                                 property var renderCenter: bodyPosition
                                 property var renderScale: bodyScale
@@ -404,13 +410,13 @@ ColumnLayout {
 
                                 position: Qt.vector3d(renderCenter[0], renderCenter[1], renderCenter[2])
                                 scale: Qt.vector3d(renderScale[0], renderScale[1], renderScale[2])
-                                // scale: Qt.vector3d(renderScale[0], renderScale[1], renderScale[2])
                                 rotation: Qt.quaternion(renderRotation[0], renderRotation[1], renderRotation[2], renderRotation[3])
 
                                 materials: PrincipledMaterial {
-                                    baseColor: bodyColor
+                                    baseColor: isSelected ? "#5CC8FF" : bodyColor
                                     roughness: 0.18
                                     specularAmount: 0.7
+                                    emissiveFactor: isSelected ? "#1A6AA6" : "#000000"
                                 }
 
                             }
@@ -682,6 +688,7 @@ ColumnLayout {
                                     if (objName && objName.startsWith("body-")) {
                                         const bodyId = objName.substring(5);
                                         simulatorRoot.pickedBodyId = bodyId;
+                                        canvas3d.selectedBodyId = bodyId;
 
                                         // 构建菜单项
                                         const items = simulatorRoot.buildContextMenu(bodyId);
@@ -706,7 +713,8 @@ ColumnLayout {
                                         simulatorRoot.contextMenuVisible = true;
                                     }
                                 } else {
-                                    // 点击空白
+                                    // 点击空白：取消选中
+                                    canvas3d.selectedBodyId = "";
                                     simulatorRoot.contextMenuVisible = false;
                                 }
                             }
@@ -1060,14 +1068,25 @@ ColumnLayout {
                             // 标题行
                             RowLayout {
                                 width: parent.width
-                                spacing: 6
+                                spacing: 3
 
-                                Text {
-                                    text: "实体 " + bodyId
-                                    color: "#EAF5FF"
-                                    font.pixelSize: 12
-                                    font.bold: true
+                                ColumnLayout{
+                                    spacing: 3
+                                    Text {
+                                        text: "实体: " + bodyName
+                                        color: "#EAF5FF"
+                                        font.pixelSize: 12
+                                        font.bold: true
+                                    }
+
+                                    Text {
+                                        text: "ID: " + bodyId
+                                        color: "#c8c8c8"
+                                        font.pixelSize: 8
+                                        font.bold: false
+                                    }
                                 }
+
 
                                 // ---- 录制控制按钮（录制中/暂停时显示） ----
                                 Item {
@@ -1082,12 +1101,13 @@ ColumnLayout {
 
                                     RowLayout {
                                         anchors.fill: parent
-                                        spacing: 6
+                                        spacing: 3
 
                                         // 暂停 / 恢复
                                         Item {
                                             Layout.preferredWidth: 18
                                             Layout.preferredHeight: 18
+
                                             Image {
                                                 id: imgPauseResume
                                                 anchors.fill: parent
@@ -1125,6 +1145,7 @@ ColumnLayout {
                                         Item {
                                             Layout.preferredWidth: 18
                                             Layout.preferredHeight: 18
+
                                             Image {
                                                 id: imgStop
                                                 anchors.fill: parent
@@ -1165,19 +1186,27 @@ ColumnLayout {
                                     Layout.preferredWidth: 18
                                     Layout.preferredHeight: 18
 
-                                    Image {
+
+                                    // Image {
+                                    //     id: imgSave
+                                    //     anchors.fill: parent
+                                    //     source: "qrc:/main_icons/assets/icons/record_save.svg"
+                                    //     fillMode: Image.PreserveAspectFit
+                                    // }
+                                    // MultiEffect {
+                                    //     anchors.fill: imgSave
+                                    //     source: imgSave
+                                    //     colorization: 1.0
+                                    //     colorizationColor: mouseSave.containsMouse ? "#FFFFFF" : "#8DB3D9"
+                                    //     brightness: mouseSave.containsMouse ? 0.9 : 0.7
+                                    //     enabled: true
+                                    // }
+
+                                    Text{
                                         id: imgSave
                                         anchors.fill: parent
-                                        source: "qrc:/main_icons/assets/icons/record_save.svg"
-                                        fillMode: Image.PreserveAspectFit
-                                    }
-                                    MultiEffect {
-                                        anchors.fill: imgSave
-                                        source: imgSave
-                                        colorization: 1.0
-                                        colorizationColor: mouseSave.containsMouse ? "#FFFFFF" : "#8DB3D9"
-                                        brightness: mouseSave.containsMouse ? 0.9 : 0.7
-                                        enabled: true
+                                        text: "💾"
+
                                     }
                                     MouseArea {
                                         id: mouseSave
@@ -1185,7 +1214,8 @@ ColumnLayout {
                                         cursorShape: Qt.PointingHandCursor
                                         hoverEnabled: true
                                         onClicked: {
-                                            saveTrackDataFileDialog.bodyName = bodyId;
+                                            saveTrackDataFileDialog.bodyID = bodyId;
+                                            saveTrackDataFileDialog.bodyName = bodyName;
                                             // const now = new Date();
                                             saveTrackDataFileDialog.open();
                                         }
@@ -1202,7 +1232,7 @@ ColumnLayout {
                                 visible: show
                                 text: "位置: " + simulatorRoot.formatVec(bodyPosition[2], bodyPosition[0], bodyPosition[1])
                                 color: "#9EC4EA"
-                                font.pixelSize: 11
+                                font.pixelSize: 10
                             }
 
                             // 速度（追踪时显示）
@@ -1214,7 +1244,7 @@ ColumnLayout {
                                 visible: show
                                 text: "速度: " + simulatorRoot.formatVecWithMagnitude(bodyVelocity[2], bodyVelocity[0], bodyVelocity[1])
                                 color: "#9EC4EA"
-                                font.pixelSize: 11
+                                font.pixelSize: 10
                             }
 
                             // 角速度（追踪时显示）
@@ -1228,7 +1258,7 @@ ColumnLayout {
                                     ? simulatorRoot.formatVecWithMagnitude(bodyAngularVelocity[2], bodyAngularVelocity[0], bodyAngularVelocity[1])
                                     : "N/A")
                                 color: "#9EC4EA"
-                                font.pixelSize: 11
+                                font.pixelSize: 10
                             }
 
                             // 动能（追踪时显示）
@@ -1240,31 +1270,11 @@ ColumnLayout {
                                 visible: show
                                 text: "动能: " + Number(bodyKineticEnergy).toFixed(2) + " J"
                                 color: "#9EC4EA"
-                                font.pixelSize: 11
+                                font.pixelSize: 10
                             }
                         }
                     }
                 }
-
-                // Repeater {
-                //     model: simulatorRoot.extraDataBlocks
-                //
-                //     delegate: Rectangle {
-                //         width: simulatorRoot.dataBlockWidth
-                //         height: dataStreamFlick.height
-                //         radius: 10
-                //         color: "#0F2B4A"
-                //         border.width: 1
-                //         border.color: "#244A70"
-                //
-                //         Text {
-                //             anchors.centerIn: parent
-                //             text: "空数据块"
-                //             color: "#7FA6C8"
-                //             font.pixelSize: 12
-                //         }
-                //     }
-                // }
 
                 // ---- 空状态提示：无追踪数据时显示 ----
                 Rectangle {
