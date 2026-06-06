@@ -13,12 +13,12 @@
 
 ## 特性
 
-- **刚体动力学**：支持多种刚体形状，包括球体、立方体、圆柱体、圆环、圆盘、杆和壳体
+- **刚体动力学**：支持多种刚体形状，包括球体、立方体、圆柱体、圆环、圆盘、杆和球壳体
 - **碰撞检测**：全面的碰撞检测系统，支持多种形状组合
 - **约束求解**：支持约束包括支撑面、滑轨、连接线和连接杆
 - **物理场**：支持重力和质心引力场
 - **模拟策略**：可配置的宽阶段策略、接触求解器和积分器策略
-- **Qt 界面**：现代化的 QML 用户界面，支持 3D 可视化
+- **Qt 界面**：现代化的 Qt Quick 用户界面，支持 3D 可视化
 
 ## 物理模型架构
 
@@ -30,19 +30,20 @@
 
 ### 第三方库
 
-| 库                                    | 版本 | 许可证 |
-|--------------------------------------|---------|---------|
-| [Boost](https://www.boost.org/)      | 1.90.0 | Boost Software License 1.0 |
-| [Eigen](https://libeigen.gitlab.io/) | 5.0.0 | Mozilla Public License 2.0 |
-| [Magic Enum](https://github.com/Neargye/magic_enum)     | 0.9.8 | MIT License |
-| [Qt](https://www.qt.io/)             | 6.9.3 | LGPLv3/GPLv3 |
+| 库                                                   | 版本     | 许可证                        |
+|-----------------------------------------------------|--------|----------------------------|
+| [Boost](https://www.boost.org/)                     | 1.90.0 | Boost Software License 1.0 |
+| [Eigen](https://libeigen.gitlab.io/)                | 5.0.0  | Mozilla Public License 2.0 |
+| [Magic Enum](https://github.com/Neargye/magic_enum) | 0.9.8  | MIT License                |
+| [Qt](https://www.qt.io/)                            | 6.9.3  | LGPLv3/GPLv3               |
+| [QXlsx](https://github.com/QtExcel/QXlsx)           | 1.5.0  | MIT License                |
 
 ### 其他组件
 
-| Repo                                                                      | 许可证   |
-|---------------------------------------------------------------------------|-------|
+| Repo                                                                       | 许可证   |
+|----------------------------------------------------------------------------|-------|
 | [Transform Gizmo](https://github.com/YJHScenery/QtQuick3D-Transform-Gizmo) | GPLv3 |
-| [3D Coordinate](https://github.com/YJHScenery/Smart-3D-Coordinate-System) | GPLv3 |
+| [3D Coordinate](https://github.com/YJHScenery/Smart-3D-Coordinate-System)  | GPLv3 |
 
 ## 快速开始
 
@@ -63,9 +64,9 @@ cmake --build . --config Release
 
 ### 构建选项
 
-| 选项 | 描述 | 默认值 |
-|--------|-------------|---------|
-| `BUILD_TESTS` | 构建单元测试 | ON |
+| 选项            | 描述     | 默认值 |
+|---------------|--------|-----|
+| `BUILD_TESTS` | 构建单元测试 | ON  |
 
 ### 运行应用
 
@@ -188,6 +189,7 @@ scene->clear();
 cd build
 ctest -C Release
 ```
+
 **注意** 单元测试已暂停维护，鉴于作者对单元测试的了解极其浅薄，因此无法保证其能正常工作。
 
 ## 许可证
@@ -209,6 +211,7 @@ ctest -C Release
 ## 代码风格
 
 本项目遵循 [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)，以下是例外情况：
+
 - 使用 4 个空格进行缩进（不使用制表符）
 - 行长度限制为 120 字符
 
