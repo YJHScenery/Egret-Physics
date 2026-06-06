@@ -235,6 +235,11 @@ namespace egret
                     QStringLiteral("float"), 1.0,
                     0.001, 100000.0, 0.1, 3
                 },
+                {
+                    QStringLiteral("anchor_pos"), QStringLiteral("锚点位置"),
+                    QStringLiteral("vector3d"), QVector3D(0.0f, 0.0f, 0.0f),
+                    -100000.0, 100000.0, 0.1, 3
+                },
             },
             0
         });
@@ -870,8 +875,6 @@ namespace egret
 
 
     //  公开的默认值重置
-
-
     void EditorParameterManager::resetToDefaults()
     {
         _initDefaults();
@@ -881,8 +884,6 @@ namespace egret
 
 
     //  信号发射辅助（内联在 set 方法中调用）
-
-
     void EditorParameterManager::emitHasSubTypes()
     {
         emit hasSubTypesChanged();
@@ -910,8 +911,6 @@ namespace egret
 
 
     //  序列化辅助
-
-
     QVariantMap EditorParameterManager::collectAllValues() const
     {
         QVariantMap result = m_values;

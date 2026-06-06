@@ -39,6 +39,22 @@ ColumnLayout {
         id: theme
     }
 
+    // ── 锚点位置（单摆约束使用） ──
+    property real anchorPosX: 0.0
+    property real anchorPosY: 0.0
+    property real anchorPosZ: 0.0
+
+    // ── 约束对象选择是否有效 ──
+    readonly property bool constraintSelectionValid: {
+        if (!inspectorColumn.isConstraintCategory || !operatingButton.isCreateMode) return true;
+        var tid = EditorParameterManager.currentTypeId;
+        var count = sceneEntityListPanel.selectedEntityIds.length;
+        if (tid === 1 || tid === 3 || tid === 5) return count === 2;  // 连接线/连接杆/弹簧
+        if (tid === 2) return count === 1;                              // 单摆
+        if (tid === 6) return count >= 1;                              // 支撑曲面
+        return true;
+    }
+
     RowLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
@@ -678,14 +694,24 @@ ColumnLayout {
                         // ============ Constraint ============
                         data.constraint_type = inspectorPanel.m_type;
 
+                        // 约束对象实体 ID
+                        data.entity_ids = sceneEntityListPanel.selectedEntityIds;
+
+                        // 锚点位置（单摆使用）
+                        if (inspectorPanel.m_type === 2) {
+                            data.anchor_pos = {
+                                x: editorRoot.anchorPosX,
+                                y: editorRoot.anchorPosY,
+                                z: editorRoot.anchorPosZ
+                            };
+                        }
+
                         var constraintParams = flattenParams(geoParams);
                         data.constraint_data = constraintParams;
                     }
 
                     var jsonData = JSON.stringify(data);
-                    console.log("____________________________________");
                     console.log(jsonData);
-                    console.log("____________________________________");
                     return jsonData;
                 }
 
@@ -1038,6 +1064,154 @@ ColumnLayout {
                         }
 
                         // ============================================================
+                        //  约束对象 / Constraint Targets — 仅约束创建时可见
+                        // ============================================================
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 28
+                            radius: 6
+                            color: "#0F2B4B"
+                            border.width: 1
+                            border.color: "#2C5D88"
+
+                            visible: inspectorColumn.isConstraintCategory && operatingButton.isCreateMode
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "约束对象 / Targets"
+                                color: "#CFE6FF"
+                                font.pixelSize: 12
+                            }
+                        }
+
+                        // ── 约束对象选择面板 ──
+                        Column {
+                            visible: inspectorColumn.isConstraintCategory && operatingButton.isCreateMode
+                            width: parent.width
+                            Layout.fillWidth: true
+                            spacing: 6
+
+                            // ── 根据约束类型自动配置选择参数 ──
+                            Component.onCompleted: {
+                                sceneEntityListPanel.selectionMode = true;
+                            }
+                            Component.onDestruction: {
+                                sceneEntityListPanel.selectionMode = false;
+                                sceneEntityListPanel.clearSelection();
+                            }
+
+                            // ── 监听类别/类型切换，管理选择模式 ──
+                            Connections {
+                                target: EditorParameterManager
+
+                                // 类别变化：非约束时关闭选择模式
+                                function onCurrentCategoryChanged() {
+                                    if (EditorParameterManager.currentCategory !== 2) {
+                                        sceneEntityListPanel.selectionMode = false;
+                                        sceneEntityListPanel.clearSelection();
+                                    } else {
+                                        sceneEntityListPanel.selectionMode = true;
+                                    }
+                                }
+
+                                // 类型切换：清空已选并更新选择参数
+                                function onCurrentTypeIdChanged() {
+                                    sceneEntityListPanel.clearSelection();
+                                    var tid = EditorParameterManager.currentTypeId;
+                                    // ConstraintType: ConnectingLine=1, SimplePendulum=2, ConnectingRod=3, Spring=5, SupportSurface=6
+                                    if (tid === 1 || tid === 3 || tid === 5) {
+                                        // 双实体约束：ConnectingLine, ConnectingRod, Spring
+                                        sceneEntityListPanel.minSelection = 2;
+                                        sceneEntityListPanel.maxSelection = 2;
+                                    } else if (tid === 2) {
+                                        // 单摆：1 实体 + 锚点
+                                        sceneEntityListPanel.minSelection = 1;
+                                        sceneEntityListPanel.maxSelection = 1;
+                                    } else if (tid === 6) {
+                                        // 支撑曲面：≥1
+                                        sceneEntityListPanel.minSelection = 1;
+                                        sceneEntityListPanel.maxSelection = 999;
+                                    } else {
+                                        sceneEntityListPanel.minSelection = 0;
+                                        sceneEntityListPanel.maxSelection = 0;
+                                    }
+                                }
+                            }
+
+                            // ── 类型提示 ──
+                            Label {
+                                id: selectionHint
+                                text: {
+                                    var tid = EditorParameterManager.currentTypeId;
+                                    if (tid === 1) return "连接线需选择 2 个实体（在左侧实体列表中点击选择）";
+                                    if (tid === 2) return "单摆需选择 1 个实体 + 设置锚点位置";
+                                    if (tid === 3) return "连接杆需选择 2 个实体（在左侧实体列表中点击选择）";
+                                    if (tid === 5) return "弹簧需选择 2 个实体（在左侧实体列表中点击选择）";
+                                    if (tid === 6) return "支撑曲面需选择至少 1 个实体";
+                                    return "";
+                                }
+                                color: "#8FB8E0"
+                                font.pixelSize: 11
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
+
+                            // ── 已选实体名称列表 ──
+                            Repeater {
+                                model: sceneEntityListPanel.selectedEntityIds
+                                delegate: Label {
+                                    text: {
+                                        var m = ModelManager.getModel(modelData);
+                                        return m ? ("  ✓ " + m.name) : ("  ✓ " + modelData);
+                                    }
+                                    color: "#4FC3F7"
+                                    font.pixelSize: 11
+                                }
+                            }
+
+                            // ── 锚点位置编辑器（仅单摆显示） ──
+                            Column {
+                                visible: EditorParameterManager.currentTypeId === 2
+                                width: parent.width
+                                Layout.fillWidth: true
+                                spacing: 4
+
+                                Label {
+                                    text: "锚点位置"
+                                    color: "#BFD8F4"
+                                    font.pixelSize: 11
+                                }
+                                RowLayout {
+                                    spacing: 6
+                                    FloatField {
+                                        Layout.fillWidth: true
+                                        from: -100000; to: 100000; stepSize: 0.1; decimals: 3
+                                        value: editorRoot.anchorPosX
+                                        onValueChanged: editorRoot.anchorPosX = value
+                                    }
+                                    FloatField {
+                                        Layout.fillWidth: true
+                                        from: -100000; to: 100000; stepSize: 0.1; decimals: 3
+                                        value: editorRoot.anchorPosY
+                                        onValueChanged: editorRoot.anchorPosY = value
+                                    }
+                                    FloatField {
+                                        Layout.fillWidth: true
+                                        from: -100000; to: 100000; stepSize: 0.1; decimals: 3
+                                        value: editorRoot.anchorPosZ
+                                        onValueChanged: editorRoot.anchorPosZ = value
+                                    }
+                                }
+                            }
+                        }
+
+                        EgretSeparator {
+                            Layout.fillWidth: true
+                            visible: inspectorColumn.isConstraintCategory && operatingButton.isCreateMode
+                        }
+
+                        // ============================================================
                         //  几何参数 / Geometry — 数据驱动，来自 EditorParameterManager
                         // ============================================================
 
@@ -1049,7 +1223,7 @@ ColumnLayout {
                             border.width: 1
                             border.color: "#2C5D88"
 
-                            visible: EditorParameterManager.currentCategory === 0
+                            visible: EditorParameterManager.currentCategory === 0 || inspectorColumn.isConstraintCategory
 
                             Text {
                                 anchors.centerIn: parent
@@ -1834,10 +2008,17 @@ ColumnLayout {
                             id: operatingButton
                             property bool isCreateMode: true
                             text: isCreateMode ? "创建" : "确定修改"
+                            enabled: !isCreateMode || editorRoot.constraintSelectionValid
                             onClicked: {
                                 if (isCreateMode) {
+                                    if (!editorRoot.constraintSelectionValid) {
+                                        console.warn("Constraint creation blocked: entity selection invalid");
+                                        return;
+                                    }
                                     ModelManager.addModelByJsonString(inspectorPanel.serializeToJson());
                                     console.log("Create Successfully");
+                                    // 创建后仅清除已选实体，保持选择模式以便继续创建
+                                    sceneEntityListPanel.clearSelection();
                                 } else {
                                     // 修改前先 detach Gizmo，避免 Repeater3D 重建后持有悬空 Node 引用
                                     editorGizmo.detach();
