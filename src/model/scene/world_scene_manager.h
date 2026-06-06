@@ -164,6 +164,15 @@ namespace egret
     //  渲染数据
     // ========================================================================
 
+    struct BasicRenderItem
+    {
+        std::uint64_t id{0};
+        std::uint32_t kind{0};
+        std::string name{};
+        std::string color{};
+        std::string label{};
+    };
+
     /**
      * @brief       用于视图层渲染的轻量化数据快照。
      * @details     SceneRenderItem 是用于视图层渲染的轻量化数据快照结构体。
@@ -182,6 +191,9 @@ namespace egret
 
         /** 渲染类型，例如 sphere、box、particle。 */
         std::uint32_t kind;
+
+        /** 实体名称 */
+        std::string name;
 
         /** 渲染中心位置（x, y, z）。 */
         Eigen::Vector3d position{};

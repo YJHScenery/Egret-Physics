@@ -45,8 +45,10 @@ namespace egret
         /** 实体 ID。 */
         quint64 id{0};
 
+        QString name{};
+
         /** 渲染类型：sphere、box、particle。 */
-        quint32 kind;
+        quint32 kind{};
 
         /** 渲染中心位置（x, y, z）。 */
         std::array<double, 3> centerPos{0.0, 0.0, 0.0};
@@ -67,10 +69,10 @@ namespace egret
         double kineticEnergy{0.0};
 
         /** 颜色。 */
-        QString color;
+        QString color{};
 
         /** 标签。 */
-        QString label;
+        QString label{};
     };
     
 
@@ -96,6 +98,7 @@ namespace egret
         {
             IdRole = Qt::UserRole + 1,
             KindRole,
+            NameRole,
             PositionRole,
             ScaleRole,
             RotationRole,

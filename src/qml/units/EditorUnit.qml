@@ -300,12 +300,7 @@ ColumnLayout {
                             var dist = absolutePosition.minus(gizmoCamera.position).length();
                             return Math.max(0.1, 0.125 * dist);
                         }
-
-                        Component.onCompleted: {
-                            console.log("TransformGizmo created — view3d:",
-                                        view3d ? "OK" : "NULL",
-                                        "camera:", camera ? "OK" : "NULL")
-                        }
+                        
                     }
                 }
 

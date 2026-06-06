@@ -754,6 +754,7 @@ namespace egret
             SceneBodyVisualItem item{};
             item.id = renderItem.id;
             item.kind = renderItem.kind;
+            item.name = QString::fromStdString(renderItem.name);
 
             item.velocity[0] = static_cast<float>(renderItem.velocity.x());
             item.velocity[1] = static_cast<float>(renderItem.velocity.y());
@@ -786,20 +787,12 @@ namespace egret
             if (trackIt != m_trackingBuffers.end() && trackIt->active && !trackIt->paused) {
                 TrackingSnapshot snap;
                 snap.simTime = m_simTime;
-                snap.position = {static_cast<double>(item.centerPos[0]),
-                                 static_cast<double>(item.centerPos[1]),
-                                 static_cast<double>(item.centerPos[2])};
-                snap.velocity = {static_cast<double>(item.velocity[0]),
-                                 static_cast<double>(item.velocity[1]),
-                                 static_cast<double>(item.velocity[2])};
-                snap.angularVelocity = {static_cast<double>(item.angularVelocity[0]),
-                                        static_cast<double>(item.angularVelocity[1]),
-                                        static_cast<double>(item.angularVelocity[2])};
+                snap.position = item.centerPos;
+                snap.velocity = item.velocity;
                 snap.kineticEnergy = item.kineticEnergy;
 
                 trackIt->snapshots.push_back(snap);
-                constexpr int kMaxSnapshotsPerBody = 65535;
-                if (trackIt->snapshots.size() > kMaxSnapshotsPerBody) {
+                if (trackIt->snapshots.size() > std::numeric_limits<std::uint32_t>::max()) {
                     trackIt->snapshots.pop_front();
                 }
             }

@@ -23,98 +23,83 @@ namespace magic_enum::customize
     struct enum_range<egret::SceneBodyModel::BodyRole>
     {
         static constexpr int min = Qt::UserRole;
-        static constexpr int max = 280; // 留下一定的余量
+        static constexpr int max = Qt::UserRole + 32; // 留下一定的余量
     };
 }
 
 namespace egret
 {
-    SceneBodyModel::SceneBodyModel(QObject *parent) : QAbstractListModel(parent)
+    SceneBodyModel::SceneBodyModel(QObject* parent) : QAbstractListModel(parent)
     {
     }
 
-    int SceneBodyModel::rowCount(const QModelIndex &parent) const
+    int SceneBodyModel::rowCount(const QModelIndex& parent) const
     {
-        if (parent.isValid())
-        {
+        if (parent.isValid()) {
             return 0;
         }
         return static_cast<int>(m_items.size());
     }
 
-    QVariant SceneBodyModel::data(const QModelIndex &index, const int role) const
+    QVariant SceneBodyModel::data(const QModelIndex& index, const int role) const
     {
-        if (!index.isValid() || index.row() < 0 || index.row() >= rowCount(QModelIndex()))
-        {
+        if (!index.isValid() || index.row() < 0 || index.row() >= rowCount(QModelIndex())) {
             return {};
         }
 
-        const SceneBodyVisualItem &item = m_items[static_cast<qsizetype>(index.row())];
-        switch (role)
-        {
-        case IdRole:
-        {
+        const SceneBodyVisualItem& item = m_items[static_cast<qsizetype>(index.row())];
+        switch (role) {
+        case IdRole: {
             return QVariant::fromValue(QString::number(item.id));
         }
-        case KindRole:
-        {
+        case KindRole: {
             return QVariant::fromValue(item.kind);
         }
-        case PositionRole:
-        {
+        case NameRole: {
+            return QVariant::fromValue(item.name);
+        }
+        case PositionRole: {
             QVariantList position;
-            for (double centerPo : item.centerPos)
-            {
+            for (double centerPo : item.centerPos) {
                 position.append(centerPo);
             }
             return position;
         }
-        case ScaleRole:
-        {
+        case ScaleRole: {
             QVariantList scale;
-            for (double i : item.scale)
-            {
+            for (double i : item.scale) {
                 scale.append(i);
             }
             return scale;
         }
-        case RotationRole:
-        {
+        case RotationRole: {
             QVariantList rotation;
-            for (double i : item.rotation)
-            {
+            for (double i : item.rotation) {
                 rotation.append(i);
             }
             return rotation;
         }
-        case VelocityRole:
-        {
+        case VelocityRole: {
             QVariantList speed;
-            for (double i : item.velocity)
-            {
+            for (double i : item.velocity) {
                 speed.append(i);
             }
             return speed;
         }
-        case AngularVelocityRole:
-        {
+        case AngularVelocityRole: {
             QVariantList angularSpeed;
-            for (double i : item.angularVelocity)
-            {
+            for (double i : item.angularVelocity) {
                 angularSpeed.append(i);
             }
             return angularSpeed;
         }
-        case KineticEnergyRole:
-        {
+        case KineticEnergyRole: {
             return QVariant{item.kineticEnergy};
         }
-        case ColorRole:
-        {
+        case ColorRole: {
             return QVariant{item.color};
         }
-        case LabelRole:
-        {
+        case LabelRole: {
             return QVariant{item.label};
         }
         default:
@@ -126,13 +111,11 @@ namespace egret
     {
         QHash<int, QByteArray> roles;
 
-        for (const auto role_value : magic_enum::enum_values<BodyRole>())
-        {
+        for (const auto role_value : magic_enum::enum_values<BodyRole>()) {
             std::string_view name_view = magic_enum::enum_name(role_value);
             QString roleName{"body"};
             roleName.append(QString::fromUtf8(name_view.data(), name_view.size()));
-            if (roleName.endsWith("Role"))
-            {
+            if (roleName.endsWith("Role")) {
                 roleName.chop(4);
             }
 
@@ -144,27 +127,22 @@ namespace egret
         return roles;
     }
 
-    void SceneBodyModel::setItems(const QList<SceneBodyVisualItem> &items)
+    void SceneBodyModel::setItems(const QList<SceneBodyVisualItem>& items)
     {
         const bool sameSize = m_items.size() == items.size();
         bool sameIds = sameSize;
-        if (sameSize)
-        {
-            for (std::size_t i = 0; i < items.size(); ++i)
-            {
-                if (m_items[i].id != items[i].id)
-                {
+        if (sameSize) {
+            for (std::size_t i = 0; i < items.size(); ++i) {
+                if (m_items[i].id != items[i].id) {
                     sameIds = false;
                     break;
                 }
             }
         }
 
-        if (sameSize && sameIds)
-        {
+        if (sameSize && sameIds) {
             m_items = items;
-            if (!m_items.empty())
-            {
+            if (!m_items.empty()) {
                 const QModelIndex first = index(0, 0);
                 const QModelIndex last = index(static_cast<int>(m_items.size()) - 1, 0);
                 emit dataChanged(first, last);

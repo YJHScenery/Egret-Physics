@@ -113,6 +113,9 @@ Popup {
     /** 弹出宽度（在 onOpened 中由 calculateMenuWidth() 计算并赋值） */
     property int popupWidth: menuMinWidth
 
+    /** 菜单版本计数器 — 用于强制 delegate 绑定重新求值（checkable 项状态变化时递增） */
+    property int menuVersion: 0
+
     // ============ Popup 基础设置 ============
 
     modal: false
@@ -450,6 +453,9 @@ Popup {
         if (item.checkable === true) {
             var newChecked = !item.checked;
             item.checked = newChecked;
+            menuVersion++;
+            // 强制 model 刷新：创建新数组引用以触发 ListView delegate 重新求值
+            menuItems = menuItems.slice();
             menuCheckedChanged(menuPath.concat([itemIndex]), item, newChecked);
         }
 
@@ -587,7 +593,7 @@ Popup {
                 property bool isSeparator: itemData && itemData.separator === true
                 property bool isEnabled: itemData && itemData.enabled !== false
                 property bool isCheckable: itemData && itemData.checkable === true
-                property bool isChecked: itemData && itemData.checked === true
+                property bool isChecked: (popup.menuVersion, itemData && itemData.checked === true)
                 property string itemIcon: itemData && itemData.icon || ""
                 property bool hasSub: popup.hasSubMenu(itemData)
 
@@ -811,6 +817,7 @@ Popup {
             property var parentMenuPopup: null
             property int subMenuWidth: popup.menuMinWidth
             property int highlightedIndex: -1
+            property int menuVersion: 0
 
             modal: false
             focus: true
@@ -953,7 +960,7 @@ Popup {
                         property bool isSeparator: itemData && itemData.separator === true
                         property bool isEnabled: itemData && itemData.enabled !== false
                         property bool isCheckable: itemData && itemData.checkable === true
-                        property bool isChecked: itemData && itemData.checked === true
+                        property bool isChecked: (subPopup.menuVersion, itemData && itemData.checked === true)
                         property string itemIcon: itemData && itemData.icon || ""
                         property bool hasSub: popup.hasSubMenu(itemData)
 
@@ -1182,6 +1189,9 @@ Popup {
         if (item.checkable === true) {
             var newChecked = !item.checked;
             item.checked = newChecked;
+            subPopupInstance.menuVersion++;
+            // 强制 model 刷新：创建新数组引用以触发 ListView delegate 重新求值
+            subPopupInstance.menuItems = subPopupInstance.menuItems.slice();
             menuCheckedChanged(fullPath, item, newChecked);
         }
 
