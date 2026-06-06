@@ -44,6 +44,7 @@ namespace egret
         Rod,
         Sphere,
         SphericalShell,
+        ConvexMesh,
 
         Abstract = 127,
 
@@ -132,6 +133,16 @@ namespace egret
         // GJK 算法支撑函数
         [[nodiscard]] virtual Eigen::Vector3d support(const Eigen::Vector3d &direction,
                                                       const Transform &transform) const = 0;
+
+        bool isValid() const;
+
+
+    protected:
+        void setValid(bool valid);
+
+
+    private:
+        bool m_valid{true};
     };
 } // egret
 

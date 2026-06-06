@@ -21,6 +21,9 @@ namespace egret
 {
     ShapeRod::ShapeRod(const double length) : m_length(length)
     {
+        if (length < 1e-12) {
+            setValid(false);
+        }
     }
 
     ShapeType ShapeRod::getType() const
@@ -62,6 +65,9 @@ namespace egret
     void ShapeRod::setLength(const double length)
     {
         m_length = length;
+        if (length < 1e-12) {
+            setValid(false);
+        }
     }
 
     std::pair<Eigen::Vector3d, Eigen::Vector3d> ShapeRod::getStartEnd(const Transform &transform) const

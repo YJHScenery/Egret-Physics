@@ -22,6 +22,9 @@ namespace egret
 {
     ShapeRing::ShapeRing(const double radius) : ShapeDisk(radius)
     {
+        if (radius < 1e-12) {
+            setValid(false);
+        }
     }
 
     ShapeType ShapeRing::getType() const

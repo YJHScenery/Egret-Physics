@@ -23,9 +23,19 @@
 
 namespace egret
 {
+    ShapeSphere::ShapeSphere(const double radius) : m_radius{radius}
+    {
+        if (radius < 1e-12) {
+            setValid(false);
+        }
+    }
+
     void ShapeSphere::setRadius(const double radius)
     {
         m_radius = radius;
+        if (m_radius < 1e-12) {
+            setValid(false);
+        }
     }
 
     ShapeType ShapeSphere::getType() const

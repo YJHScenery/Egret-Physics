@@ -22,6 +22,9 @@ namespace egret
 {
     ShapeDisk::ShapeDisk(const double radius) : m_radius(radius)
     {
+        if (radius < 1e-12) {
+            setValid(false);
+        }
     }
 
     ShapeType ShapeDisk::getType() const
@@ -69,6 +72,9 @@ namespace egret
     void ShapeDisk::setRadius(const double radius)
     {
         m_radius = radius;
+        if (radius < 1e-12) {
+            setValid(false);
+        }
     }
 
     Eigen::Vector3d ShapeDisk::support(const Eigen::Vector3d &direction, const Transform &transform) const

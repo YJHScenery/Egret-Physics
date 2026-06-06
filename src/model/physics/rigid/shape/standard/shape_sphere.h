@@ -36,7 +36,7 @@ namespace egret
     class ShapeSphere : public ShapeBase
     {
     public:
-        explicit ShapeSphere(const double radius) : m_radius{radius} {}
+        explicit ShapeSphere(const double radius);
 
         void setRadius(double radius);
 
