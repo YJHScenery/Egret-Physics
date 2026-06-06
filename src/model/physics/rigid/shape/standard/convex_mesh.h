@@ -53,7 +53,6 @@ namespace egret
         explicit ConvexMesh(const TessellatedMesh &mesh);
 
         // ---- ShapeBase 接口 ----
-
         /** @brief 返回 ShapeType::ConvexMesh。 */
         [[nodiscard]] ShapeType getType() const override;
 

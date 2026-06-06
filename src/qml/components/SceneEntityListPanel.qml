@@ -41,6 +41,58 @@ ColumnLayout {
     property var fieldModels: []
     property var constraintModels: []
 
+    // ── 实体选择模式（约束器创建时使用） ──
+    property bool selectionMode: false
+    property var selectedEntityIds: []    // 选中的实体 ID 列表
+    property int minSelection: 1
+    property int maxSelection: 1
+
+    signal selectionChanged(var entityIds)
+
+    /**
+     * @brief 切换实体选择状态。
+     * @param entityId 实体 ID 字符串。
+     */
+    function toggleEntitySelection(entityId) {
+        if (!selectionMode) return;
+        var ids = selectedEntityIds.slice();
+        var idx = ids.indexOf(entityId);
+        if (idx >= 0) {
+            ids.splice(idx, 1);
+        } else {
+            if (ids.length >= maxSelection) {
+                // 达到上限：单选替换，多选拒绝
+                if (maxSelection === 1) {
+                    ids = [entityId];
+                } else {
+                    return;
+                }
+            } else {
+                ids.push(entityId);
+            }
+        }
+        selectedEntityIds = ids;
+        selectionChanged(ids);
+    }
+
+    /**
+     * @brief 检查实体是否被选中。
+     * @param entityId 实体 ID 字符串。
+     */
+    function isEntitySelected(entityId) {
+        return selectedEntityIds.indexOf(entityId) >= 0;
+    }
+
+    /**
+     * @brief 清空所有选中。
+     */
+    function clearSelection() {
+        if (selectedEntityIds.length > 0) {
+            selectedEntityIds = [];
+            selectionChanged([]);
+        }
+    }
+
     // ── 刷新所有分类列表 ──
     function refreshAll() {
         shapeModels = ModelManager.getModelsByCategory(categoryShape);
@@ -278,9 +330,24 @@ ColumnLayout {
             width: parent ? parent.width : 200
             height: 28
             radius: 6
-            color: "#0D2748"
-            border.width: 1
-            border.color: "#1E4A7A"
+
+            // ── 选择模式下的高亮 ──
+            readonly property bool isSelectable: root.selectionMode && modelData.category === 0
+            readonly property bool isSelected: isSelectable && root.isEntitySelected(modelData.id)
+
+            color: isSelected ? "#1A4D8C" : "#0D2748"
+            border.width: isSelected ? 2 : 1
+            border.color: isSelected ? "#3F9FFF" : "#1E4A7A"
+
+            // ── 选择模式下的点击区域 ──
+            MouseArea {
+                anchors.fill: parent
+                enabled: itemRect.isSelectable
+                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                onClicked: {
+                    root.toggleEntitySelection(modelData.id);
+                }
+            }
 
             RowLayout {
                 anchors.fill: parent
@@ -288,18 +355,31 @@ ColumnLayout {
                 anchors.rightMargin: 5
                 spacing: 6
 
-                // ── 可见性指示器 ──
+                // ── 选择勾选标记（选择模式下替代可见性指示器） ──
                 Rectangle {
-                    width: 8
-                    height: 8
-                    radius: 4
-                    color: modelData.visible ? "#27B5FF" : "#3A5068"
+                    width: 10
+                    height: 10
+                    radius: 2
+                    color: itemRect.isSelected ? "#3F9FFF" :
+                           (itemRect.isSelectable ? "#1A3050" :
+                           (modelData.visible ? "#27B5FF" : "#3A5068"))
+                    border.width: itemRect.isSelectable && !itemRect.isSelected ? 1 : 0
+                    border.color: "#3F9FFF"
+
+                    // 选中勾号
+                    Text {
+                        anchors.centerIn: parent
+                        text: itemRect.isSelected ? "✓" : ""
+                        color: "#FFFFFF"
+                        font.pixelSize: 8
+                        font.bold: true
+                    }
                 }
 
                 // ── 名称 ──
                 Label {
                     text: modelData.name ? modelData.name : ("未命名-" + index)
-                    color: "#D4EAFB"
+                    color: itemRect.isSelected ? "#FFFFFF" : "#D4EAFB"
                     font.pixelSize: 11
                     font.bold: true
                     elide: Text.ElideRight

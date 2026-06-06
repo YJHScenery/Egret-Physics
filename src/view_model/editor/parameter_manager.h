@@ -386,8 +386,7 @@ namespace egret
          * @brief 将所有参数重置为默认值。
          */
         Q_INVOKABLE void _initSubDefaults();
-        
-        
+
         void _initSubSubDefaults();
         
         void resetToDefaults();

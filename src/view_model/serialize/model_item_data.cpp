@@ -159,6 +159,16 @@ namespace egret
             data.m_payload["constraint_data"] = obj["constraint_data"].toObject();
         }
 
+        // 提取约束对象实体 ID 列表
+        if (obj.contains("entity_ids") && obj["entity_ids"].isArray()) {
+            data.m_payload["entity_ids"] = obj["entity_ids"].toArray();
+        }
+
+        // 提取锚点位置（单摆使用）
+        if (obj.contains("anchor_pos") && obj["anchor_pos"].isObject()) {
+            data.m_payload["anchor_pos"] = obj["anchor_pos"].toObject();
+        }
+
         return data;
     }
 
