@@ -98,8 +98,10 @@ if (BUILD_DOCS)
                 COMMENT "Generating API documentation with Doxygen"
                 VERBATIM)
 
-        install(DIRECTORY ${DOXYGEN_OUT}/html
-                DESTINATION share/doc/${PROJECT_NAME})
+        if(EXISTS "${DOXYGEN_OUT}/html")
+            install(DIRECTORY ${DOXYGEN_OUT}/html
+                    DESTINATION share/doc/${PROJECT_NAME})
+        endif()
     else ()
         message(WARNING "Doxygen not found, documentation will not be built")
     endif ()
@@ -445,5 +447,97 @@ if (BUILD_TESTS)
     enable_testing()
     add_test(NAME EgretPhysicsTests COMMAND Egret_Physics_Tests)
 endif ()
+
+# ===================================================================
+# CPack 打包配置 (NSIS)
+# ===================================================================
+
+# --- 软件身份 ---
+set(CPACK_PACKAGE_NAME              "Egret_Physics_Studio")
+set(CPACK_PACKAGE_VERSION           "1.0.0")
+set(CPACK_PACKAGE_VENDOR            "Ye Jinghao")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Egret Physics Studio — 交互式物理模拟引擎")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "Egret Physics Studio")
+
+# --- 生成器：NSIS（Windows 安装包向导） ---
+set(CPACK_GENERATOR                 "NSIS")
+set(CPACK_NSIS_DISPLAY_NAME        "Egret Physics Studio")
+set(CPACK_NSIS_PACKAGE_NAME        "Egret Physics Studio")
+
+# --- 安装包与快捷方式图标 ---
+set(CPACK_NSIS_MUI_ICON            "${CMAKE_SOURCE_DIR}/resources/assets/favicon/favicon_install.ico")
+set(CPACK_NSIS_MUI_UNIICON         "${CMAKE_SOURCE_DIR}/resources/assets/favicon/favicon_install.ico")
+
+# --- 快捷方式可执行文件所在目录（相对安装根目录，"." 即根目录） ---
+set(CPACK_NSIS_EXECUTABLES_DIRECTORY ".")
+
+# --- 注册表「添加/删除程序」图标 ---
+set(CPACK_NSIS_INSTALLED_ICON_NAME  "Egret_Physics.exe")
+
+# --- 可执行文件注册（格式: 可执行文件名（不含 .exe）"显示名称"） ---
+# CPack 据此自动创建开始菜单快捷方式
+set(CPACK_PACKAGE_EXECUTABLES       "Egret_Physics" "Egret Physics")
+
+# --- 桌面快捷方式（值必须匹配 CPACK_PACKAGE_EXECUTABLES 中的可执行文件名） ---
+set(CPACK_CREATE_DESKTOP_LINKS      "Egret_Physics")
+
+# ===================================================================
+# install() 规则 — CPack 根据这些规则收集要打包的文件
+# ===================================================================
+
+# 主可执行文件
+install(TARGETS ${PROJECT_NAME}
+    RUNTIME DESTINATION .
+    )
+
+# 构建输出目录中 windeployqt 部署的所有运行时文件
+# 排除调试符号、链接产物、以及 CMake / Ninja 构建系统自身生成的文件
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/release/"
+    DESTINATION .
+    USE_SOURCE_PERMISSIONS
+    # --- 构建产物（通配） ---
+    PATTERN "*.pdb" EXCLUDE
+    PATTERN "*.ilk" EXCLUDE
+    PATTERN "*.exp" EXCLUDE
+    PATTERN "*.lib" EXCLUDE
+    PATTERN "*.obj" EXCLUDE 
+    # --- CMake 生成文件 ---
+    PATTERN "cmake_install.cmake" EXCLUDE
+    PATTERN "CMakeCache.txt" EXCLUDE
+    PATTERN "CMakeDoxyfile.in" EXCLUDE
+    PATTERN "CMakeDoxygenDefaults.cmake" EXCLUDE
+    PATTERN "CPackConfig.cmake" EXCLUDE
+    PATTERN "CPackSourceConfig.cmake" EXCLUDE
+    PATTERN "CTestTestfile.cmake" EXCLUDE
+    PATTERN "compile_commands.json" EXCLUDE
+    # --- Ninja 生成文件 ---
+    PATTERN ".ninja_deps" EXCLUDE
+    PATTERN ".ninja_log" EXCLUDE
+    PATTERN "build.ninja" EXCLUDE
+    # --- 构建系统目录 ---
+    PATTERN "CMakeFiles" EXCLUDE
+    PATTERN "Egret_Physics_autogen" EXCLUDE
+    PATTERN "Egret_Physics_Tests_autogen" EXCLUDE
+    PATTERN ".cmake" EXCLUDE
+    PATTERN ".qt" EXCLUDE
+    # --- 项目自身非运行时目录 ---
+    PATTERN "generated" EXCLUDE
+    PATTERN "logs" EXCLUDE
+    PATTERN ".gitignore" EXCLUDE
+    )
+
+# ===================================================================
+
+include(CPack)
+
+# ===================================================================
+# 绕过 CPack 4.2 转义 bug：CPack 写入 CPackConfig.cmake 时不转义引号/反斜杠
+# 用 file(APPEND) 直接追加已正确转义的 set 命令
+# ===================================================================
+file(APPEND "${CMAKE_BINARY_DIR}/CPackConfig.cmake"
+[=[
+# --- 桌面快捷方式默认创建，绕过复选框默认不勾选的问题 ---
+set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut \"$DESKTOP\\Egret Physics.lnk\" \"$INSTDIR\\Egret_Physics.exe\"")
+]=])
 
 
