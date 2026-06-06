@@ -300,7 +300,7 @@ ColumnLayout {
                             var dist = absolutePosition.minus(gizmoCamera.position).length();
                             return Math.max(0.1, 0.125 * dist);
                         }
-                        
+
                     }
                 }
 
@@ -321,7 +321,7 @@ ColumnLayout {
                         anchors.margins: 10
                         color: "#D4EAFB"
                         font.pixelSize: 12
-                        text: "无限网格 / World z-up\n右键旋转, 中键平移, 滚轮缩放"
+                        text: "左键选中, 右键旋转, 中键平移, 滚轮缩放"
                     }
                 }
 
@@ -343,12 +343,12 @@ ColumnLayout {
                         spacing: 4
 
                         Text {
-                            text: "工具: 选择"
+                            text: "使用 Gizmo 或调整参数"
                             color: "#CFE6FF"
                             font.pixelSize: 12
                         }
                         Text {
-                            text: "单位: 米 | 捕捉: 10cm"
+                            text: "单位: 米"
                             color: "#9EC4EA"
                             font.pixelSize: 11
                         }
@@ -501,20 +501,20 @@ ColumnLayout {
             Layout.minimumWidth: 280
             Layout.maximumWidth: 280
             Layout.fillHeight: true
-            spacing: 12
+            spacing: 8
 
             GlassPanel {
                 id: gizmoSettingsPanel
                 Layout.fillWidth: true
-                Layout.preferredHeight: 150
+                Layout.preferredHeight: 130
                 title: "Gizmo 设置"
 
                 GridLayout {
                     anchors.fill: parent
-                    anchors.margins: 10
+                    anchors.margins: 4
                     columns: 2
-                    columnSpacing: 10
-                    rowSpacing: 6
+                    columnSpacing: 4
+                    rowSpacing: 4
 
                     // ── 平移步长 ──
                     Label {
@@ -1571,7 +1571,7 @@ ColumnLayout {
                             }
 
                             Label {
-                                text: "缩放"
+                                text: "缩放 (x, y, z)"
                                 color: "#BFD8F4"
                                 Layout.columnSpan: 2
                             }
