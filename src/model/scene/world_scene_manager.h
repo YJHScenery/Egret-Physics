@@ -37,6 +37,8 @@
 #include "scene_surface_render_item.h"
 #include "transform.h"
 
+#include "basic_render_item.h"
+
 namespace egret
 {
 
@@ -164,14 +166,7 @@ namespace egret
     //  渲染数据
     // ========================================================================
 
-    struct BasicRenderItem
-    {
-        std::uint64_t id{0};
-        std::uint32_t kind{0};
-        std::string name{};
-        std::string color{};
-        std::string label{};
-    };
+
 
     /**
      * @brief       用于视图层渲染的轻量化数据快照。
@@ -186,14 +181,7 @@ namespace egret
      */
     struct SceneRenderItem
     {
-        /** 实体 ID。 */
-        std::uint64_t id{0};
-
-        /** 渲染类型，例如 sphere、box、particle。 */
-        std::uint32_t kind;
-
-        /** 实体名称 */
-        std::string name;
+        BasicRenderItem<std::string> basic{};
 
         /** 渲染中心位置（x, y, z）。 */
         Eigen::Vector3d position{};
@@ -208,12 +196,6 @@ namespace egret
 
         /** 动能（平动 + 转动），单位：焦耳。 */
         double kineticEnergy{0.0};
-
-        /** 十六进制颜色字符串，供 QML 直接使用。 */
-        std::string color;
-
-        /** 标签文本，用于调试或悬浮提示。 */
-        std::string label;
     };
 
     /**
@@ -228,11 +210,7 @@ namespace egret
      */
     struct SceneConstraintRenderItem
     {
-        /** 约束 ID。 */
-        std::uint64_t id{0};
-
-        /** 约束类型，对应 ConstraintType 枚举值。 */
-        std::uint32_t kind{0};
+        BasicRenderItem<std::string> basic{};
 
         /** 两端实体的 ID。 */
         std::uint64_t entityIdA{0};
@@ -247,12 +225,6 @@ namespace egret
 
         /** 两端当前实际距离。 */
         double currentDistance{0.0};
-
-        /** 十六进制颜色字符串，供 QML 直接使用。 */
-        std::string color;
-
-        /** 标签文本，用于调试或悬浮提示。 */
-        std::string label;
     };
 
     /**

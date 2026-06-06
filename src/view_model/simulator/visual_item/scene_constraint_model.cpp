@@ -54,11 +54,11 @@ namespace egret
         {
         case IdRole:
         {
-            return QVariant::fromValue(item.id);
+            return QVariant::fromValue(item.basic.id);
         }
         case KindRole:
         {
-            return QVariant::fromValue(item.kind);
+            return QVariant::fromValue(item.basic.kind);
         }
         case EntityIdARole:
         {
@@ -96,11 +96,11 @@ namespace egret
         }
         case ColorRole:
         {
-            return QVariant{item.color};
+            return QVariant{item.basic.color};
         }
         case LabelRole:
         {
-            return QVariant{item.label};
+            return QVariant{item.basic.label};
         }
         default:
             return {};
@@ -137,7 +137,7 @@ namespace egret
         {
             for (std::size_t i = 0; i < items.size(); ++i)
             {
-                if (m_items[i].id != items[i].id)
+                if (m_items[i].basic.id != items[i].basic.id)
                 {
                     sameIds = false;
                     break;

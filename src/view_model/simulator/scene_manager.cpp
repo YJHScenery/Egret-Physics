@@ -19,6 +19,7 @@
 
 #include "scene_manager.h"
 #include <QCryptographicHash>
+#include "basic_render_item.h"
 
 #include <algorithm>
 #include <cmath>
@@ -752,9 +753,9 @@ namespace egret
 
         for (const SceneRenderItem& renderItem : renderItems) {
             SceneBodyVisualItem item{};
-            item.id = renderItem.id;
-            item.kind = renderItem.kind;
-            item.name = QString::fromStdString(renderItem.name);
+            item.id = renderItem.basic.id;
+            item.kind = renderItem.basic.kind;
+            item.name = QString::fromStdString(renderItem.basic.name);
 
             item.velocity[0] = static_cast<float>(renderItem.velocity.x());
             item.velocity[1] = static_cast<float>(renderItem.velocity.y());
@@ -779,11 +780,11 @@ namespace egret
             item.rotation[2] = static_cast<float>(renderItem.rotation.y());
             item.rotation[3] = static_cast<float>(renderItem.rotation.z());
 
-            item.color = QString::fromStdString(renderItem.color);
-            item.label = QString::fromStdString(renderItem.label);
+            item.color = QString::fromStdString(renderItem.basic.color);
+            item.label = QString::fromStdString(renderItem.basic.label);
 
             // ---- 追踪数据采集 ----
-            const auto trackIt = m_trackingBuffers.find(renderItem.id);
+            const auto trackIt = m_trackingBuffers.find(renderItem.basic.id);
             if (trackIt != m_trackingBuffers.end() && trackIt->active && !trackIt->paused) {
                 TrackingSnapshot snap;
                 snap.simTime = m_simTime;
@@ -861,8 +862,10 @@ namespace egret
 
         for (const SceneConstraintRenderItem& renderItem : renderItems) {
             SceneConstraintVisualItem item{};
-            item.id = renderItem.id;
-            item.kind = renderItem.kind;
+            item.basic.id = renderItem.basic.id;
+            item.basic.kind = renderItem.basic.kind;
+            item.basic.name = QString::fromStdString(renderItem.basic.name);
+
             item.entityIdA = renderItem.entityIdA;
             item.entityIdB = renderItem.entityIdB;
 
@@ -877,8 +880,8 @@ namespace egret
             item.constraintLength = renderItem.constraintLength;
             item.currentDistance = renderItem.currentDistance;
 
-            item.color = QString::fromStdString(renderItem.color);
-            item.label = QString::fromStdString(renderItem.label);
+            item.basic.color = QString::fromStdString(renderItem.basic.color);
+            item.basic.label = QString::fromStdString(renderItem.basic.label);
 
             items.push_back(std::move(item));
         }

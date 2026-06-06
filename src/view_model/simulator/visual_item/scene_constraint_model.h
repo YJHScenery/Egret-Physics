@@ -26,9 +26,11 @@
 #include <QVariant>
 #include <magic_enum.hpp>
 #include <vector>
+#include "basic_render_item.h"
 
 namespace egret
 {
+
     /**
      * @brief       单个可渲染约束的 Qt 数据对象。
      * @details     SceneConstraintVisualItem 是单个可渲染约束的 Qt 数据对象结构体。
@@ -40,13 +42,10 @@ namespace egret
      * @invariant   kind 是有效的约束类型枚举
      * @see         SceneConstraintModel, ConstraintsBase
      */
+
     struct SceneConstraintVisualItem
     {
-        /** 约束 ID。 */
-        quint64 id{0};
-
-        /** 约束类型，对应 ConstraintType 枚举值。 */
-        quint32 kind{0};
+        BasicRenderItem<QString> basic{};
 
         /** 两端实体的 ID（用于将来查找实体颜色等）。 */
         quint64 entityIdA{0};
@@ -62,11 +61,6 @@ namespace egret
         /** 两端当前实际距离。用于判断松弛/绷紧状态。 */
         double currentDistance{0.0};
 
-        /** 渲染颜色。 */
-        QString color;
-
-        /** 标签。 */
-        QString label;
     };
 
     /**
