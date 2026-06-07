@@ -16,6 +16,8 @@
         <file>components/FloatField.qml</file>
         <file>components/TransformGizmo.qml</file>
         <file>components/SceneEntityListPanel.qml</file>
+        <file>components/message_box/EgretMessageDialog.qml</file>
+        <file>components/message_box/EgretMessageBox.js</file>
     </qresource>
     <qresource prefix="/units">
         <file>units/SimulatorUnit.qml</file>
@@ -28,4 +30,5 @@
     <qresource prefix="/materials">
         <file>materials/EgretLineMaterial.qml</file>
     </qresource>
+
 </RCC>

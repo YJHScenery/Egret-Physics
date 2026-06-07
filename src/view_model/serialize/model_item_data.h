@@ -217,11 +217,11 @@ namespace egret
         [[nodiscard]] QSharedPointer<ModelItemData> clone() const;
         static ModelItemData *createCopy(const ModelItemData &source, QObject *parent = nullptr);
 
-        /** 直接读写 m_data 的 payload 字段，供 ModelManager 透传 field/constraint 数据 */
+        /** 直接读写 m_data 的 payload 字段，供 EditorManager 透传 field/constraint 数据 */
         void setPayload(const QJsonObject &payload) { m_data.m_payload = payload; }
         [[nodiscard]] const QJsonObject &payload() const { return m_data.m_payload; }
 
-        /** 设置实体类别（0=Shape, 1=Field, 2=Constraint），供 ModelManager 使用 */
+        /** 设置实体类别（0=Shape, 1=Field, 2=Constraint），供 EditorManager 使用 */
         void setCategory(int category)
         {
             if (m_data.m_category != category) {

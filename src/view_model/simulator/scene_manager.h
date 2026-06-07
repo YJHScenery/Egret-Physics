@@ -50,8 +50,6 @@ namespace egret
 
     struct SceneRecord;
 
-
-
     // ========================================================================
     //  追踪数据结构
     // ========================================================================
@@ -72,13 +70,16 @@ namespace egret
      */
     struct TrackingBuffer
     {
-
         bool active{false};
+
         /** 暂停采集：为 true 时 refreshBodyModel 跳过追加快照。 */
         bool paused{false};
+
         /** 位标志：bit0=位置, bit1=速度, bit2=角速度, bit3=动能 */
         std::uint32_t flags{0};
+
         std::deque<TrackingSnapshot> snapshots;
+
         /** 导出互斥锁：0=空闲，1=正在导出。防止并发写同一文件。 */
         QAtomicInt exporting{0};
 
@@ -138,7 +139,7 @@ namespace egret
 
         static SceneRecord createSceneFromJsonFile(const QString& fileName);
 
-
+        /** 初始化 solver，配置策略器 */
         void initialize();
 
         /** 当前是否运行。 */
@@ -175,10 +176,6 @@ namespace egret
          */
         Q_INVOKABLE void setTimeScale(double scale);
 
-        // ====================================================================
-        //  数据追踪接口
-        // ====================================================================
-
         /**
          * @brief 设置指定实体的追踪属性。
          * @param bodyId  实体 ID 字符串。
@@ -195,7 +192,7 @@ namespace egret
                                          bool trackKineticEnergy);
 
         /** 获取指定实体的快照数量。 */
-        Q_INVOKABLE int getSnapshotCount(const QString &bodyId) const;
+        Q_INVOKABLE [[nodiscard]] int getSnapshotCount(const QString &bodyId) const;
 
         /**
          * @brief 将指定实体的追踪数据导出为 Excel (.xlsx) 文件。
@@ -203,7 +200,7 @@ namespace egret
          * @param filePath  导出文件路径。
          * @return 成功返回 true。
          */
-        Q_INVOKABLE bool saveTrackingXlsx(const QString &bodyId,
+        Q_INVOKABLE [[nodiscard]] bool saveTrackingXlsx(const QString &bodyId,
                                           const QString &filePath) const;
 
         /**
@@ -276,26 +273,26 @@ namespace egret
 
         Q_INVOKABLE void loadSceneFromJsonString(const QString& jsonString);
 
-        /**
-         * @brief 将屏幕坐标映射到世界 XY 平面（z 固定）上的点。
-         * @param screenX 屏幕像素 X。
-         * @param screenY 屏幕像素 Y。
-         * @param viewportWidth 视口宽度。
-         * @param viewportHeight 视口高度。
-         * @param cameraState 相机参数字典。
-         * @param planeZ 目标平面 z 值。
-         * @return 包含 ok/x/y/z/error 的映射结果。
-         */
-        Q_INVOKABLE [[nodiscard]] static QVariantMap mapScreenToWorldOnPlane(double screenX,
-                                                                             double screenY,
-                                                                             double viewportWidth,
-                                                                             double viewportHeight,
-                                                                             const QVariantMap& cameraState,
-                                                                             double planeZ);
+        // /**
+        //  * @brief 将屏幕坐标映射到世界 XY 平面（z 固定）上的点。
+        //  * @param screenX 屏幕像素 X。
+        //  * @param screenY 屏幕像素 Y。
+        //  * @param viewportWidth 视口宽度。
+        //  * @param viewportHeight 视口高度。
+        //  * @param cameraState 相机参数字典。
+        //  * @param planeZ 目标平面 z 值。
+        //  * @return 包含 ok/x/y/z/error 的映射结果。
+        //  */
+        // [[deprecated]] [[nodiscard]] Q_INVOKABLE  static QVariantMap mapScreenToWorldOnPlane(double screenX,
+        //                                                                      double screenY,
+        //                                                                      double viewportWidth,
+        //                                                                      double viewportHeight,
+        //                                                                      const QVariantMap& cameraState,
+        //                                                                      double planeZ);
 
-        [[nodiscard]]Q_INVOKABLE static QVector3D buildRenderPosition(const QVector3D& position);
+        [[nodiscard]] Q_INVOKABLE static QVector3D buildRenderPosition(const QVector3D& position);
 
-        [[nodiscard]]Q_INVOKABLE static QQuaternion buildRenderRotation(const QQuaternion& rotation);
+        [[nodiscard]] Q_INVOKABLE static QQuaternion buildRenderRotation(const QQuaternion& rotation);
 
     signals:
         /** 运行状态变化。 */
@@ -318,9 +315,6 @@ namespace egret
 
         /** 时间缩放因子变化。 */
         void timeScaleChanged();
-
-        /** 拖拽状态变化。 */
-        void dragActiveChanged();
 
         /** 一帧求解完成。 */
         void frameAdvanced();
@@ -352,7 +346,6 @@ namespace egret
          * @brief 将模型层世界快照刷新到 Qt 列表模型。
          */
         void refreshBodyModel();
-
 
 
         /**

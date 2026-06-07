@@ -140,7 +140,7 @@ include_directories(
 )
 
 set(QT_MODULES_LIST
-        Core Gui Widgets Quick Qml Quick3D Sql Quick3DAssetImport QuickControls2
+        Core Gui Widgets Quick Qml Quick3D Sql Quick3DAssetImport QuickControls2 Multimedia
 )
 
 find_package(Qt6 COMPONENTS
@@ -279,8 +279,8 @@ set(CPP_FILES
         src/view_model/simulator/visual_item/scene_surface_model.cpp
         src/view_model/simulator/visual_item/scene_curve_model.h
         src/view_model/simulator/visual_item/scene_curve_model.cpp
-        src/view_model/editor/model_manager.cpp
-        src/view_model/editor/model_manager.h
+        src/view_model/editor/editor_manager.cpp
+        src/view_model/editor/editor_manager.h
         src/view_model/editor/parameter_manager.cpp
         src/view_model/editor/parameter_manager.h
         src/view_model/serialize/model_item_data.cpp
@@ -325,6 +325,10 @@ set(CPP_FILES
         src/model/physics/rigid/shape/standard/convex_mesh.h
         src/model/geometry/geometry_utils.h
         src/model/geometry/geometry_utils.cpp
+        src/view/qt_media_helper.cpp
+        src/view/qt_media_helper.h
+        src/utils/os/windows/windows_sound.h
+        src/utils/os/windows/windows_sound.cpp
 
 )
 

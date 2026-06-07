@@ -29,7 +29,7 @@
 #include "qt_component_helper.h"
 #include "os/windows/windows_config.h"
 #include "resource_helper.h"
-#include "editor/model_manager.h"
+#include "editor/editor_manager.h"
 #include "editor/parameter_manager.h"
 #include "serialize/model_item_data.h"
 #include <QQuickStyle>
@@ -42,6 +42,8 @@
 #include "spring_geometry.h"
 #include "view/geometry/bezier_curve_geometry.h"
 #include "curve_geometry.h"
+#include "view/qt_media_helper.h"
+
 
 int main(int argc, char* argv[])
 {
@@ -80,10 +82,10 @@ int main(int argc, char* argv[])
     LOG_INFO_LITERAL("程序启动");
 
     egret::EnumHandler::registerEnums();
-    qmlRegisterType<egret::ModelItemData>("ModelManager", 1, 0, "ModelItem");
-    qmlRegisterType<egret::MaterialData>("ModelManager", 1, 0, "MaterialData");
-    qmlRegisterSingletonInstance<egret::ModelManager>("ModelManager", 1, 0, "ModelManager",
-                                                      egret::ModelManager::instance());
+    qmlRegisterType<egret::ModelItemData>("EditorManager", 1, 0, "ModelItem");
+    qmlRegisterType<egret::MaterialData>("EditorManager", 1, 0, "MaterialData");
+    qmlRegisterSingletonInstance<egret::EditorManager>("EditorManager", 1, 0, "EditorManager",
+                                                      egret::EditorManager::instance());
     qmlRegisterSingletonInstance<egret::EditorParameterManager>(
         "EditorManager", 1, 0, "EditorParameterManager", egret::EditorParameterManager::instance());
     qmlRegisterSingletonInstance<
@@ -97,10 +99,11 @@ int main(int argc, char* argv[])
     egret::QtComponentHelper qtHelper;
     egret::ResourceHelper resourceHelper;
     egret::FileHandler fileHandler;
+    egret::QtMediaHelper qtMediaHelper;
 
     QQmlApplicationEngine engine;
-    // egret::ModelManager::instance()->addModels(egret::createDefaultModels());
-    // egret::ModelManager::instance()->addModels(egret::createDefaultModels());
+    // egret::EditorManager::instance()->addModels(egret::createDefaultModels());
+    // egret::EditorManager::instance()->addModels(egret::createDefaultModels());
 
     engine.rootContext()->setContextProperty("sceneController", &sceneController);
     engine.rootContext()->setContextProperty("qtHelper", &qtHelper);
@@ -108,6 +111,8 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty("fileHandler", &fileHandler);
     engine.rootContext()->setContextProperty("documentsFolder",
                                              QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation));
+    engine.rootContext()->setContextProperty("mediaHelper", &qtMediaHelper);
+
 
     const QUrl url(QStringLiteral("qrc:/main/main/MainWindow.qml"));
     constexpr int QML_LOAD_FAILED{-1};

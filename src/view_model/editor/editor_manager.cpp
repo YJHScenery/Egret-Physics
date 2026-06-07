@@ -1,5 +1,5 @@
 /**
- * @file        model_manager.cpp
+ * @file        editor_manager.cpp
  * @brief       编辑器模型管理器实现文件，提供编辑器层的数据模型管理功能。
  * @details     实现 ModelManager 类的各项成员函数。
  *
@@ -13,30 +13,31 @@
  * @ingroup     ViewModel
  * @defgroup    组名 (如果文件定义了一个模块组)
  */
-#include "model_manager.h"
-// ModelManager.cpp
+#include "editor_manager.h"
+// EditorManager.cpp
 #include <QFile>
 #include <QJsonDocument>
 #include <QDebug>
 #include <QQmlEngine>
 #include "async_logger.h"
 #include "unique_id_generator.h"
+#include "os/windows/windows_sound.h"
 #include "serialize/transform_transformer.h"
 
 namespace egret
 {
-    ModelManager::ModelManager(QObject* parent) : QObject(parent)
+    EditorManager::EditorManager(QObject* parent) : QObject(parent)
     {
         // loadFromJson("C:/Users/jehor/Desktop/114514.json");
     }
 
-    ModelManager* ModelManager::instance()
+    EditorManager* EditorManager::instance()
     {
-        static ModelManager manager;
+        static EditorManager manager;
         return &manager;
     }
 
-    bool ModelManager::addModel(ModelItemData* model)
+    bool EditorManager::addModel(ModelItemData* model)
     {
         if (!validateModel(model))
             return false;
@@ -67,7 +68,7 @@ namespace egret
         return true;
     }
 
-    bool ModelManager::removeModel(const QString& id)
+    bool EditorManager::removeModel(const QString& id)
     {
         if (!m_models.contains(id)) {
             emit operationCompleted(false, "Model not found");
@@ -84,19 +85,19 @@ namespace egret
         return true;
     }
 
-    ModelItemData* ModelManager::getModel(const QString& id)
+    ModelItemData* EditorManager::getModel(const QString& id)
     {
         return m_models.value(id, QSharedPointer<ModelItemData>()).data();
     }
 
-    ModelItemData* ModelManager::getModelAtIndex(int index)
+    ModelItemData* EditorManager::getModelAtIndex(int index)
     {
         if (index < 0 || index >= m_modelList.size())
             return nullptr;
         return m_modelList[index].data();
     }
 
-    bool ModelManager::updateModel(const QString& id, ModelItemData* model)
+    bool EditorManager::updateModel(const QString& id, ModelItemData* model)
     {
         if (!m_models.contains(id)) {
             emit operationCompleted(false, "Model not found");
@@ -112,7 +113,7 @@ namespace egret
         return true;
     }
 
-    void ModelManager::clearAll()
+    void EditorManager::clearAll()
     {
         saveState();
         m_models.clear();
@@ -121,7 +122,7 @@ namespace egret
         emit operationCompleted(true, "All models cleared");
     }
 
-    void ModelManager::addModels(const QList<ModelItemData*>& models)
+    void EditorManager::addModels(const QList<ModelItemData*>& models)
     {
         saveState();
         for (ModelItemData* model : models) {
@@ -131,7 +132,7 @@ namespace egret
         }
     }
 
-    QList<ModelItemData*> ModelManager::getAllModels() const
+    QList<ModelItemData*> EditorManager::getAllModels() const
     {
         QList<ModelItemData*> results;
         results.reserve(m_modelList.size());
@@ -141,21 +142,22 @@ namespace egret
         return results;
     }
 
-    qsizetype ModelManager::count() const
+    qsizetype EditorManager::count() const
     {
         return m_modelList.size();
     }
 
-    QStringList ModelManager::modelIds() const
+    QStringList EditorManager::modelIds() const
     {
         return m_models.keys();
     }
 
-    bool ModelManager::addModelByJsonString(const QString& jsonString)
+    bool EditorManager::addModelByJsonString(const QString& jsonString)
     {
         const auto data = parseModelItemDataFromQMLJson(jsonString);
         // 4. 验证必要字段（根据你的需求调整）
         if (data.m_name.isEmpty()) {
+            emit warning("Model Manager", "Entity Name Cannot be Empty!");
             qDebug() << "entity_name cannot be empty";
             return false;
         }
@@ -201,7 +203,7 @@ namespace egret
         return addModel(newModel);
     }
 
-    bool ModelManager::modifyModelByJsonString(const QString& jsonString)
+    bool EditorManager::modifyModelByJsonString(const QString& jsonString)
     {
         const auto data = parseModelItemDataFromQMLJson(jsonString);
         if (data.m_name.isEmpty()) {
@@ -255,7 +257,7 @@ namespace egret
         return true;
     }
 
-    bool ModelManager::saveToJson(const QString& filePath)
+    bool EditorManager::saveToJson(const QString& filePath)
     {
         QJsonArray modelsArray;
         for (const QSharedPointer<ModelItemData>& model : m_modelList) {
@@ -282,7 +284,7 @@ namespace egret
         return true;
     }
 
-    bool ModelManager::loadFromJson(const QString& filePath)
+    bool EditorManager::loadFromJson(const QString& filePath)
     {
         QFile file(filePath);
         if (!file.open(QIODevice::ReadOnly)) {
@@ -296,7 +298,7 @@ namespace egret
         return fromJsonString(QString::fromUtf8(data));
     }
 
-    QString ModelManager::toJsonString(bool pretty)
+    QString EditorManager::toJsonString(bool pretty)
     {
         QJsonArray modelsArray;
         for (const QSharedPointer<ModelItemData>& model : m_modelList) {
@@ -313,7 +315,7 @@ namespace egret
         return pretty ? doc.toJson(QJsonDocument::Indented) : doc.toJson(QJsonDocument::Compact);
     }
 
-    bool ModelManager::fromJsonString(const QString& jsonString)
+    bool EditorManager::fromJsonString(const QString& jsonString)
     {
         QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
         if (doc.isNull() || !doc.isObject()) {
@@ -349,17 +351,17 @@ namespace egret
         return true;
     }
 
-    bool ModelManager::exportToFile(const QString& filePath)
+    bool EditorManager::exportToFile(const QString& filePath)
     {
         return saveToJson(filePath);
     }
 
-    bool ModelManager::importFromFile(const QString& filePath)
+    bool EditorManager::importFromFile(const QString& filePath)
     {
         return loadFromJson(filePath);
     }
 
-    QList<ModelItemData*> ModelManager::findModelsByName(const QString& name)
+    QList<ModelItemData*> EditorManager::findModelsByName(const QString& name)
     {
         QList<ModelItemData*> results;
         for (const QSharedPointer<ModelItemData>& model : m_modelList) {
@@ -370,7 +372,7 @@ namespace egret
         return results;
     }
 
-    QList<ModelItemData*> ModelManager::findModelsBySource(const QString& source)
+    QList<ModelItemData*> EditorManager::findModelsBySource(const QString& source)
     {
         QList<ModelItemData*> results;
         for (const QSharedPointer<ModelItemData>& model : m_modelList) {
@@ -381,7 +383,7 @@ namespace egret
         return results;
     }
 
-    QList<ModelItemData*> ModelManager::getModelsByCategory(int category) const
+    QList<ModelItemData*> EditorManager::getModelsByCategory(int category) const
     {
         QList<ModelItemData*> results;
         results.reserve(m_modelList.size());
@@ -393,7 +395,7 @@ namespace egret
         return results;
     }
 
-    void ModelManager::setModelsPosition(const QVector3D& position, const QStringList& ids)
+    void EditorManager::setModelsPosition(const QVector3D& position, const QStringList& ids)
     {
         saveState();
         QStringList targetIds = ids.isEmpty() ? m_models.keys() : ids;
@@ -408,7 +410,7 @@ namespace egret
         emit operationCompleted(true, QString("Updated position for %1 models").arg(targetIds.size()));
     }
 
-    void ModelManager::setModelsScale(const QVector3D& scale, const QStringList& ids)
+    void EditorManager::setModelsScale(const QVector3D& scale, const QStringList& ids)
     {
         saveState();
         QStringList targetIds = ids.isEmpty() ? m_models.keys() : ids;
@@ -423,7 +425,7 @@ namespace egret
         emit operationCompleted(true, QString("Updated scale for %1 models").arg(targetIds.size()));
     }
 
-    void ModelManager::setModelsMaterialProperty(const QString& property, const QVariant& value, const QStringList& ids)
+    void EditorManager::setModelsMaterialProperty(const QString& property, const QVariant& value, const QStringList& ids)
     {
         saveState();
         QStringList targetIds = ids.isEmpty() ? m_models.keys() : ids;
@@ -447,7 +449,7 @@ namespace egret
         emit operationCompleted(true, QString("Updated material for %1 models").arg(targetIds.size()));
     }
 
-    QVariantMap ModelManager::setQuick3DRenderTransform(int index)
+    QVariantMap EditorManager::setQuick3DRenderTransform(int index)
     {
         // qDebug() << __func__ << index;
         const ModelItemData* model = getModelAtIndex(index);
@@ -459,7 +461,7 @@ namespace egret
         return val;
     }
 
-    void ModelManager::saveState()
+    void EditorManager::saveState()
     {
         QHash<QString, QSharedPointer<ModelItemData>> currentState;
         for (const QSharedPointer<ModelItemData>& model : m_modelList) {
@@ -469,7 +471,7 @@ namespace egret
         m_redoStack.clear();
     }
 
-    bool ModelManager::undo()
+    bool EditorManager::undo()
     {
         if (m_undoStack.isEmpty()) {
             emit operationCompleted(false, "Nothing to undo");
@@ -497,7 +499,7 @@ namespace egret
         return true;
     }
 
-    bool ModelManager::redo()
+    bool EditorManager::redo()
     {
         if (m_redoStack.isEmpty()) {
             emit operationCompleted(false, "Nothing to redo");
@@ -519,13 +521,13 @@ namespace egret
         return true;
     }
 
-    bool ModelManager::validateModel(const ModelItemData* model)
+    bool EditorManager::validateModel(const ModelItemData* model)
     {
         return model != nullptr;
     }
 
 
-    void ModelManager::emitModelListChanged()
+    void EditorManager::emitModelListChanged()
     {
         emit modelListChanged();
         emit countChanged();

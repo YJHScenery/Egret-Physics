@@ -20,10 +20,11 @@ import QtQuick.Controls.Basic 2.15 as Basic
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
 import QtQuick.Dialogs
-import ModelManager 1.0
+import EditorManager 1.0
 import QtQuick3D 6.9
 
 import "qrc:/components/components"
+import "qrc:/components/components/message_box"
 import "qrc:/components/components/theme"
 import "qrc:/units/units"
 
@@ -114,7 +115,6 @@ ApplicationWindow {
                 var fileUrl = selectedFile
                 var localPath = fileUrl.toString().replace(/^file:\/\/\//, "")  // 简单转换
 
-
                 switch (mode){
                     case 0:{
                         sceneController.loadSceneFronJsonFile(localPath);
@@ -129,6 +129,7 @@ ApplicationWindow {
                 console.log("用户取消打开")
             }
         }
+
         FileDialog {
             id: saveJsonFileDialog
             title: "保存场景"
@@ -141,25 +142,24 @@ ApplicationWindow {
             ]
 
             onAccepted: {
-                // 2. 用户确认后，获取保存路径
                 // 注意：selectedFile 返回的是 file:// 开头的 URL，需转换为本地路径
                 var fileUrl = selectedFile
                 var localPath = fileUrl.toString().replace(/^file:\/\/\//, "")  // 简单转换
-                // 更安全的方式（若平台支持）：
-                // var localPath = fileUrl.toLocalFile()
-                //fileHandler.saveTextToFile(localPath, "114514")
-                ModelManager.saveToJson(localPath)
-
-                console.log("保存到: " + localPath)
-
-                // 3. 在这里调用 C++ 后端或使用 JavaScript 写入文件
-                // 例如：writeFile(localPath, textArea.text)
-                // resultLabel.text = "已保存至：" + localPath
+                EditorManager.saveToJson(localPath)
             }
 
             onRejected: {
                 console.log("用户取消保存")
             }
+        }
+
+        EgretMessageDialog {
+            id: msgDialog
+            level: EgretMessageDialog.Level.Warning
+            title: "警告"
+            text: "仿真器不支持保存文件！"
+            buttons: EgretMessageDialog.StandardButton.Ok
+            soundType: "Warning"
         }
 
         EgretMenuBar {
@@ -218,8 +218,12 @@ ApplicationWindow {
                             text: "保存(&S)",
                             shortcut: "Ctrl+S",
                             onTriggered: function () {
-                                saveJsonFileDialog.open()
+                                if (workspaceComboBox.currentIndex !== 1){
+                                    msgDialog.open();
+                                    return;
+                                }
 
+                                saveJsonFileDialog.open()
                                 console.log("Save");
                             },
                             icon: "qrc:/main_icons/assets/icons/save.svg"
@@ -296,16 +300,6 @@ ApplicationWindow {
                 {
                     title: "视图(&V)",
                     items: [
-                        // {
-                        //     text: "工作台(&W)",
-                        //     shortcut: "Ctrl+W",
-                        //     checkable: true,
-                        //     checked: true,
-                        //     onTriggered: function () {
-                        //         mainRowLayout.workbenchVisible = this.checked === true
-                        //     },
-                        //
-                        // },
                         {
                             separator: true
                         },
@@ -579,7 +573,7 @@ ApplicationWindow {
                 anchors.rightMargin: 12
 
                 Label {
-                    text: "Ready | Precision Mode"
+                    text: "就绪"
                     color: theme.textSecondary
                     font.pixelSize: 12
                 }
@@ -589,7 +583,7 @@ ApplicationWindow {
                 }
 
                 Label {
-                    text: "Solver Queue: 3 tasks"
+                    text: "Solver"
                     color: theme.textDim
                     font.pixelSize: 12
                 }

@@ -22,11 +22,12 @@ import QtQuick.Controls.Basic 6.9 as Basic
 import QtQuick.Layouts 1.15
 import QtQuick3D 6.9
 import QtQuick.Dialogs 6.9
-import ModelManager 1.0
+import EditorManager 1.0
 import EnumHandler 1.0
 import EditorManager 1.0
 
 import "qrc:/components/components"
+import "qrc:/components/components/message_box"
 import "qrc:/components/components/theme"
 import "qrc:/components/components/basic"
 
@@ -39,6 +40,39 @@ ColumnLayout {
         id: theme
     }
 
+    EgretMessageDialog {
+        id: msgDialog
+        level: EgretMessageDialog.Level.Warning
+        title: "Default Title"
+        text: "Default Text"
+        buttons: EgretMessageDialog.StandardButton.Ok
+        soundType: "Warning"
+    }
+
+    Connections {
+        target: EditorManager
+
+        function onWarning(title, message){
+            msgDialog.title = title;
+            msgDialog.text = message;
+            msgDialog.soundType = "Warning";
+            msgDialog.open();
+        }
+
+        function onInformation(title, message){
+            msgDialog.title = title;
+            msgDialog.text = message;
+            msgDialog.soundType = "Information";
+            msgDialog.open();
+        }
+
+        function onError(title, message){
+            msgDialog.title = title;
+            msgDialog.text = message;
+            msgDialog.soundType = "Error";
+            msgDialog.open();
+        }
+    }
     // ── 锚点位置（单摆约束使用） ──
     property real anchorPosX: 0.0
     property real anchorPosY: 0.0
@@ -208,15 +242,15 @@ ColumnLayout {
                             "Mask": PrincipledMaterial.Mask
                         })
 
-                        property var modelList: ModelManager.getAllModels()
+                        property var modelList: EditorManager.getAllModels()
 
                         Connections {
-                            target: ModelManager
+                            target: EditorManager
 
                             function onModelListChanged() {
                                 console.log("Model list changed, refreshing Repeater3D");
                                 basicNode.modelList = [] // 不要删！！！这是强制让这个勾八QML引擎刷新的
-                                basicNode.modelList = ModelManager.getAllModels();
+                                basicNode.modelList = EditorManager.getAllModels();
                             }
                         }
 
@@ -240,7 +274,7 @@ ColumnLayout {
 
                                 property var materialAlphaMode: basicNode.alphaModeMap[modelData.materials.alphaMode]
                                 property bool isSelected: editorCanvas.selectedObjectName === objectName
-                                property var transform: ModelManager.setQuick3DRenderTransform(index)
+                                property var transform: EditorManager.setQuick3DRenderTransform(index)
 
 
                                 objectName: modelData.name ? modelData.name : ("model-" + index)
@@ -379,7 +413,7 @@ ColumnLayout {
 
                     // ── 辅助：将选中实体的数据加载到 inspectorPanel ──
                     function loadModelToInspector(modelName) {
-                        var models = ModelManager.findModelsByName(modelName);
+                        var models = EditorManager.findModelsByName(modelName);
                         if (models.length === 0) return false;
 
                         var model = models[0];
@@ -491,7 +525,7 @@ ColumnLayout {
                             inspectorPanel.m_rotation = mathRot;
 
                             // 直接写入 C++ 数据模型 — 不触发 modelListChanged，Repeater3D 不重建
-                            var models = ModelManager.findModelsByName(editorCanvas.selectedObjectName);
+                            var models = EditorManager.findModelsByName(editorCanvas.selectedObjectName);
                             if (models.length > 0) {
                                 models[0].pos = mathPos;
                                 models[0].rotation = mathRot;
@@ -1161,8 +1195,8 @@ ColumnLayout {
                                     var tid = EditorParameterManager.currentTypeId;
                                     if ((tid !== 1 && tid !== 3) || entityIds.length !== 2) return;
 
-                                    var m1 = ModelManager.getModel(entityIds[0]);
-                                    var m2 = ModelManager.getModel(entityIds[1]);
+                                    var m1 = EditorManager.getModel(entityIds[0]);
+                                    var m2 = EditorManager.getModel(entityIds[1]);
                                     if (!m1 || !m2) return;
 
                                     var p1 = m1.pos;
@@ -1199,7 +1233,7 @@ ColumnLayout {
                                 model: sceneEntityListPanel.selectedEntityIds
                                 delegate: Label {
                                     text: {
-                                        var m = ModelManager.getModel(modelData);
+                                        var m = EditorManager.getModel(modelData);
                                         return m ? ("  ✓ " + m.name) : ("  ✓ " + modelData);
                                     }
                                     color: "#4FC3F7"
@@ -2054,7 +2088,7 @@ ColumnLayout {
                                         console.warn("Constraint creation blocked: entity selection invalid");
                                         return;
                                     }
-                                    ModelManager.addModelByJsonString(inspectorPanel.serializeToJson());
+                                    EditorManager.addModelByJsonString(inspectorPanel.serializeToJson());
                                     console.log("Create Successfully");
                                     // 创建后仅清除已选实体，保持选择模式以便继续创建
                                     sceneEntityListPanel.clearSelection();
@@ -2062,7 +2096,7 @@ ColumnLayout {
                                     // 修改前先 detach Gizmo，避免 Repeater3D 重建后持有悬空 Node 引用
                                     editorGizmo.detach();
                                     editorCanvas.gizmoActive = false;
-                                    ModelManager.modifyModelByJsonString(inspectorPanel.serializeToJson());
+                                    EditorManager.modifyModelByJsonString(inspectorPanel.serializeToJson());
                                     console.log("Modify Successfully — gizmo detached before model refresh");
                                 }
                             }

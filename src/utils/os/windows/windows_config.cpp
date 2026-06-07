@@ -41,11 +41,15 @@ std::uint64_t getCurrentProcessId()
 
 void setTerminalUtf8()
 {
+    // TODO: 需要实现跨平台逻辑
+
     return;
 }
 
 std::uint64_t getCurrentProcessId()
 {
+    // TODO: 需要实现跨平台逻辑
+
     return static_cast<std::uint64_t>(getpid());
 }
 

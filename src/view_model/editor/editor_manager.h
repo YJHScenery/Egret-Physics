@@ -1,5 +1,5 @@
 /**
- * @file        model_manager.h
+ * @file        editor_manager.h
  * @brief       编辑器模型管理器头文件，提供编辑器层的数据模型管理功能。
  * @details     定义 ModelManager 类，负责编辑器中的模型数据管理，包括模型的创建、删除和序列化等。
  *
@@ -48,17 +48,17 @@ namespace egret
      * @remark      ModelManager 是单例，全局唯一实例
      * @see         ModelItemData, MaterialData, QObject
      */
-    class ModelManager : public QObject
+    class EditorManager : public QObject
     {
         Q_OBJECT
         Q_PROPERTY(int count READ count NOTIFY countChanged)
         Q_PROPERTY(QStringList modelIds READ modelIds NOTIFY modelListChanged)
 
     public:
-        explicit ModelManager(QObject *parent = nullptr);
+        explicit EditorManager(QObject *parent = nullptr);
 
         // 单例访问
-        static ModelManager *instance();
+        static EditorManager *instance();
 
         // 基本操作
         Q_INVOKABLE bool addModel(ModelItemData *model);
@@ -137,6 +137,12 @@ namespace egret
 
         void operationCompleted(bool success, const QString &message);
 
+        void information(const QString& title, const QString &message);
+
+        void warning(const QString& title, const QString &message);
+
+        void error(const QString& title, const QString &message);
+
     private:
         QHash<QString, QSharedPointer<ModelItemData>> m_models;
 
@@ -152,7 +158,7 @@ namespace egret
 
     };
 
-    QList<ModelItemData *> createDefaultModels();
+    [[deprecated]] QList<ModelItemData *> createDefaultModels();
 
 }
 

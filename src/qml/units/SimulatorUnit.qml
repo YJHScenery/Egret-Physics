@@ -21,13 +21,14 @@ import QtQuick.Layouts 1.15
 import QtQuick.Effects
 import QtQuick3D 6.9
 import EnumHandler 1.0
-import ModelManager 1.0
+import EditorManager 1.0
 import QtQuick.Dialogs
 
 import EgretPhysics 1.0
 
 import "qrc:/components/components"
 import "qrc:/materials/materials"
+import "qrc:/components/components/basic"
 
 ColumnLayout {
     id: simulatorRoot
@@ -935,7 +936,7 @@ ColumnLayout {
 
                 ColumnLayout {
                     anchors.fill: parent
-                    spacing: 6
+                    spacing: 8
 
                     // ---- 时间缩放选择器 ----
                     Text {
@@ -960,8 +961,8 @@ ColumnLayout {
                             Rectangle {
                                 required property var modelData
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 32
-                                radius: 6
+                                Layout.preferredHeight: 24
+                                radius: theme.radiusS
                                 color: {
                                     const active = Math.abs(sceneController.timeScale - modelData.scale) < 0.01;
                                     if (active)
@@ -995,12 +996,17 @@ ColumnLayout {
                         }
                     }
 
+                    EgretSeparator {
+                        Layout.fillWidth: true
+                    }
+
+
                     Rectangle {
                         id: computeBtnRect
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 46
+                        Layout.preferredHeight: 30
                         property bool hovered: false
-                        radius: 10
+                        radius: theme.radiusS
                         color: hovered ? "#1a3b83" : "#1A4E83"
                         border.width: 1
                         border.color: "#58B8FF"
@@ -1021,6 +1027,7 @@ ColumnLayout {
                         Text {
                             anchors.centerIn: parent
                             text: sceneController.running ? "暂停仿真" : "开始仿真"
+
                             color: "#EAF5FF"
                             font.pixelSize: 14
                             font.bold: true
@@ -1103,7 +1110,7 @@ ColumnLayout {
                             // 标题行
                             RowLayout {
                                 width: parent.width
-                                spacing: 3
+                                spacing: 8
 
                                 ColumnLayout{
                                     spacing: 3

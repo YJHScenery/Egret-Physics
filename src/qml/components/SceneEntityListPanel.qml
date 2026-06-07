@@ -2,7 +2,7 @@
  * @file        SceneEntityListPanel.qml
  * @brief       场景实体列表面板组件，分三栏显示实体、力场、约束器列表。
  * @details     在编辑器左侧显示当前场景中所有实例的分类列表，
- *              每项显示名称、类型和可见性状态。动态响应 ModelManager 变化。
+ *              每项显示名称、类型和可见性状态。动态响应 EditorManager 变化。
  *
  * @author      作者姓名 <作者邮箱>
  * @date        2026-06-29
@@ -19,7 +19,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Controls.Basic 6.9 as Basic
 import QtQuick.Layouts 1.15
-import ModelManager 1.0
+import EditorManager 1.0
 import EnumHandler 1.0
 
 import "qrc:/components/components"
@@ -95,9 +95,9 @@ ColumnLayout {
 
     // ── 刷新所有分类列表 ──
     function refreshAll() {
-        shapeModels = ModelManager.getModelsByCategory(categoryShape);
-        fieldModels = ModelManager.getModelsByCategory(categoryField);
-        constraintModels = ModelManager.getModelsByCategory(categoryConstraint);
+        shapeModels = EditorManager.getModelsByCategory(categoryShape);
+        fieldModels = EditorManager.getModelsByCategory(categoryField);
+        constraintModels = EditorManager.getModelsByCategory(categoryConstraint);
     }
 
     // ── 根据类别解析类型名称 ──
@@ -133,7 +133,7 @@ ColumnLayout {
     }
 
     Connections {
-        target: ModelManager
+        target: EditorManager
 
         function onModelListChanged() {
             root.refreshAll();
