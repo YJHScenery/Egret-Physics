@@ -38,7 +38,7 @@ ColumnLayout {
     property alias coordinateSystem: coordinateSystem
 
 
-    spacing: 14
+    spacing: 10
 
     FileDialog {
         id: saveTrackDataFileDialog
@@ -62,12 +62,18 @@ ColumnLayout {
             // 1. 开始录制：激活追踪 + 设置路径 + 启动定时刷新
             sceneController.startRecording(bodyID, localPath);
 
-            // 2. 同步 QML 追踪状态
+            // 2. 同步 QML 追踪状态 — 继承用户已选中的项，未选任何项时默认全选
             simulatorRoot.ensureTrackingEntry(bodyID);
-            simulatorRoot.trackingMap[bodyID].position = true;
-            simulatorRoot.trackingMap[bodyID].velocity = true;
-            simulatorRoot.trackingMap[bodyID].angularVelocity = true;
-            simulatorRoot.trackingMap[bodyID].kineticEnergy = true;
+            var entry = simulatorRoot.trackingMap[bodyID];
+            if (!entry.position && !entry.velocity && !entry.angularVelocity && !entry.kineticEnergy) {
+                entry.position = true;
+                entry.velocity = true;
+                entry.angularVelocity = true;
+                entry.kineticEnergy = true;
+            }
+            sceneController.setBodyTracking(bodyID,
+                entry.position, entry.velocity,
+                entry.angularVelocity, entry.kineticEnergy);
             simulatorRoot.trackingVersion++;
 
             // 3. 设置录制状态（控制按钮可见性）
@@ -748,20 +754,27 @@ ColumnLayout {
 
             spacing: 12
 
-            ColumnLayout {
+
+            GridLayout{
                 Layout.fillWidth: true
-                spacing: 8
+                rows: 2
+                columns: 2
+                rowSpacing: 4
+                columnSpacing: 4
+
 
                 MetricCard {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 36
-                    metricName: "积分步长"
+                    Layout.fillHeight: true
+                    Layout.preferredHeight: 30
+                    Layout.maximumHeight: 30
+                    metricName: "步长"
                     metricValue: Number(sceneController.fixedStepMs).toFixed(2)
                     metricUnit: "ms"
                     metricColor: theme.accent
-                    nameFontSize: 12
-                    valueFontSize: 14
-                    unitFontSize: 10
+                    nameFontSize: 10
+                    valueFontSize: 10
+                    unitFontSize: 8
                     dotSize: 8
                     contentPadding: 10
                     contentSpacing: 6
@@ -769,14 +782,33 @@ ColumnLayout {
 
                 MetricCard {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 36
-                    metricName: "实时帧率"
+                    Layout.fillHeight: true
+                    Layout.preferredHeight: 30
+                    Layout.maximumHeight: 30
+                    metricName: "时间"
+                    metricValue: Number(sceneController.simTime).toFixed(2)
+                    metricUnit: "s"
+                    metricColor: theme.accent
+                    nameFontSize: 10
+                    valueFontSize: 10
+                    unitFontSize: 8
+                    dotSize: 8
+                    contentPadding: 10
+                    contentSpacing: 6
+                }
+
+                MetricCard {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.preferredHeight: 30
+                    Layout.maximumHeight: 30
+                    metricName: "帧率"
                     metricValue: Number(sceneController.fps).toFixed(1)
                     metricUnit: "FPS"
                     metricColor: theme.success
-                    nameFontSize: 12
-                    valueFontSize: 14
-                    unitFontSize: 10
+                    nameFontSize: 10
+                    valueFontSize: 10
+                    unitFontSize: 8
                     dotSize: 8
                     contentPadding: 10
                     contentSpacing: 6
@@ -784,18 +816,21 @@ ColumnLayout {
 
                 MetricCard {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 36
-                    metricName: "活动刚体"
+                    Layout.fillHeight: true
+                    Layout.preferredHeight: 30
+                    Layout.maximumHeight: 30
+                    metricName: "刚体"
                     metricValue: sceneController.entityCount
                     metricUnit: "obj"
                     metricColor: theme.warning
-                    nameFontSize: 12
-                    valueFontSize: 14
-                    unitFontSize: 10
+                    nameFontSize: 10
+                    valueFontSize: 10
+                    unitFontSize: 8
                     dotSize: 8
                     contentPadding: 10
                     contentSpacing: 6
                 }
+
             }
 
             GlassPanel {
@@ -853,7 +888,7 @@ ColumnLayout {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 30
                                 property bool hovered: false
-                                radius: 9
+                                radius: theme.radiusS
                                 color: hovered ? "#122c5d" : "#12365D"
                                 border.width: 1
                                 border.color: "#2E5D89"
@@ -900,7 +935,7 @@ ColumnLayout {
 
                 ColumnLayout {
                     anchors.fill: parent
-                    spacing: 10
+                    spacing: 6
 
                     // ---- 时间缩放选择器 ----
                     Text {
@@ -1039,7 +1074,7 @@ ColumnLayout {
 
             Row {
                 id: dataStreamRow
-                spacing: 10
+                spacing: 6
                 height: dataStreamFlick.height
 
                 Repeater {

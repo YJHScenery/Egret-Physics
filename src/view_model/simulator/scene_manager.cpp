@@ -1282,7 +1282,10 @@ namespace egret
         auto& buf = m_trackingBuffers[id];
         if (!buf.active) {
             buf.active = true;
-            buf.flags = 0xF; // 全部 4 项：位置 | 速度 | 角速度 | 动能
+            // 仅在用户从未通过上下文菜单选择任何追踪项时，默认开启全部 4 项
+            if (buf.flags == 0) {
+                buf.flags = 0xF; // 位置 | 速度 | 角速度 | 动能
+            }
         }
     }
 
@@ -1310,7 +1313,7 @@ namespace egret
         const std::uint32_t flags = it->flags;
 
         QAtomicInt* pExporting = &it->exporting;
-        QFile* pFile = fileIt.value().get();
+        std::shared_ptr<QFile> pFile = fileIt.value();
 
         QXlsx::Format titleFormat;
         titleFormat.setFontBold(true);
@@ -1563,10 +1566,10 @@ namespace egret
             m_recordingPaths.erase(pathIt);
         }
 
-        // 1.5 关闭并释放文件句柄（解除文件锁定）
+        // 1.5 释放文件句柄（文件由异步写入回调中的 shared_ptr 持有，
+        // 回调执行完毕后 QFile 析构函数自动关闭并释放）
         auto fileIt = m_recordingFiles.find(id);
         if (fileIt != m_recordingFiles.end() && fileIt.value()) {
-            fileIt.value()->close();
             m_recordingFiles.erase(fileIt);
         }
 

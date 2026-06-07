@@ -31,9 +31,9 @@ ApplicationWindow {
     id: window
 
     width: 1440
-    height: 960
-    minimumWidth: 1440
-    minimumHeight: 960
+    height: 1080
+    minimumWidth: 1024
+    minimumHeight: 768
 
     visible: true
     title: "Egret Physics - Classical Mechanics Studio"
@@ -392,8 +392,8 @@ ApplicationWindow {
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 68
-            radius: theme.radiusL
+            Layout.preferredHeight: 64
+            radius: theme.radiusS
             color: "#11325ECC"
             border.width: 1
             border.color: theme.border
@@ -402,7 +402,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 anchors.leftMargin: 16
                 anchors.rightMargin: 16
-                spacing: 16
+                spacing: 8
 
                 Image {
                     id: image
@@ -546,6 +546,7 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             property string currentRoute: "scene";
+
             spacing: 12
 
             SimulatorUnit {
@@ -566,7 +567,7 @@ ApplicationWindow {
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 30
+            Layout.preferredHeight: 20
             radius: theme.radiusS
             color: "#102B4B"
             border.width: 1
