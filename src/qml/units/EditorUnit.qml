@@ -25,6 +25,7 @@ import QtQuick.Dialogs 6.9
 import EditorManager 1.0
 import EnumHandler 1.0
 import EditorManager 1.0
+import ClipboardManager 1.0
 
 import "qrc:/components/components"
 import "qrc:/components/components/message_box"
@@ -73,6 +74,40 @@ ColumnLayout {
             msgDialog.open();
         }
     }
+    // ── 剪贴板操作辅助函数 ──
+    /**
+     * @brief 获取当前选中的 Shape 实体 ID 列表。
+     * @details 优先使用左侧栏多选（sceneEntityListPanel.selectedEntityIds），
+     *          否则使用 3D 视口单选（editorCanvas.selectedObjectName）。
+     *          仅返回 category == 0 的 Shape 实体。
+     */
+    function getSelectedShapeIds() {
+        var ids = [];
+
+        // 优先左侧栏多选
+        var sidebarIds = sceneEntityListPanel.selectedEntityIds;
+        if (sidebarIds && sidebarIds.length > 0) {
+            for (var i = 0; i < sidebarIds.length; ++i) {
+                var m = EditorManager.getModel(sidebarIds[i]);
+                if (m && m.category === 0) {
+                    ids.push(sidebarIds[i]);
+                }
+            }
+            return ids;
+        }
+
+        // 其次 3D 视口单选
+        var pickedName = editorCanvas.selectedObjectName;
+        if (pickedName && pickedName !== "") {
+            var models = EditorManager.findModelsByName(pickedName);
+            if (models.length > 0 && models[0].category === 0) {
+                ids.push(models[0].id);
+            }
+        }
+
+        return ids;
+    }
+
     // ── 锚点位置（单摆约束使用） ──
     property real anchorPosX: 0.0
     property real anchorPosY: 0.0
@@ -87,6 +122,97 @@ ColumnLayout {
         if (tid === 2) return count === 1;                              // 单摆
         if (tid === 7) return count >= 1;                              // 空气阻力
         return true;
+    }
+
+    // ── 剪贴板公开函数（供 MainWindow MenuBar 快捷键调用） ──
+    /** 复制当前选中的 Shape 实体到剪贴板 */
+    function copySelectedEntities() {
+        var ids = getSelectedShapeIds();
+        if (ids.length > 0) {
+            ClipboardManager.copyEntities(ids);
+            console.log("Copy:", ids.length, "entities");
+        }
+    }
+
+    /** 从剪贴板粘贴实体 */
+    function pasteEntitiesFromClipboard() {
+        if (ClipboardManager.hasContent) {
+            var newIds = ClipboardManager.pasteEntities();
+            console.log("Paste:", newIds.length, "entities, IDs:", newIds);
+            return newIds;
+        }
+        return [];
+    }
+
+    /** 剪切当前选中的 Shape 实体 */
+    function cutSelectedEntities() {
+        var ids = getSelectedShapeIds();
+        if (ids.length > 0) {
+            editorGizmo.detach();
+            editorCanvas.gizmoActive = false;
+            editorCanvas.selectedObjectName = "";
+            ClipboardManager.cutEntities(ids);
+            console.log("Cut:", ids.length, "entities");
+        }
+    }
+
+    // ── 右键上下文菜单 ──
+    Menu {
+        id: clipboardContextMenu
+
+        MenuItem {
+            text: "复制\tCtrl+C"
+            enabled: {
+                var ids = getSelectedShapeIds();
+                return ids.length > 0;
+            }
+            onTriggered: {
+                var ids = getSelectedShapeIds();
+                if (ids.length > 0) {
+                    ClipboardManager.copyEntities(ids);
+                    console.log("ContextMenu Copy:", ids.length, "entities");
+                }
+            }
+        }
+
+        MenuItem {
+            text: "粘贴\tCtrl+V"
+            enabled: ClipboardManager.hasContent
+            onTriggered: {
+                var newIds = ClipboardManager.pasteEntities();
+                console.log("ContextMenu Paste:", newIds.length, "entities");
+            }
+        }
+
+        MenuItem {
+            text: "剪切\tCtrl+X"
+            enabled: {
+                var ids = getSelectedShapeIds();
+                return ids.length > 0;
+            }
+            onTriggered: {
+                var ids = getSelectedShapeIds();
+                if (ids.length > 0) {
+                    editorGizmo.detach();
+                    editorCanvas.gizmoActive = false;
+                    editorCanvas.selectedObjectName = "";
+                    ClipboardManager.cutEntities(ids);
+                    console.log("ContextMenu Cut:", ids.length, "entities");
+                }
+            }
+        }
+
+        MenuSeparator {}
+
+        MenuItem {
+            text: "撤销\tCtrl+Z"
+            onTriggered: EditorManager.undo()
+        }
+
+        MenuItem {
+            text: "重做\tCtrl+Y"
+            onTriggered: EditorManager.redo()
+        }
     }
 
     RowLayout {
@@ -436,8 +562,22 @@ ColumnLayout {
                         return true;
                     }
 
+                    // ── 右键上下文菜单 ──
+                    property bool hasSelectionForClipboard: {
+                        var ids = getSelectedShapeIds();
+                        return ids.length > 0;
+                    }
+
+                    onClicked: function (mouse) {
+                        if (mouse.button === Qt.RightButton) {
+                            clipboardContextMenu.popup();
+                        }
+                    }
+
                     onPressed: function (mouse) {
                         editorCanvas.lastMousePoint = Qt.point(mouse.x, mouse.y);
+                        // 右键交给 onClicked 处理
+                        if (mouse.button === Qt.RightButton) return;
                         if (mouse.button !== Qt.LeftButton) return;
 
                         // 优先检测 Gizmo 交互（在独立的 gizmoView 中拾取）

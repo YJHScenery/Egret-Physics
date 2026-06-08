@@ -22,6 +22,7 @@ import QtQuick.Window 2.15
 import QtQuick.Dialogs
 import EditorManager 1.0
 import QtQuick3D 6.9
+import ClipboardManager 1.0
 
 import "qrc:/components/components"
 import "qrc:/components/components/message_box"
@@ -120,7 +121,7 @@ ApplicationWindow {
                         sceneController.loadSceneFronJsonFile(localPath);
                         break;
                     }case 1: {
-                        ModelManager.loadFromJson(localPath);
+                        EditorManager.loadFromJson(localPath);
                         break;
                     }
                 }
@@ -278,14 +279,22 @@ ApplicationWindow {
                         {
                             text: "撤销(&U)",
                             shortcut: "Ctrl+Z",
-                            enabled: false,
-                            icon: "qrc:/main_icons/assets/icons/undo.svg"
+                            icon: "qrc:/main_icons/assets/icons/undo.svg",
+                            onTriggered: function () {
+                                if (editorUnit.visible) {
+                                    EditorManager.undo();
+                                }
+                            }
                         },
                         {
                             text: "恢复(&R)",
                             shortcut: "Ctrl+Y",
-                            enabled: false,
-                            icon: "qrc:/main_icons/assets/icons/recover.svg"
+                            icon: "qrc:/main_icons/assets/icons/recover.svg",
+                            onTriggered: function () {
+                                if (editorUnit.visible) {
+                                    EditorManager.redo();
+                                }
+                            }
                         },
                         {
                             separator: true
@@ -293,17 +302,32 @@ ApplicationWindow {
                         {
                             text: "剪切(&T)",
                             shortcut: "Ctrl+X",
-                            icon: "qrc:/main_icons/assets/icons/cut.svg"
+                            icon: "qrc:/main_icons/assets/icons/cut.svg",
+                            onTriggered: function () {
+                                if (editorUnit.visible) {
+                                    editorUnit.cutSelectedEntities();
+                                }
+                            }
                         },
                         {
                             text: "复制(C)",
                             shortcut: "Ctrl+C",
-                            icon: "qrc:/main_icons/assets/icons/copy.svg"
+                            icon: "qrc:/main_icons/assets/icons/copy.svg",
+                            onTriggered: function () {
+                                if (editorUnit.visible) {
+                                    editorUnit.copySelectedEntities();
+                                }
+                            }
                         },
                         {
                             text: "粘贴(P)",
                             shortcut: "Ctrl+V",
-                            icon: "qrc:/main_icons/assets/icons/paste.svg"
+                            icon: "qrc:/main_icons/assets/icons/paste.svg",
+                            onTriggered: function () {
+                                if (editorUnit.visible) {
+                                    editorUnit.pasteEntitiesFromClipboard();
+                                }
+                            }
                         }
                     ]
                 },

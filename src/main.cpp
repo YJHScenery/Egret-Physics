@@ -43,6 +43,7 @@
 #include "view/geometry/bezier_curve_geometry.h"
 #include "curve_geometry.h"
 #include "view/qt_media_helper.h"
+#include "view/clipboard_helper.h"
 
 
 int main(int argc, char* argv[])
@@ -88,6 +89,8 @@ int main(int argc, char* argv[])
                                                       egret::EditorManager::instance());
     qmlRegisterSingletonInstance<egret::EditorParameterManager>(
         "EditorManager", 1, 0, "EditorParameterManager", egret::EditorParameterManager::instance());
+    qmlRegisterSingletonInstance<egret::ClipboardHelper>("ClipboardManager", 1, 0, "ClipboardManager",
+                                                          egret::ClipboardHelper::instance());
     qmlRegisterSingletonInstance<
         egret::EnumHandler>("EnumHandler", 1, 0, "EnumHandler", egret::EnumHandler::instance());
 
