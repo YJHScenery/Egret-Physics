@@ -53,27 +53,28 @@ ColumnLayout {
     Connections {
         target: EditorManager
 
-        function onWarning(title, message){
+        function onWarning(title, message) {
             msgDialog.title = title;
             msgDialog.text = message;
             msgDialog.soundType = "Warning";
             msgDialog.open();
         }
 
-        function onInformation(title, message){
+        function onInformation(title, message) {
             msgDialog.title = title;
             msgDialog.text = message;
             msgDialog.soundType = "Information";
             msgDialog.open();
         }
 
-        function onError(title, message){
+        function onError(title, message) {
             msgDialog.title = title;
             msgDialog.text = message;
             msgDialog.soundType = "Error";
             msgDialog.open();
         }
     }
+
     // ── 剪贴板操作辅助函数 ──
     /**
      * @brief 获取当前选中的 Shape 实体 ID 列表。
@@ -157,62 +158,72 @@ ColumnLayout {
     }
 
     // ── 右键上下文菜单 ──
-    Menu {
+    EgretPopupMenu {
         id: clipboardContextMenu
+        // 每次打开前由 buildContextMenuItems() 动态填充 menuItems
+    }
 
-        MenuItem {
-            text: "复制\tCtrl+C"
-            enabled: {
-                var ids = getSelectedShapeIds();
-                return ids.length > 0;
-            }
-            onTriggered: {
-                var ids = getSelectedShapeIds();
-                if (ids.length > 0) {
-                    ClipboardManager.copyEntities(ids);
-                    console.log("ContextMenu Copy:", ids.length, "entities");
+    /** 构建右键菜单项数组（每次打开时重新求值，确保 enabled 状态是最新的） */
+    function buildContextMenuItems() {
+        var hasSelection = getSelectedShapeIds().length > 0;
+        return [
+            {
+                text: "复制",
+                shortcut: "Ctrl+C",
+                enabled: hasSelection,
+                icon: "qrc:/main_icons/assets/icons/copy.svg",
+                onTriggered: function () {
+                    var ids = getSelectedShapeIds();
+                    if (ids.length > 0) {
+                        ClipboardManager.copyEntities(ids);
+                        console.log("ContextMenu Copy:", ids.length, "entities");
+                    }
+                }
+            },
+            {
+                text: "粘贴",
+                shortcut: "Ctrl+V",
+                enabled: ClipboardManager.hasContent,
+                icon: "qrc:/main_icons/assets/icons/paste.svg",
+                onTriggered: function () {
+                    var newIds = ClipboardManager.pasteEntities();
+                    console.log("ContextMenu Paste:", newIds.length, "entities");
+                }
+            },
+            {
+                text: "剪切",
+                shortcut: "Ctrl+X",
+                enabled: hasSelection,
+                icon: "qrc:/main_icons/assets/icons/cut.svg",
+                onTriggered: function () {
+                    var ids = getSelectedShapeIds();
+                    if (ids.length > 0) {
+                        editorGizmo.detach();
+                        editorCanvas.gizmoActive = false;
+                        editorCanvas.selectedObjectName = "";
+                        ClipboardManager.cutEntities(ids);
+                        console.log("ContextMenu Cut:", ids.length, "entities");
+                    }
+                }
+            },
+            {separator: true},
+            {
+                text: "撤销",
+                shortcut: "Ctrl+Z",
+                icon: "qrc:/main_icons/assets/icons/undo.svg",
+                onTriggered: function () {
+                    EditorManager.undo();
+                }
+            },
+            {
+                text: "重做",
+                shortcut: "Ctrl+Y",
+                icon: "qrc:/main_icons/assets/icons/recover.svg",
+                onTriggered: function () {
+                    EditorManager.redo();
                 }
             }
-        }
-
-        MenuItem {
-            text: "粘贴\tCtrl+V"
-            enabled: ClipboardManager.hasContent
-            onTriggered: {
-                var newIds = ClipboardManager.pasteEntities();
-                console.log("ContextMenu Paste:", newIds.length, "entities");
-            }
-        }
-
-        MenuItem {
-            text: "剪切\tCtrl+X"
-            enabled: {
-                var ids = getSelectedShapeIds();
-                return ids.length > 0;
-            }
-            onTriggered: {
-                var ids = getSelectedShapeIds();
-                if (ids.length > 0) {
-                    editorGizmo.detach();
-                    editorCanvas.gizmoActive = false;
-                    editorCanvas.selectedObjectName = "";
-                    ClipboardManager.cutEntities(ids);
-                    console.log("ContextMenu Cut:", ids.length, "entities");
-                }
-            }
-        }
-
-        MenuSeparator {}
-
-        MenuItem {
-            text: "撤销\tCtrl+Z"
-            onTriggered: EditorManager.undo()
-        }
-
-        MenuItem {
-            text: "重做\tCtrl+Y"
-            onTriggered: EditorManager.redo()
-        }
+        ];
     }
 
     RowLayout {
@@ -305,7 +316,7 @@ ColumnLayout {
                     inspectorPanel.m_pos = fromRenderPosition(q3dPos);
                     inspectorPanel.m_rotation = fromRenderRotation(q3dRot);
                     console.log("Gizmo released — math pos:", inspectorPanel.m_pos,
-                                "math rot:", inspectorPanel.m_rotation);
+                        "math rot:", inspectorPanel.m_rotation);
                 }
 
                 function updateCameraPose() {
@@ -562,15 +573,15 @@ ColumnLayout {
                         return true;
                     }
 
-                    // ── 右键上下文菜单 ──
-                    property bool hasSelectionForClipboard: {
-                        var ids = getSelectedShapeIds();
-                        return ids.length > 0;
-                    }
-
                     onClicked: function (mouse) {
                         if (mouse.button === Qt.RightButton) {
-                            clipboardContextMenu.popup();
+                            // 动态填充菜单项（确保 enabled 状态实时计算）
+                            clipboardContextMenu.menuItems = buildContextMenuItems();
+                            // 将鼠标坐标转换到 editorRoot 坐标系（Popup 父级）
+                            var pos = mapToItem(editorRoot, mouse.x, mouse.y);
+                            clipboardContextMenu.x = pos.x;
+                            clipboardContextMenu.y = pos.y;
+                            clipboardContextMenu.open();
                         }
                     }
 
@@ -609,10 +620,10 @@ ColumnLayout {
                         editorCanvas.gizmoActive = false;
                         if (loadModelToInspector(objName)) {
                             console.log("Attaching gizmo to:", objName,
-                                        "pos:", pickResult.objectHit.position);
+                                "pos:", pickResult.objectHit.position);
                             editorGizmo.attachTo(pickResult.objectHit);
                             console.log("Gizmo visible:", editorGizmo.visible,
-                                        "targetNode:", editorGizmo.targetNode ? "set" : "null");
+                                "targetNode:", editorGizmo.targetNode ? "set" : "null");
                         }
                     }
 
@@ -670,7 +681,7 @@ ColumnLayout {
                                 models[0].pos = mathPos;
                                 models[0].rotation = mathRot;
                                 console.log("Gizmo auto-saved — direct model update,"
-                                            + " delegate & gizmo preserved");
+                                    + " delegate & gizmo preserved");
                             }
 
                             editorCanvas.gizmoActive = false;
@@ -969,6 +980,7 @@ ColumnLayout {
                         // 参数变化时自动同步 geometryParams（切换类别/类型时触发）
                         Connections {
                             target: EditorParameterManager
+
                             function onCurrentParametersChanged() {
                                 inspectorColumn.geometryParams = EditorParameterManager.currentParameters;
                             }
@@ -1331,6 +1343,7 @@ ColumnLayout {
                             // ── 实体选择变化：连接线/杆自动计算长度 ──
                             Connections {
                                 target: sceneEntityListPanel
+
                                 function onSelectionChanged(entityIds) {
                                     var tid = EditorParameterManager.currentTypeId;
                                     if ((tid !== 1 && tid !== 3) || entityIds.length !== 2) return;
@@ -1397,19 +1410,22 @@ ColumnLayout {
                                     spacing: 6
                                     FloatField {
                                         Layout.fillWidth: true
-                                        from: -100000; to: 100000; stepSize: 0.1; decimals: 3
+                                        from: -100000;
+                                        to: 100000; stepSize: 0.1; decimals: 3
                                         value: editorRoot.anchorPosX
                                         onValueChanged: editorRoot.anchorPosX = value
                                     }
                                     FloatField {
                                         Layout.fillWidth: true
-                                        from: -100000; to: 100000; stepSize: 0.1; decimals: 3
+                                        from: -100000;
+                                        to: 100000; stepSize: 0.1; decimals: 3
                                         value: editorRoot.anchorPosY
                                         onValueChanged: editorRoot.anchorPosY = value
                                     }
                                     FloatField {
                                         Layout.fillWidth: true
-                                        from: -100000; to: 100000; stepSize: 0.1; decimals: 3
+                                        from: -100000;
+                                        to: 100000; stepSize: 0.1; decimals: 3
                                         value: editorRoot.anchorPosZ
                                         onValueChanged: editorRoot.anchorPosZ = value
                                     }
@@ -1540,7 +1556,9 @@ ColumnLayout {
                                             }
                                             background: Rectangle {
                                                 color: theme.bg1; radius: theme.radiusS; border.width: 1; border.color: parent.activeFocus ? theme.accent : (comboHover.hovered ? "#4A7FBF" : theme.border)
-                                                HoverHandler { id: comboHover }
+                                                HoverHandler {
+                                                    id: comboHover
+                                                }
                                             }
                                             indicator: Image {
                                                 source: "qrc:/units/assets/units/triangle_arrow.svg"
