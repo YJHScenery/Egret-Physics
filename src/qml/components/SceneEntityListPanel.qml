@@ -54,6 +54,18 @@ ColumnLayout {
     signal selectionChanged(var entityIds)
 
     /**
+     * @brief 单击实体时发出（非约束选择模式），供 EditorUnit 触发 3D 视口高亮拾取。
+     * @param entityId 实体 ID 字符串。
+     */
+    signal entitySingleClicked(string entityId)
+
+    /**
+     * @brief 双击实体时发出，供 EditorUnit 将实体加载到属性面板进入修改模式。
+     * @param entityId 实体 ID 字符串。
+     */
+    signal entityDoubleClicked(string entityId)
+
+    /**
      * @brief 切换实体选择状态。
      * @param entityId 实体 ID 字符串。
      * @param ctrlHeld 是否按住 Ctrl（多选模式）。
@@ -370,14 +382,42 @@ ColumnLayout {
             border.width: isSelected ? 2 : 1
             border.color: isSelected ? "#3F9FFF" : "#1E4A7A"
 
-            // ── 选择模式下的点击区域 ──
+            // ── 单击 / 双击 选择区域 ──
             MouseArea {
                 anchors.fill: parent
                 enabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: {
+
+                // 双击检测状态 — 防止双击时重复触发单击逻辑
+                property bool doubleClickFired: false
+
+                Timer {
+                    id: singleClickTimer
+                    interval: 300
+                    repeat: false
+                    onTriggered: {
+                        if (!doubleClickFired) {
+                            // 非约束模式时通知 EditorUnit 进行 3D 视口高亮拾取
+                            root.entitySingleClicked(modelData.id);
+                        }
+                        doubleClickFired = false;
+                    }
+                }
+
+                onClicked: function(mouse) {
                     var ctrlHeld = mouse.modifiers & Qt.ControlModifier;
                     root.toggleEntitySelection(modelData.id, ctrlHeld);
+
+                    // 启动单击计时器：若 300ms 内无双击则视为单击
+                    if (!doubleClickFired) {
+                        singleClickTimer.start();
+                    }
+                }
+
+                onDoubleClicked: function(mouse) {
+                    singleClickTimer.stop();
+                    doubleClickFired = true;
+                    root.entityDoubleClicked(modelData.id);
                 }
             }
 

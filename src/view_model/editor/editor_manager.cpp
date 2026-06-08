@@ -126,6 +126,13 @@ namespace egret
         return m_modelList[index].data();
     }
 
+    QVariantMap EditorManager::getModelPayload(const QString &id) const
+    {
+        const ModelItemData* model = const_cast<EditorManager*>(this)->getModel(id);
+        if (!model) return {};
+        return model->payload().toVariantMap();
+    }
+
     bool EditorManager::updateModel(const QString& id, ModelItemData* model)
     {
         if (!m_models.contains(id)) {
@@ -294,6 +301,9 @@ namespace egret
         model->materials()->setBaseColor(data.m_materials->baseColor());
         model->materials()->setMetalness(data.m_materials->metalness());
         model->materials()->setRoughness(data.m_materials->roughness());
+
+        // 更新透传负载（field_data / constraint_data / entity_ids / anchor_pos）
+        model->setPayload(data.m_payload);
 
         emit modelListChanged();
         return true;

@@ -71,6 +71,13 @@ namespace egret
 
         Q_INVOKABLE bool updateModel(const QString &id, ModelItemData *model);
 
+        /**
+         * @brief 获取指定模型的透传负载数据（field_data / constraint_data）。
+         * @param id 模型 ID。
+         * @return payload 的 QVariantMap，若模型不存在则返回空 map。
+         */
+        Q_INVOKABLE QVariantMap getModelPayload(const QString &id) const;
+
         Q_INVOKABLE void clearAll();
 
         // 批量操作

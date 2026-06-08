@@ -258,6 +258,146 @@ ColumnLayout {
         ];
     }
 
+    // ── 辅助：将选中实体的数据加载到 inspectorPanel（按名称查找，视口 pick 使用） ──
+    function loadModelToInspector(modelName) {
+        var models = EditorManager.findModelsByName(modelName);
+        if (models.length === 0) return false;
+        return loadModelById(models[0].id);
+    }
+
+    /**
+     * @brief 按实体 ID 加载数据到属性面板，进入修改模式。
+     * @details 自动检测实体的 category 和 type，设置正确的
+     *          EditorParameterManager 状态，并根据 category 从直接属性
+     *          (Shape) 或 payload (Field/Constraint) 恢复参数值。
+     * @param entityId 实体 ID 字符串。
+     * @return 成功返回 true，实体不存在返回 false。
+     */
+    function loadModelById(entityId) {
+        var model = EditorManager.getModel(entityId);
+        if (!model) return false;
+
+        var category = model.category;
+
+        // 1. 设置类别 + 类型（先切类别再切类型，避免类型冲突）
+        inspectorColumn.isLoadingFromPick = true;
+        EditorParameterManager.currentCategory = category;
+        EditorParameterManager.currentTypeId = model.type;
+
+        // 同步 ComboBox 索引
+        var types = EditorParameterManager.availableTypes;
+        for (var i = 0; i < types.length; i++) {
+            if (types[i].typeId === model.type) {
+                sourceComboBox.currentIndex = i;
+                break;
+            }
+        }
+
+        // 2. 恢复参数值
+        if (category === 0) {
+            // Shape：几何参数来自模型直接属性
+            EditorParameterManager.loadFromValues({
+                "box_size": model.boxSize,
+                "circle_radius": model.radius,
+                "height": model.height,
+                "length": model.length
+            });
+        } else {
+            // Field / Constraint：从 payload 恢复
+            var payload = EditorManager.getModelPayload(entityId);
+            var paramValues = {};
+            if (category === 1) {
+                // Field: field_data
+                paramValues = payload.field_data ? payload.field_data : {};
+            } else if (category === 2) {
+                // Constraint: constraint_data
+                paramValues = payload.constraint_data ? payload.constraint_data : {};
+            }
+
+            // 先恢复子类型选择（设置正确的 schema，后续 loadFromValues 会覆盖默认值）
+            var metaSubTypeId = paramValues["__sub_type_id"];
+            var metaSubSubTypeId = paramValues["__subsub_type_id"];
+            if (metaSubTypeId !== undefined) {
+                EditorParameterManager.subTypeId = metaSubTypeId;
+            }
+            if (metaSubSubTypeId !== undefined) {
+                EditorParameterManager.subSubTypeId = metaSubSubTypeId;
+            }
+
+            // 将序列化的数组 [x,y,z] 恢复为 Qt.vector3d，否则 QML FloatField
+            // 访问 .x/.y/.z 时得到 undefined → "Unable to assign [undefined] to double"
+            for (var key in paramValues) {
+                var val = paramValues[key];
+                if (val && typeof val.length === "number" && val.length === 3
+                    && typeof val[0] === "number") {
+                    paramValues[key] = Qt.vector3d(val[0], val[1], val[2]);
+                }
+            }
+
+            EditorParameterManager.loadFromValues(paramValues);
+
+            // 同步 Field 专属的 inspectorPanel 属性（供 serializeToJson 双向读写）
+            if (category === 1) {
+                var fv = EditorParameterManager.parameterValues;
+                inspectorPanel.m_gravityAcceleration = fv["gravity"] || Qt.vector3d(0, 0, 0);
+                inspectorPanel.m_gravitationalFieldSource = fv["sourcePos"] || Qt.vector3d(0, 0, 0);
+                inspectorPanel.m_gravitationalFieldFixed = fv["fixed"] !== 0;
+                inspectorPanel.m_gravitationalFieldVelo = fv["sourceVelo"] || Qt.vector3d(0, 0, 0);
+            }
+
+            // 恢复约束器的目标实体 ID（否则 serializeToJson 采集不到 entity_ids）
+            if (category === 2) {
+                var entityIds = payload["entity_ids"];
+                if (entityIds && entityIds.length > 0) {
+                    sceneEntityListPanel.selectedEntityIds = entityIds;
+                }
+
+                // 恢复单摆锚点位置
+                var anchor = payload["anchor_pos"];
+                if (anchor) {
+                    editorRoot.anchorPosX = anchor.x !== undefined ? anchor.x : 0;
+                    editorRoot.anchorPosY = anchor.y !== undefined ? anchor.y : 0;
+                    editorRoot.anchorPosZ = anchor.z !== undefined ? anchor.z : 0;
+                }
+            }
+        }
+
+        // 3. 填充 inspectorPanel 通用属性
+        inspectorPanel.m_name = model.name;
+        inspectorPanel.m_mass = model.mass;
+        inspectorPanel.m_loadTime = model.loadTime;
+        inspectorPanel.m_restitution = model.restitution;
+        inspectorPanel.m_pos = Qt.vector3d(model.pos.x, model.pos.y, model.pos.z);
+        inspectorPanel.m_scale = Qt.vector3d(model.scale.x, model.scale.y, model.scale.z);
+        inspectorPanel.m_rotation = model.rotation;
+        inspectorPanel.m_initialVelo = model.initialVelo;
+        inspectorPanel.m_initialAnguVelo = model.initialAnguVelo;
+        inspectorPanel.m_baseColor = model.materials.baseColor;
+        inspectorPanel.m_metalness = model.materials.metalness;
+        inspectorPanel.m_roughness = model.materials.roughness;
+        inspectorPanel.m_type = model.type;
+
+        // 4. 进入修改模式
+        operatingButton.isCreateMode = false;
+
+        // 解除加载锁，允许 ComboBox 和 geometryParams 正常响应变更
+        inspectorColumn.isLoadingFromPick = false;
+
+        // 5. 刷新几何参数 UI（一次性更新，此时 Connections 已解禁）
+        inspectorColumn.geometryParams = EditorParameterManager.currentParameters;
+
+        // 6. 3D 视口高亮
+        editorCanvas.selectedObjectName = model.name;
+
+        // 7. 同步侧边栏选中状态（仅非选择模式时）
+        // 约束器已在 payload 恢复时设定了目标实体 ID，跳过以避免覆盖
+        if (category !== 2) {
+            sceneEntityListPanel.setSingleSelection(entityId);
+        }
+
+        return true;
+    }
+
     RowLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
@@ -269,6 +409,19 @@ ColumnLayout {
             Layout.minimumWidth: 200
             Layout.maximumWidth: 240
             Layout.fillHeight: true
+
+            // ── 单击 → 3D 视口高亮拾取（仅非约束选择模式） ──
+            onEntitySingleClicked: function(entityId) {
+                if (sceneEntityListPanel.selectionMode) return;
+                var model = EditorManager.getModel(entityId);
+                if (!model) return;
+                editorCanvas.selectedObjectName = model.name;
+            }
+
+            // ── 双击 → 自动检测类型，加载到属性面板，进入修改模式 ──
+            onEntityDoubleClicked: function(entityId) {
+                editorRoot.loadModelById(entityId);
+            }
         }
 
         GlassPanel {
@@ -580,35 +733,6 @@ ColumnLayout {
                     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                     preventStealing: true
 
-                    // ── 辅助：将选中实体的数据加载到 inspectorPanel ──
-                    function loadModelToInspector(modelName) {
-                        var models = EditorManager.findModelsByName(modelName);
-                        if (models.length === 0) return false;
-
-                        var model = models[0];
-                        inspectorPanel.m_name = model.name;
-                        inspectorPanel.m_mass = model.mass;
-                        inspectorPanel.m_loadTime = model.loadTime;
-                        inspectorPanel.m_restitution = model.restitution;
-                        inspectorPanel.m_pos = Qt.vector3d(model.pos.x, model.pos.y, model.pos.z);
-                        inspectorPanel.m_scale = Qt.vector3d(model.scale.x, model.scale.y, model.scale.z);
-                        inspectorPanel.m_rotation = model.rotation;
-                        inspectorPanel.m_initialVelo = model.initialVelo;
-                        inspectorPanel.m_initialAnguVelo = model.initialAnguVelo;
-
-                        inspectorPanel.m_baseColor = model.materials.baseColor;
-                        inspectorPanel.m_metalness = model.materials.metalness;
-                        inspectorPanel.m_roughness = model.materials.roughness;
-
-                        inspectorColumn.syncTypeAndGeometryToUi(model);
-                        operatingButton.isCreateMode = false;
-
-                        // 同步侧边栏选中状态（仅非选择模式时）
-                        sceneEntityListPanel.setSingleSelection(model.id);
-
-                        return true;
-                    }
-
                     onClicked: function (mouse) {
                         if (mouse.button === Qt.RightButton) {
                             // 仅当选中了 Shape 实体时才弹出右键菜单
@@ -913,6 +1037,14 @@ ColumnLayout {
                         var velo = allValues["sourceVelo"] || Qt.vector3d(0, 0, 0);
                         inspectorPanel.m_gravitationalFieldVelo = velo;
 
+                        // 嵌入子类型 ID 元数据，供修改时恢复子类型选择
+                        if (EditorParameterManager.hasSubTypes) {
+                            fieldParams["__sub_type_id"] = EditorParameterManager.subTypeId;
+                        }
+                        if (EditorParameterManager.hasSubSubTypes) {
+                            fieldParams["__subsub_type_id"] = EditorParameterManager.subSubTypeId;
+                        }
+
                         data.field_data = fieldParams;
                     } else if (category === 2) {
                         // ============ Constraint ============
@@ -931,6 +1063,15 @@ ColumnLayout {
                         }
 
                         var constraintParams = flattenParams(geoParams);
+
+                        // 嵌入子类型 ID 元数据，供修改时恢复子类型选择
+                        if (EditorParameterManager.hasSubTypes) {
+                            constraintParams["__sub_type_id"] = EditorParameterManager.subTypeId;
+                        }
+                        if (EditorParameterManager.hasSubSubTypes) {
+                            constraintParams["__subsub_type_id"] = EditorParameterManager.subSubTypeId;
+                        }
+
                         data.constraint_data = constraintParams;
                     }
 
@@ -1017,10 +1158,12 @@ ColumnLayout {
                         }
 
                         // 参数变化时自动同步 geometryParams（切换类别/类型时触发）
+                        // isLoadingFromPick 期间抑制更新，避免 Repeater 反复重建导致 FloatField 上下文错误
                         Connections {
                             target: EditorParameterManager
 
                             function onCurrentParametersChanged() {
+                                if (inspectorColumn.isLoadingFromPick) return;
                                 inspectorColumn.geometryParams = EditorParameterManager.currentParameters;
                             }
                         }
@@ -2349,4 +2492,5 @@ ColumnLayout {
             }
         }
     }
+
 }
