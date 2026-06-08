@@ -323,6 +323,18 @@ ApplicationWindow {
                             onTriggered: function () {
                                 editorUnit.pasteEntitiesFromClipboard();
                             }
+                        },
+                        {
+                            separator: true
+                        },
+                        {
+                            text: "删除(&D)",
+                            shortcut: "Delete",
+                            enabled: editorUnit.visible,
+                            icon: "qrc:/main_icons/assets/icons/delete.svg",
+                            onTriggered: function () {
+                                editorUnit.deleteSelectedEntities();
+                            }
                         }
                     ]
                 },

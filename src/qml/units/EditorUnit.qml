@@ -157,6 +157,20 @@ ColumnLayout {
         }
     }
 
+    /** 删除当前选中的 Shape 实体 */
+    function deleteSelectedEntities() {
+        var ids = getSelectedShapeIds();
+        if (ids.length > 0) {
+            editorGizmo.detach();
+            editorCanvas.gizmoActive = false;
+            editorCanvas.selectedObjectName = "";
+            for (var i = 0; i < ids.length; ++i) {
+                EditorManager.removeModel(ids[i]);
+            }
+            console.log("Delete:", ids.length, "entities");
+        }
+    }
+
     // ── 右键上下文菜单 ──
     EgretPopupMenu {
         id: clipboardContextMenu
@@ -203,6 +217,25 @@ ColumnLayout {
                         editorCanvas.selectedObjectName = "";
                         ClipboardManager.cutEntities(ids);
                         console.log("ContextMenu Cut:", ids.length, "entities");
+                    }
+                }
+            },
+            {separator: true},
+            {
+                text: "删除",
+                shortcut: "Del",
+                enabled: hasSelection,
+                icon: "qrc:/main_icons/assets/icons/delete.svg",
+                onTriggered: function () {
+                    var ids = getSelectedShapeIds();
+                    if (ids.length > 0) {
+                        editorGizmo.detach();
+                        editorCanvas.gizmoActive = false;
+                        editorCanvas.selectedObjectName = "";
+                        for (var i = 0; i < ids.length; ++i) {
+                            EditorManager.removeModel(ids[i]);
+                        }
+                        console.log("ContextMenu Delete:", ids.length, "entities");
                     }
                 }
             },
@@ -579,6 +612,9 @@ ColumnLayout {
 
                     onClicked: function (mouse) {
                         if (mouse.button === Qt.RightButton) {
+                            // 仅当选中了 Shape 实体时才弹出右键菜单
+                            if (getSelectedShapeIds().length === 0) return;
+
                             // 动态填充菜单项（确保 enabled 状态实时计算）
                             clipboardContextMenu.menuItems = buildContextMenuItems();
                             // 将鼠标坐标转换到 editorRoot 坐标系（Popup 父级）
