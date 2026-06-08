@@ -53,16 +53,11 @@ namespace egret
                 continue;
             }
 
-            // 暂时仅处理 Shape 实体 (category == 0)
-            if (model->category() != 0) {
-                continue;
-            }
-
             // 序列化实体为 JSON
             QJsonObject json = model->toJson();
 
-            // 对位置应用基础偏移
-            if (json.contains("pos") && json["pos"].isArray()) {
+            // 仅对 Shape 实体 (category == 0) 应用位置偏移；场和约束器不做偏移
+            if (model->category() == 0 && json.contains("pos") && json["pos"].isArray()) {
                 QJsonArray posArr = json["pos"].toArray();
                 if (posArr.size() >= 3) {
                     posArr[0] = posArr[0].toDouble() + static_cast<double>(m_baseOffset.x());
@@ -83,7 +78,7 @@ namespace egret
         emit operationCompleted(success,
                                 success
                                     ? QStringLiteral("已复制 %1 个实体").arg(copiedCount)
-                                    : QStringLiteral("未找到可复制的 Shape 实体"));
+                                    : QStringLiteral("未找到可复制的实体"));
         emit contentChanged();
         return success;
     }
@@ -100,7 +95,7 @@ namespace egret
         int cutCount = 0;
         for (const QString& id : ids) {
             ModelItemData* model = em->getModel(id);
-            if (model && model->category() == 0) {
+            if (model) {
                 em->removeModel(id);
                 ++cutCount;
             }
@@ -133,8 +128,9 @@ namespace egret
 
             QJsonObject json = val.toObject();
 
-            // 对位置应用累加偏移
-            if (json.contains("pos") && json["pos"].isArray()) {
+            // 仅对 Shape 实体 (category == 0) 应用位置累加偏移
+            int cat = json.value("category").toInt(-1);
+            if (cat == 0 && json.contains("pos") && json["pos"].isArray()) {
                 QJsonArray posArr = json["pos"].toArray();
                 if (posArr.size() >= 3) {
                     posArr[0] = posArr[0].toDouble() + static_cast<double>(accumulatedOffset.x());

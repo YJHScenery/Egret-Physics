@@ -77,10 +77,9 @@ ColumnLayout {
 
     // ── 剪贴板操作辅助函数 ──
     /**
-     * @brief 获取当前选中的 Shape 实体 ID 列表。
+     * @brief 获取当前选中的实体 ID 列表（Shape / Field / Constraint）。
      * @details 优先使用左侧栏多选（sceneEntityListPanel.selectedEntityIds），
      *          否则使用 3D 视口单选（editorCanvas.selectedObjectName）。
-     *          仅返回 category == 0 的 Shape 实体。
      */
     function getSelectedShapeIds() {
         var ids = [];
@@ -90,7 +89,7 @@ ColumnLayout {
         if (sidebarIds && sidebarIds.length > 0) {
             for (var i = 0; i < sidebarIds.length; ++i) {
                 var m = EditorManager.getModel(sidebarIds[i]);
-                if (m && m.category === 0) {
+                if (m) {
                     ids.push(sidebarIds[i]);
                 }
             }
@@ -101,7 +100,7 @@ ColumnLayout {
         var pickedName = editorCanvas.selectedObjectName;
         if (pickedName && pickedName !== "") {
             var models = EditorManager.findModelsByName(pickedName);
-            if (models.length > 0 && models[0].category === 0) {
+            if (models.length > 0) {
                 ids.push(models[0].id);
             }
         }

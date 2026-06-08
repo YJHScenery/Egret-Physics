@@ -373,7 +373,7 @@ ColumnLayout {
             // ── 选择模式下的点击区域 ──
             MouseArea {
                 anchors.fill: parent
-                enabled: modelData.category === 0
+                enabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
                     var ctrlHeld = mouse.modifiers & Qt.ControlModifier;
@@ -392,10 +392,8 @@ ColumnLayout {
                     width: 10
                     height: 10
                     radius: 2
-                    color: itemRect.isSelected ? "#3F9FFF" :
-                           (modelData.category === 0 ? "#1A3050" :
-                           (modelData.visible ? "#27B5FF" : "#3A5068"))
-                    border.width: modelData.category === 0 && !itemRect.isSelected ? 1 : 0
+                    color: itemRect.isSelected ? "#3F9FFF" : "#1A3050"
+                    border.width: !itemRect.isSelected ? 1 : 0
                     border.color: "#3F9FFF"
 
                     // 选中勾号

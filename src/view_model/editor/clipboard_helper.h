@@ -59,7 +59,7 @@ namespace egret
          * @brief       复制指定 ID 的实体到剪贴板。
          * @details     对每个实体的位置应用 m_baseOffset 偏移后存入内部 QJsonArray。
          *              重置粘贴计数器。
-         *              仅复制 category == 0 (Shape) 的实体。
+         *              支持 Shape、Field、Constraint 全类别实体复制。
          * @param ids   要复制的实体 ID 列表。
          * @return      成功复制至少一个实体时返回 true。
          */
