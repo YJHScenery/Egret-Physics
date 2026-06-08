@@ -43,7 +43,7 @@
 #include "view/geometry/bezier_curve_geometry.h"
 #include "curve_geometry.h"
 #include "view/qt_media_helper.h"
-#include "view/clipboard_helper.h"
+#include "view_model/editor/clipboard_helper.h"
 
 
 int main(int argc, char* argv[])

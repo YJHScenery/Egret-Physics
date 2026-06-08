@@ -17,7 +17,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-
+// import "qrc:/components/components/theme"
 Rectangle {
     id: root
 
@@ -32,8 +32,10 @@ Rectangle {
     property int dotSize: 10
     property int contentPadding: 12
     property int contentSpacing: 8
-
-    radius: 12
+    // DeepBlueTheme {
+    //     id: theme
+    // }
+    radius: theme.radiusS
     color: hovered ? "#013088CC" : "#123660CC"
     border.width: 1
     property bool hovered: false

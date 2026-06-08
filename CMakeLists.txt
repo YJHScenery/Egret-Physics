@@ -329,8 +329,8 @@ set(CPP_FILES
         src/view/qt_media_helper.h
         src/utils/os/windows/windows_sound.h
         src/utils/os/windows/windows_sound.cpp
-        src/view/clipboard_helper.cpp
-        src/view/clipboard_helper.h
+        src/view_model/editor/clipboard_helper.cpp
+        src/view_model/editor/clipboard_helper.h
 
 )
 

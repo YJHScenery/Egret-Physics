@@ -114,7 +114,7 @@ Rectangle {
     color: barBackground
     border.width: 1
     border.color: barBorderColor
-    radius: 8
+    radius: 4
 
     focus: true
 
@@ -713,7 +713,7 @@ Rectangle {
                         Rectangle {
                             anchors.fill: parent
                             visible: !isSeparator
-                            radius: 6
+                            radius: 4
                             color: subMenuPopup.highlightedIndex === index ? root.subMenuItemHoverBackground : "transparent"
 
                             RowLayout {
@@ -1186,7 +1186,7 @@ Rectangle {
                     Rectangle {
                         anchors.fill: parent
                         visible: !isSeparator
-                        radius: 6
+                        radius: 4
                         color: menuPopup.highlightedIndex === index ? root.menuItemHoverBackground : "transparent"
 
                         RowLayout {

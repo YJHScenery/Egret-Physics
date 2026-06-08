@@ -35,7 +35,7 @@ import "qrc:/components/components/basic"
 ColumnLayout {
     id: editorRoot
 
-    spacing: 14
+    spacing: 10
 
     DeepBlueTheme {
         id: theme
@@ -218,7 +218,7 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
-        spacing: 12
+        spacing: 10
 
         SceneEntityListPanel {
             id: sceneEntityListPanel
@@ -485,7 +485,7 @@ ColumnLayout {
                     anchors.top: parent.top
                     anchors.leftMargin: 12
                     anchors.topMargin: 10
-                    radius: 8
+                    radius: theme.radiusS
                     color: "#0D274899"
                     border.width: 1
                     border.color: "#2B5E89"
@@ -506,7 +506,7 @@ ColumnLayout {
                     anchors.top: parent.top
                     anchors.rightMargin: 12
                     anchors.topMargin: 10
-                    radius: 8
+                    radius: theme.radiusS
                     color: "#0D274899"
                     border.width: 1
                     border.color: "#2B5E89"
@@ -918,14 +918,14 @@ ColumnLayout {
                         anchors.bottom: parent.bottom
                         minimumSize: 0.2
                         background: Rectangle {
-                            radius: 4
+                            radius: theme.radiusS
                             color: "#0F2A4C"
                             border.width: 1
                             border.color: theme.border
                             opacity: 0.6
                         }
                         contentItem: Rectangle {
-                            radius: 4
+                            radius: theme.radiusS
                             implicitWidth: 8
                             color: theme.accent
                             opacity: inspectorScrollBar.pressed ? 0.9 : 0.7
@@ -1054,7 +1054,7 @@ ColumnLayout {
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 28
-                            radius: 6
+                            radius: theme.radiusS
                             color: "#0F2B4B"
                             border.width: 1
                             border.color: "#2C5D88"
@@ -1259,7 +1259,7 @@ ColumnLayout {
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 28
-                            radius: 6
+                            radius: theme.radiusS
                             color: "#0F2B4B"
                             border.width: 1
                             border.color: "#2C5D88"
@@ -1429,7 +1429,7 @@ ColumnLayout {
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 28
-                            radius: 6
+                            radius: theme.radiusS
                             color: "#0F2B4B"
                             border.width: 1
                             border.color: "#2C5D88"
@@ -1900,7 +1900,7 @@ ColumnLayout {
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 28
-                            radius: 6
+                            radius: theme.radiusS
                             color: "#0F2B4B"
                             border.width: 1
                             border.color: "#2C5D88"
@@ -2035,7 +2035,7 @@ ColumnLayout {
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 28
-                            radius: 6
+                            radius: theme.radiusS
                             color: "#0F2B4B"
                             border.width: 1
                             border.color: "#2C5D88"
@@ -2125,7 +2125,7 @@ ColumnLayout {
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 28
-                            radius: 6
+                            radius: theme.radiusS
                             color: "#0F2B4B"
                             border.width: 1
                             border.color: "#2C5D88"
@@ -2157,7 +2157,7 @@ ColumnLayout {
                                 Rectangle {
                                     width: 28
                                     height: 18
-                                    radius: 4
+                                    radius: theme.radiusS
                                     color: inspectorPanel.m_baseColor
                                     border.width: 1
                                     border.color: "#2C5D88"
@@ -2165,7 +2165,7 @@ ColumnLayout {
                                 Rectangle {
                                     width: 48
                                     height: 22
-                                    radius: 6
+                                    radius: theme.radiusS
                                     color: pickerMouse.pressed ? "#214785" : (pickerMouse.containsMouse ? "#1A3A72" : "#102B4B")
                                     border.width: 1
                                     border.color: pickerMouse.containsMouse ? theme.accent : "#2C5D88"
@@ -2265,7 +2265,7 @@ ColumnLayout {
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    radius: 10
+                    radius: theme.radiusS
                     property bool hovered: false
                     color: hovered ? "#1A3B83" : "#112F52"
                     border.width: 1

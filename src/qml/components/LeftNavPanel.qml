@@ -17,12 +17,15 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-
+// import "qrc:/components/components/theme"
 Rectangle {
     id: root
 
     signal navSelected(string route)
 
+    // DeepBlueTheme {
+    //     id: theme
+    // }
     ListModel {
         id: navModel
         ListElement {
@@ -47,7 +50,7 @@ Rectangle {
         }
     }
 
-    radius: 14
+    radius: theme.radiusS
     color: "#0F2A4CB3"
     border.width: 1
     border.color: "#3F79B0"
@@ -80,7 +83,7 @@ Rectangle {
                 delegate: Rectangle {
                     width: scrollView.availableWidth
                     height: 64
-                    radius: 10
+                    radius: theme.radiusS
                     color: index === columnItem.currentIndex ? "#1D4E87" : (index === columnItem.hoveredIndex ? "#163C68" : "#102A4A")
                     border.width: 3
                     border.color: index === columnItem.currentIndex ? "#56B6FF" : (index === columnItem.hoveredIndex ? "#428AC6" : "#2F5F8D")

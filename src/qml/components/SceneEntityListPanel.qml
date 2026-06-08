@@ -47,6 +47,10 @@ ColumnLayout {
     property int minSelection: 1
     property int maxSelection: 1
 
+    DeepBlueTheme {
+        id: theme
+    }
+
     signal selectionChanged(var entityIds)
 
     /**
@@ -175,7 +179,7 @@ ColumnLayout {
                 }
                 contentItem: Rectangle {
                     color: "#3F79B0"
-                    radius: 4
+                    radius: theme.radiusS
                 }
             }
 

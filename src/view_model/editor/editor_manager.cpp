@@ -42,6 +42,8 @@ namespace egret
         if (!validateModel(model))
             return false;
 
+        saveState();
+
         QString id = model->id().isEmpty() ? QString::number(UniqueIDGenerator::instance().generate()) : model->id();
         model->setId(id);
 
@@ -68,12 +70,39 @@ namespace egret
         return true;
     }
 
+    /**
+     * @brief       内部添加方法，不触发 saveState（供 undo/redo 重建使用）。
+     */
+    bool EditorManager::addModelNoSave(ModelItemData* model)
+    {
+        if (!validateModel(model))
+            return false;
+
+        QString id = model->id().isEmpty() ? QString::number(UniqueIDGenerator::instance().generate()) : model->id();
+        model->setId(id);
+
+        if (m_models.contains(id)) {
+            return false;
+        }
+
+        model->setParent(nullptr);
+        QQmlEngine::setObjectOwnership(model, QQmlEngine::CppOwnership);
+        QQmlEngine::setObjectOwnership(model->materials(), QQmlEngine::CppOwnership);
+
+        QSharedPointer<ModelItemData> modelPtr(model);
+        m_models[id] = modelPtr;
+        m_modelList.append(modelPtr);
+        return true;
+    }
+
     bool EditorManager::removeModel(const QString& id)
     {
         if (!m_models.contains(id)) {
             emit operationCompleted(false, "Model not found");
             return false;
         }
+
+        saveState();
 
         QSharedPointer<ModelItemData> model = m_models.value(id);
         m_modelList.removeOne(model);
@@ -122,14 +151,25 @@ namespace egret
         emit operationCompleted(true, "All models cleared");
     }
 
+    /**
+     * @brief       内部清空方法，不触发 saveState（供 undo/redo 使用）。
+     */
+    void EditorManager::clearAllNoSave()
+    {
+        m_models.clear();
+        m_modelList.clear();
+        emitModelListChanged();
+    }
+
     void EditorManager::addModels(const QList<ModelItemData*>& models)
     {
         saveState();
         for (ModelItemData* model : models) {
-            if (!addModel(model)) {
+            if (!addModelNoSave(model)) {
                 delete model;
             }
         }
+        emitModelListChanged();
     }
 
     QList<ModelItemData*> EditorManager::getAllModels() const
@@ -221,6 +261,8 @@ namespace egret
         qDebug() << "name: " << model->name();
 
         qDebug() << "type: " << model->type();
+
+        saveState();
 
         model->setCategory(data.m_category);
         model->setMass(data.m_mass);
@@ -337,7 +379,7 @@ namespace egret
             if (value.isObject()) {
                 auto* model = new ModelItemData(this);
                 if (model->fromJson(value.toObject())) {
-                    if (!addModel(model)) {
+                    if (!addModelNoSave(model)) {
                         delete model;
                     }
                 }
@@ -346,6 +388,7 @@ namespace egret
                 }
             }
         }
+        emitModelListChanged();
 
         emit operationCompleted(true, "Models loaded from JSON");
         return true;
@@ -478,7 +521,7 @@ namespace egret
             return false;
         }
 
-        // 保存当前状态到 redo
+        // 保存当前状态到 redo（手动克隆，不用 saveState 因为 saveState 会清空 m_redoStack）
         QHash<QString, QSharedPointer<ModelItemData>> currentState;
         for (const QSharedPointer<ModelItemData>& model : m_modelList) {
             currentState[model->id()] = QSharedPointer<ModelItemData>(model->clone());
@@ -487,13 +530,17 @@ namespace egret
 
         // 恢复上一个状态
         QHash<QString, QSharedPointer<ModelItemData>> prevState = m_undoStack.takeLast();
-        clearAll();
+
+        // 用内部清空方法（不触发 saveState），避免破坏 redo 栈
+        clearAllNoSave();
+
         for (const QSharedPointer<ModelItemData>& model : prevState.values()) {
             ModelItemData* copy = ModelItemData::createCopy(*model);
-            if (!addModel(copy)) {
+            if (!addModelNoSave(copy)) {
                 delete copy;
             }
         }
+        emitModelListChanged();
 
         emit operationCompleted(true, "Undo successful");
         return true;
@@ -506,16 +553,25 @@ namespace egret
             return false;
         }
 
+        // 保存当前状态到 undo（手动克隆）
+        QHash<QString, QSharedPointer<ModelItemData>> currentState;
+        for (const QSharedPointer<ModelItemData>& model : m_modelList) {
+            currentState[model->id()] = QSharedPointer<ModelItemData>(model->clone());
+        }
+        m_undoStack.append(currentState);
+
         QHash<QString, QSharedPointer<ModelItemData>> nextState = m_redoStack.takeLast();
-        saveState(); // 保存当前状态到 undo
-        clearAll();
+
+        // 用内部清空方法（不触发 saveState）
+        clearAllNoSave();
 
         for (const QSharedPointer<ModelItemData>& model : nextState.values()) {
             ModelItemData* copy = ModelItemData::createCopy(*model);
-            if (!addModel(copy)) {
+            if (!addModelNoSave(copy)) {
                 delete copy;
             }
         }
+        emitModelListChanged();
 
         emit operationCompleted(true, "Redo successful");
         return true;

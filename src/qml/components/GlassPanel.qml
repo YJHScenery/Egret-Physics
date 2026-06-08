@@ -17,15 +17,17 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-
+// import "qrc:/components/components/theme"
 Rectangle {
     id: root
 
     property string title: ""
     property bool showHeader: title.length > 0
     default property alias panelContent: bodyItem.data
-
-    radius: 14
+    // DeepBlueTheme {
+    //     id: theme
+    // }
+    radius: theme.radiusS
     color: "#122F56B3"
     border.width: 1
     border.color: "#3F79B0"

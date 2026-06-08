@@ -156,6 +156,12 @@ namespace egret
 
         static bool validateModel(const ModelItemData *model);
 
+        /** 内部清空（不触发 saveState），供 undo/redo 使用 */
+        void clearAllNoSave();
+
+        /** 内部添加（不触发 saveState），供 undo/redo 重建使用 */
+        bool addModelNoSave(ModelItemData *model);
+
     };
 
     [[deprecated]] QList<ModelItemData *> createDefaultModels();

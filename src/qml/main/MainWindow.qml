@@ -33,9 +33,9 @@ ApplicationWindow {
     id: window
 
     width: 1440
-    height: 1080
+    height: 900
     minimumWidth: 1024
-    minimumHeight: 768
+    minimumHeight: 600
 
     visible: true
     title: "Egret Physics - Classical Mechanics Studio"
@@ -142,7 +142,7 @@ ApplicationWindow {
                 "所有文件 (*)"
             ]
 
-            selectedFile: "Untitled.json"
+            // currentFile: "Untitled.json"
 
             onAccepted: {
                 // 注意：selectedFile 返回的是 file:// 开头的 URL，需转换为本地路径
@@ -279,21 +279,19 @@ ApplicationWindow {
                         {
                             text: "撤销(&U)",
                             shortcut: "Ctrl+Z",
+                            enabled: editorUnit.visible,
                             icon: "qrc:/main_icons/assets/icons/undo.svg",
                             onTriggered: function () {
-                                if (editorUnit.visible) {
-                                    EditorManager.undo();
-                                }
+                                EditorManager.undo();
                             }
                         },
                         {
                             text: "恢复(&R)",
                             shortcut: "Ctrl+Y",
+                            enabled: editorUnit.visible,
                             icon: "qrc:/main_icons/assets/icons/recover.svg",
                             onTriggered: function () {
-                                if (editorUnit.visible) {
-                                    EditorManager.redo();
-                                }
+                                EditorManager.redo();
                             }
                         },
                         {
@@ -302,31 +300,28 @@ ApplicationWindow {
                         {
                             text: "剪切(&T)",
                             shortcut: "Ctrl+X",
+                            enabled: editorUnit.visible,
                             icon: "qrc:/main_icons/assets/icons/cut.svg",
                             onTriggered: function () {
-                                if (editorUnit.visible) {
-                                    editorUnit.cutSelectedEntities();
-                                }
+                                editorUnit.cutSelectedEntities();
                             }
                         },
                         {
                             text: "复制(C)",
                             shortcut: "Ctrl+C",
+                            enabled: editorUnit.visible,
                             icon: "qrc:/main_icons/assets/icons/copy.svg",
                             onTriggered: function () {
-                                if (editorUnit.visible) {
-                                    editorUnit.copySelectedEntities();
-                                }
+                                editorUnit.copySelectedEntities();
                             }
                         },
                         {
                             text: "粘贴(P)",
                             shortcut: "Ctrl+V",
+                            enabled: editorUnit.visible,
                             icon: "qrc:/main_icons/assets/icons/paste.svg",
                             onTriggered: function () {
-                                if (editorUnit.visible) {
-                                    editorUnit.pasteEntitiesFromClipboard();
-                                }
+                                editorUnit.pasteEntitiesFromClipboard();
                             }
                         }
                     ]
@@ -462,7 +457,7 @@ ApplicationWindow {
                     id: workspaceComboShell
                     Layout.preferredWidth: 210
                     Layout.preferredHeight: 36
-                    radius: 10
+                    radius: theme.radiusS
                     color: workspaceComboBox.pressed ? "#1E3A8A" : (workspaceComboBox.hovered ? "#153564" : "#0A1A3A")
                     border.width: 1
                     border.color: workspaceComboBox.hovered ? "#3B82F6" : "#1E3A8A"
@@ -518,14 +513,14 @@ ApplicationWindow {
                             padding: 6
                             clip: false
                             background: Rectangle {
-                                radius: 10
+                                radius: theme.radiusS
                                 color: "#10294C"
                                 border.width: 1
                                 border.color: theme.border
                             }
 
                             contentItem: Rectangle {
-                                radius: 8
+                                radius: theme.radiusS
                                 color: "transparent"
                                 clip: true
                                 implicitHeight: Math.min(listView.contentHeight + 4, 240)
@@ -558,7 +553,7 @@ ApplicationWindow {
                                 leftPadding: 10
                             }
                             background: Rectangle {
-                                radius: 8
+                                radius: theme.radiusS
                                 color: highlighted ? "#1D4E87" : "#102A4A"
                                 border.width: 1
                                 border.color: highlighted ? "#56B6FF" : "#2F5F8D"

@@ -39,7 +39,7 @@ ColumnLayout {
     property alias coordinateSystem: coordinateSystem
 
 
-    spacing: 10
+    spacing: 8
 
     FileDialog {
         id: saveTrackDataFileDialog
@@ -252,7 +252,348 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
-        spacing: 12
+        spacing: 8
+
+
+        GlassPanel {
+            id: dataStreamPanel
+            // Layout.fillWidth: true
+            // Layout.preferredHeight: simulatorRoot.dataStreamVisible ? 180 : 0
+            // Layout.minimumHeight: simulatorRoot.dataStreamVisible ? 180 : 0
+            // Layout.maximumHeight: simulatorRoot.dataStreamVisible ? 180 : 0
+
+
+            Layout.preferredWidth: 200
+            Layout.fillHeight: true
+
+            visible: simulatorRoot.dataStreamVisible
+            opacity: simulatorRoot.dataStreamVisible ? 1 : 0
+            enabled: simulatorRoot.dataStreamVisible
+            title: "数据流"
+
+            readonly property int scrollBarThickness: 8
+            readonly property int scrollBarGap: 6
+
+            Flickable {
+                id: dataStreamFlick
+                anchors.fill: parent
+                anchors.margins: 3
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                contentWidth: dataStreamFlick.width
+                contentHeight: dataStreamRow.implicitHeight
+
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.NoButton
+                    hoverEnabled: true
+
+                    onWheel: function (wheel) {
+                        const step = Math.max(40, Math.abs(wheel.angleDelta.y));
+                        const delta = wheel.angleDelta.y > 0 ? -step : step;
+                        const maxY = Math.max(0, dataStreamFlick.contentHeight - dataStreamFlick.height);
+                        dataStreamFlick.contentY = Math.max(0, Math.min(dataStreamFlick.contentY + delta, maxY));
+                        wheel.accepted = true;
+                    }
+                }
+
+                Column {
+                    id: dataStreamRow
+                    spacing: 6
+                    width: dataStreamFlick.width
+
+                    Repeater {
+                        model: sceneController.bodyModel
+
+                        delegate: Rectangle {
+                            // 通过 trackingVersion 触发重新求值，实现深层 var 变更检测
+                            property bool isTracked: {
+                                simulatorRoot.trackingVersion;
+                                return simulatorRoot.hasTrackingData(bodyId);
+                            }
+                            visible: isTracked
+
+                            width: parent.width
+                            height: dataBlockContent.implicitHeight + 20
+                            radius: theme.radiusS
+                            color: "#112F52"
+                            border.width: 1
+                            border.color: "#2C5D88"
+
+                            Column {
+                                id: dataBlockContent
+                                anchors.fill: parent
+                                anchors.margins: 10
+                                spacing: 4
+
+                                // 标题行
+                                RowLayout {
+                                    width: parent.width
+                                    spacing: 8
+
+                                    ColumnLayout{
+                                        spacing: 3
+                                        Text {
+                                            text: "实体: " + bodyName
+                                            color: "#EAF5FF"
+                                            font.pixelSize: 12
+                                            font.bold: true
+                                        }
+
+                                        Text {
+                                            text: "ID: " + bodyId
+                                            color: "#c8c8c8"
+                                            font.pixelSize: 8
+                                            font.bold: false
+                                        }
+                                    }
+
+
+                                    // ---- 录制控制按钮（录制中/暂停时显示） ----
+                                    Item {
+                                        id: recCtrls
+                                        property string state: {
+                                            simulatorRoot.trackingVersion;
+                                            return simulatorRoot.recordingState[bodyId] || "none";
+                                        }
+                                        visible: state === "recording" || state === "paused"
+                                        Layout.preferredWidth: state === "none" ? 0 : 44
+                                        Layout.preferredHeight: 18
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            spacing: 3
+
+                                            // 暂停 / 恢复
+                                            Item {
+                                                Layout.preferredWidth: 18
+                                                Layout.preferredHeight: 18
+
+                                                Image {
+                                                    id: imgPauseResume
+                                                    anchors.fill: parent
+                                                    source: recCtrls.state === "paused"
+                                                        ? "qrc:/main_icons/assets/icons/record_resume.svg"
+                                                        : "qrc:/main_icons/assets/icons/record_pause.svg"
+                                                    fillMode: Image.PreserveAspectFit
+                                                }
+                                                MultiEffect {
+                                                    anchors.fill: imgPauseResume
+                                                    source: imgPauseResume
+                                                    colorization: 1.0
+                                                    colorizationColor: mousePauseResume.containsMouse ? "#FFFFFF" : "#8DB3D9"
+                                                    brightness: mousePauseResume.containsMouse ? 0.9 : 0.7
+                                                    enabled: true
+                                                }
+                                                MouseArea {
+                                                    id: mousePauseResume
+                                                    anchors.fill: parent
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    hoverEnabled: true
+                                                    onClicked: {
+                                                        if (simulatorRoot.recordingState[bodyId] === "paused") {
+                                                            sceneController.resumeRecording(bodyId);
+                                                            simulatorRoot.recordingState[bodyId] = "recording";
+                                                        } else {
+                                                            sceneController.pauseRecording(bodyId);
+                                                            simulatorRoot.recordingState[bodyId] = "paused";
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // 停止
+                                            Item {
+                                                Layout.preferredWidth: 18
+                                                Layout.preferredHeight: 18
+
+                                                Image {
+                                                    id: imgStop
+                                                    anchors.fill: parent
+                                                    source: "qrc:/main_icons/assets/icons/record_stop.svg"
+                                                    fillMode: Image.PreserveAspectFit
+                                                }
+                                                MultiEffect {
+                                                    anchors.fill: imgStop
+                                                    source: imgStop
+                                                    colorization: 1.0
+                                                    colorizationColor: mouseStop.containsMouse ? "#FF6B6B" : "#8DB3D9"
+                                                    brightness: mouseStop.containsMouse ? 0.9 : 0.7
+                                                    enabled: true
+                                                }
+                                                MouseArea {
+                                                    id: mouseStop
+                                                    anchors.fill: parent
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    hoverEnabled: true
+                                                    onClicked: {
+                                                        sceneController.stopRecording(bodyId);
+                                                        simulatorRoot.recordingState[bodyId] = "none";
+                                                        simulatorRoot.trackingVersion++;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // ---- 保存按钮（非录制时显示） ----
+                                    Item {
+                                        id: recSave
+                                        property string state: {
+                                            simulatorRoot.trackingVersion;
+                                            return simulatorRoot.recordingState[bodyId] || "none";
+                                        }
+                                        visible: state === "none"
+                                        Layout.preferredWidth: 18
+                                        Layout.preferredHeight: 18
+
+
+                                        // Image {
+                                        //     id: imgSave
+                                        //     anchors.fill: parent
+                                        //     source: "qrc:/main_icons/assets/icons/record_save.svg"
+                                        //     fillMode: Image.PreserveAspectFit
+                                        // }
+                                        // MultiEffect {
+                                        //     anchors.fill: imgSave
+                                        //     source: imgSave
+                                        //     colorization: 1.0
+                                        //     colorizationColor: mouseSave.containsMouse ? "#FFFFFF" : "#8DB3D9"
+                                        //     brightness: mouseSave.containsMouse ? 0.9 : 0.7
+                                        //     enabled: true
+                                        // }
+
+                                        Text{
+                                            id: imgSave
+                                            anchors.fill: parent
+                                            text: "💾"
+
+                                        }
+                                        MouseArea {
+                                            id: mouseSave
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            hoverEnabled: true
+                                            onClicked: {
+                                                saveTrackDataFileDialog.bodyID = bodyId;
+                                                saveTrackDataFileDialog.bodyName = bodyName;
+                                                // const now = new Date();
+                                                saveTrackDataFileDialog.open();
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 位置（追踪时显示）
+                                Text {
+                                    property bool show: {
+                                        simulatorRoot.trackingVersion;
+                                        return simulatorRoot.isTracking(bodyId, "position");
+                                    }
+                                    visible: show
+                                    text: "位置: " + simulatorRoot.formatVec(bodyPosition[2], bodyPosition[0], bodyPosition[1])
+                                    color: "#9EC4EA"
+                                    font.pixelSize: 10
+                                }
+
+                                // 速度（追踪时显示）
+                                Text {
+                                    property bool show: {
+                                        simulatorRoot.trackingVersion;
+                                        return simulatorRoot.isTracking(bodyId, "velocity");
+                                    }
+                                    visible: show
+                                    text: "速度: " + simulatorRoot.formatVecWithMagnitude(bodyVelocity[2], bodyVelocity[0], bodyVelocity[1])
+                                    color: "#9EC4EA"
+                                    font.pixelSize: 10
+                                }
+
+                                // 角速度（追踪时显示）
+                                Text {
+                                    property bool show: {
+                                        simulatorRoot.trackingVersion;
+                                        return simulatorRoot.isTracking(bodyId, "angularVelocity");
+                                    }
+                                    visible: show
+                                    text: "角速度: " + (typeof bodyAngularVelocity !== 'undefined'
+                                        ? simulatorRoot.formatVecWithMagnitude(bodyAngularVelocity[2], bodyAngularVelocity[0], bodyAngularVelocity[1])
+                                        : "N/A")
+                                    color: "#9EC4EA"
+                                    font.pixelSize: 10
+                                }
+
+                                // 动能（追踪时显示）
+                                Text {
+                                    property bool show: {
+                                        simulatorRoot.trackingVersion;
+                                        return simulatorRoot.isTracking(bodyId, "kineticEnergy");
+                                    }
+                                    visible: show
+                                    text: "动能: " + Number(bodyKineticEnergy).toFixed(2) + " J"
+                                    color: "#9EC4EA"
+                                    font.pixelSize: 10
+                                }
+                            }
+                        }
+                    }
+
+                    // ---- 空状态提示：无追踪数据时显示 ----
+                    Rectangle {
+                        width: parent.width
+                        height: 100
+                        radius: theme.radiusS
+                        color: "#0D2748"
+                        border.width: 1
+                        border.color: "#2C5D88"
+
+                        property bool show: {
+                            simulatorRoot.trackingVersion;
+                            return !simulatorRoot.hasAnyTrackingData();
+                        }
+                        visible: show
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "点击 3D 物体 → \n 跟踪数据 → \n 勾选属性"
+                            color: "#5A7D9E"
+                            font.pixelSize: 13
+                            font.italic: true
+                        }
+                    }
+                }
+
+                ScrollBar.vertical: dataStreamVScrollBar
+            }
+
+            Basic.ScrollBar {
+                id: dataStreamVScrollBar
+                width: dataStreamPanel.scrollBarThickness
+                policy: ScrollBar.AsNeeded
+                visible: size < 1.0
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.right: parent.right
+                anchors.topMargin: 6
+                anchors.bottomMargin: 6
+                anchors.rightMargin: -(dataStreamPanel.scrollBarThickness + dataStreamPanel.scrollBarGap - 5)
+
+                contentItem: Rectangle {
+                    radius: theme.radiusS
+                    implicitWidth: dataStreamPanel.scrollBarThickness
+                    color: theme.accent
+                    opacity: dataStreamVScrollBar.pressed ? 0.9 : 0.7
+                }
+
+                background: Rectangle {
+                    radius: theme.radiusS
+                    implicitWidth: dataStreamPanel.scrollBarThickness
+                    color: "#0F2A4C"
+                    border.width: 1
+                    border.color: theme.border
+                    opacity: 0.6
+                }
+            }
+        }
 
         GlassPanel {
             Layout.fillWidth: true
@@ -629,7 +970,7 @@ ColumnLayout {
                     anchors.top: parent.top
                     anchors.leftMargin: 10
                     anchors.topMargin: 8
-                    radius: 8
+                    radius: theme.radiusS
                     color: "#0D274899"
                     border.width: 1
                     border.color: "#2B5E89"
@@ -754,7 +1095,7 @@ ColumnLayout {
             opacity: simulatorRoot.infoPanelVisible ? 1 : 0
             enabled: simulatorRoot.infoPanelVisible
 
-            spacing: 12
+            spacing: 8
 
 
             GridLayout{
@@ -862,14 +1203,14 @@ ColumnLayout {
                         anchors.bottom: parent.bottom
 
                         contentItem: Rectangle {
-                            radius: 4
+                            radius: theme.radiusS
                             implicitWidth: 8
                             color: theme.accent
                             opacity: infoScrollBar.pressed ? 0.9 : 0.7
                         }
 
                         background: Rectangle {
-                            radius: 4
+                            radius: theme.radiusS
                             implicitWidth: 8
                             color: "#0F2A4C"
                             border.width: 1
@@ -1043,337 +1384,4 @@ ColumnLayout {
         }
     }
 
-    GlassPanel {
-        id: dataStreamPanel
-        Layout.fillWidth: true
-        Layout.preferredHeight: simulatorRoot.dataStreamVisible ? 180 : 0
-        Layout.minimumHeight: simulatorRoot.dataStreamVisible ? 180 : 0
-        Layout.maximumHeight: simulatorRoot.dataStreamVisible ? 180 : 0
-        visible: simulatorRoot.dataStreamVisible
-        opacity: simulatorRoot.dataStreamVisible ? 1 : 0
-        enabled: simulatorRoot.dataStreamVisible
-        title: "数据流"
-
-        readonly property int scrollBarThickness: 8
-        readonly property int scrollBarGap: 6
-
-        Flickable {
-            id: dataStreamFlick
-            anchors.fill: parent
-            anchors.margins: 3
-            clip: true
-            boundsBehavior: Flickable.StopAtBounds
-            contentWidth: dataStreamRow.implicitWidth
-            contentHeight: dataStreamRow.implicitHeight
-
-            MouseArea {
-                anchors.fill: parent
-                acceptedButtons: Qt.NoButton
-                hoverEnabled: true
-
-                onWheel: function (wheel) {
-                    const step = Math.max(40, Math.abs(wheel.angleDelta.y));
-                    const delta = wheel.angleDelta.y > 0 ? -step : step;
-                    const maxX = Math.max(0, dataStreamFlick.contentWidth - dataStreamFlick.width);
-                    dataStreamFlick.contentX = Math.max(0, Math.min(dataStreamFlick.contentX + delta, maxX));
-                    wheel.accepted = true;
-                }
-            }
-
-            Row {
-                id: dataStreamRow
-                spacing: 6
-                height: dataStreamFlick.height
-
-                Repeater {
-                    model: sceneController.bodyModel
-
-                    delegate: Rectangle {
-                        // 通过 trackingVersion 触发重新求值，实现深层 var 变更检测
-                        property bool isTracked: {
-                            simulatorRoot.trackingVersion;
-                            return simulatorRoot.hasTrackingData(bodyId);
-                        }
-                        visible: isTracked
-
-                        width: simulatorRoot.dataBlockWidth
-                        height: dataStreamFlick.height
-                        radius: 10
-                        color: "#112F52"
-                        border.width: 1
-                        border.color: "#2C5D88"
-
-                        Column {
-                            anchors.fill: parent
-                            anchors.margins: 10
-                            spacing: 4
-
-                            // 标题行
-                            RowLayout {
-                                width: parent.width
-                                spacing: 8
-
-                                ColumnLayout{
-                                    spacing: 3
-                                    Text {
-                                        text: "实体: " + bodyName
-                                        color: "#EAF5FF"
-                                        font.pixelSize: 12
-                                        font.bold: true
-                                    }
-
-                                    Text {
-                                        text: "ID: " + bodyId
-                                        color: "#c8c8c8"
-                                        font.pixelSize: 8
-                                        font.bold: false
-                                    }
-                                }
-
-
-                                // ---- 录制控制按钮（录制中/暂停时显示） ----
-                                Item {
-                                    id: recCtrls
-                                    property string state: {
-                                        simulatorRoot.trackingVersion;
-                                        return simulatorRoot.recordingState[bodyId] || "none";
-                                    }
-                                    visible: state === "recording" || state === "paused"
-                                    Layout.preferredWidth: state === "none" ? 0 : 44
-                                    Layout.preferredHeight: 18
-
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        spacing: 3
-
-                                        // 暂停 / 恢复
-                                        Item {
-                                            Layout.preferredWidth: 18
-                                            Layout.preferredHeight: 18
-
-                                            Image {
-                                                id: imgPauseResume
-                                                anchors.fill: parent
-                                                source: recCtrls.state === "paused"
-                                                    ? "qrc:/main_icons/assets/icons/record_resume.svg"
-                                                    : "qrc:/main_icons/assets/icons/record_pause.svg"
-                                                fillMode: Image.PreserveAspectFit
-                                            }
-                                            MultiEffect {
-                                                anchors.fill: imgPauseResume
-                                                source: imgPauseResume
-                                                colorization: 1.0
-                                                colorizationColor: mousePauseResume.containsMouse ? "#FFFFFF" : "#8DB3D9"
-                                                brightness: mousePauseResume.containsMouse ? 0.9 : 0.7
-                                                enabled: true
-                                            }
-                                            MouseArea {
-                                                id: mousePauseResume
-                                                anchors.fill: parent
-                                                cursorShape: Qt.PointingHandCursor
-                                                hoverEnabled: true
-                                                onClicked: {
-                                                    if (simulatorRoot.recordingState[bodyId] === "paused") {
-                                                        sceneController.resumeRecording(bodyId);
-                                                        simulatorRoot.recordingState[bodyId] = "recording";
-                                                    } else {
-                                                        sceneController.pauseRecording(bodyId);
-                                                        simulatorRoot.recordingState[bodyId] = "paused";
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        // 停止
-                                        Item {
-                                            Layout.preferredWidth: 18
-                                            Layout.preferredHeight: 18
-
-                                            Image {
-                                                id: imgStop
-                                                anchors.fill: parent
-                                                source: "qrc:/main_icons/assets/icons/record_stop.svg"
-                                                fillMode: Image.PreserveAspectFit
-                                            }
-                                            MultiEffect {
-                                                anchors.fill: imgStop
-                                                source: imgStop
-                                                colorization: 1.0
-                                                colorizationColor: mouseStop.containsMouse ? "#FF6B6B" : "#8DB3D9"
-                                                brightness: mouseStop.containsMouse ? 0.9 : 0.7
-                                                enabled: true
-                                            }
-                                            MouseArea {
-                                                id: mouseStop
-                                                anchors.fill: parent
-                                                cursorShape: Qt.PointingHandCursor
-                                                hoverEnabled: true
-                                                onClicked: {
-                                                    sceneController.stopRecording(bodyId);
-                                                    simulatorRoot.recordingState[bodyId] = "none";
-                                                    simulatorRoot.trackingVersion++;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // ---- 保存按钮（非录制时显示） ----
-                                Item {
-                                    id: recSave
-                                    property string state: {
-                                        simulatorRoot.trackingVersion;
-                                        return simulatorRoot.recordingState[bodyId] || "none";
-                                    }
-                                    visible: state === "none"
-                                    Layout.preferredWidth: 18
-                                    Layout.preferredHeight: 18
-
-
-                                    // Image {
-                                    //     id: imgSave
-                                    //     anchors.fill: parent
-                                    //     source: "qrc:/main_icons/assets/icons/record_save.svg"
-                                    //     fillMode: Image.PreserveAspectFit
-                                    // }
-                                    // MultiEffect {
-                                    //     anchors.fill: imgSave
-                                    //     source: imgSave
-                                    //     colorization: 1.0
-                                    //     colorizationColor: mouseSave.containsMouse ? "#FFFFFF" : "#8DB3D9"
-                                    //     brightness: mouseSave.containsMouse ? 0.9 : 0.7
-                                    //     enabled: true
-                                    // }
-
-                                    Text{
-                                        id: imgSave
-                                        anchors.fill: parent
-                                        text: "💾"
-
-                                    }
-                                    MouseArea {
-                                        id: mouseSave
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        hoverEnabled: true
-                                        onClicked: {
-                                            saveTrackDataFileDialog.bodyID = bodyId;
-                                            saveTrackDataFileDialog.bodyName = bodyName;
-                                            // const now = new Date();
-                                            saveTrackDataFileDialog.open();
-                                        }
-                                    }
-                                }
-                            }
-
-                            // 位置（追踪时显示）
-                            Text {
-                                property bool show: {
-                                    simulatorRoot.trackingVersion;
-                                    return simulatorRoot.isTracking(bodyId, "position");
-                                }
-                                visible: show
-                                text: "位置: " + simulatorRoot.formatVec(bodyPosition[2], bodyPosition[0], bodyPosition[1])
-                                color: "#9EC4EA"
-                                font.pixelSize: 10
-                            }
-
-                            // 速度（追踪时显示）
-                            Text {
-                                property bool show: {
-                                    simulatorRoot.trackingVersion;
-                                    return simulatorRoot.isTracking(bodyId, "velocity");
-                                }
-                                visible: show
-                                text: "速度: " + simulatorRoot.formatVecWithMagnitude(bodyVelocity[2], bodyVelocity[0], bodyVelocity[1])
-                                color: "#9EC4EA"
-                                font.pixelSize: 10
-                            }
-
-                            // 角速度（追踪时显示）
-                            Text {
-                                property bool show: {
-                                    simulatorRoot.trackingVersion;
-                                    return simulatorRoot.isTracking(bodyId, "angularVelocity");
-                                }
-                                visible: show
-                                text: "角速度: " + (typeof bodyAngularVelocity !== 'undefined'
-                                    ? simulatorRoot.formatVecWithMagnitude(bodyAngularVelocity[2], bodyAngularVelocity[0], bodyAngularVelocity[1])
-                                    : "N/A")
-                                color: "#9EC4EA"
-                                font.pixelSize: 10
-                            }
-
-                            // 动能（追踪时显示）
-                            Text {
-                                property bool show: {
-                                    simulatorRoot.trackingVersion;
-                                    return simulatorRoot.isTracking(bodyId, "kineticEnergy");
-                                }
-                                visible: show
-                                text: "动能: " + Number(bodyKineticEnergy).toFixed(2) + " J"
-                                color: "#9EC4EA"
-                                font.pixelSize: 10
-                            }
-                        }
-                    }
-                }
-
-                // ---- 空状态提示：无追踪数据时显示 ----
-                Rectangle {
-                    width: Math.max(220, dataStreamFlick.width - 20)
-                    height: dataStreamFlick.height
-                    radius: 10
-                    color: "#0D2748"
-                    border.width: 1
-                    border.color: "#2C5D88"
-
-                    property bool show: {
-                        simulatorRoot.trackingVersion;
-                        return !simulatorRoot.hasAnyTrackingData();
-                    }
-                    visible: show
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "点击 3D 物体 → 跟踪数据 → 勾选属性"
-                        color: "#5A7D9E"
-                        font.pixelSize: 13
-                        font.italic: true
-                    }
-                }
-            }
-
-            ScrollBar.horizontal: dataStreamHScrollBar
-        }
-
-        Basic.ScrollBar {
-            id: dataStreamHScrollBar
-            height: dataStreamPanel.scrollBarThickness
-            policy: ScrollBar.AsNeeded
-            visible: size < 1.0
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.leftMargin: 6
-            anchors.rightMargin: 6
-            anchors.bottomMargin: -(dataStreamPanel.scrollBarThickness + dataStreamPanel.scrollBarGap - 5)
-
-            contentItem: Rectangle {
-                radius: 4
-                implicitHeight: dataStreamPanel.scrollBarThickness
-                color: theme.accent
-                opacity: dataStreamHScrollBar.pressed ? 0.9 : 0.7
-            }
-
-            background: Rectangle {
-                radius: 4
-                implicitHeight: dataStreamPanel.scrollBarThickness
-                color: "#0F2A4C"
-                border.width: 1
-                border.color: theme.border
-                opacity: 0.6
-            }
-        }
-    }
 }

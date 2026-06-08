@@ -73,16 +73,8 @@ namespace egret
             }
 
             if (json.contains("name") && json["name"].isString()) {
-                qDebug() << "have name";
-                m_nameCount[json["name"].toString()] += 1;
-                json["name"] = json["name"].toString() += ("-" + QString::number(m_nameCount[json["name"].toString()]));
+                m_nameCount[json["name"].toString()]++;
             }
-
-            if (json.contains("id") && json["id"].isString()) {
-                qDebug() << "have id";
-                json["id"] = QString::number(UniqueIDGenerator::instance().generate());
-            }
-
             m_clipboard.append(json);
             ++copiedCount;
         }
@@ -158,6 +150,10 @@ namespace egret
 
             // 生成全新 ID（避免与原有实体冲突）
             newModel->setId(QString::number(UniqueIDGenerator::instance().generate()));
+
+            newModel->setName(newModel->name() + "-" + QString::number(m_nameCount.value(newModel->name())));
+
+            m_nameCount[json.value("name").toString()]++;
 
             if (em->addModel(newModel)) {
                 newIds.append(newModel->id());

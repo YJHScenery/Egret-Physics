@@ -611,14 +611,20 @@ namespace egret
         auto* copy = new ModelItemData(parent);
         copy->setMass(source.mass());
         copy->setLoadTime(source.loadTime());
+        copy->setRestitution(source.restitution());
         copy->setId(source.id());
         copy->setName(source.name());
+        copy->setType(source.type());
         copy->setSource(source.source());
         copy->setPos(source.pos());
         copy->setScale(source.scale());
         copy->setRotation(source.rotation());
         copy->setInitialVelo(source.initialVelo());
         copy->setInitialAnguVelo(source.initialAnguVelo());
+        copy->setBoxSize(source.boxSize());
+        copy->setRadius(source.radius());
+        copy->setHeight(source.height());
+        copy->setLength(source.length());
 
         MaterialData* sourceMaterials = source.materials();
         if (sourceMaterials) {
