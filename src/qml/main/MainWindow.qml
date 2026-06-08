@@ -141,6 +141,8 @@ ApplicationWindow {
                 "所有文件 (*)"
             ]
 
+            selectedFile: "Untitled.json"
+
             onAccepted: {
                 // 注意：selectedFile 返回的是 file:// 开头的 URL，需转换为本地路径
                 var fileUrl = selectedFile
@@ -154,10 +156,10 @@ ApplicationWindow {
         }
 
         EgretMessageDialog {
-            id: msgDialog
+            id: mainMsgDialog
             level: EgretMessageDialog.Level.Warning
-            title: "警告"
-            text: "仿真器不支持保存文件！"
+            title: "Default Title"
+            text: "Default Content"
             buttons: EgretMessageDialog.StandardButton.Ok
             soundType: "Warning"
         }
@@ -187,6 +189,7 @@ ApplicationWindow {
                             text: "新建(&N)",
                             shortcut: "Ctrl+N",
                             onTriggered: function () {
+                                workspaceComboBox.currentIndex = 1
                                 sceneController.reset();
                             },
                             icon: "qrc:/main_icons/assets/icons/new_scene.svg"
@@ -208,9 +211,6 @@ ApplicationWindow {
                                         break;
                                     }
                                 }
-
-
-
                             },
                             icon: "qrc:/main_icons/assets/icons/open.svg"
                         },
@@ -219,7 +219,9 @@ ApplicationWindow {
                             shortcut: "Ctrl+S",
                             onTriggered: function () {
                                 if (workspaceComboBox.currentIndex !== 1){
-                                    msgDialog.open();
+                                    mainMsgDialog.title = "警告"
+                                    mainMsgDialog.text = "仿真器不支持保存文件！"
+                                    mainMsgDialog.open();
                                     return;
                                 }
 
@@ -232,7 +234,15 @@ ApplicationWindow {
                             text: "另存为...(&A)",
                             shortcut: "Ctrl+Shift+S",
                             onTriggered: function () {
-                                console.log("Save as");
+                                if (workspaceComboBox.currentIndex !== 1){
+                                    mainMsgDialog.title = "警告"
+                                    mainMsgDialog.text = "仿真器不支持保存文件！"
+                                    mainMsgDialog.open();
+                                    return;
+                                }
+
+                                saveJsonFileDialog.open()
+                                console.log("Save");
                             },
                             icon: "qrc:/main_icons/assets/icons/save_as.svg"
                         },

@@ -46,6 +46,7 @@ ColumnLayout {
         title: "保存追踪数据"
         fileMode: FileDialog.SaveFile
         currentFolder: documentsFolder
+        // currentFile: ""
         defaultSuffix: "xlsx"
         nameFilters: [
             "Microsoft Excel Shell (*.xlsx)"
