@@ -570,6 +570,10 @@ ColumnLayout {
 
                         inspectorColumn.syncTypeAndGeometryToUi(model);
                         operatingButton.isCreateMode = false;
+
+                        // 同步侧边栏选中状态（仅非选择模式时）
+                        sceneEntityListPanel.setSingleSelection(model.id);
+
                         return true;
                     }
 

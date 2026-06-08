@@ -56,27 +56,55 @@ ColumnLayout {
     /**
      * @brief 切换实体选择状态。
      * @param entityId 实体 ID 字符串。
+     * @param ctrlHeld 是否按住 Ctrl（多选模式）。
      */
-    function toggleEntitySelection(entityId) {
-        if (!selectionMode) return;
+    function toggleEntitySelection(entityId, ctrlHeld) {
         var ids = selectedEntityIds.slice();
-        var idx = ids.indexOf(entityId);
-        if (idx >= 0) {
-            ids.splice(idx, 1);
-        } else {
-            if (ids.length >= maxSelection) {
-                // 达到上限：单选替换，多选拒绝
-                if (maxSelection === 1) {
-                    ids = [entityId];
+
+        if (selectionMode) {
+            // 约束创建模式：保留原有 min/maxSelection 逻辑
+            if (!ctrlHeld) {
+                ids = [entityId];
+            } else {
+                var idx = ids.indexOf(entityId);
+                if (idx >= 0) {
+                    ids.splice(idx, 1);
                 } else {
-                    return;
+                    if (ids.length >= maxSelection) return;
+                    ids.push(entityId);
+                }
+            }
+        } else {
+            // 通用选择模式：单击单选，Ctrl+单击多选
+            var idx = ids.indexOf(entityId);
+            if (ctrlHeld) {
+                if (idx >= 0) {
+                    ids.splice(idx, 1);
+                } else {
+                    ids.push(entityId);
                 }
             } else {
-                ids.push(entityId);
+                // 无 Ctrl：如果已选中该项则清除，否则单选该项
+                if (ids.length === 1 && ids[0] === entityId) {
+                    ids = [];
+                } else {
+                    ids = [entityId];
+                }
             }
         }
+
         selectedEntityIds = ids;
         selectionChanged(ids);
+    }
+
+    /**
+     * @brief 设置仅选中指定 ID（用于同步 3D 视口 pick）。
+     * @param entityId 实体 ID。
+     */
+    function setSingleSelection(entityId) {
+        if (selectionMode) return;
+        selectedEntityIds = [entityId];
+        selectionChanged([entityId]);
     }
 
     /**
@@ -335,9 +363,8 @@ ColumnLayout {
             height: 28
             radius: 6
 
-            // ── 选择模式下的高亮 ──
-            readonly property bool isSelectable: root.selectionMode && modelData.category === 0
-            readonly property bool isSelected: isSelectable && root.isEntitySelected(modelData.id)
+            // ── 高亮（选择模式或通用选择） ──
+            readonly property bool isSelected: root.isEntitySelected(modelData.id)
 
             color: isSelected ? "#1A4D8C" : "#0D2748"
             border.width: isSelected ? 2 : 1
@@ -346,10 +373,11 @@ ColumnLayout {
             // ── 选择模式下的点击区域 ──
             MouseArea {
                 anchors.fill: parent
-                enabled: itemRect.isSelectable
-                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                enabled: modelData.category === 0
+                cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    root.toggleEntitySelection(modelData.id);
+                    var ctrlHeld = mouse.modifiers & Qt.ControlModifier;
+                    root.toggleEntitySelection(modelData.id, ctrlHeld);
                 }
             }
 
@@ -359,15 +387,15 @@ ColumnLayout {
                 anchors.rightMargin: 5
                 spacing: 6
 
-                // ── 选择勾选标记（选择模式下替代可见性指示器） ──
+                // ── 选择勾选标记（选中时显示勾号，通用选择时显示可点选框） ──
                 Rectangle {
                     width: 10
                     height: 10
                     radius: 2
                     color: itemRect.isSelected ? "#3F9FFF" :
-                           (itemRect.isSelectable ? "#1A3050" :
+                           (modelData.category === 0 ? "#1A3050" :
                            (modelData.visible ? "#27B5FF" : "#3A5068"))
-                    border.width: itemRect.isSelectable && !itemRect.isSelected ? 1 : 0
+                    border.width: modelData.category === 0 && !itemRect.isSelected ? 1 : 0
                     border.color: "#3F9FFF"
 
                     // 选中勾号
