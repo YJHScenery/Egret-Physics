@@ -37,7 +37,6 @@ namespace egret
 
     Eigen::Vector3d GravityField::sample(const Eigen::Vector3d& position)
     {
-        std::ignore = position;
         return m_gravity;
     }
 

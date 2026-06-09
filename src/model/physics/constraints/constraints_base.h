@@ -120,13 +120,13 @@ namespace egret
         [[nodiscard]] std::size_t getRegisteredEntityCount() const { return m_registeredEntities.size(); }
 
         // 应用速度修正
-        virtual void applyVelocityConstraint(double dt) = 0;
+        virtual void applyVelocityConstraint([[maybe_unused]] double dt) = 0;
 
         // 应用位置修正（位置级别，解决穿透等问题）
-        virtual void applyPositionConstraint(double dt) = 0;
+        virtual void applyPositionConstraint([[maybe_unused]] double dt) = 0;
 
         // 角动量修正
-        virtual void applyAngularVelocityConstraint(double dt) = 0;
+        virtual void applyAngularVelocityConstraint([[maybe_unused]] double dt) = 0;
 
         // 计算约束满足程度（用于调试，返回误差值）
         [[nodiscard]] virtual double computeConstraintError() const = 0;

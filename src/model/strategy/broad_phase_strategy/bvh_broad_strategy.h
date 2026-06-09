@@ -13,9 +13,6 @@
 
 namespace egret
 {
-
-
-
     class BVHBroadStrategy : public BroadPhaseStrategy
     {
     public:
@@ -23,7 +20,7 @@ namespace egret
 
         BVHBroadStrategy(std::uint64_t leafSize, std::uint64_t maxDepth);
 
-        void buildCandidatePairs(const SolverSceneSnapshotBase& scene, const SolverConfig& config,
+        void buildCandidatePairs(const SolverSceneSnapshotBase& scene, [[maybe_unused]] const SolverConfig& config,
                                  std::vector<SolverBodyPair>& outPairs, SolverStats& stats) const override;
 
         std::string_view name() const override;

@@ -25,12 +25,10 @@ namespace egret
     void FrictionlessContactResolverStrategy::resolveContacts(SolverSceneSnapshotBase& scene,
                                                               const std::span<const SolverContactConstraint>
                                                               constraints,
-                                                              const double dt,
+                                                              [[maybe_unused]] const double dt,
                                                               const SolverConfig& config,
                                                               SolverStats& stats) const
     {
-        std::ignore = dt;
-
         auto bodies = scene.getBodies();
 
         for (std::uint32_t velIter = 0; velIter < config.velocityIterations; ++velIter) {

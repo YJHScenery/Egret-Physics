@@ -60,11 +60,11 @@ namespace egret
 
         [[nodiscard]] ConstraintType getType() const override;
 
-        void applyVelocityConstraint(double dt) override;
+        void applyVelocityConstraint([[maybe_unused]] double dt) override;
 
-        void applyPositionConstraint(double dt) override;
+        void applyPositionConstraint([[maybe_unused]] double dt) override;
 
-        void applyAngularVelocityConstraint(double dt) override;
+        void applyAngularVelocityConstraint([[maybe_unused]] double dt) override;
 
         [[nodiscard]] double computeConstraintError() const override;
 

@@ -188,11 +188,11 @@ namespace egret
          */
         void applyConstraintForces() override;
 
-        void applyVelocityConstraint(double dt) override { std::ignore = dt; }
+        void applyVelocityConstraint([[maybe_unused]] double dt) override {  }
 
-        void applyPositionConstraint(double dt) override { std::ignore = dt; }
+        void applyPositionConstraint([[maybe_unused]] double dt) override {  }
 
-        void applyAngularVelocityConstraint(double dt) override { std::ignore = dt; }
+        void applyAngularVelocityConstraint([[maybe_unused]] double dt) override { }
 
         [[nodiscard]] double computeConstraintError() const override { return 0.0; }
 

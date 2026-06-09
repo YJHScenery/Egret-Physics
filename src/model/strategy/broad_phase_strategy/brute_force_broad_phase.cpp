@@ -23,11 +23,10 @@ namespace egret
 {
 
     void BruteForceBroadPhaseStrategy::buildCandidatePairs(const SolverSceneSnapshotBase& scene,
-                                                           const SolverConfig& config,
+                                                           [[maybe_unused]] const SolverConfig& config,
                                                            std::vector<SolverBodyPair>& outPairs,
                                                            SolverStats& stats) const
     {
-        std::ignore = config;
         const auto bodies = scene.getBodies();
         outPairs.clear();
 

@@ -98,21 +98,21 @@ namespace egret
          *          同时处理角速度修正（刚体旋转响应）。
          * @param dt 固定时间步长。
          */
-        void applyVelocityConstraint(double dt) override;
+        void applyVelocityConstraint([[maybe_unused]] double dt) override;
 
         /**
          * @brief 应用位置修正。
          * @details 用户要求不使用位置修正函数，此方法为空。
          * @param dt 固定时间步长（未使用）。
          */
-        void applyPositionConstraint(double dt) override { /* 用户要求不使用位置修正 */ }
+        void applyPositionConstraint([[maybe_unused]] double dt) override { /* 用户要求不使用位置修正 */ }
 
         /**
          * @brief 应用角速度修正。
          * @details 角速度修正已在 applyVelocityConstraint 中通过冲量-力矩关系处理。
          * @param dt 固定时间步长（未使用）。
          */
-        void applyAngularVelocityConstraint(double dt) override { /* 在速度修正中已处理 */ }
+        void applyAngularVelocityConstraint([[maybe_unused]] double dt) override { /* 在速度修正中已处理 */ }
 
         /**
          * @brief 计算约束误差。

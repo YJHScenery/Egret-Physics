@@ -210,7 +210,7 @@ namespace egret
 
     // ==================== 位置微调 ====================
 
-    void SlidingRail::applyPositionConstraint(const double /*dt*/)
+    void SlidingRail::applyPositionConstraint([[maybe_unused]] const double dt)
     {
         if (!m_enabled || m_curve == nullptr) {
             return;
@@ -260,7 +260,7 @@ namespace egret
 
     // ==================== 速度微调 ====================
 
-    void SlidingRail::applyVelocityConstraint(const double /*dt*/)
+    void SlidingRail::applyVelocityConstraint([[maybe_unused]] const double dt)
     {
         if (!m_enabled || m_curve == nullptr) {
             return;
@@ -302,7 +302,7 @@ namespace egret
 
     // ==================== 角速度微调 ====================
 
-    void SlidingRail::applyAngularVelocityConstraint(const double dt)
+    void SlidingRail::applyAngularVelocityConstraint([[maybe_unused]] const double dt)
     {
         if (!m_enabled || m_curve == nullptr || dt <= 0.0) {
             return;

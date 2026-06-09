@@ -250,12 +250,10 @@ namespace egret
     void FrictionalContactResolverStrategy::resolveContacts(
         SolverSceneSnapshotBase &scene,
         const std::span<const SolverContactConstraint> constraints,
-        const double dt,
+        [[maybe_unused]] const double dt,
         const SolverConfig &config,
         SolverStats &stats) const
     {
-        std::ignore = dt;
-
         auto bodies = scene.getBodies();
 
         // 使用 const_cast 获取可变引用，以便在迭代间更新累积冲量字段。

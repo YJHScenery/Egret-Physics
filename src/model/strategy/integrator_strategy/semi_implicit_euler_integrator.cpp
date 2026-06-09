@@ -22,7 +22,7 @@ namespace egret
 {
     void SemiImplicitEulerIntegratorStrategy::integrate(SolverSceneSnapshotBase& scene,
                                                         const double dt,
-                                                        const SolverConfig& config,
+                                                        [[maybe_unused]] const SolverConfig& config,
                                                         SolverStats& stats) const
     {
         auto bodies = scene.getBodies();

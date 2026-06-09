@@ -51,7 +51,7 @@ namespace egret
         virtual void resolveContacts(SolverSceneSnapshotBase &scene,
                                      std::span<const SolverContactConstraint> constraints,
                                      double dt,
-                                     const SolverConfig &config,
+                                     [[maybe_unused]] const SolverConfig &config,
                                      SolverStats &stats) const = 0;
     };
 }

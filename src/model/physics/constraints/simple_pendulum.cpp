@@ -85,10 +85,8 @@ namespace egret
     // ========================================================================
     // 速度约束（能量守恒重定向）
     // ========================================================================
-    void SimplePendulum::applyVelocityConstraint(double dt)
+    void SimplePendulum::applyVelocityConstraint([[maybe_unused]] double dt)
     {
-        std::ignore = dt;
-
         if (m_entity == nullptr) {
             return;
         }
@@ -129,9 +127,8 @@ namespace egret
     // 位置约束（含自适应能量补偿）
     // ========================================================================
 
-    void SimplePendulum::applyPositionConstraint(double dt)
+    void SimplePendulum::applyPositionConstraint([[maybe_unused]] double dt)
     {
-        std::ignore = dt;
 
         if (m_entity == nullptr) {
             return;
@@ -223,9 +220,9 @@ namespace egret
     // 角速度约束（不参与）
     // ========================================================================
 
-    void SimplePendulum::applyAngularVelocityConstraint(double dt)
+    void SimplePendulum::applyAngularVelocityConstraint([[maybe_unused]] double dt)
     {
-        std::ignore = dt;
+
     }
 
     // ========================================================================

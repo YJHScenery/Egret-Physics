@@ -16,10 +16,9 @@ namespace egret
     {
     }
 
-    void BVHBroadStrategy::buildCandidatePairs(const SolverSceneSnapshotBase& scene, const SolverConfig& config,
+    void BVHBroadStrategy::buildCandidatePairs(const SolverSceneSnapshotBase& scene, [[maybe_unused]] const SolverConfig& config,
                                                std::vector<SolverBodyPair>& outPairs, SolverStats& stats) const
     {
-        std::ignore = config;
         const auto bodies = scene.getBodies();
 
         std::vector<PhysicalEntity*> entities{};

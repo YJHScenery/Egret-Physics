@@ -105,9 +105,6 @@ namespace egret
         {
         case ShapeType::Box:
         {
-            std::ignore = radius;
-            std::ignore = height;
-            std::ignore = length;
 
             const Eigen::Vector3d result{unitScale * Eigen::Vector3d{
                                                          (scale.y() * boxSize.y()),
@@ -117,8 +114,7 @@ namespace egret
         }
         case ShapeType::Cylinder:
         {
-            std::ignore = boxSize;
-            std::ignore = length;
+
             return unitScale * Eigen::Vector3d{
                                    (scale.y() * height),
                                    (scale.z() * radius),
@@ -126,8 +122,7 @@ namespace egret
         }
         case ShapeType::CylindricalShell:
         {
-            std::ignore = boxSize;
-            std::ignore = length;
+
             return Eigen::Vector3d{
                 (scale.y() * radius),
                 (scale.z() * height),
@@ -135,9 +130,7 @@ namespace egret
         }
         case ShapeType::Disk:
         {
-            std::ignore = boxSize;
-            std::ignore = length;
-            std::ignore = height;
+
             return unitScale * Eigen::Vector3d{
                                    (scale.y() * radius),
                                    0.01 * (scale.z() * radius),
@@ -145,9 +138,7 @@ namespace egret
         }
         case ShapeType::Ring:
         {
-            std::ignore = boxSize;
-            std::ignore = length;
-            std::ignore = height;
+
             return Eigen::Vector3d{
                 (scale.y() * radius),
                 (scale.z() * radius),
@@ -155,9 +146,7 @@ namespace egret
         }
         case ShapeType::Rod:
         {
-            std::ignore = boxSize;
-            std::ignore = height;
-            std::ignore = radius;
+
             return unitScale * Eigen::Vector3d{
                                    1.0f,
                                    (scale.y() * length),
@@ -167,9 +156,7 @@ namespace egret
             [[fallthrough]];
         case ShapeType::SphericalShell:
         {
-            std::ignore = boxSize;
-            std::ignore = length;
-            std::ignore = height;
+
             return 2 * unitScale * Eigen::Vector3d{(scale.y() * radius), (scale.z() * radius), (scale.x() * radius)};
         }
         default:

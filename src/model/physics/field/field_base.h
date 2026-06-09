@@ -73,7 +73,7 @@ namespace egret
         ~FieldBase() override = default;
 
         // 返回此位置的场向量
-        virtual Eigen::Vector3d sample(const Eigen::Vector3d& position) = 0;
+        virtual Eigen::Vector3d sample([[maybe_unused]] const Eigen::Vector3d& position) = 0;
 
         // 返回势能或势函数值，非保守场以后可以返回空值或默认实现（不包含质量乘数）
         virtual double potential(const Eigen::Vector3d& position) = 0;

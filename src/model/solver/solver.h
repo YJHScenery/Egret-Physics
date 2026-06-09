@@ -124,7 +124,7 @@ namespace egret
          * @param dt 固定步长。
          * @param stats 可变步骤统计。
          */
-        void applyConstraintForces(SolverSceneSnapshotBase& scene, double dt, SolverStats& stats) const;
+        void applyConstraintForces(SolverSceneSnapshotBase& scene, [[maybe_unused]] double dt, [[maybe_unused]] SolverStats& stats) const;
 
         /**
          * @brief 第 2 阶段：生成广相位候选对。

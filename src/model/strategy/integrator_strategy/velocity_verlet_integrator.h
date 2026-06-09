@@ -84,7 +84,7 @@ namespace egret
          */
         void integrate(SolverSceneSnapshotBase &scene,
                        double dt,
-                       const SolverConfig &config,
+                       [[maybe_unused]] const SolverConfig &config,
                        SolverStats &stats) const override;
 
         std::string_view name() const override;

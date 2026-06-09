@@ -49,7 +49,7 @@ namespace egret
          * @param stats 可变的每步统计信息。
          */
         virtual void buildCandidatePairs(const SolverSceneSnapshotBase &scene,
-                                         const SolverConfig &config,
+                                         [[maybe_unused]] const SolverConfig &config,
                                          std::vector<SolverBodyPair> &outPairs,
                                          SolverStats &stats) const = 0;
 

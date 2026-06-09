@@ -101,7 +101,7 @@ namespace egret
          *          仅作为微调手段，不做强制对齐。
          * @param dt 固定时间步长。
          */
-        void applyAngularVelocityConstraint(double dt) override;
+        void applyAngularVelocityConstraint([[maybe_unused]] double dt) override;
 
         /**
          * @brief 应用位置修正（微调）。
@@ -111,7 +111,7 @@ namespace egret
          *          使用较大的拉回系数快速进入轨道。
          * @param dt 固定时间步长（未使用）。
          */
-        void applyPositionConstraint(double dt) override;
+        void applyPositionConstraint([[maybe_unused]] double dt) override;
 
         /**
          * @brief 应用速度修正（微调）。
@@ -119,7 +119,7 @@ namespace egret
          *          若超过 m_velocityTolerance，衰减法向分量。
          * @param dt 固定时间步长（未使用）。
          */
-        void applyVelocityConstraint(double dt) override;
+        void applyVelocityConstraint([[maybe_unused]] double dt) override;
 
         /**
          * @brief 应用约束力（主要约束手段）。

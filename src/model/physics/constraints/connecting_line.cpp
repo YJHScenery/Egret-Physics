@@ -39,7 +39,7 @@ namespace egret
         return ConstraintType::ConnectingLine;
     }
 
-    void ConnectingLine::applyVelocityConstraint(double dt)
+    void ConnectingLine::applyVelocityConstraint([[maybe_unused]] double dt)
     {
         if (m_entityA == nullptr || m_entityB == nullptr) {
             return;
@@ -90,7 +90,7 @@ namespace egret
         }
     }
 
-    void ConnectingLine::applyPositionConstraint(double dt)
+    void ConnectingLine::applyPositionConstraint([[maybe_unused]] double dt)
     {
         if (m_entityA == nullptr || m_entityB == nullptr) {
             return;
@@ -155,9 +155,8 @@ namespace egret
         return std::max(0.0, dist - m_length);
     }
 
-    void ConnectingLine::applyAngularVelocityConstraint(double dt)
+    void ConnectingLine::applyAngularVelocityConstraint([[maybe_unused]] double dt)
     {
-        std::ignore = dt;
         // 不参与角速度变化。
     }
 

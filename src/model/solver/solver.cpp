@@ -251,9 +251,8 @@ namespace egret
     }
 
     void Solver::applyConstraintForces(SolverSceneSnapshotBase& scene,
-                                       const double dt, SolverStats& stats) const
+                                       [[maybe_unused]] const double dt, [[maybe_unused]] SolverStats& stats) const
     {
-        std::ignore = stats;
         const auto constraints = scene.getConstraints();
 
         for (ConstraintsBase* constraint : constraints)

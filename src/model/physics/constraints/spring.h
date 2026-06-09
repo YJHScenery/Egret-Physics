@@ -62,11 +62,11 @@ namespace egret
         void applyConstraintForces() override;
 
         // 以下虚函数为空实现，弹簧不直接修正速度/位置
-        void applyVelocityConstraint(double dt) override { std::ignore = dt; }
+        void applyVelocityConstraint([[maybe_unused]] double dt) override { }
 
-        void applyPositionConstraint(double dt) override { std::ignore = dt; }
+        void applyPositionConstraint([[maybe_unused]] double dt) override {  }
 
-        void applyAngularVelocityConstraint(double dt) override { std::ignore = dt; }
+        void applyAngularVelocityConstraint([[maybe_unused]] double dt) override {  }
 
         [[nodiscard]] double computeConstraintError() const override;
 

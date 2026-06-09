@@ -46,10 +46,8 @@ namespace egret
         return ConstraintType::ConnectingRod;
     }
 
-    void ConnectingRod::applyVelocityConstraint(const double dt)
+    void ConnectingRod::applyVelocityConstraint([[maybe_unused]] const double dt)
     {
-        std::ignore = dt;
-
         if (m_entityA == nullptr || m_entityB == nullptr) {
             return;
         }
@@ -112,10 +110,8 @@ namespace egret
         }
     }
 
-    void ConnectingRod::applyPositionConstraint(const double dt)
+    void ConnectingRod::applyPositionConstraint([[maybe_unused]] const double dt)
     {
-        std::ignore = dt;
-
         if (m_entityA == nullptr || m_entityB == nullptr) {
             return;
         }
@@ -167,9 +163,8 @@ namespace egret
         }
     }
 
-    void ConnectingRod::applyAngularVelocityConstraint(const double dt)
+    void ConnectingRod::applyAngularVelocityConstraint([[maybe_unused]] const double dt)
     {
-        std::ignore = dt;
         // 当前实现仅处理 COM 到 COM 的质点约束，
         // 角动量传递（刚体连接点偏移导致的角速度约束）将在后续版本中扩展。
     }
