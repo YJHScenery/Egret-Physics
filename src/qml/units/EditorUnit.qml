@@ -319,9 +319,25 @@ ColumnLayout {
             var metaSubSubTypeId = paramValues["__subsub_type_id"];
             if (metaSubTypeId !== undefined) {
                 EditorParameterManager.subTypeId = metaSubTypeId;
+                // 同步第 1 层子类型 ComboBox 的选中索引
+                var subTypes = EditorParameterManager.subTypes;
+                for (var si = 0; si < subTypes.length; si++) {
+                    if (subTypes[si].typeId === metaSubTypeId) {
+                        subTypeComboBox.currentIndex = si;
+                        break;
+                    }
+                }
             }
             if (metaSubSubTypeId !== undefined) {
                 EditorParameterManager.subSubTypeId = metaSubSubTypeId;
+                // 同步第 2 层子类型 ComboBox 的选中索引
+                var subSubTypes = EditorParameterManager.subSubTypes;
+                for (var ssi = 0; ssi < subSubTypes.length; ssi++) {
+                    if (subSubTypes[ssi].typeId === metaSubSubTypeId) {
+                        subSubTypeComboBox.currentIndex = ssi;
+                        break;
+                    }
+                }
             }
 
             // 将序列化的数组 [x,y,z] 恢复为 Qt.vector3d，否则 QML FloatField
@@ -385,6 +401,8 @@ ColumnLayout {
 
         // 5. 刷新几何参数 UI（一次性更新，此时 Connections 已解禁）
         inspectorColumn.geometryParams = EditorParameterManager.currentParameters;
+        inspectorColumn.subGeometryParams = EditorParameterManager.subParameters;
+        inspectorColumn.subSubGeometryParams = EditorParameterManager.subSubParameters;
 
         // 6. 3D 视口高亮
         editorCanvas.selectedObjectName = model.name;
@@ -1130,6 +1148,8 @@ ColumnLayout {
 
                         // 几何参数的本地快照 — 绕过 QML C++ 绑定延迟问题
                         property var geometryParams: []
+                        property var subGeometryParams: []
+                        property var subSubGeometryParams: []
                         // 从 pick 加载数据时置 true，阻止 onCurrentIndexChanged 重复触发类型切换
                         property bool isLoadingFromPick: false
 
@@ -1155,9 +1175,11 @@ ColumnLayout {
 
                         Component.onCompleted: {
                             geometryParams = EditorParameterManager.currentParameters;
+                            subGeometryParams = EditorParameterManager.subParameters;
+                            subSubGeometryParams = EditorParameterManager.subSubParameters;
                         }
 
-                        // 参数变化时自动同步 geometryParams（切换类别/类型时触发）
+                        // 参数变化时自动同步本地快照（切换类别/类型/子类型时触发）
                         // isLoadingFromPick 期间抑制更新，避免 Repeater 反复重建导致 FloatField 上下文错误
                         Connections {
                             target: EditorParameterManager
@@ -1165,6 +1187,14 @@ ColumnLayout {
                             function onCurrentParametersChanged() {
                                 if (inspectorColumn.isLoadingFromPick) return;
                                 inspectorColumn.geometryParams = EditorParameterManager.currentParameters;
+                            }
+                            function onSubParametersChanged() {
+                                if (inspectorColumn.isLoadingFromPick) return;
+                                inspectorColumn.subGeometryParams = EditorParameterManager.subParameters;
+                            }
+                            function onSubSubParametersChanged() {
+                                if (inspectorColumn.isLoadingFromPick) return;
+                                inspectorColumn.subSubGeometryParams = EditorParameterManager.subSubParameters;
                             }
                         }
 
@@ -1329,9 +1359,10 @@ ColumnLayout {
 
                                     EditorParameterManager.currentTypeId = typeId;
                                     inspectorPanel.m_type = typeId;
-                                    // 强制同步刷新几何参数
+                                    // 强制同步刷新所有参数快照
                                     inspectorColumn.geometryParams = EditorParameterManager.currentParameters;
-                                    // console.log("EditorUnit: geometryParams.length =", inspectorColumn.geometryParams.length);
+                                    inspectorColumn.subGeometryParams = EditorParameterManager.subParameters;
+                                    inspectorColumn.subSubGeometryParams = EditorParameterManager.subSubParameters;
                                 }
 
                                 // 下拉菜单样式
@@ -1458,11 +1489,11 @@ ColumnLayout {
                             border.width: 1
                             border.color: "#2C5D88"
 
-                            visible: inspectorColumn.isConstraintCategory && operatingButton.isCreateMode
+                            visible: inspectorColumn.isConstraintCategory
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "约束对象 / Targets"
+                                text: operatingButton.isCreateMode ? "约束对象 / Targets" : "约束对象 / Targets（只读）"
                                 color: "#CFE6FF"
                                 font.pixelSize: 12
                             }
@@ -1470,26 +1501,20 @@ ColumnLayout {
 
                         // ── 约束对象选择面板 ──
                         Column {
-                            visible: inspectorColumn.isConstraintCategory && operatingButton.isCreateMode
+                            visible: inspectorColumn.isConstraintCategory
                             width: parent.width
                             Layout.fillWidth: true
                             spacing: 6
 
-                            // ── 根据约束类型自动配置选择参数 ──
-                            Component.onCompleted: {
-                                sceneEntityListPanel.selectionMode = true;
-                            }
-                            Component.onDestruction: {
-                                sceneEntityListPanel.selectionMode = false;
-                                sceneEntityListPanel.clearSelection();
-                            }
+                            // ── 选择模式由下方的 Connections 根据 createMode + category 自动管理 ──
 
                             // ── 监听类别/类型切换，管理选择模式 ──
+                            // 仅在创建模式下生效；修改模式或加载中跳过，避免干扰已恢复的 entity_ids
                             Connections {
                                 target: EditorParameterManager
 
-                                // 类别变化：非约束时关闭选择模式
                                 function onCurrentCategoryChanged() {
+                                    if (!operatingButton.isCreateMode || inspectorColumn.isLoadingFromPick) return;
                                     if (EditorParameterManager.currentCategory !== 2) {
                                         sceneEntityListPanel.selectionMode = false;
                                         sceneEntityListPanel.clearSelection();
@@ -1498,21 +1523,17 @@ ColumnLayout {
                                     }
                                 }
 
-                                // 类型切换：清空已选并更新选择参数
                                 function onCurrentTypeIdChanged() {
+                                    if (!operatingButton.isCreateMode || inspectorColumn.isLoadingFromPick) return;
                                     sceneEntityListPanel.clearSelection();
                                     var tid = EditorParameterManager.currentTypeId;
-                                    // ConstraintType: ConnectingLine=1, SimplePendulum=2, ConnectingRod=3, Spring=5, SupportSurface=6
                                     if (tid === 1 || tid === 3 || tid === 5) {
-                                        // 双实体约束：ConnectingLine, ConnectingRod, Spring
                                         sceneEntityListPanel.minSelection = 2;
                                         sceneEntityListPanel.maxSelection = 2;
                                     } else if (tid === 2) {
-                                        // 单摆：1 实体 + 锚点
                                         sceneEntityListPanel.minSelection = 1;
                                         sceneEntityListPanel.maxSelection = 1;
                                     } else if (tid === 7) {
-                                        // 空气阻力：≥1
                                         sceneEntityListPanel.minSelection = 1;
                                         sceneEntityListPanel.maxSelection = 999;
                                     } else {
@@ -1522,11 +1543,13 @@ ColumnLayout {
                                 }
                             }
 
-                            // ── 实体选择变化：连接线/杆自动计算长度 ──
+                            // ── 实体选择变化：连接线/杆自动计算长度（仅创建模式） ──
                             Connections {
                                 target: sceneEntityListPanel
 
                                 function onSelectionChanged(entityIds) {
+                                    // 修改模式不自动计算，使用已存储的值
+                                    if (!operatingButton.isCreateMode) return;
                                     var tid = EditorParameterManager.currentTypeId;
                                     if ((tid !== 1 && tid !== 3) || entityIds.length !== 2) return;
 
@@ -1780,6 +1803,7 @@ ColumnLayout {
                                 color: "#BFD8F4"
                             }
                             ComboBox {
+                                id: subTypeComboBox
                                 width: parent.width
                                 implicitHeight: 28
                                 textRole: "displayName"
@@ -1814,15 +1838,15 @@ ColumnLayout {
                                     }
                                 }
 
-                                onCurrentIndexChanged: {
-                                    if (currentIndex >= 0 && model[currentIndex])
-                                        EditorParameterManager.subTypeId = model[currentIndex].typeId;
+                                onActivated: function(index) {
+                                    if (inspectorColumn.isLoadingFromPick) return;
+                                    EditorParameterManager.subTypeId = index;
                                 }
                             }
 
                             // 子类型参数列表
                             Repeater {
-                                model: EditorParameterManager.subParameters
+                                model: inspectorColumn.subGeometryParams
                                 delegate: Column {
                                     width: parent.width
                                     Layout.fillWidth: true
@@ -1942,6 +1966,7 @@ ColumnLayout {
                             }
 
                             ComboBox {
+                                id: subSubTypeComboBox
                                 width: parent.width
                                 implicitHeight: 28
                                 textRole: "displayName"
@@ -1976,15 +2001,17 @@ ColumnLayout {
                                     }
                                 }
 
-                                onCurrentIndexChanged: {
-                                    if (currentIndex >= 0 && model[currentIndex])
-                                        EditorParameterManager.subSubTypeId = model[currentIndex].typeId;
+                                onActivated: function(index) {
+                                    if (inspectorColumn.isLoadingFromPick) return;
+                                    var types = EditorParameterManager.subSubTypes;
+                                    if (index >= 0 && index < types.length)
+                                        EditorParameterManager.subSubTypeId = types[index]["typeId"];
                                 }
                             }
 
                             // 第 2 层子类型参数列表
                             Repeater {
-                                model: EditorParameterManager.subSubParameters
+                                model: inspectorColumn.subSubGeometryParams
                                 delegate: Column {
                                     width: parent.width
                                     Layout.fillWidth: true

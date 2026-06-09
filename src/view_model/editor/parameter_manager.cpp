@@ -635,14 +635,30 @@ namespace egret
 
     QVariant EditorParameterManager::parameterValue(const QString& key) const
     {
+        // 按子→主优先级查找，确保子类型参数从正确的存储层读取
+        if (m_subSubValues.contains(key)) return m_subSubValues.value(key);
+        if (m_subValues.contains(key)) return m_subValues.value(key);
         return m_values.value(key);
     }
 
     void EditorParameterManager::setParameterValue(const QString& key, const QVariant& value)
     {
-        if (m_values.value(key) == value)
+        // 按子→主优先级查找 key 所属的存储层，确保子类型参数写入正确的 map
+        if (m_subSubValues.contains(key)) {
+            if (m_subSubValues[key] == value) return;
+            m_subSubValues[key] = value;
+            emit currentParametersChanged();
+            emit subSubParametersChanged();
             return;
-
+        }
+        if (m_subValues.contains(key)) {
+            if (m_subValues[key] == value) return;
+            m_subValues[key] = value;
+            emit currentParametersChanged();
+            emit subParametersChanged();
+            return;
+        }
+        if (m_values.value(key) == value) return;
         m_values[key] = value;
         emit currentParametersChanged();
     }

@@ -413,8 +413,31 @@ namespace egret
                 // AirResistance
                 auto constraint = std::make_shared<AirResistance>(0);
                 constraint->setId(cid);
-                if (cd.contains("drag_config"))
+                if (cd.contains("drag_config")) {
                     constraint->setDefaultDragConfig(parseDragConfig(cd["drag_config"].toObject()));
+                } else if (cd.contains("__sub_type_id")) {
+                    // 回退：解析 QML 编辑器序列化的 sub_* 格式
+                    DragConfig cfg;
+                    const int subType = cd["__sub_type_id"].toInt();
+                    if (subType == 0) {
+                        cfg.model = DragModel::Linear;
+                        if (cd.contains("sub_linear_coeff"))
+                            cfg.linearCoeff = cd["sub_linear_coeff"].toDouble();
+                    } else if (subType == 1) {
+                        cfg.model = DragModel::Quadratic;
+                        if (cd.contains("sub_drag_coefficient"))
+                            cfg.dragCoefficient = cd["sub_drag_coefficient"].toDouble();
+                        if (cd.contains("sub_cross_section_area"))
+                            cfg.crossSectionArea = cd["sub_cross_section_area"].toDouble();
+                        if (cd.contains("sub_fluid_density"))
+                            cfg.fluidDensity = cd["sub_fluid_density"].toDouble();
+                    } else if (subType == 2) {
+                        cfg.model = DragModel::Constant;
+                        if (cd.contains("sub_constant_magnitude"))
+                            cfg.constantMagnitude = cd["sub_constant_magnitude"].toDouble();
+                    }
+                    constraint->setDefaultDragConfig(cfg);
+                }
 
                 if (cd.contains("entity_overrides") && cd["entity_overrides"].isArray()) {
                     for (const QJsonValueConstRef& ov : cd["entity_overrides"].toArray()) {

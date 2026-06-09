@@ -1109,15 +1109,15 @@ ColumnLayout {
                 MetricCard {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    Layout.preferredHeight: 30
-                    Layout.maximumHeight: 30
+                    Layout.preferredHeight: 32
+                    Layout.maximumHeight: 32
                     metricName: "步长"
                     metricValue: Number(sceneController.fixedStepMs).toFixed(2)
                     metricUnit: "ms"
                     metricColor: theme.accent
-                    nameFontSize: 10
-                    valueFontSize: 10
-                    unitFontSize: 8
+                    nameFontSize: 12
+                    valueFontSize: 12
+                    unitFontSize: 10
                     dotSize: 8
                     contentPadding: 10
                     contentSpacing: 6
@@ -1126,15 +1126,15 @@ ColumnLayout {
                 MetricCard {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    Layout.preferredHeight: 30
-                    Layout.maximumHeight: 30
+                    Layout.preferredHeight: 32
+                    Layout.maximumHeight: 32
                     metricName: "时间"
                     metricValue: Number(sceneController.simTime).toFixed(2)
                     metricUnit: "s"
                     metricColor: theme.accent
-                    nameFontSize: 10
-                    valueFontSize: 10
-                    unitFontSize: 8
+                    nameFontSize: 12
+                    valueFontSize: 12
+                    unitFontSize: 10
                     dotSize: 8
                     contentPadding: 10
                     contentSpacing: 6
@@ -1143,15 +1143,15 @@ ColumnLayout {
                 MetricCard {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    Layout.preferredHeight: 30
-                    Layout.maximumHeight: 30
+                    Layout.preferredHeight: 32
+                    Layout.maximumHeight: 32
                     metricName: "帧率"
                     metricValue: Number(sceneController.fps).toFixed(1)
                     metricUnit: "FPS"
                     metricColor: theme.success
-                    nameFontSize: 10
-                    valueFontSize: 10
-                    unitFontSize: 8
+                    nameFontSize: 12
+                    valueFontSize: 12
+                    unitFontSize: 10
                     dotSize: 8
                     contentPadding: 10
                     contentSpacing: 6
@@ -1160,15 +1160,15 @@ ColumnLayout {
                 MetricCard {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    Layout.preferredHeight: 30
-                    Layout.maximumHeight: 30
+                    Layout.preferredHeight: 32
+                    Layout.maximumHeight: 32
                     metricName: "刚体"
                     metricValue: sceneController.entityCount
                     metricUnit: "obj"
                     metricColor: theme.warning
-                    nameFontSize: 10
-                    valueFontSize: 10
-                    unitFontSize: 8
+                    nameFontSize: 12
+                    valueFontSize: 12
+                    unitFontSize: 10
                     dotSize: 8
                     contentPadding: 10
                     contentSpacing: 6
