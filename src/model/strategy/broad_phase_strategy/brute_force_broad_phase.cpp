@@ -68,8 +68,16 @@ namespace egret
             }
         }
 
+        for (const auto p: outPairs) {
+            LOG_DEBUG(std::format("Broad Pair: {}, {}", p.bodyAIndex, p.bodyBIndex));
+        }
+
         stats.broadPhasePairCount = outPairs.size();
     }
 
-
+    std::string_view BruteForceBroadPhaseStrategy::name() const
+    {
+        static const std::string name{"Brute Force"};
+        return name;
+    }
 }

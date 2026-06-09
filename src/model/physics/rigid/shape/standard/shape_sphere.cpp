@@ -78,10 +78,7 @@ namespace egret
         const Eigen::Matrix3d linear = transform.getLocalToWorldMatrix().topLeftCorner<3, 3>();
         const Eigen::Vector3d center = transform.getTranslation();
         const Eigen::Vector3d extent = linear.rowwise().norm() * m_radius;
-        return AABB{
-            .min = center - extent,
-            .max = center + extent,
-        };
+        return AABB{center - extent,center + extent,};
     }
 
     ShapeLoadInfo ShapeSphere::getLoadInfo() const

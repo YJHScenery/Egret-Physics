@@ -274,15 +274,6 @@ namespace egret
         if (m_broadPhase != nullptr) {
             m_broadPhase->buildCandidatePairs(scene, m_config, pairs, stats);
             stats.broadPhasePairCount = pairs.size();
-            // qDebug() << stats.broadPhasePairCount;
-            // if (stats.broadPhasePairCount != 0) {
-            //     qDebug() << stats.broadPhasePairCount;
-            //     qDebug() << pairs.size();
-            //     qDebug() << "not 0" << __func__;
-            //     for (const auto& pair : pairs) {
-            //         qDebug() << pair.bodyAIndex << " " << pair.bodyBIndex;
-            //     }
-            // }
         }
     }
 

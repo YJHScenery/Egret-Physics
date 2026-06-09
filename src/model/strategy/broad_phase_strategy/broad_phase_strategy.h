@@ -52,6 +52,8 @@ namespace egret
                                          const SolverConfig &config,
                                          std::vector<SolverBodyPair> &outPairs,
                                          SolverStats &stats) const = 0;
+
+        virtual std::string_view name() const = 0;
     };
 }
 

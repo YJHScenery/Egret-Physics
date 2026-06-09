@@ -36,7 +36,6 @@
 
 #include "world_scene_manager.h"
 #include "broad_phase_strategy/brute_force_broad_phase.h"
-#include "broad_phase_strategy/multi_process_brute_force_broad_phase.h"
 #include "contact_strategy/frictionless_contact_resolver.h"
 #include "integrator_strategy/semi_implicit_euler_integrator.h"
 #include <QJsonDocument>
@@ -69,6 +68,7 @@
 #include "constants.h"
 
 #include "unique_id_generator.h"
+#include "broad_phase_strategy/bvh_broad_strategy.h"
 #include "contact_strategy/frictional_contact_resolver.h"
 #include "integrator_strategy/velocity_verlet_integrator.h"
 
@@ -473,7 +473,7 @@ namespace egret
         auto solver = std::make_unique<Solver>(
             config,
             std::make_unique<VelocityVerletIntegratorStrategy>(),
-            std::make_unique<BruteForceBroadPhaseStrategy>(),
+            std::make_unique<BVHBroadStrategy>(),
             std::make_unique<FrictionalContactResolverStrategy>());
 
         m_world = std::make_unique<WorldSceneManager>(std::move(solver));
@@ -744,6 +744,13 @@ namespace egret
 
         std::uint64_t idBox2 = m_world->spawnBox("3", {0, 0, 0}, {0, 0, 0}, {10000, 10000, 130}, 0);
 
+
+        m_world->spawnSphere("1123", {110, 0, 300}, {0, 0, 0}, 10, 10);
+        m_world->spawnSphere("1223", {110, 10, 320}, {0, 0, 0}, 10, 10);
+        m_world->spawnSphere("1323", {110, 20, 340}, {0, 0, 0}, 10, 10);
+        m_world->spawnSphere("1423", {110, 30, 360}, {0, 0, 0}, 10, 10);
+        m_world->spawnSphere("1523", {110, 40, 380}, {0, 0, 0}, 10, 10);
+        m_world->spawnSphere("1623", {110, 50, 400}, {0, 0, 0}, 10, 10);
 
         m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
         std::uint64_t id1 = m_world->spawnSphere("123", {0, 0, 300}, {0, 0, 0}, 10, 10);

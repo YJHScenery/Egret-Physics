@@ -20,6 +20,7 @@
 #include <utility>
 #include <optional>
 #include <memory>
+#include "aabb.h"
 
 #include "async_logger.h"
 
@@ -117,21 +118,6 @@ namespace egret
      * @see         ContactPoint, SolverContactConstraint
      */
     using ContactManifold = std::vector<ContactPoint>;
-
-    /**
-     * @brief       AABB 包围盒结构体，存储轴对齐包围盒的最小和最大点。
-     * @details     AABB 是 AABB 包围盒结构体，存储轴对齐包围盒的最小和最大点。
-     *              用于物理引擎的广相位碰撞检测和空间划分。
-     *              AABB 是最简单的包围盒类型，计算效率高。
-     *
-     * @invariant   min <= max，最小点坐标小于最大点坐标
-     * @see         BroadPhaseStrategy, ShapeBase
-     */
-    struct AABB
-    {
-        Eigen::Vector3d min;
-        Eigen::Vector3d max;
-    };
 
     template <typename Derived, typename Base>
         requires(std::is_base_of_v<Base, Derived>)

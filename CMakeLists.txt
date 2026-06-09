@@ -318,8 +318,6 @@ set(CPP_FILES
         src/model/physics/constraints/sliding_rail.h
         src/model/physics/constraints/air_resistance.cpp
         src/model/physics/constraints/air_resistance.h
-        src/model/strategy/broad_phase_strategy/multi_process_brute_force_broad_phase.cpp
-        src/model/strategy/broad_phase_strategy/multi_process_brute_force_broad_phase.h
         src/view_model/simulator/visual_item/basic_render_item.h
         src/model/physics/rigid/shape/standard/convex_mesh.cpp
         src/model/physics/rigid/shape/standard/convex_mesh.h
@@ -331,6 +329,11 @@ set(CPP_FILES
         src/utils/os/windows/windows_sound.cpp
         src/view_model/editor/clipboard_helper.cpp
         src/view_model/editor/clipboard_helper.h
+        src/model/strategy/broad_phase_strategy/bvh_broad_strategy.cpp
+        src/model/strategy/broad_phase_strategy/bvh_broad_strategy.h
+        src/model/strategy/broad_phase_strategy/bvh_kernel.h
+        src/utils/aabb.cpp
+        src/utils/aabb.h
 
 )
 
