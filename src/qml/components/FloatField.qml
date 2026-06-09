@@ -66,7 +66,6 @@ Item {
             id: field
             anchors.fill: parent
             readOnly: root.readOnly
-            text: formatValue(root.value)
             color: root.readOnly ? "#6A8FB0" : "#FFFFFF"
             font.pixelSize: 12
             horizontalAlignment: Text.AlignLeft
@@ -105,6 +104,10 @@ Item {
             font.pixelSize: 11
             visible: root.suffix !== ""
         }
+    }
+
+    Component.onCompleted: {
+        field.text = formatValue(value);
     }
 
     onValueChanged: {

@@ -35,7 +35,7 @@ import "qrc:/components/components/basic"
 ColumnLayout {
     id: editorRoot
 
-    spacing: 10
+    spacing: 6
 
     DeepBlueTheme {
         id: theme
@@ -419,7 +419,7 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
-        spacing: 10
+        spacing: 6
 
         SceneEntityListPanel {
             id: sceneEntityListPanel
@@ -429,7 +429,7 @@ ColumnLayout {
             Layout.fillHeight: true
 
             // ── 单击 → 3D 视口高亮拾取（仅非约束选择模式） ──
-            onEntitySingleClicked: function(entityId) {
+            onEntitySingleClicked: function (entityId) {
                 if (sceneEntityListPanel.selectionMode) return;
                 var model = EditorManager.getModel(entityId);
                 if (!model) return;
@@ -437,7 +437,7 @@ ColumnLayout {
             }
 
             // ── 双击 → 自动检测类型，加载到属性面板，进入修改模式 ──
-            onEntityDoubleClicked: function(entityId) {
+            onEntityDoubleClicked: function (entityId) {
                 editorRoot.loadModelById(entityId);
             }
         }
@@ -1144,7 +1144,7 @@ ColumnLayout {
                     ColumnLayout {
                         id: inspectorColumn
                         width: Math.max(0, inspectorScrollView.availableWidth - inspectorScrollView.rightPadding)
-                        spacing: 10
+                        spacing: 6
 
                         // 几何参数的本地快照 — 绕过 QML C++ 绑定延迟问题
                         property var geometryParams: []
@@ -1188,10 +1188,12 @@ ColumnLayout {
                                 if (inspectorColumn.isLoadingFromPick) return;
                                 inspectorColumn.geometryParams = EditorParameterManager.currentParameters;
                             }
+
                             function onSubParametersChanged() {
                                 if (inspectorColumn.isLoadingFromPick) return;
                                 inspectorColumn.subGeometryParams = EditorParameterManager.subParameters;
                             }
+
                             function onSubSubParametersChanged() {
                                 if (inspectorColumn.isLoadingFromPick) return;
                                 inspectorColumn.subSubGeometryParams = EditorParameterManager.subSubParameters;
@@ -1477,9 +1479,7 @@ ColumnLayout {
                             Layout.fillWidth: true
                         }
 
-                        // ============================================================
                         //  约束对象 / Constraint Targets — 仅约束创建时可见
-                        // ============================================================
 
                         Rectangle {
                             Layout.fillWidth: true
@@ -1643,9 +1643,7 @@ ColumnLayout {
                             visible: inspectorColumn.isConstraintCategory && operatingButton.isCreateMode
                         }
 
-                        // ============================================================
                         //  几何参数 / Geometry — 数据驱动，来自 EditorParameterManager
-                        // ============================================================
 
                         Rectangle {
                             Layout.fillWidth: true
@@ -1838,7 +1836,7 @@ ColumnLayout {
                                     }
                                 }
 
-                                onActivated: function(index) {
+                                onActivated: function (index) {
                                     if (inspectorColumn.isLoadingFromPick) return;
                                     EditorParameterManager.subTypeId = index;
                                 }
@@ -2001,7 +1999,7 @@ ColumnLayout {
                                     }
                                 }
 
-                                onActivated: function(index) {
+                                onActivated: function (index) {
                                     if (inspectorColumn.isLoadingFromPick) return;
                                     var types = EditorParameterManager.subSubTypes;
                                     if (index >= 0 && index < types.length)
@@ -2485,7 +2483,7 @@ ColumnLayout {
 
         RowLayout {
             anchors.fill: parent
-            spacing: 10
+            spacing: 6
 
             Repeater {
                 model: 6

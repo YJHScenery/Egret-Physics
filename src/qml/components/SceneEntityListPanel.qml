@@ -29,7 +29,7 @@ import "qrc:/components/components/theme"
 ColumnLayout {
     id: root
 
-    spacing: 12
+    spacing: 6
 
     // ── 分类常量 ──
     readonly property int categoryShape: 0
