@@ -254,8 +254,8 @@ set(CPP_FILES
         src/model/scene/scene_curve_render_item.h
 
         src/model/strategy/broad_phase_strategy/broad_phase_strategy.h
-        src/model/strategy/broad_phase_strategy/brute_force_broad_phase.h
-        src/model/strategy/broad_phase_strategy/brute_force_broad_phase.cpp
+        src/model/strategy/broad_phase_strategy/brute_force_broad_strategy.h
+        src/model/strategy/broad_phase_strategy/brute_force_broad_strategy.cpp
 
         src/model/strategy/contact_strategy/contact_resolver_strategy.h
         src/model/strategy/contact_strategy/frictionless_contact_resolver.h
@@ -331,9 +331,12 @@ set(CPP_FILES
         src/view_model/editor/clipboard_helper.h
         src/model/strategy/broad_phase_strategy/bvh_broad_strategy.cpp
         src/model/strategy/broad_phase_strategy/bvh_broad_strategy.h
-        src/model/strategy/broad_phase_strategy/bvh_kernel.h
+        src/model/strategy/broad_phase_strategy/kernel/bvh_kernel.h
         src/utils/aabb.cpp
         src/utils/aabb.h
+        src/model/strategy/broad_phase_strategy/octree_broad_strategy.cpp
+        src/model/strategy/broad_phase_strategy/octree_broad_strategy.h
+        src/model/strategy/broad_phase_strategy/kernel/octree_kernel.h
 
 )
 

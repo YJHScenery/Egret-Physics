@@ -27,7 +27,7 @@
 #include "constraints_base.h"
 #include "particle.h"
 #include "physical_entity.h"
-#include "broad_phase_strategy/brute_force_broad_phase.h"
+#include "broad_phase_strategy/brute_force_broad_strategy.h"
 #include "contact_strategy/frictionless_contact_resolver.h"
 #include "integrator_strategy/semi_implicit_euler_integrator.h"
 #include <QMatrix3x3>

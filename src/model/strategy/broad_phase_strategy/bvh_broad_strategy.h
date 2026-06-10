@@ -8,7 +8,7 @@
 #include "broad_phase_strategy.h"
 #include <cstdint>
 #include "physics_utils.h"
-#include "bvh_kernel.h"
+#include "kernel/bvh_kernel.h"
 
 
 namespace egret

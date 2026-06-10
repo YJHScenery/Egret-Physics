@@ -34,9 +34,6 @@ namespace egret
         for (const auto& collision : collisions) {
             outPairs.push_back(SolverBodyPair{static_cast<std::uint64_t>(collision.first), static_cast<std::uint64_t>(collision.second)});
         }
-        for (const auto p: outPairs) {
-            LOG_DEBUG(std::format("Broad Pair: {}, {}", p.bodyAIndex, p.bodyBIndex));
-        }
         stats.broadPhasePairCount = outPairs.size();
     }
 

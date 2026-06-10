@@ -19,7 +19,7 @@ namespace egret
 
         std::vector<IndexType> entityIndices{};
 
-        bool isLeaf() const;
+        [[nodiscard]] bool isLeaf() const;
     };
 
     template <std::signed_integral IndexType>
@@ -35,11 +35,11 @@ namespace egret
     public:
         BVH() = default;
 
-        BVH(SizeType leafSize, SizeType maxDepth) : m_maxDepth{maxDepth}, m_leafSize{leafSize}
+        BVH(SizeType leafSize, SizeType maxDepth) : m_leafSize{leafSize}, m_maxDepth{maxDepth}
         {
         }
 
-        void build(const std::vector<PhysicalEntity*>& entities);
+        void build(std::vector<PhysicalEntity*> entities);
 
         std::vector<std::pair<IndexType, IndexType>> findSelfCollisions() const;
 
@@ -59,30 +59,15 @@ namespace egret
     };
 
     template <std::signed_integral IndexType, std::unsigned_integral SizeType>
-    void BVH<IndexType, SizeType>::build(const std::vector<PhysicalEntity*>& entities)
+    void BVH<IndexType, SizeType>::build(std::vector<PhysicalEntity*> entities)
     {
-        m_entities = entities;
+        m_entities = std::move(entities);
         nodes.clear();
         std::vector<IndexType> indices(m_entities.size());
         std::iota(indices.begin(), indices.end(), 0);
         m_rootIndex = buildRecursive(indices, 0);
     }
 
-    // template <std::signed_integral IndexType, std::unsigned_integral SizeType>
-    // std::vector<std::pair<IndexType, IndexType>> BVH<IndexType, SizeType>::findSelfCollisions() const
-    // {
-    //     if (nodes.empty()) return {};
-    //     std::vector<std::pair<IndexType, IndexType>> result;
-    //
-    //     // 自碰撞：同一个树，根节点与自己（根节点是后序遍历最后压入的节点）
-    //     traverseCollision(m_rootIndex, m_rootIndex, result);
-    //
-    //
-    //     // 去重（同一个对可能出现多次，比如两个大叶子相交多次）
-    //     std::ranges::sort(result);
-    //     result.erase(std::unique(result.begin(), result.end()), result.end());
-    //     return result;
-    // }
 
     template <std::signed_integral IndexType, std::unsigned_integral SizeType>
     std::vector<std::pair<IndexType, IndexType>> BVH<IndexType, SizeType>::findSelfCollisions() const
@@ -90,9 +75,7 @@ namespace egret
         if (nodes.empty()) return {};
         std::vector<std::pair<IndexType, IndexType>> result;
         traverseCollision(m_rootIndex, m_rootIndex, result);
-        // 不需要去重了，但如果你担心某些边界情况，可以保留：
-        // std::ranges::sort(result);
-        // result.erase(std::unique(result.begin(), result.end()), result.end());
+
         return result;
     }
 
@@ -102,10 +85,20 @@ namespace egret
         BVHNode<IndexType> node{};
 
         PhysicalEntity* pEntity0{m_entities[entityIndices[0]]};
+
+        if (pEntity0 == nullptr) {
+            LOG_FATAL(std::format("Find Null Pointer: {}", reinterpret_cast<std::uint64_t>(pEntity0)));
+            return -1;
+        }
+
         AABB combined{pEntity0->getShape()->getAABB(pEntity0->getTransformCR())};
 
         for (IndexType index : entityIndices.subspan(1)) {
             PhysicalEntity* entityPtr{m_entities[index]};
+            if (entityPtr == nullptr) {
+                LOG_FATAL(std::format("Find Null Pointer: {}", reinterpret_cast<std::uint64_t>(entityPtr)));
+                return -1;
+            }
             combined.expand(entityPtr->getShape()->getAABB(entityPtr->getTransformCR()));
         }
         node.bbox = combined;
@@ -119,7 +112,7 @@ namespace egret
 
         Eigen::Vector3d extents{combined.max - combined.min,};
 
-        short axis{0};
+        std::uint8_t axis{0};
         if (extents.y() > extents.x()) {
             axis = 1;
         }
@@ -152,54 +145,6 @@ namespace egret
         return static_cast<IndexType>(nodes.size() - 1);
     }
 
-    // template <std::signed_integral IndexType, std::unsigned_integral SizeType>
-    // void BVH<IndexType, SizeType>::traverseCollision(IndexType nodeAIndex, IndexType nodeBIndex,
-    //     std::vector<std::pair<IndexType, IndexType>>& collisions) const
-    // {
-    //     const BVHNode<IndexType>& nodeA = nodes[nodeAIndex];
-    //     const BVHNode<IndexType>& nodeB = nodes[nodeBIndex];
-    //
-    //     if (!nodeA.bbox.intersects(nodeB.bbox))
-    //         return;
-    //
-    //     if (nodeA.isLeaf() && nodeB.isLeaf()) {
-    //         // 两个叶子：遍历其中实体对，去重加入
-    //         for (IndexType aIdx : nodeA.entityIndices) {
-    //             for (IndexType bIdx : nodeB.entityIndices) {
-    //                 if (aIdx == bIdx) {
-    //                     continue; // 同一个物体忽略
-    //                 }
-    //                 // IndexType id1 = m_entities[aIdx]->getId();
-    //                 // IndexType id2 = m_entities[bIdx]->getId();
-    //                 // if (id1 > id2) {
-    //                 //     std::swap(id1, id2);
-    //                 // }
-    //                 if (aIdx > bIdx) {
-    //                     std::swap(aIdx, bIdx);
-    //                 }
-    //                 collisions.emplace_back(aIdx, bIdx);
-    //             }
-    //         }
-    //         return;
-    //     }
-    //
-    //     // 至少有一个是内部节点，需要向下递归
-    //     // 策略：总是递归孩子与另一个节点
-    //     if (nodeA.isLeaf()) {
-    //         // A是叶子，B是内部
-    //         traverseCollision(nodeAIndex, nodeB.leftChild, collisions);
-    //         traverseCollision(nodeAIndex, nodeB.rightChild, collisions);
-    //     } else if (nodeB.isLeaf()) {
-    //         traverseCollision(nodeA.leftChild, nodeBIndex, collisions);
-    //         traverseCollision(nodeA.rightChild, nodeBIndex, collisions);
-    //     } else {
-    //         // 都是内部：尝试所有配对 (左左, 左右, 右左, 右右)
-    //         traverseCollision(nodeA.leftChild, nodeB.leftChild, collisions);
-    //         traverseCollision(nodeA.leftChild, nodeB.rightChild, collisions);
-    //         traverseCollision(nodeA.rightChild, nodeB.leftChild, collisions);
-    //         traverseCollision(nodeA.rightChild, nodeB.rightChild, collisions);
-    //     }
-    // }
 
     template <std::signed_integral IndexType, std::unsigned_integral SizeType>
     void BVH<IndexType, SizeType>::traverseCollision(

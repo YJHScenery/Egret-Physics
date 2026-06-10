@@ -35,7 +35,7 @@
 #include <QVector3D>
 
 #include "world_scene_manager.h"
-#include "broad_phase_strategy/brute_force_broad_phase.h"
+#include "broad_phase_strategy/brute_force_broad_strategy.h"
 #include "contact_strategy/frictionless_contact_resolver.h"
 #include "integrator_strategy/semi_implicit_euler_integrator.h"
 #include <QJsonDocument>
@@ -69,6 +69,7 @@
 
 #include "unique_id_generator.h"
 #include "broad_phase_strategy/bvh_broad_strategy.h"
+#include "broad_phase_strategy/octree_broad_strategy.h"
 #include "contact_strategy/frictional_contact_resolver.h"
 #include "integrator_strategy/velocity_verlet_integrator.h"
 
@@ -473,7 +474,7 @@ namespace egret
         auto solver = std::make_unique<Solver>(
             config,
             std::make_unique<VelocityVerletIntegratorStrategy>(),
-            std::make_unique<BVHBroadStrategy>(),
+            std::make_unique<OctreeBroadStrategy>(),
             std::make_unique<FrictionalContactResolverStrategy>());
 
         m_world = std::make_unique<WorldSceneManager>(std::move(solver));

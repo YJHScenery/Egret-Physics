@@ -14,7 +14,7 @@
  * @defgroup    组名 (如果文件定义了一个模块组)
  */
 
-#include "brute_force_broad_phase.h"
+#include "brute_force_broad_strategy.h"
 #include "standard/shape_base.h"
 #include "physical_entity.h"
 
@@ -22,7 +22,7 @@
 namespace egret
 {
 
-    void BruteForceBroadPhaseStrategy::buildCandidatePairs(const SolverSceneSnapshotBase& scene,
+    void BruteForceBroadStrategy::buildCandidatePairs(const SolverSceneSnapshotBase& scene,
                                                            [[maybe_unused]] const SolverConfig& config,
                                                            std::vector<SolverBodyPair>& outPairs,
                                                            SolverStats& stats) const
@@ -67,14 +67,10 @@ namespace egret
             }
         }
 
-        for (const auto p: outPairs) {
-            LOG_DEBUG(std::format("Broad Pair: {}, {}", p.bodyAIndex, p.bodyBIndex));
-        }
-
         stats.broadPhasePairCount = outPairs.size();
     }
 
-    std::string_view BruteForceBroadPhaseStrategy::name() const
+    std::string_view BruteForceBroadStrategy::name() const
     {
         static const std::string name{"Brute Force"};
         return name;

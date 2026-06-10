@@ -32,14 +32,14 @@ namespace egret
      * @remark      BruteForceBroadPhaseStrategy 是具体实现类，可以直接实例化
      * @see         BroadPhaseStrategy, SolverBodyPair, AABB
      */
-    class BruteForceBroadPhaseStrategy final : public BroadPhaseStrategy
+    class BruteForceBroadStrategy final : public BroadPhaseStrategy
     {
     public:
         /** 默认构造。 */
-        BruteForceBroadPhaseStrategy() = default;
+        BruteForceBroadStrategy() = default;
 
         /** 默认析构。 */
-        ~BruteForceBroadPhaseStrategy() override = default;
+        ~BruteForceBroadStrategy() override = default;
 
         /**
          * @brief 使用 AABB 暴力检测生成候选碰撞对。
