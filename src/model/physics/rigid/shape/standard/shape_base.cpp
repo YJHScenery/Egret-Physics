@@ -39,8 +39,8 @@ namespace egret
         return ShapeType::Abstract;
     }
 
-    bool ShapeBase::collide(const ShapeBase *other,
-                            const Transform &thisTrans, const Transform &otherTrans, ContactManifold &manifold) const
+    bool ShapeBase::collide(const ShapeBase* other,
+                            const Transform& thisTrans, const Transform& otherTrans, ContactManifold& manifold) const
     {
         const auto myId = static_cast<std::uint32_t>(this->getType());
         const auto otherId = static_cast<std::uint32_t>(other->getType());
@@ -62,18 +62,24 @@ namespace egret
         return result;
     }
 
-    std::optional<double> ShapeBase::continuousCollide(const ShapeBase *other,
-                                                       const Transform &initTransA,
-                                                       const Transform &initTransB,
-                                                       const Eigen::Vector3d &thisLinearVel, const Eigen::Vector3d &thisAngularVel,
-                                                       const Eigen::Vector3d &otherLinearVel, const Eigen::Vector3d &otherAngularVel, double dt,
-                                                       ContactManifold &manifold) const
+    std::optional<double> ShapeBase::continuousCollide(const ShapeBase* other,
+                                                       const Transform& initTransA,
+                                                       const Transform& initTransB,
+                                                       const Eigen::Vector3d& thisLinearVel,
+                                                       const Eigen::Vector3d& thisAngularVel,
+                                                       const Eigen::Vector3d& otherLinearVel,
+                                                       const Eigen::Vector3d& otherAngularVel, double dt,
+                                                       ContactManifold& manifold) const
     {
         const auto myId = static_cast<std::uint32_t>(this->getType());
         const auto otherId = static_cast<std::uint32_t>(other->getType());
-        const auto func = ShapeRegister::instance().findContinuousJudge(myId, otherId);
+        auto func = ShapeRegister::instance().findContinuousJudge(myId, otherId);
         if (!func) {
-            return std::nullopt;
+            func = ShapeRegister::instance().findContinuousJudge(static_cast<std::uint32_t>(ShapeType::Other),
+                                                                 static_cast<std::uint32_t>(ShapeType::Other));
+            if (!func) {
+                return std::nullopt;
+            }
         }
 
         // 规范顺序：myId 为注册 key 中较小的类型 ID
@@ -98,7 +104,7 @@ namespace egret
 
     std::string reflectShapeToString(const ShapeType type)
     {
-        const std::string_view view {magic_enum::enum_name(type)};
+        const std::string_view view{magic_enum::enum_name(type)};
         return std::string(view);
     }
 } // egret

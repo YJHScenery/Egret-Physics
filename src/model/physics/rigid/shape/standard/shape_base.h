@@ -134,7 +134,7 @@ namespace egret
         [[nodiscard]] virtual Eigen::Vector3d support(const Eigen::Vector3d &direction,
                                                       const Transform &transform) const = 0;
 
-        bool isValid() const;
+        [[nodiscard]] bool isValid() const;
 
 
     protected:

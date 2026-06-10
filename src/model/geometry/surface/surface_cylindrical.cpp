@@ -184,13 +184,17 @@ namespace egret
                 const auto idx11 = static_cast<std::uint32_t>((j + 1) * tVerts + i + 1);
 
                 // 三角形 1
-                mesh.indices.push_back(idx00);
-                mesh.indices.push_back(idx01);
-                mesh.indices.push_back(idx10);
+                mesh.indices.push_back({idx00, idx01, idx10});
+
                 // 三角形 2
-                mesh.indices.push_back(idx10);
-                mesh.indices.push_back(idx01);
-                mesh.indices.push_back(idx11);
+                mesh.indices.push_back({idx10, idx01, idx11});
+                // mesh.indices.push_back(idx00);
+                // mesh.indices.push_back(idx01);
+                // mesh.indices.push_back(idx10);
+                //
+                // mesh.indices.push_back(idx10);
+                // mesh.indices.push_back(idx01);
+                // mesh.indices.push_back(idx11);
             }
         }
 

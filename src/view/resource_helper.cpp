@@ -30,8 +30,10 @@ namespace egret
     const QMap<std::uint32_t, QString> ResourceHelper::StaticGeneralTypeSourceMap = {
         {static_cast<std::uint32_t>(ShapeType::Box), "#Cube"},
         {static_cast<std::uint32_t>(ShapeType::Cylinder), "#Cylinder"},
-        {static_cast<std::uint32_t>(ShapeType::CylindricalShell),
-         "qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh"},
+        {
+            static_cast<std::uint32_t>(ShapeType::CylindricalShell),
+            "qrc:/model_3d/assets/model_3d/cylinder_side/cylinder_side.mesh"
+        },
         {static_cast<std::uint32_t>(ShapeType::Disk), "#Cylinder"},
         {static_cast<std::uint32_t>(ShapeType::Rod), "#Cylinder"},
         {static_cast<std::uint32_t>(ShapeType::Ring), "qrc:/model_3d/assets/model_3d/torus/mesh/torus_R1.mesh"},
@@ -39,7 +41,7 @@ namespace egret
         {static_cast<std::uint32_t>(ShapeType::SphericalShell), "#Sphere"},
     };
 
-    ResourceHelper::ResourceHelper(QObject *parent) : QObject(parent)
+    ResourceHelper::ResourceHelper(QObject* parent) : QObject(parent)
     {
     }
 
@@ -115,8 +117,7 @@ namespace egret
 
     QString ResourceHelper::getSourceByShape(quint32 type)
     {
-        if (StaticGeneralTypeSourceMap.contains(static_cast<std::uint32_t>(type)))
-        {
+        if (StaticGeneralTypeSourceMap.contains(static_cast<std::uint32_t>(type))) {
             return StaticGeneralTypeSourceMap.value(static_cast<std::uint32_t>(type));
         }
         return {};

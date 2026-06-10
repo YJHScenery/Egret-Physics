@@ -55,19 +55,25 @@ namespace egret
         mesh.indices.reserve(segs * segs * 6);
         for (int j = 0; j < segs; ++j) {
             for (int i = 0; i < segs; ++i) {
-                const std::uint32_t idx00 = static_cast<std::uint32_t>(j * vertsPerSide + i);
-                const std::uint32_t idx10 = static_cast<std::uint32_t>(j * vertsPerSide + i + 1);
-                const std::uint32_t idx01 = static_cast<std::uint32_t>((j + 1) * vertsPerSide + i);
-                const std::uint32_t idx11 = static_cast<std::uint32_t>((j + 1) * vertsPerSide + i + 1);
+                const auto idx00 = static_cast<std::uint32_t>(j * vertsPerSide + i);
+                const auto idx10 = static_cast<std::uint32_t>(j * vertsPerSide + i + 1);
+                const auto idx01 = static_cast<std::uint32_t>((j + 1) * vertsPerSide + i);
+                const auto idx11 = static_cast<std::uint32_t>((j + 1) * vertsPerSide + i + 1);
 
-                // 三角形 1: (idx00, idx01, idx10)
-                mesh.indices.push_back(idx00);
-                mesh.indices.push_back(idx01);
-                mesh.indices.push_back(idx10);
-                // 三角形 2: (idx10, idx01, idx11)
-                mesh.indices.push_back(idx10);
-                mesh.indices.push_back(idx01);
-                mesh.indices.push_back(idx11);
+                // 三角形 1
+                mesh.indices.push_back({idx00, idx01, idx10});
+
+                // 三角形 2
+                mesh.indices.push_back({idx10, idx01, idx11});
+
+                // // 三角形 1: (idx00, idx01, idx10)
+                // mesh.indices.push_back(idx00);
+                // mesh.indices.push_back(idx01);
+                // mesh.indices.push_back(idx10);
+                // // 三角形 2: (idx10, idx01, idx11)
+                // mesh.indices.push_back(idx10);
+                // mesh.indices.push_back(idx01);
+                // mesh.indices.push_back(idx11);
             }
         }
 

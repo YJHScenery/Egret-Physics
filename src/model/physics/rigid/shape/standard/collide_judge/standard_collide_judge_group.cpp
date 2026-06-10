@@ -28,8 +28,441 @@
 #include "shape_sphere.h"
 #include "shape_spherical_shell.h"
 
+#include <array>
+
+// ============================================================================
+// 匿名命名空间：GJK / EPA 算法内部辅助结构及函数
+// ============================================================================
+namespace {
+
+/// GJK 最大迭代次数
+constexpr int kGjkMaxIters = 32;
+
+/// GJK 收敛容差
+constexpr double kGjkEpsilon = 1e-8;
+
+/// EPA 最大迭代次数
+constexpr int kEpaMaxIters = 8;
+
+/// EPA 收敛容差
+constexpr double kEpaTolerance = 1e-6;
+
+/**
+ * @brief  Minkowski 差 support 函数。
+ * @details 计算 C = A − B 在方向 dir 上的最远点：
+ *          C.support(dir) = A.support(dir) − B.support(−dir)
+ *
+ * @param a       形状 A
+ * @param ta      形状 A 的变换
+ * @param b       形状 B
+ * @param tb      形状 B 的变换
+ * @param dir     世界空间方向（无需归一化，但建议归一化）
+ * @return        Minkowski 差中 dir 方向的最远点（世界坐标）
+ */
+Eigen::Vector3d minkowskiSupport(const egret::ShapeBase& a, const egret::Transform& ta,
+                                  const egret::ShapeBase& b, const egret::Transform& tb,
+                                  const Eigen::Vector3d& dir)
+{
+    return a.support(dir, ta) - b.support(-dir, tb);
+}
+
+/**
+ * @brief  GJK 单形体，存储最多 4 个 Minkowski 差顶点。
+ */
+struct Simplex
+{
+    Eigen::Vector3d v[4];  ///< 顶点数组（v[0..n-1] 有效）
+    int n = 0;             ///< 当前顶点数（1～4）
+
+    /// 赋值初始化列表
+    Simplex& operator=(std::initializer_list<Eigen::Vector3d> list)
+    {
+        n = 0;
+        for (const auto& p : list) v[n++] = p;
+        return *this;
+    }
+
+    /// 在最前面插入顶点（用于 GJK 进化）
+    void pushFront(const Eigen::Vector3d& p)
+    {
+        v[3] = v[2]; v[2] = v[1]; v[1] = v[0]; v[0] = p;
+        n = std::min(n + 1, 4);
+    }
+
+    /// 用新的单点重置
+    void reset(const Eigen::Vector3d& p)
+    {
+        v[0] = p;
+        n = 1;
+    }
+};
+
+// ---------------------------------------------------------------------------
+// Simplex 进化子函数 — 各维度下寻找离原点最近的特征并更新搜索方向
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief  在线段 AB 上寻找离原点最近的点，更新单形体和搜索方向。
+ * @return true  原点在线段上（已包含在单形体内）
+ * @return false 未包含，但已更新单形体和方向
+ */
+bool closestOnLine(Simplex& s, Eigen::Vector3d& dir)
+{
+    const Eigen::Vector3d& a = s.v[0];
+    const Eigen::Vector3d& b = s.v[1];
+    const Eigen::Vector3d ab = b - a;
+    const double denom = ab.squaredNorm();
+
+    // 退化线段保护
+    if (denom < kGjkEpsilon * kGjkEpsilon) {
+        dir = -a;
+        s.reset(a);
+        return dir.squaredNorm() < kGjkEpsilon * kGjkEpsilon;
+    }
+
+    const double t = std::clamp(-a.dot(ab) / denom, 0.0, 1.0);
+
+    if (t <= 0.0) {
+        dir = -a;
+        s.reset(a);
+    } else if (t >= 1.0) {
+        dir = -b;
+        s.reset(b);
+    } else {
+        // 最近点在线段上，保留线段
+        dir = -(a + t * ab);
+    }
+
+    return dir.squaredNorm() < kGjkEpsilon * kGjkEpsilon;
+}
+
+/**
+ * @brief  在三角形 ABC 上寻找离原点最近的点，更新单形体和搜索方向。
+ * @return true  原点在三角形内
+ * @return false 未包含，但已更新单形体和方向
+ */
+bool closestOnTriangle(Simplex& s, Eigen::Vector3d& dir)
+{
+    const Eigen::Vector3d& a = s.v[0];
+    const Eigen::Vector3d& b = s.v[1];
+    const Eigen::Vector3d& c = s.v[2];
+
+    const Eigen::Vector3d ab = b - a;
+    const Eigen::Vector3d ac = c - a;
+    const Eigen::Vector3d ao = -a;
+
+    // 检查顶点 A 区域：法线 (AB×AC)×AC 指向外侧判断
+    const Eigen::Vector3d abCrossAc = ab.cross(ac);
+    if (abCrossAc.cross(ac).dot(ao) > 0.0) {
+        if (ac.dot(ao) > 0.0) { s = {a, c}; return closestOnLine(s, dir); }
+        if (ab.dot(ao) > 0.0) { s = {a, b}; return closestOnLine(s, dir); }
+        dir = ao;
+        s.reset(a);
+        return dir.squaredNorm() < kGjkEpsilon * kGjkEpsilon;
+    }
+
+    const Eigen::Vector3d bc = c - b;
+    const Eigen::Vector3d bo = -b;
+
+    // 检查顶点 B 区域
+    if (bc.cross(ab).cross(ab).dot(bo) > 0.0) {
+        if (ab.dot(bo) > 0.0) { s = {b, a}; return closestOnLine(s, dir); }
+        if (bc.dot(bo) > 0.0) { s = {b, c}; return closestOnLine(s, dir); }
+        dir = bo;
+        s.reset(b);
+        return dir.squaredNorm() < kGjkEpsilon * kGjkEpsilon;
+    }
+
+    const Eigen::Vector3d co = -c;
+
+    // 检查顶点 C 区域
+    if (ac.cross(bc).cross(bc).dot(co) > 0.0) {
+        if (ac.dot(co) > 0.0) { s = {c, a}; return closestOnLine(s, dir); }
+        if (bc.dot(co) > 0.0) { s = {c, b}; return closestOnLine(s, dir); }
+        dir = co;
+        s.reset(c);
+        return dir.squaredNorm() < kGjkEpsilon * kGjkEpsilon;
+    }
+
+    // 原点投影在三角形内部 — 沿面法线搜索
+    if (abCrossAc.dot(ao) > 0.0) {
+        dir = abCrossAc;
+    } else {
+        dir = -abCrossAc;
+        s = {a, c, b};  // 翻转缠绕顺序以匹配法线方向
+    }
+
+    return false;
+}
+
+/**
+ * @brief  在四面体 ABCD 中寻找离原点最近的点。
+ * @return true  原点在四面体内部（碰撞确认）
+ * @return false 原点在某面外侧，已降维为三角形/线段/点
+ */
+bool closestInTetrahedron(Simplex& s, Eigen::Vector3d& dir)
+{
+    const Eigen::Vector3d& a = s.v[0];
+    const Eigen::Vector3d& b = s.v[1];
+    const Eigen::Vector3d& c = s.v[2];
+    const Eigen::Vector3d& d = s.v[3];
+
+    // 面 ABC — 法线指向远离 D 的一侧（外侧）
+    Eigen::Vector3d faceN = (b - a).cross(c - a);
+    if (faceN.dot(a - d) < 0.0) faceN = -faceN;
+    if (faceN.dot(-a) > 0.0) { s = {a, b, c}; return closestOnTriangle(s, dir); }
+
+    // 面 ACD
+    faceN = (c - a).cross(d - a);
+    if (faceN.dot(a - b) < 0.0) faceN = -faceN;
+    if (faceN.dot(-a) > 0.0) { s = {a, c, d}; return closestOnTriangle(s, dir); }
+
+    // 面 ADB
+    faceN = (d - a).cross(b - a);
+    if (faceN.dot(a - c) < 0.0) faceN = -faceN;
+    if (faceN.dot(-a) > 0.0) { s = {a, d, b}; return closestOnTriangle(s, dir); }
+
+    // 面 BDC
+    faceN = (d - b).cross(c - b);
+    if (faceN.dot(b - a) < 0.0) faceN = -faceN;
+    if (faceN.dot(-b) > 0.0) { s = {b, d, c}; return closestOnTriangle(s, dir); }
+
+    // 原点在所有面的内侧 → 在四面体内部 → 碰撞！
+    return true;
+}
+
+/**
+ * @brief  进化 GJK 单形体：根据当前维度选择对应的最近点搜索子程序。
+ * @return true  原点包含在单形体内（碰撞）
+ * @return false 未包含，但单形体和搜索方向已更新
+ */
+bool evolveSimplex(Simplex& s, Eigen::Vector3d& dir)
+{
+    switch (s.n) {
+    case 2:  return closestOnLine(s, dir);
+    case 3:  return closestOnTriangle(s, dir);
+    case 4:  return closestInTetrahedron(s, dir);
+    default: return false;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// GJK 核心
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief  静态 GJK 碰撞检测。
+ * @details 通过迭代构建 Minkowski 差 C = A − B 的单形体，判断 C 是否包含原点。
+ *          包含原点 → A 与 B 相交。
+ *
+ * @param a         形状 A
+ * @param ta        形状 A 的变换
+ * @param b         形状 B
+ * @param tb        形状 B 的变换
+ * @param simplex   [out] 当碰撞时包含结果的单形体（至少 4 个顶点）
+ * @param iters     [out] 实际迭代次数
+ * @return true   碰撞
+ * @return false  分离
+ */
+bool gjkIntersect(const egret::ShapeBase& a, const egret::Transform& ta,
+                  const egret::ShapeBase& b, const egret::Transform& tb,
+                  Simplex& simplex, int& iters)
+{
+    // 初始搜索方向：从 A 中心指向 B 中心
+    Eigen::Vector3d dir = tb.getTranslation() - ta.getTranslation();
+    if (dir.squaredNorm() < kGjkEpsilon * kGjkEpsilon) {
+        dir = Eigen::Vector3d::UnitX();
+    }
+
+    // 第一步：获取初始 support 点
+    simplex.reset(minkowskiSupport(a, ta, b, tb, dir));
+
+    // 搜索方向翻转向原点
+    dir = -simplex.v[0];
+
+    for (iters = 0; iters < kGjkMaxIters; ++iters) {
+        const Eigen::Vector3d w = minkowskiSupport(a, ta, b, tb, dir);
+
+        // 如果新 support 点没有越过原点，则原点不在 Minkowski 差内 → 无碰撞
+        if (w.dot(dir) < 0.0) {
+            return false;
+        }
+
+        simplex.pushFront(w);
+
+        // 进化单形体并更新搜索方向
+        if (evolveSimplex(simplex, dir)) {
+            return true; // 原点在单形体内 → 碰撞
+        }
+    }
+
+    // 达到最大迭代次数未收敛 — 保守返回 false
+    return false;
+}
+
+// ---------------------------------------------------------------------------
+// EPA 简化版 — 从 GJK 单形体计算穿透信息
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief  从四面体单形体的 4 个三角面中找出离原点最近的面。
+ *
+ * @param simplex   包含原点的四面体单形体
+ * @param normal    [out] 最近面的外法线（指向包含原点的一侧，即从 Minkowski
+ *                  差边界指向原点）
+ * @return          最近面到原点的距离（穿透深度的初次估计）
+ */
+double closestFaceFromSimplex(const Simplex& simplex, Eigen::Vector3d& normal)
+{
+    // 四面体的 4 个三角面（顶点索引）
+    static constexpr int faceIndices[4][3] = {
+        {0, 1, 2}, {0, 1, 3}, {0, 2, 3}, {1, 2, 3}
+    };
+
+    double bestDist = std::numeric_limits<double>::max();
+    Eigen::Vector3d bestNormal = Eigen::Vector3d::UnitY();
+
+    for (const auto& fi : faceIndices) {
+        const Eigen::Vector3d& p0 = simplex.v[fi[0]];
+        const Eigen::Vector3d& p1 = simplex.v[fi[1]];
+        const Eigen::Vector3d& p2 = simplex.v[fi[2]];
+
+        Eigen::Vector3d n = (p1 - p0).cross(p2 - p0);
+        const double lenSq = n.squaredNorm();
+        if (lenSq < 1e-20) continue;
+        n /= std::sqrt(lenSq);
+
+        // 让法线指向包含原点的一侧
+        if (n.dot(p0) > 0.0) n = -n;
+
+        const double dist = -n.dot(p0); // 面平面到原点的距离
+        if (dist < bestDist) {
+            bestDist = dist;
+            bestNormal = n;
+        }
+    }
+
+    normal = bestNormal;
+    return bestDist;
+}
+
+/**
+ * @brief  简化 EPA：通过迭代扩展多面体逼近真实的穿透深度和法线。
+ *
+ * @details 从 GJK 单形体出发，每次向当前最近面的法线方向采样新 support 点。
+ *          如果新点在面外侧（距原点更远），则用其替换多面体中最远的面顶点。
+ *
+ * @param a / ta    形状 A 及其变换
+ * @param b / tb    形状 B 及其变换
+ * @param simplex   GJK 碰撞检测输出的单形体（含原点）
+ * @param normal    [out] 碰撞法线（世界空间，从 A 指向 B）
+ * @param pointA    [out] 形状 A 上的接触点（世界空间）
+ * @param pointB    [out] 形状 B 上的接触点（世界空间）
+ * @return          穿透深度
+ */
+double computePenetration(const egret::ShapeBase& a, const egret::Transform& ta,
+                          const egret::ShapeBase& b, const egret::Transform& tb,
+                          const Simplex& simplex,
+                          Eigen::Vector3d& normal,
+                          Eigen::Vector3d& pointA,
+                          Eigen::Vector3d& pointB)
+{
+    // Phase 1: 从 GJK 单形体获取初始估计
+    Simplex poly = simplex; // 可变副本
+    double penetration = closestFaceFromSimplex(poly, normal);
+
+    // Phase 2: 迭代扩展
+    for (int iter = 0; iter < kEpaMaxIters; ++iter) {
+        // 沿当前法线方向采样 Minkowski 差边界
+        const Eigen::Vector3d s = minkowskiSupport(a, ta, b, tb, normal);
+        const double supportDist = s.dot(normal);
+
+        const double gap = supportDist - penetration;
+        if (gap < kEpaTolerance) {
+            break; // 收敛 — 当前面已足够接近真实边界
+        }
+
+        // 用新 support 点替换多面体中对该面贡献最小的顶点
+        // （在法线方向上投影最远的顶点）
+        int replaceIdx = 0;
+        double worstDot = poly.v[0].dot(normal);
+        for (int i = 1; i < poly.n; ++i) {
+            const double d = poly.v[i].dot(normal);
+            if (d > worstDot) {
+                worstDot = d;
+                replaceIdx = i;
+            }
+        }
+        poly.v[replaceIdx] = s;
+
+        // 更新最近面距离和法线
+        penetration = closestFaceFromSimplex(poly, normal);
+    }
+
+    // 翻转法线以匹配碰撞惯例：法线从 A 指向 B。
+    // closestFaceFromSimplex 返回的是 Minkowski 差面 → 原点的方向，
+    // 在 C = A − B 中该方向对应 B → A，故需要翻转。
+    normal = -normal;
+
+    // 接触点：分别计算 A 和 B 上沿碰撞法线方向的支撑点
+    pointA = a.support(normal, ta);
+    pointB = b.support(-normal, tb);
+
+    return penetration;
+}
+
+} // anonymous namespace
+
 namespace egret
 {
+    /**
+     * @brief  通用的静态 GJK 碰撞检测函数。
+     * @details 基于 ShapeBase::support() 支撑函数，使用 GJK 算法检测任意两个
+     *          凸形状之间的碰撞，并通过简化 EPA 算法计算穿透深度、碰撞法线和
+     *          接触点。不同形状类型无需各自编写专用碰撞检测即可复用此函数。
+     *
+     * @param shapeA     形状 A（任意凸形状）
+     * @param transA     形状 A 的变换
+     * @param shapeB     形状 B（任意凸形状）
+     * @param transB     形状 B 的变换
+     * @param manifold   [out] 碰撞信息输出（法线、穿透深度、接触点）
+     * @return true     发生碰撞
+     * @return false    未发生碰撞
+     */
+    bool box_first::collideGeneric(const ShapeBase& shapeA, const Transform& transA, const ShapeBase& shapeB,
+        const Transform& transB, ContactManifold& manifold)
+    {
+        // ---------- Step 1: GJK 碰撞检测 ----------
+        Simplex simplex{};
+        int iters = 0;
+        const bool colliding = gjkIntersect(shapeA, transA, shapeB, transB, simplex, iters);
+
+        if (!colliding) {
+            return false;
+        }
+
+        // ---------- Step 2: EPA 计算穿透信息 ----------
+        Eigen::Vector3d normal;
+        Eigen::Vector3d pointA, pointB;
+        const double penetration = computePenetration(
+            shapeA, transA, shapeB, transB, simplex, normal, pointA, pointB);
+
+        if (penetration <= 0.0) {
+            return false;
+        }
+
+        // ---------- Step 3: 填充接触流形 ----------
+        ContactPoint contact{};
+        contact.position = (pointA + pointB) * 0.5;  // 取中点作为接触点
+        contact.normal = normal;                       // 法线方向：从 A 指向 B
+        contact.penetration = penetration;
+        contact.featureA = ContactFeature::Unknown;
+        contact.featureB = ContactFeature::Unknown;
+
+        manifold.push_back(contact);
+        return true;
+    }
+
     bool box_first::collideBoxBox(const ShapeBox& boxA, const Transform& transA, const ShapeBox& boxB,
                                   const Transform& transB, ContactManifold& manifold)
     {

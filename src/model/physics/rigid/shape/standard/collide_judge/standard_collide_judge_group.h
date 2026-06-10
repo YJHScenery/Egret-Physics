@@ -35,6 +35,10 @@ namespace egret
 
     inline namespace box_first
     {
+        bool collideGeneric(const ShapeBase& shapeA, const Transform& transA, const ShapeBase& shapeB,
+                              const Transform& transB, ContactManifold& manifold);
+
+
         // 已实现
         bool collideBoxBox(const ShapeBox& boxA, const Transform& transA,
                                      const ShapeBox& boxB, const Transform& transB,

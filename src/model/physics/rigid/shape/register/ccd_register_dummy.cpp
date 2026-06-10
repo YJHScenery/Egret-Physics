@@ -27,12 +27,48 @@
 #include "shape_spherical_shell.h"
 #include "ccd_collide_judge_group.h"
 #include "physics_utils.h"
+#include "standard_collide_judge_group.h"
 
 namespace egret
 {
     static bool registerContinuousStandardShape()
     {
         auto& reg = ShapeRegister::instance();
+
+        reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Other),
+                                    static_cast<std::uint32_t>(ShapeType::Other),
+                                    [](const ShapeBase* shapeA, const Transform& initTransA,
+
+                                       const Eigen::Vector3d& linearVelA, const Eigen::Vector3d& angularVelA,
+                                       const ShapeBase* shapeB, const Transform& initTransB,
+                                       const Eigen::Vector3d& linearVelB, const Eigen::Vector3d& angularVelB,
+                                       double dt, ContactManifold& manifold) -> std::optional<double>
+                                    {
+                                        if (shapeA != nullptr && shapeB != nullptr) {
+                                            double collisionTime = 0.0;
+                                            // if (continuousCollideBoxBox(*boxA, initTransA, linearVelA, angularVelA,
+                                            //                             *boxB, initTransB, linearVelB, angularVelB,
+                                            //                             dt, collisionTime, manifold)) {
+                                            //     return collisionTime;
+                                            // }
+
+                                            continuousCollideGeneric(
+                                                *shapeA, initTransA, linearVelA, angularVelA,
+                                                *shapeB, initTransB, linearVelB, angularVelB,
+                                                dt, collisionTime, manifold,
+                                                collideGeneric,
+                                                [](const ShapeBase& a, const Transform& transA,
+                                                   const ShapeBase& b, const Transform& transB,
+                                                   ContactManifold& outManifold)
+                                                {
+                                                    for (ContactPoint& point : outManifold) {
+                                                        point.featureA = ContactFeature::Face;
+                                                        point.featureB = ContactFeature::Face;
+                                                    }
+                                                });
+                                        }
+                                        return std::nullopt;
+                                    });
 
         reg.registerContinuousJudge(static_cast<std::uint32_t>(ShapeType::Box),
                                     static_cast<std::uint32_t>(ShapeType::Box),

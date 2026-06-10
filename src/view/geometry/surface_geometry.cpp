@@ -100,11 +100,11 @@ namespace egret
         // - 正面（Forward faces）：逆时针绕向，原始法线
         // - 背面（Back faces）：  顺时针绕向，法线取反
         const std::size_t vertexCount = mesh.vertexCount();
-        const std::size_t indexCount3 = mesh.indices.size(); // 索引值总数（三角形数 × 3）
+        const std::size_t triangleCount = mesh.indices.size(); // 索引值总数（三角形数）
 
         constexpr int stride = 6 * static_cast<int>(sizeof(float));
         const std::size_t totalVertexCount = vertexCount * 2; // 正面 + 背面
-        const std::size_t totalIndexCount = indexCount3 * 2;
+        const std::size_t totalIndexCount = triangleCount * 2;
 
         QByteArray vertexData;
         vertexData.resize(static_cast<qsizetype>(totalVertexCount * stride));
@@ -141,16 +141,20 @@ namespace egret
         auto* indexPtr = reinterpret_cast<std::uint32_t*>(indexData.data());
 
         // 正面索引：逆时针绕向（从原始顺时针交换第 1、2 个顶点）
-        for (std::size_t i = 0; i < indexCount3; i += 3) {
-            indexPtr[i]     = mesh.indices[i];       // 第 0 顶点不变
-            indexPtr[i + 1] = mesh.indices[i + 2];   // 交换
-            indexPtr[i + 2] = mesh.indices[i + 1];
+        for (std::size_t i = 0; i < triangleCount; i ++) {
+            // indexPtr[i]     = mesh.indices[i];       // 第 0 顶点不变
+            // indexPtr[i + 1] = mesh.indices[i + 2];   // 交换
+            // indexPtr[i + 2] = mesh.indices[i + 1];
+            mesh.indices[i] = {mesh.indices[i].x(), mesh.indices[i].z(), mesh.indices[i].y()};
         }
 
         // 背面索引：顺时针绕向（原始绕向），引用背面顶点（偏移 vertexCount）
         const auto offset = static_cast<std::uint32_t>(vertexCount);
-        for (std::size_t i = 0; i < indexCount3; ++i) {
-            indexPtr[indexCount3 + i] = mesh.indices[i] + offset;
+
+        for (std::size_t i = 0; i < triangleCount * 3; i += 3) {
+            indexPtr[triangleCount + i] = mesh.indices[i].x() + offset;
+            indexPtr[triangleCount + i + 1] = mesh.indices[i].y() + offset;
+            indexPtr[triangleCount + i + 2] = mesh.indices[i].z() + offset;
         }
 
         // 配置 QQuick3DGeometry

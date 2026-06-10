@@ -49,7 +49,6 @@
 
 int main(int argc, char* argv[])
 {
-    
     QApplication app(argc, argv);
     QQuickStyle::setStyle("Fusion");
 
@@ -87,11 +86,12 @@ int main(int argc, char* argv[])
     qmlRegisterType<egret::ModelItemData>("EditorManager", 1, 0, "ModelItem");
     qmlRegisterType<egret::MaterialData>("EditorManager", 1, 0, "MaterialData");
     qmlRegisterSingletonInstance<egret::EditorManager>("EditorManager", 1, 0, "EditorManager",
-                                                      egret::EditorManager::instance());
+                                                       egret::EditorManager::instance());
+
     qmlRegisterSingletonInstance<egret::EditorParameterManager>(
         "EditorManager", 1, 0, "EditorParameterManager", egret::EditorParameterManager::instance());
     qmlRegisterSingletonInstance<egret::ClipboardHelper>("ClipboardManager", 1, 0, "ClipboardManager",
-                                                          egret::ClipboardHelper::instance());
+                                                         egret::ClipboardHelper::instance());
     qmlRegisterSingletonInstance<
         egret::EnumHandler>("EnumHandler", 1, 0, "EnumHandler", egret::EnumHandler::instance());
 

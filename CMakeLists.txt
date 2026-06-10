@@ -321,8 +321,8 @@ set(CPP_FILES
         src/view_model/simulator/visual_item/basic_render_item.h
         src/model/physics/rigid/shape/standard/convex_mesh.cpp
         src/model/physics/rigid/shape/standard/convex_mesh.h
-        src/model/geometry/geometry_utils.h
-        src/model/geometry/geometry_utils.cpp
+        src/model/geometry/tessellated_mesh.h
+        src/model/geometry/tessellated_mesh.cpp
         src/view/qt_media_helper.cpp
         src/view/qt_media_helper.h
         src/utils/os/windows/windows_sound.h
@@ -337,6 +337,8 @@ set(CPP_FILES
         src/model/strategy/broad_phase_strategy/octree_broad_strategy.cpp
         src/model/strategy/broad_phase_strategy/octree_broad_strategy.h
         src/model/strategy/broad_phase_strategy/kernel/octree_kernel.h
+        src/view_model/simulator/visual_item/scene_convex_mesh_model.cpp
+        src/view_model/simulator/visual_item/scene_convex_mesh_model.h
 
 )
 

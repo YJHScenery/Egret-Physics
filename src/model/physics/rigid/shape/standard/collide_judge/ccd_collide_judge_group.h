@@ -34,6 +34,98 @@ namespace egret
     class ShapeSphere;
     class ShapeSphericalShell;
 
+
+    constexpr double kEpsTime = 1e-10;
+    constexpr double kEpsDist = 1e-8;
+    constexpr double kEpsAngle = 1e-8;
+    constexpr double kEpsDiskThickness = 1e-8;
+    constexpr double kEpsRodRadius = 1e-8;
+    constexpr double kEpsRingRadialThickness = 1e-8;
+    constexpr int kMaxIterations = 80;
+
+    Transform integrateTransform(const Transform& initTrans,
+                                 const Eigen::Vector3d& linearVel,
+                                 const Eigen::Vector3d& angularVel,
+                                 double t);
+    ContactFeature classifyBoxFeature(const ShapeBox& box, const Transform& trans,
+                                      const Eigen::Vector3d& contactPoint);
+
+    template <typename ShapeA, typename ShapeB, typename CollideFunc, typename PostProcessFunc = std::nullptr_t>
+    bool continuousCollideGeneric(const ShapeA& shapeA, const Transform& initTransA,
+                                  const Eigen::Vector3d& linearVelA,
+                                  const Eigen::Vector3d& angularVelA,
+                                  const ShapeB& shapeB, const Transform& initTransB,
+                                  const Eigen::Vector3d& linearVelB,
+                                  const Eigen::Vector3d& angularVelB,
+                                  double dt,
+                                  double& collisionTime,
+                                  ContactManifold& manifold,
+                                  CollideFunc&& collideFunc,
+                                  PostProcessFunc&& postProcessFunc = nullptr)
+    {
+        collisionTime = 0.0;
+        manifold.clear();
+
+        if (dt <= kEpsTime) {
+            return false;
+        }
+
+        auto collideAt = [&](double t, ContactManifold& outManifold) -> bool
+        {
+            const Transform transA = integrateTransform(initTransA, linearVelA, angularVelA, t);
+            const Transform transB = integrateTransform(initTransB, linearVelB, angularVelB, t);
+            outManifold.clear();
+            return collideFunc(shapeA, transA, shapeB, transB, outManifold);
+        };
+
+        ContactManifold startManifold;
+        if (collideAt(0.0, startManifold)) {
+            collisionTime = 0.0;
+            manifold = startManifold;
+            return true;
+        }
+
+        ContactManifold endManifold;
+        if (!collideAt(dt, endManifold)) {
+            return false;
+        }
+
+        double lo = 0.0;
+        double hi = dt;
+        ContactManifold hitManifold = endManifold;
+        const double timeEps = std::max(kEpsTime, 1e-6 * dt);
+
+        for (int iter = 0; iter < kMaxIterations && (hi - lo) > timeEps; ++iter) {
+            const double mid = 0.5 * (lo + hi);
+            ContactManifold midManifold;
+            if (collideAt(mid, midManifold)) {
+                hi = mid;
+                hitManifold = midManifold;
+            }
+            else {
+                lo = mid;
+            }
+        }
+
+        collisionTime = hi;
+        manifold = hitManifold;
+
+        if constexpr (!std::is_same_v<PostProcessFunc, std::nullptr_t>) {
+            const Transform transA = integrateTransform(initTransA, linearVelA, angularVelA, collisionTime);
+            const Transform transB = integrateTransform(initTransB, linearVelB, angularVelB, collisionTime);
+            postProcessFunc(shapeA, transA, shapeB, transB, manifold);
+        }
+
+        if (collisionTime < kEpsTime) {
+            collisionTime = 0.0;
+        }
+        if (collisionTime > dt - kEpsTime) {
+            return false;
+        }
+
+        return true;
+    }
+
     inline namespace ccd_box_first
     {
         bool continuousCollideBoxBox(
@@ -453,5 +545,8 @@ namespace egret
             double& collisionTime,
             ContactManifold& manifold);
     }
+
+
 }
+
 #endif // EGRET_PHYSICS_CCD_COLLIDE_JUDGE_GROUP_H

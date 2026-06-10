@@ -18,351 +18,207 @@
 #include <limits>
 #include <map>
 #include <set>
+#include <unordered_set>
 #include <utility>
+
+#include "tessellated_mesh.h"
 
 namespace egret
 {
-
-// 构造函数
-ConvexMesh::ConvexMesh(const TessellatedMesh &mesh)
-{
-    // ---- 1. 拷贝顶点 ----
-    m_vertices = mesh.vertices;
-
-    // ---- 2. 拷贝并打包三角形索引 ----
-    const auto &srcIndices = mesh.indices;
-    const std::size_t triCount = srcIndices.size() / 3;
-    m_triangles.reserve(triCount);
-    for (std::size_t i = 0; i < triCount; ++i) {
-        const std::size_t base = i * 3;
-        m_triangles.push_back({
-            static_cast<std::uint32_t>(srcIndices[base]),
-            static_cast<std::uint32_t>(srcIndices[base + 1]),
-            static_cast<std::uint32_t>(srcIndices[base + 2])
-        });
-    }
-
-    // ---- 3. 基本有效性检查 ----
-    const auto vertexCount = m_vertices.size();
-    if (vertexCount < 4 || m_triangles.size() < 4) {
-        setValid(false);
-        return;
-    }
-
-    // 检查所有索引在有效范围内
-    for (const auto &tri : m_triangles) {
-        if (tri[0] >= vertexCount || tri[1] >= vertexCount || tri[2] >= vertexCount) {
+    ConvexMesh::ConvexMesh(TessellatedMesh tessellatedMesh)
+    {
+        if (!(tessellatedMesh.checkClosed() && tessellatedMesh.checkManifold() && tessellatedMesh.checkConvex())) {
             setValid(false);
             return;
         }
+        m_dataMesh = std::move(tessellatedMesh);
+        m_volumeCache = calculateVolume();
+        m_inertiaTensorCache = calculateInertiaTensor();
+        m_aabbCache = m_dataMesh.getAABB();
+
+        offsetToCenter();
+        buildVertexAdjacency();
     }
 
-    // ---- 4. 计算面法线并检测退化三角形 ----
-    m_faceNormals.reserve(m_triangles.size());
-    constexpr double kDegenerateEpsilon = 1e-12;
-    for (const auto &tri : m_triangles) {
-        const Eigen::Vector3d &v0 = m_vertices[tri[0]];
-        const Eigen::Vector3d &v1 = m_vertices[tri[1]];
-        const Eigen::Vector3d &v2 = m_vertices[tri[2]];
+    ShapeType ConvexMesh::getType() const
+    {
+        return ShapeType::ConvexMesh;
+    }
 
-        const Eigen::Vector3d e1 = v1 - v0;
-        const Eigen::Vector3d e2 = v2 - v0;
-        const Eigen::Vector3d normal = e1.cross(e2);
-        const double area2 = normal.squaredNorm();
-
-        if (area2 < kDegenerateEpsilon) {
-            // 退化三角形（面积为零），拒绝构造
-            setValid(false);
-            return;
+    double ConvexMesh::getVolume() const
+    {
+        if (!m_volumeCache) {
+            m_volumeCache = calculateVolume();
         }
-
-        m_faceNormals.push_back(normal.normalized());
+        return m_volumeCache;
     }
 
-    // ---- 5. 统一面法线方向（通过有向体积判断） ----
-    double signedVolume = 0.0;
-    for (std::size_t i = 0; i < m_triangles.size(); ++i) {
-        const auto &tri = m_triangles[i];
-        const Eigen::Vector3d &v0 = m_vertices[tri[0]];
-        const Eigen::Vector3d &v1 = m_vertices[tri[1]];
-        const Eigen::Vector3d &v2 = m_vertices[tri[2]];
-        // 有向体积 = (1/6) * v0 · (v1 × v2)
-        signedVolume += v0.dot(v1.cross(v2));
+    Eigen::Vector3d ConvexMesh::getCenterOfMass() const
+    {
+        return Eigen::Vector3d::Zero();
     }
 
-    // 若有向体积为负，翻转三角形绕序与法线使其一致向外
-    if (signedVolume < 0.0) {
-        for (auto &tri : m_triangles) {
-            std::swap(tri[1], tri[2]);
+    Eigen::Matrix3d ConvexMesh::getInertiaTensor(double mass) const
+    {
+        if (m_inertiaTensorCache.norm() == 0) {
+            m_inertiaTensorCache = calculateInertiaTensor();
         }
-        for (auto &n : m_faceNormals) {
-            n = -n;
+        return mass * m_inertiaTensorCache;
+    }
+
+    AABB ConvexMesh::getAABB(const Transform& transform) const
+    {
+        if ((m_aabbCache.max - m_aabbCache.min).norm() <= 1e-12) {
+            m_aabbCache = m_dataMesh.getAABB();
         }
+        return m_aabbCache;
     }
 
-    // ---- 6. 封闭性检测 ----
-    if (!checkClosedness()) {
-        setValid(false);
-        return;
-    }
+    Eigen::Vector3d ConvexMesh::support(const Eigen::Vector3d& direction, const Transform& transform) const
+    {
+        // 将方向转换到局部坐标系（仅旋转，方向向量不受平移和缩放影响）
+        const Eigen::Vector3d localDir{transform.getRotation().conjugate() * direction};
 
-    // ---- 7. 凸体检测 ----
-    if (!checkConvexity()) {
-        setValid(false);
-        return;
-    }
+        const auto& verts{m_dataMesh.vertices};
 
-    // ---- 8. 计算体积与质心，平移顶点使质心归零 ----
-    computeMassProperties();
+        // 根据方向的主轴符号选择极值顶点作为初始猜测
+        TessellatedMesh::IndexType current;
+        {
+            const double absX{std::abs(localDir.x())};
+            const double absY{std::abs(localDir.y())};
+            const double absZ{std::abs(localDir.z())};
 
-    // ---- 9. 计算单位密度转动惯量矩阵（关于质心即原点） ----
-    computeInertiaTensorPerUnitDensity();
-
-    // ---- 10. 计算局部 AABB ----
-    m_localAABBMin = Eigen::Vector3d::Constant(std::numeric_limits<double>::infinity());
-    m_localAABBMax = Eigen::Vector3d::Constant(-std::numeric_limits<double>::infinity());
-    for (const auto &v : m_vertices) {
-        m_localAABBMin = m_localAABBMin.cwiseMin(v);
-        m_localAABBMax = m_localAABBMax.cwiseMax(v);
-    }
-}
-
-// ShapeBase 接口
-ShapeType ConvexMesh::getType() const
-{
-    return ShapeType::ConvexMesh;
-}
-
-double ConvexMesh::getVolume() const
-{
-    return m_volume;
-}
-
-Eigen::Vector3d ConvexMesh::getCenterOfMass() const
-{
-    return Eigen::Vector3d::Zero();
-}
-
-Eigen::Matrix3d ConvexMesh::getInertiaTensor(const double mass) const
-{
-    if (m_volume <= 0.0) {
-        return Eigen::Matrix3d::Zero();
-    }
-    // I(mass) = (mass / volume) * I_per_unit_volume
-    return (mass / m_volume) * m_inertiaPerUnitDensity;
-}
-
-AABB ConvexMesh::getAABB(const Transform &transform) const
-{
-    Eigen::Vector3d worldMin = Eigen::Vector3d::Constant(std::numeric_limits<double>::infinity());
-    Eigen::Vector3d worldMax = Eigen::Vector3d::Constant(-std::numeric_limits<double>::infinity());
-
-    for (const auto &v : m_vertices) {
-        const Eigen::Vector3d wv = transform.localToWorld(v);
-        worldMin = worldMin.cwiseMin(wv);
-        worldMax = worldMax.cwiseMax(wv);
-    }
-
-    return {worldMin, worldMax};
-}
-
-ShapeLoadInfo ConvexMesh::getLoadInfo() const
-{
-    ShapeLoadInfo info{};
-    info.typeId = static_cast<std::uint32_t>(ShapeType::ConvexMesh);
-
-    // 将顶点扁平化存储
-    std::vector<double> flatVertices;
-    flatVertices.reserve(m_vertices.size() * 3);
-    for (const auto &v : m_vertices) {
-        flatVertices.push_back(v.x());
-        flatVertices.push_back(v.y());
-        flatVertices.push_back(v.z());
-    }
-    info.numberParams["vertices"] = std::move(flatVertices);
-
-    // 将索引扁平化存储（uint32 → double）
-    std::vector<double> flatIndices;
-    flatIndices.reserve(m_triangles.size() * 3);
-    for (const auto &tri : m_triangles) {
-        flatIndices.push_back(static_cast<double>(tri[0]));
-        flatIndices.push_back(static_cast<double>(tri[1]));
-        flatIndices.push_back(static_cast<double>(tri[2]));
-    }
-    info.numberParams["indices"] = std::move(flatIndices);
-
-    return info;
-}
-
-Eigen::Vector3d ConvexMesh::support(const Eigen::Vector3d &direction,
-                                     const Transform &transform) const
-{
-    // 将世界空间方向旋转到局部空间
-    const Eigen::Vector3d localDir = transform.getRotation().conjugate() * direction;
-
-    // 穷举搜索 dot 最大的顶点
-    double maxDot = -std::numeric_limits<double>::infinity();
-    Eigen::Vector3d bestVertex = Eigen::Vector3d::Zero();
-    for (const auto &v : m_vertices) {
-        const double dot = v.dot(localDir);
-        if (dot > maxDot) {
-            maxDot = dot;
-            bestVertex = v;
-        }
-    }
-
-    // 变换回世界空间
-    return transform.localToWorld(bestVertex);
-}
-
-// 封闭性检测
-bool ConvexMesh::checkClosedness() const
-{
-    // 使用 map 统计每条无序边的出现次数
-    // key = (minIndex, maxIndex)，value = 出现次数
-    std::map<std::pair<std::uint32_t, std::uint32_t>, std::uint32_t> edgeCount;
-
-    for (const auto &tri : m_triangles) {
-        const std::uint32_t i0 = tri[0];
-        const std::uint32_t i1 = tri[1];
-        const std::uint32_t i2 = tri[2];
-
-        // 三条边，存储时统一排序使 (小, 大)
-        auto addEdge = [&edgeCount](const std::uint32_t a, const std::uint32_t b) {
-            const auto key = (a < b) ? std::make_pair(a, b) : std::make_pair(b, a);
-            ++edgeCount[key];
-        };
-
-        addEdge(i0, i1);
-        addEdge(i1, i2);
-        addEdge(i2, i0);
-    }
-
-    // 每条边必须恰好出现在两个三角形中（即出现 2 次）
-    for (const auto &[edge, count] : edgeCount) {
-        if (count != 2) {
-            return false; // 存在边界边或非流形边
-        }
-    }
-
-    return true;
-}
-
-// ---------------------------------------------------------------------------
-// 凸体检测
-// ---------------------------------------------------------------------------
-
-bool ConvexMesh::checkConvexity() const
-{
-    constexpr double kConvexEpsilon = 1e-9;
-
-    const std::size_t faceCount = m_triangles.size();
-    const std::size_t vertexCount = m_vertices.size();
-
-    for (std::size_t fi = 0; fi < faceCount; ++fi) {
-        const auto &tri = m_triangles[fi];
-        const Eigen::Vector3d &normal = m_faceNormals[fi];
-
-        // 取三角形第一个顶点作为平面上一点
-        const Eigen::Vector3d &planePoint = m_vertices[tri[0]];
-
-        // 收集当前面的三个顶点索引，用于跳过
-        const std::set<std::uint32_t> faceVerts = {tri[0], tri[1], tri[2]};
-
-        // 检查所有不在此面的顶点是否都在平面后侧（或平面上）
-        for (std::size_t vi = 0; vi < vertexCount; ++vi) {
-            if (faceVerts.count(static_cast<std::uint32_t>(vi)) > 0) {
-                continue; // 跳过面自身的顶点
-            }
-
-            const double dist = (m_vertices[vi] - planePoint).dot(normal);
-            if (dist > kConvexEpsilon) {
-                // 存在顶点在面平面的正半空间（外侧），网格非凸
-                return false;
+            if (absX >= absY && absX >= absZ) {
+                current = (localDir.x() > 0.0) ? m_extremalVertices[0] : m_extremalVertices[1];
+            } else if (absY >= absZ) {
+                current = (localDir.y() > 0.0) ? m_extremalVertices[2] : m_extremalVertices[3];
+            } else {
+                current = (localDir.z() > 0.0) ? m_extremalVertices[4] : m_extremalVertices[5];
             }
         }
-    }
 
-    return true;
-}
-
-// 质量属性计算：体积与质心归零
-void ConvexMesh::computeMassProperties()
-{
-    double totalSignedVolume = 0.0;
-    Eigen::Vector3d weightedCom = Eigen::Vector3d::Zero();
-
-    for (const auto &tri : m_triangles) {
-        const Eigen::Vector3d &v0 = m_vertices[tri[0]];
-        const Eigen::Vector3d &v1 = m_vertices[tri[1]];
-        const Eigen::Vector3d &v2 = m_vertices[tri[2]];
-
-        // 以原点为公共顶点的四面体有向体积
-        const double tetVolume = v0.dot(v1.cross(v2)) / 6.0;
-        totalSignedVolume += tetVolume;
-
-        // 四面体质心（四个顶点的算术平均，原点为第四个顶点）
-        const Eigen::Vector3d tetCentroid = (v0 + v1 + v2) / 4.0;
-        weightedCom += tetVolume * tetCentroid;
-    }
-
-    // 体积取绝对值（有向体积符号取决于三角形绕序，几何体积恒正）
-    m_volume = std::abs(totalSignedVolume);
-
-    if (m_volume <= 0.0) {
-        // 退化体积，不应到达此处（前置检测已过滤）
-        return;
-    }
-
-    const Eigen::Vector3d centerOfMass = weightedCom / m_volume;
-
-    // 将所有顶点平移，使质心归零
-    for (auto &v : m_vertices) {
-        v -= centerOfMass;
-    }
-
-    // 面法线仅依赖顶点差，平移不改变，无需更新
-}
-
-// ---------------------------------------------------------------------------
-// 单位密度转动惯量矩阵计算（关于质心即原点）
-// ---------------------------------------------------------------------------
-
-void ConvexMesh::computeInertiaTensorPerUnitDensity()
-{
-    // M = ∫_V r⊗r dV，关于原点（即质心）
-    Eigen::Matrix3d M = Eigen::Matrix3d::Zero();
-
-    for (const auto &tri : m_triangles) {
-        const Eigen::Vector3d &a = m_vertices[tri[0]];
-        const Eigen::Vector3d &b = m_vertices[tri[1]];
-        const Eigen::Vector3d &c = m_vertices[tri[2]];
-
-        // 四面体 (origin, a, b, c) 的有向体积
-        const double detABC = a.dot(b.cross(c));
-        const double tetVolume = detABC / 6.0;
-
-        // ∫_T r⊗r dV = (V/20) * [Σ_k V_k⊗V_k + S⊗S]，其中 S = Σ_k V_k，V_k 为四面体顶点
-        // 对于 V₀ = origin：S = a + b + c，V = detABC / 6，系数 = detABC / 120
-        // 展开后：对角项系数为 2，交叉项系数为 1
-        const double coeff = detABC / 120.0;
-
-        for (int row = 0; row < 3; ++row) {
-            for (int col = 0; col < 3; ++col) {
-                // 对角项 (a⊗a, b⊗b, c⊗c) 系数为 2
-                const double diag = 2.0 * (a[row] * a[col] + b[row] * b[col] + c[row] * c[col]);
-                // 交叉项 (a⊗b + b⊗a + a⊗c + c⊗a + b⊗c + c⊗b) 系数为 1
-                const double cross = a[row] * b[col] + b[row] * a[col]
-                                   + a[row] * c[col] + c[row] * a[col]
-                                   + b[row] * c[col] + c[row] * b[col];
-                M(row, col) += coeff * (diag + cross);
+        // 若缓存顶点有更好的投影，则使用缓存
+        {
+            const double hintDot{localDir.dot(verts[m_supportHint])};
+            const double currentDot{localDir.dot(verts[current])};
+            if (hintDot > currentDot) {
+                current = m_supportHint;
             }
+        }
+
+        double bestDot{localDir.dot(verts[current])};
+
+        // 爬山法：沿邻接边贪婪地向更高投影方向移动
+        // 对凸多面体，局部最大值即全局最大值
+        bool improved{true};
+        while (improved) {
+            improved = false;
+            for (const auto& neighbor : m_vertexNeighbors[current]) {
+                const double dot{localDir.dot(verts[neighbor])};
+                if (dot > bestDot) {
+                    bestDot = dot;
+                    current = neighbor;
+                    improved = true;
+                    break;
+                }
+            }
+        }
+
+        // 缓存本次结果，用于后续查询的热启动
+        m_supportHint = current;
+
+        // 将局部支撑点变换到世界坐标
+        return transform.localToWorld(verts[current]);
+    }
+
+    ShapeLoadInfo ConvexMesh::getLoadInfo() const
+    {
+        LOG_WARN(std::format("ConvexMesh Cannot use function {}.", __func__));
+        return ShapeBase::getLoadInfo();
+    }
+
+    double ConvexMesh::calculateVolume() const
+    {
+        double volume{0.0};
+        for (const auto& triangle : m_dataMesh.indices) {
+            volume += calculateSingleVolume(triangle);
+        }
+        return std::abs(volume);
+    }
+
+    Eigen::Matrix3d ConvexMesh::calculateInertiaTensor() const
+    {
+        Eigen::Matrix3d inertiaTensor;
+
+        for (const auto& triangle : m_dataMesh.indices) {
+            Eigen::Matrix3d moment{Eigen::Matrix3d::Identity()};
+            moment *= (calculateSingleVolume(triangle) / 20.0);
+            std::array<Eigen::Vector3d, 3> points{m_dataMesh.vertices.at(triangle.x()), m_dataMesh.vertices.at(triangle.y()), m_dataMesh.vertices.at(triangle.z())};
+            for (const Eigen::Vector3d& outP: points) {
+                for (const Eigen::Vector3d& inP: points) {
+                    moment += (outP * inP.transpose() + inP * outP.transpose()) / 2.0;
+                }
+            }
+
+            inertiaTensor += moment.transpose() * Eigen::Matrix3d::Identity() - moment;
+        }
+
+        return inertiaTensor;
+    }
+
+    void ConvexMesh::buildVertexAdjacency()
+    {
+        const auto vertexCount{m_dataMesh.vertexCount()};
+
+        // 使用临时 unordered_set 收集每个顶点的邻居，自动去重
+        std::vector<std::unordered_set<TessellatedMesh::IndexType>> neighborSets(vertexCount);
+
+        for (const auto& tri : m_dataMesh.indices) {
+            const auto a{tri.x()};
+            const auto b{tri.y()};
+            const auto c{tri.z()};
+
+            neighborSets[a].insert(b);
+            neighborSets[a].insert(c);
+            neighborSets[b].insert(a);
+            neighborSets[b].insert(c);
+            neighborSets[c].insert(a);
+            neighborSets[c].insert(b);
+        }
+
+        // 转为紧凑的 vector 存储
+        m_vertexNeighbors.resize(vertexCount);
+        for (std::size_t i{0}; i < vertexCount; ++i) {
+            m_vertexNeighbors[i].assign(neighborSets[i].begin(), neighborSets[i].end());
+        }
+
+        // 扫描 6 轴极值顶点
+        m_extremalVertices.fill(0);
+        for (std::size_t i{0}; i < vertexCount; ++i) {
+            const auto& v{m_dataMesh.vertices[i]};
+
+            if (v.x() > m_dataMesh.vertices[m_extremalVertices[0]].x()) { m_extremalVertices[0] = i; }
+            if (v.x() < m_dataMesh.vertices[m_extremalVertices[1]].x()) { m_extremalVertices[1] = i; }
+            if (v.y() > m_dataMesh.vertices[m_extremalVertices[2]].y()) { m_extremalVertices[2] = i; }
+            if (v.y() < m_dataMesh.vertices[m_extremalVertices[3]].y()) { m_extremalVertices[3] = i; }
+            if (v.z() > m_dataMesh.vertices[m_extremalVertices[4]].z()) { m_extremalVertices[4] = i; }
+            if (v.z() < m_dataMesh.vertices[m_extremalVertices[5]].z()) { m_extremalVertices[5] = i; }
         }
     }
 
-    // I = trace(M)·I₃ - M
-    const double traceM = M.trace();
-    m_inertiaPerUnitDensity = traceM * Eigen::Matrix3d::Identity() - M;
-}
-
+    void ConvexMesh::offsetToCenter()
+    {
+        Eigen::Vector3d offset{};
+        for (const auto& triangle : m_dataMesh.indices) {
+            offset += calculateSingleVolume(triangle) * (
+                m_dataMesh.vertices.at(triangle.x()) +
+                m_dataMesh.vertices.at(triangle.y()) +
+                m_dataMesh.vertices.at(triangle.z())
+            );
+        }
+        offset /= 4 * getVolume();
+        for (auto& point : m_dataMesh.vertices) {
+            point -= offset;
+        }
+    }
 } // egret

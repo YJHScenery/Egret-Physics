@@ -29,7 +29,7 @@
 #include "transform.h"
 #include "shape_base.h"
 #include <magic_enum.hpp>
-#include "geometry_utils.h"
+#include "tessellated_mesh.h"
 
 namespace egret
 {

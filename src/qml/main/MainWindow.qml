@@ -98,7 +98,7 @@ ApplicationWindow {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 12
-        spacing: 8
+        spacing: 4
 
         FileDialog {
             id: openJsonFileDialog
@@ -167,7 +167,7 @@ ApplicationWindow {
 
         EgretMenuBar {
             Layout.fillWidth: true
-            barHeight: 36
+            barHeight: 24
             barBackground: theme.panelStrong
             barBorderColor: theme.border
             itemHoverBackground: theme.accentSoft
@@ -437,7 +437,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 anchors.leftMargin: 16
                 anchors.rightMargin: 16
-                spacing: 8
+                spacing: 4
 
                 Image {
                     id: image
@@ -582,7 +582,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             property string currentRoute: "scene";
 
-            spacing: 12
+            spacing: 6
 
             SimulatorUnit {
                 id: simulatorUnit
@@ -619,12 +619,18 @@ ApplicationWindow {
                     font.pixelSize: 12
                 }
 
+                Label {
+                    text: ""
+                    color: theme.textSecondary
+                    font.pixelSize: 12
+                }
+
                 Item {
                     Layout.fillWidth: true
                 }
 
                 Label {
-                    text: "Solver"
+                    text: workspaceComboBox.currentText
                     color: theme.textDim
                     font.pixelSize: 12
                 }

@@ -39,7 +39,7 @@ ColumnLayout {
     property alias coordinateSystem: coordinateSystem
 
 
-    spacing: 8
+    spacing: 4
 
     FileDialog {
         id: saveTrackDataFileDialog
@@ -252,7 +252,7 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
-        spacing: 8
+        spacing: 6
 
 
         GlassPanel {
@@ -1095,7 +1095,7 @@ ColumnLayout {
             opacity: simulatorRoot.infoPanelVisible ? 1 : 0
             enabled: simulatorRoot.infoPanelVisible
 
-            spacing: 8
+            spacing: 4
 
 
             GridLayout{
