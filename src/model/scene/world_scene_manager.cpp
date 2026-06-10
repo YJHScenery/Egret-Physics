@@ -27,6 +27,7 @@
 #include "field_base.h"
 #include "transform_transformer.h"
 #include "shape_factory_registry.h"
+#include "convex_mesh.h"
 #include "shape_box.h"
 #include "shape_cylinder.h"
 #include "shape_sphere.h"
@@ -624,6 +625,53 @@ namespace egret
             item.constraintId = constraint->getId();
             item.curveType = static_cast<std::uint32_t>(curve->getType());
             item.curve = curve->clone();
+
+            items.push_back(std::move(item));
+        }
+
+        return items;
+    }
+
+    std::vector<SceneConvexMeshRenderItem> WorldSceneManager::buildConvexMeshRenderItems() const
+    {
+        std::vector<SceneConvexMeshRenderItem> items;
+        items.reserve(m_bodies.size());
+
+        for (const auto& bodyRecord : m_bodies) {
+            if (bodyRecord == nullptr || bodyRecord->entity == nullptr) {
+                continue;
+            }
+
+            const auto& entity = bodyRecord->entity;
+            const auto shape = entity->getShape();
+            if (shape == nullptr || shape->getType() != ShapeType::ConvexMesh) {
+                continue;
+            }
+
+            const auto* convexMesh = dynamic_cast<const ConvexMesh*>(shape.get());
+            if (convexMesh == nullptr) {
+                continue;
+            }
+
+            const TessellatedMesh& mesh = convexMesh->getTessellatedMesh();
+            if (!mesh.isValid()) {
+                continue;
+            }
+
+            SceneConvexMeshRenderItem item{};
+            item.bodyId = entity->getId();
+            item.mesh = std::make_unique<TessellatedMesh>(mesh);
+
+            // 坐标转换：从物理坐标系到 Quick3D 渲染坐标系
+            const Eigen::Vector3d pos = entity->getPosition();
+            const Transform& transform = entity->getTransform();
+            const Eigen::Vector3d modelScale = transform.getScale();
+            const Eigen::Quaterniond modelRotation = transform.getRotation();
+
+            item.position = {pos.y(), pos.z(), pos.x()};
+            item.scale = {modelScale.y(), modelScale.z(), modelScale.x()};
+            item.rotation = {modelRotation.w(), modelRotation.y(), modelRotation.z(), modelRotation.x()};
+            item.color = bodyRecord->name.empty() ? QStringLiteral("#E74C3C") : QStringLiteral("#E74C3C");
 
             items.push_back(std::move(item));
         }

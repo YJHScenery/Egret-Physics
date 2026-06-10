@@ -243,9 +243,7 @@ namespace egret
         }
     } // anonymous namespace
 
-    // =========================================================================
     //  公开接口
-    // =========================================================================
 
     void FrictionalContactResolverStrategy::resolveContacts(
         SolverSceneSnapshotBase &scene,
@@ -275,9 +273,7 @@ namespace egret
         positionSolve(bodies, mutableConstraints, config, stats);
     }
 
-    // =========================================================================
     //  热启动
-    // =========================================================================
 
     void FrictionalContactResolverStrategy::warmStart(
         std::span<SolverBodyHandle> bodies,
@@ -358,9 +354,7 @@ namespace egret
         }
     }
 
-    // =========================================================================
     //  速度求解
-    // =========================================================================
 
     void FrictionalContactResolverStrategy::velocitySolve(
         std::span<SolverBodyHandle> bodies,
@@ -395,9 +389,7 @@ namespace egret
         }
     }
 
-    // =========================================================================
     //  位置求解
-    // =========================================================================
 
     void FrictionalContactResolverStrategy::positionSolve(
         std::span<SolverBodyHandle> bodies,

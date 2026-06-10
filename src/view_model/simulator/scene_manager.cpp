@@ -66,6 +66,7 @@
 #include "curve_helix.h"
 #include "curve_conic_section.h"
 #include "constants.h"
+#include "convex_mesh.h"
 
 #include "unique_id_generator.h"
 #include "broad_phase_strategy/bvh_broad_strategy.h"
@@ -120,7 +121,8 @@ namespace egret
         }
     }
 
-    SceneManagerViewModel::SceneManagerViewModel(QObject* parent) : QObject(parent), m_bodyModel(this)
+    SceneManagerViewModel::SceneManagerViewModel(QObject* parent) : QObject(parent), m_bodyModel(this),
+                                                                    m_convexMeshModel(this)
     {
         m_timer.setInterval(16);
         m_timer.setTimerType(Qt::PreciseTimer);
@@ -135,6 +137,7 @@ namespace egret
         refreshConstraintModel();
         refreshSurfaceModel();
         refreshCurveModel();
+        refreshConvexMeshModel();
         m_frameClock.start();
     }
 
@@ -221,12 +224,15 @@ namespace egret
             if (obj.contains("cross_section_area")) cfg.crossSectionArea = obj["cross_section_area"].toDouble();
             if (obj.contains("fluid_density")) cfg.fluidDensity = obj["fluid_density"].toDouble();
             if (obj.contains("constant_magnitude")) cfg.constantMagnitude = obj["constant_magnitude"].toDouble();
-            if (obj.contains("rotational_linear_coeff")) cfg.rotationalLinearCoeff = obj["rotational_linear_coeff"].
-                toDouble();
-            if (obj.contains("rotational_quadratic_coeff")) cfg.rotationalQuadraticCoeff = obj[
-                "rotational_quadratic_coeff"].toDouble();
-            if (obj.contains("enable_rotational_drag")) cfg.enableRotationalDrag = obj["enable_rotational_drag"].
-                toBool();
+            if (obj.contains("rotational_linear_coeff"))
+                cfg.rotationalLinearCoeff = obj["rotational_linear_coeff"].
+                    toDouble();
+            if (obj.contains("rotational_quadratic_coeff"))
+                cfg.rotationalQuadraticCoeff = obj[
+                    "rotational_quadratic_coeff"].toDouble();
+            if (obj.contains("enable_rotational_drag"))
+                cfg.enableRotationalDrag = obj["enable_rotational_drag"].
+                    toBool();
             return cfg;
         }
     } // anonymous namespace
@@ -416,7 +422,8 @@ namespace egret
                 constraint->setId(cid);
                 if (cd.contains("drag_config")) {
                     constraint->setDefaultDragConfig(parseDragConfig(cd["drag_config"].toObject()));
-                } else if (cd.contains("__sub_type_id")) {
+                }
+                else if (cd.contains("__sub_type_id")) {
                     // 回退：解析 QML 编辑器序列化的 sub_* 格式
                     DragConfig cfg;
                     const int subType = cd["__sub_type_id"].toInt();
@@ -424,7 +431,8 @@ namespace egret
                         cfg.model = DragModel::Linear;
                         if (cd.contains("sub_linear_coeff"))
                             cfg.linearCoeff = cd["sub_linear_coeff"].toDouble();
-                    } else if (subType == 1) {
+                    }
+                    else if (subType == 1) {
                         cfg.model = DragModel::Quadratic;
                         if (cd.contains("sub_drag_coefficient"))
                             cfg.dragCoefficient = cd["sub_drag_coefficient"].toDouble();
@@ -432,7 +440,8 @@ namespace egret
                             cfg.crossSectionArea = cd["sub_cross_section_area"].toDouble();
                         if (cd.contains("sub_fluid_density"))
                             cfg.fluidDensity = cd["sub_fluid_density"].toDouble();
-                    } else if (subType == 2) {
+                    }
+                    else if (subType == 2) {
                         cfg.model = DragModel::Constant;
                         if (cd.contains("sub_constant_magnitude"))
                             cfg.constantMagnitude = cd["sub_constant_magnitude"].toDouble();
@@ -563,6 +572,11 @@ namespace egret
         return &m_curveModel;
     }
 
+    SceneConvexMeshModel* SceneManagerViewModel::convexMeshModel()
+    {
+        return &m_convexMeshModel;
+    }
+
     QString SceneManagerViewModel::getIntegratorName() const
     {
         const std::string_view name{m_world->getIntegratorName()};
@@ -621,6 +635,7 @@ namespace egret
         refreshConstraintModel();
         refreshSurfaceModel();
         refreshCurveModel();
+        refreshConvexMeshModel();
 
         m_simTime = 0.0;
         m_stepCount = 0;
@@ -699,6 +714,7 @@ namespace egret
         refreshConstraintModel();
         refreshSurfaceModel();
         refreshCurveModel();
+        refreshConvexMeshModel();
 
         emit simTimeChanged();
         emit stepCountChanged();
@@ -748,6 +764,114 @@ namespace egret
 
         // loadSceneFronJsonFile("C:/Users/jehor/Desktop/114514.json");
         // return;
+
+
+        // qDebug() << QDir::currentPath();
+        //
+        // auto convexMesh = std::make_unique<ConvexMesh>(makeTessellatedMesh("../tools/sphere.obj"));
+        //
+        // //
+        // if (convexMesh == nullptr) {
+        //     LOG_FATAL("convexMesh is nullptr");
+        // }else {
+        //     qDebug() << convexMesh->getVolume();
+        //     for (auto ver: convexMesh->getTessellatedMesh().indices) {
+        //         qDebug() << ver.x() << " " << ver.y() << " " << ver.z();
+        //     }
+        // }
+        //
+        //
+        // TessellatedMesh mesh;
+        //
+        // double width = 200;
+        // double height = 100;
+        // double depth = 100;
+        //
+        // // 尺寸参数：宽(X轴) = width, 高(Y轴) = height, 深(Z轴) = depth
+        // // 8个顶点坐标（世界空间）
+        // std::vector<Eigen::Vector3d> vertices = {
+        //     // 前面4个顶点 (z = -depth/2)
+        //     {-width / 2, -height / 2, -depth / 2}, // 0: 前下左
+        //     {width / 2, -height / 2, -depth / 2}, // 1: 前下右
+        //     {width / 2, height / 2, -depth / 2}, // 2: 前上右
+        //     {-width / 2, height / 2, -depth / 2}, // 3: 前上左
+        //
+        //     // 后面4个顶点 (z = depth/2)
+        //     {-width / 2, -height / 2, depth / 2}, // 4: 后下左
+        //     {width / 2, -height / 2, depth / 2}, // 5: 后下右
+        //     {width / 2, height / 2, depth / 2}, // 6: 后上右
+        //     {-width / 2, height / 2, depth / 2} // 7: 后上左
+        // };
+        //
+        // mesh.vertices = vertices;
+        //
+        // // 计算法线（每个顶点法线为单位向量）
+        // // 对于长方体，每个顶点被3个面共享，需要平均法线并归一化
+        // std::vector<Eigen::Vector3d> normals(8);
+        //
+        // // 归一化的面法线
+        // Eigen::Vector3d frontNorm(0, 0, -1);
+        // Eigen::Vector3d backNorm(0, 0, 1);
+        // Eigen::Vector3d leftNorm(-1, 0, 0);
+        // Eigen::Vector3d rightNorm(1, 0, 0);
+        // Eigen::Vector3d bottomNorm(0, -1, 0);
+        // Eigen::Vector3d topNorm(0, 1, 0);
+        //
+        // // 累加每个顶点相邻的面法线
+        // // 顶点0: 前、左、下
+        // normals[0] = (frontNorm + leftNorm + bottomNorm).normalized();
+        // // 顶点1: 前、右、下
+        // normals[1] = (frontNorm + rightNorm + bottomNorm).normalized();
+        // // 顶点2: 前、右、上
+        // normals[2] = (frontNorm + rightNorm + topNorm).normalized();
+        // // 顶点3: 前、左、上
+        // normals[3] = (frontNorm + leftNorm + topNorm).normalized();
+        // // 顶点4: 后、左、下
+        // normals[4] = (backNorm + leftNorm + bottomNorm).normalized();
+        // // 顶点5: 后、右、下
+        // normals[5] = (backNorm + rightNorm + bottomNorm).normalized();
+        // // 顶点6: 后、右、上
+        // normals[6] = (backNorm + rightNorm + topNorm).normalized();
+        // // 顶点7: 后、左、上
+        // normals[7] = (backNorm + leftNorm + topNorm).normalized();
+        //
+        // mesh.normals = normals;
+        //
+        // // 12个三角形（每个矩形面由2个三角形组成）
+        // // 索引格式：每个三角形按逆时针顺序（从外部看）
+        // std::vector<TessellatedMesh::TriangleIndexType> indices;
+        //
+        // // 前面 (z = -depth/2)
+        // indices.push_back({0, 1, 2});
+        // indices.push_back({0, 2, 3});
+        //
+        // // 后面 (z = depth/2)
+        // indices.push_back({5, 4, 7});
+        // indices.push_back({5, 7, 6});
+        //
+        // // 左面 (x = -width/2)
+        // indices.push_back({4, 0, 3});
+        // indices.push_back({4, 3, 7});
+        //
+        // // 右面 (x = width/2)
+        // indices.push_back({1, 5, 6});
+        // indices.push_back({1, 6, 2});
+        //
+        // // 下面 (y = -height/2)
+        // indices.push_back({4, 5, 1});
+        // indices.push_back({4, 1, 0});
+        //
+        // // 上面 (y = height/2)
+        // indices.push_back({3, 2, 6});
+        // indices.push_back({3, 6, 7});
+        //
+        // mesh.indices = indices;
+
+        auto mesh{makeTessellatedMesh("../tools/icosahedron.obj")};
+        AABB ab = mesh.getAABB();
+        LOG_DEBUG(std::format("AABB: ({}, {}, {}), ({}, {}, {})", ab.min.x(), ab.min.y(), ab.min.z(), ab.max.x(), ab.max.y(), ab.max.z()));
+
+        m_world->spawnBody("测试样例1", {-400, -400, 400}, {0, 0, 0}, std::move(std::make_unique<ConvexMesh>(std::move(mesh))), 1.0);
 
         std::uint64_t idBox2 = m_world->spawnBox("3", {0, 0, 0}, {0, 0, 0}, {10000, 10000, 130}, 0);
 
@@ -972,6 +1096,18 @@ namespace egret
         m_curveModel.setItems(renderItems);
     }
 
+    void SceneManagerViewModel::refreshConvexMeshModel()
+    {
+        if (m_world == nullptr) {
+            m_convexMeshModel.clear();
+            return;
+        }
+
+        const std::vector<SceneConvexMeshRenderItem> renderItems =
+            m_world->buildConvexMeshRenderItems();
+        m_convexMeshModel.setItems(renderItems);
+    }
+
     void SceneManagerViewModel::advanceFixedStep(const bool emitFrameSignal)
     {
         if (m_world == nullptr) {
@@ -989,6 +1125,7 @@ namespace egret
         refreshConstraintModel();
         refreshSurfaceModel();
         refreshCurveModel();
+        refreshConvexMeshModel();
         emit simTimeChanged();
         emit stepCountChanged();
         emit entityCountChanged();

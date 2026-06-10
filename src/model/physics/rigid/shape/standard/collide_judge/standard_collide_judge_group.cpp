@@ -429,7 +429,7 @@ namespace egret
      * @return true     发生碰撞
      * @return false    未发生碰撞
      */
-    bool box_first::collideGeneric(const ShapeBase& shapeA, const Transform& transA, const ShapeBase& shapeB,
+    bool collideGeneric(const ShapeBase& shapeA, const Transform& transA, const ShapeBase& shapeB,
         const Transform& transB, ContactManifold& manifold)
     {
         // ---------- Step 1: GJK 碰撞检测 ----------

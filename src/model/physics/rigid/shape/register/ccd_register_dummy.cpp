@@ -46,11 +46,6 @@ namespace egret
                                     {
                                         if (shapeA != nullptr && shapeB != nullptr) {
                                             double collisionTime = 0.0;
-                                            // if (continuousCollideBoxBox(*boxA, initTransA, linearVelA, angularVelA,
-                                            //                             *boxB, initTransB, linearVelB, angularVelB,
-                                            //                             dt, collisionTime, manifold)) {
-                                            //     return collisionTime;
-                                            // }
 
                                             continuousCollideGeneric(
                                                 *shapeA, initTransA, linearVelA, angularVelA,
@@ -62,8 +57,8 @@ namespace egret
                                                    ContactManifold& outManifold)
                                                 {
                                                     for (ContactPoint& point : outManifold) {
-                                                        point.featureA = ContactFeature::Face;
-                                                        point.featureB = ContactFeature::Face;
+                                                        point.featureA = ContactFeature::Unknown;
+                                                        point.featureB = ContactFeature::Unknown;
                                                     }
                                                 });
                                         }

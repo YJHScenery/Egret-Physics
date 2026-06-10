@@ -29,6 +29,10 @@ namespace egret
     {
         if (!(tessellatedMesh.checkClosed() && tessellatedMesh.checkManifold() && tessellatedMesh.checkConvex())) {
             setValid(false);
+            LOG_WARN(std::format("Fail to generate Convex Mesh"));
+            LOG_DEBUG(std::to_string(tessellatedMesh.checkClosed()));
+            LOG_DEBUG(std::to_string(tessellatedMesh.checkManifold()));
+            LOG_DEBUG(std::to_string(tessellatedMesh.checkConvex()));
             return;
         }
         m_dataMesh = std::move(tessellatedMesh);
@@ -133,7 +137,7 @@ namespace egret
 
     ShapeLoadInfo ConvexMesh::getLoadInfo() const
     {
-        LOG_WARN(std::format("ConvexMesh Cannot use function {}.", __func__));
+        // LOG_WARN(std::format("ConvexMesh Cannot use function {}.", __func__));
         return ShapeBase::getLoadInfo();
     }
 

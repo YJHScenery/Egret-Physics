@@ -94,5 +94,7 @@ namespace egret
             }
         };
     };
+
+    TessellatedMesh makeTessellatedMesh(const std::string& meshFilePath);
 }
 #endif //EGRET_PHYSICS_GEOMETRY_UTILS_H

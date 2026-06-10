@@ -30,6 +30,7 @@
 #include "shape_base.h"
 #include "solver.h"
 #include "surface_base.h"
+#include "scene_convex_mesh_render_item.h"
 #include "scene_curve_render_item.h"
 #include "scene_surface_render_item.h"
 #include "transform.h"
@@ -460,6 +461,14 @@ namespace egret
          * @return 曲线渲染条目列表。
          */
         [[nodiscard]] std::vector<SceneCurveRenderItem> buildCurveRenderItems() const;
+
+        /**
+         * @brief 生成供 ViewModel 渲染的凸体网格轻量化数据快照。
+         * @details 遍历世界中的所有刚体，找出 ConvexMesh 类型的形状，
+         *          提取其内部的 TessellatedMesh 网格数据，供 ViewModel 层转换为 QML 可渲染的网格。
+         * @return 凸体网格渲染条目列表。
+         */
+        [[nodiscard]] std::vector<SceneConvexMeshRenderItem> buildConvexMeshRenderItems() const;
 
         /**
          * @brief 查询当前实体数量。

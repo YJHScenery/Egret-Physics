@@ -1,11 +1,30 @@
-//
-// Created by jehor on 2026/6/6.
-//
+/**
+ * @file        tessellated_mesh.cpp
+ * @brief       细分网格数据结构实现文件。
+ * @details     实现 TessellatedMesh 的验证函数（封闭性、流形、凸体检测）
+ *              以及通过 Assimp 加载外部 3D 模型文件的工厂函数。
+ *
+ * @author      作者姓名 <作者邮箱>
+ * @date        2026-06-06
+ * @version     1.0.0
+ *
+ * @copyright   版权信息 (如 Copyright © 2025 公司名. All rights reserved.)
+ * @license     GPL v3.0
+ *
+ * @ingroup     Geometry
+ */
+
 #include "tessellated_mesh.h"
 
 #include <ranges>
 #include <unordered_map>
 #include <unordered_set>
+
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
+
+#include "async_logger.h"
 
 namespace egret
 {
@@ -33,7 +52,10 @@ namespace egret
 
     bool TessellatedMesh::checkClosed() const
     {
-        if (indices.empty()) return false;
+        if (indices.empty()) {
+            LOG_DEBUG(std::format("Empty: {}", __func__));
+            return false;
+        }
 
         std::unordered_map<LineIndexType, std::uint64_t, EdgeHash, EdgeEqual> lineCountMap;
         lineCountMap.reserve(indices.size() * 3);
@@ -50,7 +72,7 @@ namespace egret
         }
 
         // 闭合充要条件：每条边恰好出现 2 次
-        for (const auto& [edge, count] : lineCountMap) {
+        for (const auto& count : lineCountMap | std::views::values) {
             if (count != 2) return false;
         }
         return true;
@@ -58,7 +80,10 @@ namespace egret
 
     bool TessellatedMesh::checkManifold() const
     {
-        if (indices.empty()) return false;
+        if (indices.empty()) {
+            LOG_DEBUG(std::format("Empty: {}", __func__));
+            return false;
+        }
 
         // ---- 第 1 步：边流形检查 ----
         // 每条边只能被 1 个三角形（边界边）或 2 个三角形（内部边）共享
@@ -72,7 +97,7 @@ namespace egret
             ++edgeCount[LineIndexType{c, a}];
         }
 
-        for (const auto& [edge, count] : edgeCount) {
+        for (const auto& count : edgeCount | std::views::values) {
             if (count != 1 && count != 2) return false;
         }
 
@@ -116,7 +141,7 @@ namespace egret
 
             // 3b. 度数检查：链环中每个顶点度数只能为 1 或 2
             IndexType degree1Count = 0;
-            for (const auto& [linkV, neighbors] : linkAdj) {
+            for (const auto& neighbors : linkAdj | std::views::values) {
                 const auto deg = neighbors.size();
                 if (deg == 1) {
                     ++degree1Count;
@@ -158,7 +183,10 @@ namespace egret
     bool TessellatedMesh::checkConvex() const
     {
         // 凸体必须是闭合网格
-        if (!checkClosed()) return false;
+        if (!checkClosed()) {
+            LOG_DEBUG(std::format("Do not Closed: {}", __func__));
+            return false;
+        }
 
         constexpr double kEpsilon = 1e-9;
 
@@ -209,4 +237,130 @@ namespace egret
         return {min, max};
     }
 
+    TessellatedMesh makeTessellatedMesh(const std::string& meshFilePath)
+    {
+        Assimp::Importer importer;
+
+        // 加载文件：三角化 + 生成法线（手动处理顶点去重，不再依赖 Assimp 的 JoinIdenticalVertices）
+        constexpr unsigned int importFlags =
+            aiProcess_Triangulate |
+            aiProcess_GenNormals;
+
+        const aiScene* scene = importer.ReadFile(meshFilePath, importFlags);
+        if (scene == nullptr || scene->mNumMeshes == 0) {
+            LOG_WARN(std::format("Cannot Load Mesh File: {}", meshFilePath));
+            return {};
+        }
+
+        // 仅提取第一个网格
+        const aiMesh* mesh = scene->mMeshes[0];
+        if (mesh == nullptr || mesh->mNumVertices == 0 || mesh->mNumFaces == 0) {
+            LOG_WARN(std::format("Cannot Load Mesh From: {}", meshFilePath));
+            return {};
+        }
+
+        // ---- 第 1 步：从 Assimp 拷贝原始顶点、法线、索引 ----
+
+        const auto originalVertexCount = static_cast<std::size_t>(mesh->mNumVertices);
+        const bool hasNormals = mesh->HasNormals();
+
+        std::vector<Eigen::Vector3d> rawVertices;
+        rawVertices.reserve(originalVertexCount);
+        for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
+            const aiVector3D& v = mesh->mVertices[i];
+            rawVertices.emplace_back(v.x, v.y, v.z);
+        }
+
+        std::vector<Eigen::Vector3d> rawNormals;
+        if (hasNormals) {
+            rawNormals.reserve(originalVertexCount);
+            for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
+                const aiVector3D& n = mesh->mNormals[i];
+                rawNormals.emplace_back(n.x, n.y, n.z);
+            }
+        }
+
+        const auto originalFaceCount = static_cast<std::size_t>(mesh->mNumFaces);
+        std::vector<TessellatedMesh::TriangleIndexType> rawIndices;
+        rawIndices.reserve(originalFaceCount);
+        for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {
+            const aiFace& face = mesh->mFaces[i];
+            if (face.mNumIndices != 3) {
+                continue;
+            }
+            rawIndices.emplace_back(
+                static_cast<TessellatedMesh::IndexType>(face.mIndices[0]),
+                static_cast<TessellatedMesh::IndexType>(face.mIndices[1]),
+                static_cast<TessellatedMesh::IndexType>(face.mIndices[2]));
+        }
+
+        // ---- 第 2 步：手动顶点去重（基于空间位置 + 平均法线） ----
+
+        constexpr double kMergeEpsilon = 1e-9;
+        constexpr double kMergeEpsilonSq = kMergeEpsilon * kMergeEpsilon;
+
+        std::vector<bool> processed(rawVertices.size(), false);
+        std::vector<TessellatedMesh::IndexType> remap(rawVertices.size());
+
+        TessellatedMesh result;
+        std::vector<Eigen::Vector3d> normalAccum;
+
+        for (std::size_t i = 0; i < rawVertices.size(); ++i) {
+            if (processed[i]) continue;
+
+            const auto newIdx = static_cast<TessellatedMesh::IndexType>(result.vertices.size());
+
+            // 添加新顶点（去重代表）
+            result.vertices.push_back(rawVertices[i]);
+            if (hasNormals) {
+                normalAccum.push_back(rawNormals[i]);
+            }
+
+            remap[i] = newIdx;
+            processed[i] = true;
+
+            // 查找所有与顶点 i 位置相同（在 epsilon 范围内）的后续顶点
+            for (std::size_t j = i + 1; j < rawVertices.size(); ++j) {
+                if (processed[j]) continue;
+                if ((rawVertices[i] - rawVertices[j]).squaredNorm() <= kMergeEpsilonSq) {
+                    remap[j] = newIdx;
+                    processed[j] = true;
+                    if (hasNormals) {
+                        // 累加法线，后续归一化取平均
+                        normalAccum[newIdx] += rawNormals[j];
+                    }
+                }
+            }
+        }
+
+        // 归一化法线（去重后取平均）
+        if (hasNormals) {
+            result.normals.reserve(normalAccum.size());
+            for (auto& n : normalAccum) {
+                const double lenSq = n.squaredNorm();
+                if (lenSq > kMergeEpsilonSq) {
+                    n.normalize();
+                }
+                result.normals.push_back(std::move(n));
+            }
+        }
+
+        // ---- 第 3 步：重映射面索引，过滤退化三角形 ----
+
+        result.indices.reserve(rawIndices.size());
+        for (const auto& tri : rawIndices) {
+            const auto a = remap[tri.x()];
+            const auto b = remap[tri.y()];
+            const auto c = remap[tri.z()];
+
+            // 跳过退化三角形（去重后两个或三个顶点被合并到同一索引）
+            if (a == b || b == c || c == a) {
+                continue;
+            }
+
+            result.indices.emplace_back(a, b, c);
+        }
+
+        return result;
+    }
 }

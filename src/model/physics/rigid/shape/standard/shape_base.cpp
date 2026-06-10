@@ -75,9 +75,11 @@ namespace egret
         const auto otherId = static_cast<std::uint32_t>(other->getType());
         auto func = ShapeRegister::instance().findContinuousJudge(myId, otherId);
         if (!func) {
+            // LOG_DEBUG("Match Generic Func");
             func = ShapeRegister::instance().findContinuousJudge(static_cast<std::uint32_t>(ShapeType::Other),
                                                                  static_cast<std::uint32_t>(ShapeType::Other));
             if (!func) {
+                // LOG_DEBUG("Match No Func");
                 return std::nullopt;
             }
         }

@@ -109,6 +109,7 @@ endif ()
 
 include_directories(
         dependency/include
+        dependency/include/assimp_6_0_2
         dependency/include/boost_1_90_0
         dependency/include/eigen_5_0_0
         dependency/include/magic_enum_0.9.8/magic_enum
@@ -250,6 +251,7 @@ set(CPP_FILES
         src/model/solver/solver_types.h
         src/model/scene/world_scene_manager.h
         src/model/scene/world_scene_manager.cpp
+        src/model/scene/scene_convex_mesh_render_item.h
         src/model/scene/scene_surface_render_item.h
         src/model/scene/scene_curve_render_item.h
 
@@ -305,6 +307,8 @@ set(CPP_FILES
         src/view/geometry/curve_geometry.h
         src/view/geometry/surface_geometry.cpp
         src/view/geometry/surface_geometry.h
+        src/view/geometry/convex_mesh_geometry.cpp
+        src/view/geometry/convex_mesh_geometry.h
         src/view_model/serialize/transform_transformer.cpp
         src/view_model/serialize/transform_transformer.h
         src/utils/egret_version.h
@@ -358,9 +362,20 @@ set_target_properties(QXlsx::QXlsx PROPERTIES
         INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::GuiPrivate"
 )
 
+# Assimp 导入库
+add_library(Assimp::Assimp SHARED IMPORTED)
+set_target_properties(Assimp::Assimp PROPERTIES
+        IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/dependency/bin/Assimp/assimp-vc143-mt.dll"
+        IMPORTED_IMPLIB "${CMAKE_SOURCE_DIR}/dependency/lib/Assimp/assimp-vc143-mt.lib"
+        IMPORTED_LOCATION_DEBUG "${CMAKE_SOURCE_DIR}/dependency/bin/Assimp/assimp-vc143-mtd.dll"
+        IMPORTED_IMPLIB_DEBUG "${CMAKE_SOURCE_DIR}/dependency/lib/Assimp/assimp-vc143-mtd.lib"
+        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/dependency/include/assimp_6_0_2"
+)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
         ${QT_MODULES_LIST_WITH_PREFIX}
         QXlsx::QXlsx
+        Assimp::Assimp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -394,6 +409,12 @@ if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
                 "${QT_INSTALL_PATH}/bin/Qt6${QT_LIB}${DEBUG_SUFFIX}.dll"
                 "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
     endforeach (QT_LIB)
+
+    # 复制 Assimp DLL 到输出目录
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/dependency/bin/Assimp/assimp-vc143-mt${DEBUG_SUFFIX}.dll"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
 
     find_program(WINDEPLOYQT_EXECUTABLE
             NAMES windeployqt

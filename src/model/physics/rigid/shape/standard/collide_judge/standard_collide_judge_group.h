@@ -33,10 +33,12 @@ namespace egret
     class ShapeSphere;
     class ShapeSphericalShell;
 
+    bool collideGeneric(const ShapeBase& shapeA, const Transform& transA, const ShapeBase& shapeB,
+                              const Transform& transB, ContactManifold& manifold);
+
     inline namespace box_first
     {
-        bool collideGeneric(const ShapeBase& shapeA, const Transform& transA, const ShapeBase& shapeB,
-                              const Transform& transB, ContactManifold& manifold);
+
 
 
         // 已实现

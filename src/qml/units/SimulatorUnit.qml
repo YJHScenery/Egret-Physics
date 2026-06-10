@@ -962,6 +962,31 @@ ColumnLayout {
                                 }
                             }
                         }
+
+                        // ---- 凸体网格渲染（ConvexMesh） ----
+                        // 从 sceneController.convexMeshModel 获取网格数据
+                        // 坐标转换已在 ConvexMeshGeometry::rebuild() 中完成
+                        // (x,y,z) → (y,z,x)，与渲染管线保持一致
+                        Repeater3D {
+                            model: sceneController.convexMeshModel
+
+                            delegate: Model {
+                                geometry: convexMeshGeometry
+
+                                position: convexMeshPosition
+                                scale: convexMeshScale
+                                rotation: convexMeshRotation
+
+                                materials: PrincipledMaterial {
+                                    cullMode: Material.NoCulling
+                                    baseColor: convexMeshColor
+                                    roughness: 0.3
+                                    metalness: 0.1
+                                    opacity: 1
+                                    alphaMode: PrincipledMaterial.Opaque
+                                }
+                            }
+                        }
                     }
                 }
 

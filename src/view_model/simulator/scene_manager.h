@@ -31,6 +31,7 @@
 
 #include "visual_item/scene_body_model.h"
 #include "visual_item/scene_constraint_model.h"
+#include "visual_item/scene_convex_mesh_model.h"
 #include "visual_item/scene_curve_model.h"
 #include "visual_item/scene_surface_model.h"
 #include "world_scene_manager.h"
@@ -126,6 +127,8 @@ namespace egret
         Q_PROPERTY(SceneSurfaceModel *surfaceModel READ surfaceModel CONSTANT)
 
         Q_PROPERTY(SceneCurveModel *curveModel READ curveModel CONSTANT)
+
+        Q_PROPERTY(SceneConvexMeshModel *convexMeshModel READ convexMeshModel CONSTANT)
 
     public:
         /** 默认构造。 */
@@ -250,6 +253,9 @@ namespace egret
         /** QML 直接使用的曲线列表模型。 */
         [[nodiscard]] SceneCurveModel* curveModel();
 
+        /** QML 直接使用的凸体网格列表模型。 */
+        [[nodiscard]] SceneConvexMeshModel* convexMeshModel();
+
         /** 获取当前的积分策略器名称 */
         [[nodiscard]] Q_INVOKABLE QString getIntegratorName() const;
 
@@ -367,6 +373,11 @@ namespace egret
         void refreshCurveModel();
 
         /**
+         * @brief 将模型层凸体网格快照刷新到 Qt 列表模型。
+         */
+        void refreshConvexMeshModel();
+
+        /**
          * @brief 执行单次固定步长推进的内部函数。
          * @param emitFrameSignal 是否在完成后发出 frameAdvanced 信号。
          */
@@ -449,6 +460,9 @@ namespace egret
 
         /** QML 可直接使用的曲线模型。 */
         SceneCurveModel m_curveModel;
+
+        /** QML 可直接使用的凸体网格模型。 */
+        SceneConvexMeshModel m_convexMeshModel;
 
         /** 追踪数据缓冲区，按实体 ID 索引。 */
         QMap<std::uint64_t, TrackingBuffer> m_trackingBuffers;

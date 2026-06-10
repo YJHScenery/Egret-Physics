@@ -60,6 +60,13 @@ namespace egret
         // 形状自描述的加载信息，默认仅提供 typeId。
         [[nodiscard]] ShapeLoadInfo getLoadInfo() const override;
 
+        /**
+         * @brief 获取内部细分网格数据的常量引用。
+         * @details 返回已平移到质心原点的顶点数据，供视图层构建渲染几何体使用。
+         * @return 细分网格数据的常量引用。
+         */
+        [[nodiscard]] const TessellatedMesh& getTessellatedMesh() const { return m_dataMesh; }
+
     private:
         TessellatedMesh m_dataMesh{};
 
