@@ -23,7 +23,7 @@ namespace egret
         void buildCandidatePairs(const SolverSceneSnapshotBase& scene, [[maybe_unused]] const SolverConfig& config,
                                  std::vector<SolverBodyPair>& outPairs, SolverStats& stats) const override;
 
-        std::string_view name() const override;
+        [[nodiscard]]std::string_view name() const override;
 
     private:
 

@@ -188,7 +188,7 @@ namespace egret
 
     std::string_view VelocityVerletIntegratorStrategy::name() const
     {
-        const static std::string name{"Velocity Verlet Integrator"};
+        const static std::string name{"Velocity Verlet"};
         return name;
     }
 }

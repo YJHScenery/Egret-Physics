@@ -102,6 +102,8 @@ namespace egret
 
         [[nodiscard]] std::string_view getIntegratorName() const;
 
+        [[nodiscard]] std::string_view getBroadStrategyName() const;
+
     private:
         /**
          * @brief 更新所有物体的逆惯量矩阵缓存。

@@ -679,6 +679,17 @@ namespace egret
          */
         [[nodiscard]] std::string_view getIntegratorName() const;
 
+
+
+        /**
+         * @brief 返回当前所用广相位检测策略器的名称
+         * @return broadPhaseStrategy->name()
+         * @see @class BroadPhaseStrategy
+         */
+        [[nodiscard]] std::string_view getBroadStrategyName() const;
+
+
+
     private:
         /**
          * @brief 重建求解器缓存，确保句柄指向当前记录地址。

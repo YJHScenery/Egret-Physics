@@ -82,7 +82,7 @@ namespace egret
 
     std::string_view SemiImplicitEulerIntegratorStrategy::name() const
     {
-        static const std::string name {"Semi Implicit Euler Integrator"};
+        static const std::string name {"Semi Implicit Euler"};
         return name;
     }
 }

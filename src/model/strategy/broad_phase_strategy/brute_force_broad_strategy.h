@@ -53,7 +53,7 @@ namespace egret
                                  std::vector<SolverBodyPair>& outPairs,
                                  SolverStats& stats) const override;
 
-        std::string_view name() const override;
+        [[nodiscard]] std::string_view name() const override;
     };
 }
 

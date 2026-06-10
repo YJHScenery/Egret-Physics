@@ -68,7 +68,7 @@ namespace egret
                                  SolverStats& stats) const override;
 
         /** @return 策略名称 "Octree"。 */
-        std::string_view name() const override;
+        [[nodiscard]]std::string_view name() const override;
 
     private:
         /** 八叉树内核，每帧 build 时重建。 */

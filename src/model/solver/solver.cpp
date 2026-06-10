@@ -189,6 +189,11 @@ namespace egret
         return m_integrator->name();
     }
 
+    std::string_view Solver::getBroadStrategyName() const
+    {
+        return m_broadPhase->name();
+    }
+
     void Solver::updateBodyInertiaCache(SolverSceneSnapshotBase& scene) const
     {
         auto bodies = scene.getBodies();

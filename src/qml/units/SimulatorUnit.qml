@@ -1224,7 +1224,12 @@ ColumnLayout {
                         spacing: 6
 
                         Repeater {
-                            model: ["重力场 g = " + resourceHelper.getStandardGravity() + "m/s^2", "积分器: " + sceneController.getIntegratorName(), "碰撞模型: CCD", "约束求解: Sequential Impulse", "误差阈值: 1e-6"]
+                            model: [
+                                "广相位碰撞模型：" + sceneController.getBroadStrategyName(),
+                                "积分器: " + sceneController.getIntegratorName(),
+                                "碰撞模型: CCD",
+                                "约束求解: Sequential Impulse",
+                                "误差阈值: 1e-6"]
 
                             delegate: Rectangle {
                                 id: repeatItem

@@ -569,6 +569,12 @@ namespace egret
         return QString::fromUtf8(name.data(), static_cast<qsizetype>(name.size()));
     }
 
+    QString SceneManagerViewModel::getBroadStrategyName() const
+    {
+        const std::string_view name{m_world->getBroadStrategyName()};
+        return QString::fromUtf8(name.data(), static_cast<qsizetype>(name.size()));
+    }
+
     void SceneManagerViewModel::play()
     {
         if (m_running) {

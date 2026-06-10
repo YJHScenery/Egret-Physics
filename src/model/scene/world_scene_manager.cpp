@@ -1061,6 +1061,11 @@ namespace egret
         return m_solver->getIntegratorName();
     }
 
+    std::string_view WorldSceneManager::getBroadStrategyName() const
+    {
+        return m_solver->getBroadStrategyName();
+    }
+
     ConstraintRecord* WorldSceneManager::findConstraint(const std::uint64_t id)
     {
         for (auto& constraint : m_constraints) {
