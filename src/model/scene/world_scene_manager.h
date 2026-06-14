@@ -29,7 +29,7 @@
 #include "rigid_body.h"
 #include "shape_base.h"
 #include "solver.h"
-#include "surface_base.h"
+// #include "surface_base.h"
 #include "scene_convex_mesh_render_item.h"
 #include "scene_curve_render_item.h"
 

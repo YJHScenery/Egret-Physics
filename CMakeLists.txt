@@ -170,14 +170,14 @@ set(CPP_FILES
         src/utils/io/async_logger.h
         src/utils/language/cpp_property.cpp
 
-        src/model/geometry/surface/surface_base.h
-        src/model/geometry/surface/surface_base.cpp
-        src/model/geometry/surface/surface_plane.h
-        src/model/geometry/surface/surface_plane.cpp
-        src/model/geometry/surface/surface_bezier.h
-        src/model/geometry/surface/surface_bezier.cpp
-        src/model/geometry/surface/surface_cylindrical.h
-        src/model/geometry/surface/surface_cylindrical.cpp
+#        src/model/geometry/surface/surface_base.h
+#        src/model/geometry/surface/surface_base.cpp
+#        src/model/geometry/surface/surface_plane.h
+#        src/model/geometry/surface/surface_plane.cpp
+#        src/model/geometry/surface/surface_bezier.h
+#        src/model/geometry/surface/surface_bezier.cpp
+#        src/model/geometry/surface/surface_cylindrical.h
+#        src/model/geometry/surface/surface_cylindrical.cpp
 
         src/model/geometry/curve/curve_base.h
         src/model/geometry/curve/curve_base.cpp
@@ -300,8 +300,6 @@ set(CPP_FILES
         src/view/geometry/bezier_curve_geometry.h
         src/view/geometry/curve_geometry.cpp
         src/view/geometry/curve_geometry.h
-        src/view/geometry/surface_geometry.cpp
-        src/view/geometry/surface_geometry.h
         src/view/geometry/convex_mesh_geometry.cpp
         src/view/geometry/convex_mesh_geometry.h
         src/view_model/serialize/transform_transformer.cpp

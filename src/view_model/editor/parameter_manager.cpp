@@ -21,7 +21,7 @@
 #include "field_base.h"
 #include "constraints_base.h"
 #include "air_resistance.h"
-#include "surface_base.h"
+// #include "surface_base.h"
 #include "curve_base.h"
 
 #include <QDebug>
@@ -287,65 +287,6 @@ namespace egret
             QStringLiteral("空气阻力"),
             {},  // AirResistance 无独立参数，所有参数在 DragModel 子类型中
             3    // subCategory = DragModel
-        });
-
-        
-        //  Surface 子类别 (SurfaceType 枚举)
-        
-
-        m_surfaceSchemas.append({
-            static_cast<int>(SurfaceType::Plane),
-            QStringLiteral("平面"),
-            {
-                {
-                    QStringLiteral("planeNormal"), QStringLiteral("法线方向"),
-                    QStringLiteral("vector3d"), QVector3D(0.0f, 1.0f, 0.0f),
-                    -1.0, 1.0, 0.01, 3
-                },
-                {
-                    QStringLiteral("planeOffset"), QStringLiteral("偏移"),
-                    QStringLiteral("float"), 0.0,
-                    -100000.0, 100000.0, 0.1, 3
-                },
-            },
-            0
-        });
-
-        m_surfaceSchemas.append({
-            static_cast<int>(SurfaceType::Bezier),
-            QStringLiteral("Bezier 曲面"),
-            {
-                {
-                    QStringLiteral("bezierUSubdiv"), QStringLiteral("U 方向细分"),
-                    QStringLiteral("float"), 16.0,
-                    2.0, 256.0, 1.0, 0
-                },
-                {
-                    QStringLiteral("bezierVSubdiv"), QStringLiteral("V 方向细分"),
-                    QStringLiteral("float"), 16.0,
-                    2.0, 256.0, 1.0, 0
-                },
-            },
-            0
-        });
-
-        // Cylindrical 曲面 — 触发 Curve 子类型链
-        m_surfaceSchemas.append({
-            static_cast<int>(SurfaceType::Cylindrical),
-            QStringLiteral("柱面"),
-            {
-                {
-                    QStringLiteral("cylindricalHeight"), QStringLiteral("高度"),
-                    QStringLiteral("float"), 1.0,
-                    0.001, 100000.0, 0.1, 3
-                },
-                {
-                    QStringLiteral("cylindricalRadius"), QStringLiteral("半径"),
-                    QStringLiteral("float"), 0.1,
-                    0.0, 100000.0, 0.05, 3
-                },
-            },
-            2 // subCategory = Curve
         });
 
         
