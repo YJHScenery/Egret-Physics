@@ -32,7 +32,7 @@
 #include "surface_base.h"
 #include "scene_convex_mesh_render_item.h"
 #include "scene_curve_render_item.h"
-#include "scene_surface_render_item.h"
+
 #include "transform.h"
 #include "basic_render_item.h"
 
@@ -447,14 +447,6 @@ namespace egret
         [[nodiscard]] std::vector<SceneConstraintRenderItem> buildConstraintRenderItems() const;
 
         /**
-         * @brief 生成供 ViewModel 渲染的曲面轻量化数据快照。
-         * @details 遍历世界中的所有约束器，找出 SupportSurface 类型的约束，
-         *          clone 其内部的 SurfaceBase 曲面，供 ViewModel 层转换为 QML 可渲染的网格。
-         * @return 曲面渲染条目列表。
-         */
-        [[nodiscard]] std::vector<SceneSurfaceRenderItem> buildSurfaceRenderItems() const;
-
-        /**
          * @brief 生成供 ViewModel 渲染的曲线轻量化数据快照。
          * @details 遍历世界中的所有约束器，找出 SlidingRail 类型的约束，
          *          clone 其内部的 CurveBase 曲线，供 ViewModel 层转换为 QML 可渲染的线条。
@@ -579,23 +571,6 @@ namespace egret
 
 
         std::uint64_t createRod(const std::string& name, double length, std::uint64_t entityAId, uint64_t entityBId);
-
-        /**
-         * @brief 创建并注册支撑曲面约束器。
-         * @details 创建一个 SupportSurface 约束器，接收一个曲面，
-         *          并可选地注册一组初始实体。曲面所有权转移给约束器。
-         *          约束器建立后，可通过 registerEntity / unregisterEntity
-         *          动态管理受曲面影响的实体。
-         * @param name 约束名称。
-         * @param surface 曲面所有权（unique_ptr）。
-         * @param restitution 恢复系数（默认 -1，使用实体自身值）。
-         * @param initialEntityIds 初始注册的实体 ID 列表（可选）。
-         * @return 新约束的 ID，失败返回 0。
-         */
-        std::uint64_t createSupportSurface(const std::string& name,
-                                           std::unique_ptr<SurfaceBase> surface,
-                                           double restitution = -1.0,
-                                           const std::vector<std::uint64_t>& initialEntityIds = {});
 
         /**
          * @brief 创建滑轨约束并注册到世界。

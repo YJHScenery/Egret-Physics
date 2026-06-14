@@ -38,7 +38,7 @@
 #include "constraints/simple_pendulum.h"
 #include "constraints/spring.h"
 #include "constraints/connecting_rod.h"
-#include "constraints/support_surface.h"
+// #include "constraints/support_surface.h"
 
 namespace egret
 {
@@ -555,45 +555,6 @@ namespace egret
         return items;
     }
 
-    std::vector<SceneSurfaceRenderItem> WorldSceneManager::buildSurfaceRenderItems() const
-    {
-        std::vector<SceneSurfaceRenderItem> items;
-        items.reserve(m_constraints.size());
-
-        for (const auto& constraintRecord : m_constraints) {
-            if (constraintRecord == nullptr || constraintRecord->constraint == nullptr) {
-                continue;
-            }
-
-            const ConstraintsBase* constraint = constraintRecord->constraint.get();
-
-            // 只处理 SupportSurface 类型的约束
-            if (constraint->getType() != ConstraintType::SupportSurface) {
-                continue;
-            }
-
-            const auto* supportSurface = dynamic_cast<const SupportSurface*>(constraint);
-
-            if (supportSurface == nullptr) {
-                LOG_WARN_LITERAL("Null Pointer Got: [const SupportSurface* supportSurface]");
-                continue;
-            }
-            const SurfaceBase* surface = supportSurface->getSurface();
-            if (surface == nullptr) {
-                continue;
-            }
-
-            SceneSurfaceRenderItem item{};
-            item.constraintId = constraint->getId();
-            item.surfaceType = static_cast<std::uint32_t>(surface->getType());
-            item.surface = surface->clone();
-
-            items.push_back(std::move(item));
-        }
-
-        return items;
-    }
-
     std::vector<SceneCurveRenderItem> WorldSceneManager::buildCurveRenderItems() const
     {
         std::vector<SceneCurveRenderItem> items;
@@ -939,36 +900,6 @@ namespace egret
         return registerConstraint(name, rod);
     }
 
-
-    std::uint64_t WorldSceneManager::createSupportSurface(
-        const std::string& name,
-        std::unique_ptr<SurfaceBase> surface,
-        const double restitution,
-        const std::vector<std::uint64_t>& initialEntityIds)
-    {
-        if (surface == nullptr) {
-            return 0;
-        }
-
-        auto support = std::make_shared<SupportSurface>(
-            UniqueIDGenerator::instance().generate(),
-            std::move(surface));
-
-        // 设置恢复系数
-        if (restitution >= 0.0) {
-            support->setRestitution(restitution);
-        }
-
-        // 注册初始实体
-        for (const auto entityId : initialEntityIds) {
-            BodyRecord* body = findBody(entityId);
-            if (body != nullptr && body->entity != nullptr) {
-                support->registerEntity(body->entity.get());
-            }
-        }
-
-        return registerConstraint(name, support);
-    }
 
     std::uint64_t WorldSceneManager::createSlidingRail(
         const std::string& name,

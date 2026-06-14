@@ -34,7 +34,7 @@ namespace egret
 
         ConnectingLine, SimplePendulum, ConnectingRod, SlidingRail,
 
-        Spring, SupportSurface, AirResistance,
+        Spring, AirResistance,
 
         Abstract = 127,
 

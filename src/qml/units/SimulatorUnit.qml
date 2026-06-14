@@ -926,27 +926,6 @@ ColumnLayout {
                             }
                         }
 
-                        // ---- 曲面渲染（SupportSurface） ----
-                        // 从 sceneController.surfaceModel 获取曲面网格数据
-                        // 坐标转换已在 SurfaceGeometry::rebuild() 中完成
-                        // (x,y,z) → (y,z,x)，与 buildRenderItems() 保持一致
-                        Repeater3D {
-                            model: sceneController.surfaceModel
-
-                            delegate: Model {
-                                geometry: surfaceGeometry
-
-                                materials: PrincipledMaterial {
-                                    cullMode: Material.NoCulling
-                                    baseColor: surfaceColor
-                                    roughness: 0.3
-                                    metalness: 0.1
-                                    opacity: 1
-                                    alphaMode: PrincipledMaterial.Opaque
-                                }
-                            }
-                        }
-
                         // ---- 曲线轨道渲染（SlidingRail） ----
                         // 从 sceneController.curveModel 获取曲线数据
                         // 坐标转换已在 CurveGeometry::rebuild() 中完成

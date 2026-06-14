@@ -33,7 +33,6 @@
 #include "visual_item/scene_constraint_model.h"
 #include "visual_item/scene_convex_mesh_model.h"
 #include "visual_item/scene_curve_model.h"
-#include "visual_item/scene_surface_model.h"
 #include "world_scene_manager.h"
 #include <QQuaternion>
 
@@ -123,8 +122,6 @@ namespace egret
         Q_PROPERTY(SceneBodyModel *bodyModel READ bodyModel CONSTANT)
 
         Q_PROPERTY(SceneConstraintModel *constraintModel READ constraintModel CONSTANT)
-
-        Q_PROPERTY(SceneSurfaceModel *surfaceModel READ surfaceModel CONSTANT)
 
         Q_PROPERTY(SceneCurveModel *curveModel READ curveModel CONSTANT)
 
@@ -247,8 +244,6 @@ namespace egret
         /** QML 直接使用的约束列表模型。 */
         [[nodiscard]] SceneConstraintModel* constraintModel();
 
-        /** QML 直接使用的曲面列表模型。 */
-        [[nodiscard]] SceneSurfaceModel* surfaceModel();
 
         /** QML 直接使用的曲线列表模型。 */
         [[nodiscard]] SceneCurveModel* curveModel();
@@ -363,11 +358,6 @@ namespace egret
         void refreshConstraintModel();
 
         /**
-         * @brief 将模型层曲面快照刷新到 Qt 列表模型。
-         */
-        void refreshSurfaceModel();
-
-        /**
          * @brief 将模型层曲线快照刷新到 Qt 列表模型。
          */
         void refreshCurveModel();
@@ -454,9 +444,6 @@ namespace egret
 
         /** QML 可直接使用的约束模型。 */
         SceneConstraintModel m_constraintModel;
-
-        /** QML 可直接使用的曲面模型。 */
-        SceneSurfaceModel m_surfaceModel;
 
         /** QML 可直接使用的曲线模型。 */
         SceneCurveModel m_curveModel;

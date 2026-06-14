@@ -58,7 +58,6 @@
 #include "transform_transformer.h"
 #include "magic_enum.hpp"
 #include "surface_plane.h"
-#include "support_surface.h"
 #include "constraints/connecting_rod.h"
 #include "surface_bezier.h"
 #include "surface_cylindrical.h"
@@ -135,7 +134,6 @@ namespace egret
         rebuildDemoWorld();
         refreshBodyModel();
         refreshConstraintModel();
-        refreshSurfaceModel();
         refreshCurveModel();
         refreshConvexMeshModel();
         m_frameClock.start();
@@ -562,10 +560,6 @@ namespace egret
         return &m_constraintModel;
     }
 
-    SceneSurfaceModel* SceneManagerViewModel::surfaceModel()
-    {
-        return &m_surfaceModel;
-    }
 
     SceneCurveModel* SceneManagerViewModel::curveModel()
     {
@@ -633,7 +627,6 @@ namespace egret
         rebuildDemoWorld();
         refreshBodyModel();
         refreshConstraintModel();
-        refreshSurfaceModel();
         refreshCurveModel();
         refreshConvexMeshModel();
 
@@ -712,7 +705,6 @@ namespace egret
         // 4. 刷新视图模型
         refreshBodyModel();
         refreshConstraintModel();
-        refreshSurfaceModel();
         refreshCurveModel();
         refreshConvexMeshModel();
 
@@ -1072,17 +1064,6 @@ namespace egret
         m_constraintModel.setItems(items);
     }
 
-    void SceneManagerViewModel::refreshSurfaceModel()
-    {
-        if (m_world == nullptr) {
-            m_surfaceModel.clear();
-            return;
-        }
-
-        const std::vector<SceneSurfaceRenderItem> renderItems =
-            m_world->buildSurfaceRenderItems();
-        m_surfaceModel.setItems(renderItems);
-    }
 
     void SceneManagerViewModel::refreshCurveModel()
     {
@@ -1123,7 +1104,6 @@ namespace egret
 
         refreshBodyModel();
         refreshConstraintModel();
-        refreshSurfaceModel();
         refreshCurveModel();
         refreshConvexMeshModel();
         emit simTimeChanged();

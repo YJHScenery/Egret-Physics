@@ -236,8 +236,6 @@ set(CPP_FILES
 
         src/model/physics/constraints/constraints_base.cpp
         src/model/physics/constraints/constraints_base.h
-        src/model/physics/constraints/support_surface.cpp
-        src/model/physics/constraints/support_surface.h
         src/model/physics/constraints/connecting_line.cpp
         src/model/physics/constraints/connecting_line.h
         src/model/physics/constraints/connecting_rod.cpp
@@ -252,7 +250,6 @@ set(CPP_FILES
         src/model/scene/world_scene_manager.h
         src/model/scene/world_scene_manager.cpp
         src/model/scene/scene_convex_mesh_render_item.h
-        src/model/scene/scene_surface_render_item.h
         src/model/scene/scene_curve_render_item.h
 
         src/model/strategy/broad_phase_strategy/broad_phase_strategy.h
@@ -277,8 +274,6 @@ set(CPP_FILES
         src/view_model/simulator/visual_item/scene_body_model.cpp
         src/view_model/simulator/visual_item/scene_constraint_model.h
         src/view_model/simulator/visual_item/scene_constraint_model.cpp
-        src/view_model/simulator/visual_item/scene_surface_model.h
-        src/view_model/simulator/visual_item/scene_surface_model.cpp
         src/view_model/simulator/visual_item/scene_curve_model.h
         src/view_model/simulator/visual_item/scene_curve_model.cpp
         src/view_model/editor/editor_manager.cpp
