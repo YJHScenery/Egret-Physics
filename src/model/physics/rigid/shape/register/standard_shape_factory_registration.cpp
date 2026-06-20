@@ -17,6 +17,7 @@
 #include "shape_factory_registry.h"
 
 #include "shape_box.h"
+#include "shape_capsule.h"
 #include "shape_cylinder.h"
 #include "shape_sphere.h"
 #include "shape_spherical_shell.h"
@@ -63,6 +64,23 @@ namespace egret
                                          }
 
                                          return std::make_unique<ShapeBox>(size);
+                                     });
+
+            registry.registerFactory(static_cast<std::uint32_t>(ShapeType::Capsule),
+                                     [](const ShapeLoadInfo& info) -> std::unique_ptr<ShapeBase>
+                                     {
+                                         const auto radiusIt = info.numberParams.find("radius");
+                                         const auto heightIt = info.numberParams.find("height");
+                                         if (radiusIt == info.numberParams.end() || heightIt == info.numberParams.end()) {
+                                             return nullptr;
+                                         }
+
+                                         if (!radiusIt->second.empty() && !heightIt->second.empty()) {
+                                             const auto radius = radiusIt->second[0];
+                                             const auto height = heightIt->second[0];
+                                             return std::make_unique<ShapeCapsule>(radius, height);
+                                         }
+                                         return nullptr;
                                      });
 
             registry.registerFactory(static_cast<std::uint32_t>(ShapeType::Cylinder),

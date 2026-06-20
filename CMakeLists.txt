@@ -336,6 +336,8 @@ set(CPP_FILES
         src/model/strategy/broad_phase_strategy/kernel/octree_kernel.h
         src/view_model/simulator/visual_item/scene_convex_mesh_model.cpp
         src/view_model/simulator/visual_item/scene_convex_mesh_model.h
+        src/model/physics/rigid/shape/standard/shape_capsule.cpp
+        src/model/physics/rigid/shape/standard/shape_capsule.h
 
 )
 

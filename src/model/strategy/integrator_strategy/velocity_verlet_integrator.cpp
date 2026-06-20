@@ -33,9 +33,9 @@ namespace egret
         auto bodies = scene.getBodies();
         const std::size_t bodyCount = bodies.size();
 
-        // --------------------------------------------------
+
         // Phase 0: 收集活跃实体，保存 a(t) 和 v(t)
-        // --------------------------------------------------
+
         struct BodyState
         {
             SolverBodyHandle* handle;
@@ -82,13 +82,13 @@ namespace egret
             return;
         }
 
-        // --------------------------------------------------
+
         // Phase 1: 位置全步 + 转动半步
         //   平动：x(t+dt) = x + v·dt + 0.5·a·dt²
         //   转动：ω_half = ω + 0.5·α·dt → 用 ω_half 积分四元数姿态
         //   转动半步放在力重算之前，确保当未来引入朝向相关力矩时
         //   重算的 τ(t+dt) 基于新姿态。
-        // --------------------------------------------------
+
         for (const BodyState& s : states) {
             PhysicalEntity* const entity = s.handle->entity;
 
@@ -115,12 +115,12 @@ namespace egret
             }
         }
 
-        // --------------------------------------------------
+
         // Phase 2: 在新位置重算力 → a(t+dt)
         //   ① 清空所有活跃实体的力/力矩累加器
         //   ② 遍历所有场，重新施加场力
         //   ③ 遍历所有约束，重新施加约束力
-        // --------------------------------------------------
+
         for (const BodyState& s : states) {
             PhysicalEntity* const entity = s.handle->entity;
 
@@ -158,13 +158,13 @@ namespace egret
             }
         }
 
-        // --------------------------------------------------
+
         // Phase 3: 速度用平均加速度（平动 + 转动）
         //   平动：v(t+dt) = v + 0.5·(a_old + a_new)·dt
         //   转动：ω(t+dt) = ω + 0.5·(α_old + α_new)·dt
         //   注意 Phase 1 已将角速度设为 ω_half，这里从 α_old 和 α_new
         //   算出最终 ω，无需保留 ω_half。
-        // --------------------------------------------------
+
         for (const BodyState& s : states) {
             PhysicalEntity* const entity = s.handle->entity;
 

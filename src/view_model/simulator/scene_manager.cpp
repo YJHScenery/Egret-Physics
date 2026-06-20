@@ -66,6 +66,7 @@
 #include "curve_conic_section.h"
 #include "constants.h"
 #include "convex_mesh.h"
+#include "sliding_rail.h"
 
 #include "unique_id_generator.h"
 #include "broad_phase_strategy/bvh_broad_strategy.h"
@@ -913,6 +914,15 @@ namespace egret
 
         m_world->registerConstraint("Air Resistance", std::move(airResistance));
 
+
+        auto curve{std::make_unique<CurveHelix>(10, 10, 1000)};
+        auto rail{std::make_unique<SlidingRail>(UniqueIDGenerator::instance().generate(), std::move(curve))};
+
+        std::uint64_t id10 = m_world->spawnSphere("45623", {-100, -400, 700}, {0, 0, 0}, 10, 10);
+
+        rail->registerEntity(m_world->getEntity(id10));
+
+        m_world->registerConstraint("Sliding Rail", std::move(rail));
 
         m_entityCount = static_cast<int>(m_world->getBodyCount());
     }

@@ -20,6 +20,7 @@
 #include <string>
 
 #include "shape_base.h"
+#include "shape_capsule.h"
 
 namespace egret
 {
@@ -37,13 +38,13 @@ namespace egret
      * @remark      杆是一维形状，适合模拟细长物体如棍棒、杆件
      * @see         ShapeBase, Transform
      */
-    class ShapeRod : public ShapeBase
+    class ShapeRod : public ShapeCapsule
     {
     public:
         explicit ShapeRod(double length);
         [[nodiscard]] ShapeType getType() const override;
 
-        [[nodiscard]] double getLength() const { return m_length; }
+        [[nodiscard]] double getLength() const { return m_height; }
 
         [[nodiscard]] double getVolume() const override { return 0; };
 
@@ -59,10 +60,7 @@ namespace egret
 
         [[nodiscard]] std::pair<Eigen::Vector3d, Eigen::Vector3d> getStartEnd(const Transform &transform) const;
 
-        [[nodiscard]] Eigen::Vector3d support(const Eigen::Vector3d &direction, const Transform &transform) const override;
-
-    private:
-        double m_length{};
+        // [[nodiscard]] Eigen::Vector3d support(const Eigen::Vector3d &direction, const Transform &transform) const override;
     };
 }
 

@@ -137,7 +137,7 @@ namespace egret
     ShapeLoadInfo ShapeBox::getLoadInfo() const
     {
         ShapeLoadInfo info{};
-        info.typeId = (std::uint32_t)getType();
+        info.typeId = static_cast<std::uint32_t>(getType());
         info.numberParams["size"] = std::vector<double>{m_size.data(), m_size.data() + m_size.size()};
         return info;
     }

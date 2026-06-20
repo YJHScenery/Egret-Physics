@@ -73,12 +73,12 @@ namespace egret
     //     return false;
     // }
 
-    AABB ShapeSphere::getAABB(const Transform &transform) const
+    AABB ShapeSphere::getAABB(const Transform& transform) const
     {
         const Eigen::Matrix3d linear = transform.getLocalToWorldMatrix().topLeftCorner<3, 3>();
         const Eigen::Vector3d center = transform.getTranslation();
         const Eigen::Vector3d extent = linear.rowwise().norm() * m_radius;
-        return AABB{center - extent,center + extent,};
+        return AABB{center - extent, center + extent,};
     }
 
     ShapeLoadInfo ShapeSphere::getLoadInfo() const
@@ -89,19 +89,17 @@ namespace egret
         return info;
     }
 
-    Eigen::Vector3d ShapeSphere::support(const Eigen::Vector3d &direction, const Transform &transform) const
+    Eigen::Vector3d ShapeSphere::support(const Eigen::Vector3d& direction, const Transform& transform) const
     {
         // 将方向转换到局部坐标系
         Eigen::Vector3d localDir = transform.getRotation().conjugate() * direction;
 
         // 归一化方向
         const double len = localDir.norm();
-        if (len < 1e-12)
-        {
+        if (len < 1e-12) {
             localDir = Eigen::Vector3d(1, 0, 0);
         }
-        else
-        {
+        else {
             localDir /= len;
         }
 

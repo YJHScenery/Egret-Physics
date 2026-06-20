@@ -19,10 +19,16 @@
 
 namespace egret
 {
-    ShapeRod::ShapeRod(const double length) : m_length(length)
+    ShapeRod::ShapeRod(const double length) : ShapeCapsule(0.01, length)
     {
         if (length < 1e-12) {
             setValid(false);
+        }
+
+        double epsilonRadius{m_radius};
+        if (epsilonRadius / length >= 0.01) {
+            epsilonRadius = length * 0.009;
+            m_radius = epsilonRadius;
         }
     }
 
@@ -41,13 +47,13 @@ namespace egret
         Eigen::Matrix3d inertiaTensor;
         inertiaTensor.setIdentity();
         inertiaTensor(2, 2) = 0;
-        inertiaTensor *= 1.0 / 12.0 * mass * quickSquare(m_length);
+        inertiaTensor *= 1.0 / 12.0 * mass * quickSquare(m_height);
         return inertiaTensor;
     }
 
     AABB ShapeRod::getAABB(const Transform &transform) const
     {
-        const double a = 0.5 * m_length * transform.getScale().z(); // 假设 m_length 是细棒长度
+        const double a = 0.5 * m_height * transform.getScale().z(); // 假设 m_height 是细棒长度
         const Eigen::Vector3d rotationZ = transform.getRotationMatrix().col(2);
         const Eigen::Vector3d halfExtent = a * rotationZ.cwiseAbs(); // 逐分量绝对值
         const Eigen::Vector3d center = transform.getTranslation();
@@ -58,13 +64,13 @@ namespace egret
     {
         ShapeLoadInfo info{};
         info.typeId = static_cast<std::uint32_t>(getType());
-        info.numberParams["length"] = std::vector<double>{m_length};
+        info.numberParams["length"] = std::vector<double>{m_height};
         return info;
     }
 
     void ShapeRod::setLength(const double length)
     {
-        m_length = length;
+        m_height = length;
         if (length < 1e-12) {
             setValid(false);
         }
@@ -74,25 +80,25 @@ namespace egret
     {
         const Eigen::Vector3d position{transform.getTranslation()};
         const Eigen::Matrix3d rotationMatrix{transform.getRotationMatrix()};
-        const Eigen::Vector3d factor{0, 0, -(m_length * transform.getScale().z()) / 2.0};
+        const Eigen::Vector3d factor{0, 0, -(m_height * transform.getScale().z()) / 2.0};
 
         return {position + rotationMatrix * factor, position + rotationMatrix * (-factor)};
     }
 
-    Eigen::Vector3d ShapeRod::support(const Eigen::Vector3d &direction, const Transform &transform) const
-    {
-        // 将方向转换到局部坐标系（细棒在局部坐标系中沿z轴）
-        Eigen::Vector3d localDir = transform.getRotation().conjugate() * direction;
-
-        // 细棒的支撑点是两个端点之一
-        // 计算方向在细棒轴（z轴）上的投影
-        double halfLength = m_length * 0.5;
-        double zProjection = localDir.z();
-
-        // 取能最大化投影的端点
-        Eigen::Vector3d localSupport(0, 0, zProjection >= 0 ? halfLength : -halfLength);
-
-        // 变换回世界坐标系
-        return transform.localToWorld(localSupport);
-    }
+    // Eigen::Vector3d ShapeRod::support(const Eigen::Vector3d &direction, const Transform &transform) const
+    // {
+    //     // 将方向转换到局部坐标系（细棒在局部坐标系中沿z轴）
+    //     Eigen::Vector3d localDir = transform.getRotation().conjugate() * direction;
+    //
+    //     // 细棒的支撑点是两个端点之一
+    //     // 计算方向在细棒轴（z轴）上的投影
+    //     double halfLength = m_height * 0.5;
+    //     double zProjection = localDir.z();
+    //
+    //     // 取能最大化投影的端点
+    //     Eigen::Vector3d localSupport(0, 0, zProjection >= 0 ? halfLength : -halfLength);
+    //
+    //     // 变换回世界坐标系
+    //     return transform.localToWorld(localSupport);
+    // }
 }

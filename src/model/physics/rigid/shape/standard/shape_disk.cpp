@@ -46,12 +46,11 @@ namespace egret
         return inertiaTensor;
     }
 
-    AABB ShapeDisk::getAABB(const Transform &transform) const
+    AABB ShapeDisk::getAABB(const Transform& transform) const
     {
         const Eigen::Matrix3d rotationMat{transform.getRotationMatrix()};
         Eigen::Vector3d min, max;
-        for (int i = 0; i < 3; i++)
-        {
+        for (int i = 0; i < 3; i++) {
             const double a{transform.getScale().x() * rotationMat(i, 0)};
             const double b{transform.getScale().y() * rotationMat(i, 1)};
             const double halfLen{m_radius * sqrt(quickSquare(a) + quickSquare(b))};
@@ -77,19 +76,17 @@ namespace egret
         }
     }
 
-    Eigen::Vector3d ShapeDisk::support(const Eigen::Vector3d &direction, const Transform &transform) const
+    Eigen::Vector3d ShapeDisk::support(const Eigen::Vector3d& direction, const Transform& transform) const
     {
         // 将方向转换到局部坐标系（圆盘在局部坐标系中位于xy平面）
         Eigen::Vector3d localDir = transform.getRotation().conjugate() * direction;
 
         // 归一化方向
         const double len = localDir.norm();
-        if (len < 1e-12)
-        {
+        if (len < 1e-12) {
             localDir = Eigen::Vector3d(1, 0, 0);
         }
-        else
-        {
+        else {
             localDir /= len;
         }
 
@@ -99,13 +96,11 @@ namespace egret
         double xyLen = xyDir.norm();
 
         Eigen::Vector3d localSupport;
-        if (xyLen > 1e-12)
-        {
+        if (xyLen > 1e-12) {
             xyDir /= xyLen;
             localSupport = Eigen::Vector3d(xyDir.x() * m_radius, xyDir.y() * m_radius, 0);
         }
-        else
-        {
+        else {
             // 方向垂直于圆盘平面，任意边缘点都可作为支撑点
             localSupport = Eigen::Vector3d(m_radius, 0, 0);
         }

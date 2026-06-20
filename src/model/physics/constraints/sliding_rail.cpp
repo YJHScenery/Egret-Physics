@@ -28,13 +28,13 @@
 
 namespace egret
 {
-    // ==================== 构造与析构 ====================
+    //  构造与析构 
 
     SlidingRail::SlidingRail(std::uint64_t id,
                              std::unique_ptr<CurveBase> curve)
         : PhysicsAbstract(id)
-        , ConstraintsBase(id)
-        , m_curve(std::move(curve))
+          , ConstraintsBase(id)
+          , m_curve(std::move(curve))
     {
     }
 
@@ -43,7 +43,7 @@ namespace egret
         return ConstraintType::SlidingRail;
     }
 
-    // ==================== 辅助方法 ====================
+    //  辅助方法 
 
     Eigen::Vector3d SlidingRail::getUnitTangent(const double t) const
     {
@@ -68,12 +68,12 @@ namespace egret
         }
 
         const double tStart = m_curve->getStartT();
-        const double tEnd   = m_curve->getEndT();
+        const double tEnd = m_curve->getEndT();
         const double tRange = tEnd - tStart;
 
-        // ---------- 阶段 1：均匀采样，找到最近点 ----------
+        //  阶段 1：均匀采样，找到最近点 
 
-        double tBest  = tStart;
+        double tBest = tStart;
         double distSq = (m_curve->evaluate(tStart) - point).squaredNorm();
 
         // 如果提供了初始猜测，先检查初始猜测
@@ -82,7 +82,7 @@ namespace egret
             const double dSq = (m_curve->evaluate(tg) - point).squaredNorm();
             if (dSq < distSq) {
                 distSq = dSq;
-                tBest  = tg;
+                tBest = tg;
             }
         }
 
@@ -92,15 +92,15 @@ namespace egret
             const double dSq = (m_curve->evaluate(t) - point).squaredNorm();
             if (dSq < distSq) {
                 distSq = dSq;
-                tBest  = t;
+                tBest = t;
             }
         }
 
-        // ---------- 阶段 2：三分搜索精化 ----------
+        //  阶段 2：三分搜索精化 
 
         double refineRadius = tRange * k_refineRadius;
-        double tLow  = std::max(tStart, tBest - refineRadius);
-        double tHigh = std::min(tEnd,   tBest + refineRadius);
+        double tLow = std::max(tStart, tBest - refineRadius);
+        double tHigh = std::min(tEnd, tBest + refineRadius);
 
         for (int iter = 0; iter < k_refineIterations; ++iter) {
             const double tMid1 = tLow + (tHigh - tLow) / 3.0;
@@ -111,7 +111,8 @@ namespace egret
 
             if (dSq1 < dSq2) {
                 tHigh = tMid2;
-            } else {
+            }
+            else {
                 tLow = tMid1;
             }
         }
@@ -120,7 +121,7 @@ namespace egret
         return {tFinal, m_curve->evaluate(tFinal)};
     }
 
-    // ==================== 约束力注入（主要约束手段） ====================
+    //  约束力注入（主要约束手段） 
 
     void SlidingRail::applyReactionForce(PhysicalEntity* entity,
                                          const double t,
@@ -150,7 +151,7 @@ namespace egret
 
         const double fParallelMag = totalForce.dot(tangent);
         const Eigen::Vector3d fParallel = fParallelMag * tangent;
-        const Eigen::Vector3d fNormal   = totalForce - fParallel;
+        const Eigen::Vector3d fNormal = totalForce - fParallel;
 
         // 3. 若法向力可忽略，无需施加反力
         if (fNormal.squaredNorm() < 1e-20) {
@@ -192,7 +193,8 @@ namespace egret
                 t = tNew;
                 closest = pt;
                 m_entityParamMap[entity->getId()] = t;
-            } else {
+            }
+            else {
                 t = it->second;
                 closest = m_curve->evaluate(t);
 
@@ -208,7 +210,7 @@ namespace egret
         }
     }
 
-    // ==================== 位置微调 ====================
+    //  位置微调 
 
     void SlidingRail::applyPositionConstraint([[maybe_unused]] const double dt)
     {
@@ -245,23 +247,27 @@ namespace egret
 
             // 确定拉回系数
             const double factor = (it == m_entityParamMap.end())
-                                      ? m_firstSnapFactor   // 首次出现，快速拉入
-                                      : m_pullBackFactor;   // 常规微调
+                                      ? m_firstSnapFactor // 首次出现，快速拉入
+                                      : m_pullBackFactor; // 常规微调
 
             // 轻柔回拉
             constexpr double k_minMove = 1e-8;
             const double moveDist = dist * factor;
             if (moveDist > k_minMove) {
-                const Eigen::Vector3d newPos = pos + offset * factor;
+                const Eigen::Vector3d offsetWithFactor {offset * factor};
+                const Eigen::Vector3d newPos = pos + offsetWithFactor;
+
+                LOG_DEBUG(std::format("offset: {}, {}, {}", offsetWithFactor.x(), offsetWithFactor.y(), offsetWithFactor.z()));
+
                 entity->setPosition(newPos);
             }
         }
     }
 
-    // ==================== 速度微调 ====================
-
+    //  速度微调
     void SlidingRail::applyVelocityConstraint([[maybe_unused]] const double dt)
     {
+
         if (!m_enabled || m_curve == nullptr) {
             return;
         }
@@ -287,7 +293,7 @@ namespace egret
             // 分解速度
             const double vParallelMag = v.dot(tangent);
             const Eigen::Vector3d vParallel = vParallelMag * tangent;
-            const Eigen::Vector3d vNormal   = v - vParallel;
+            const Eigen::Vector3d vNormal = v - vParallel;
 
             const double vNormalMag = vNormal.norm();
             if (vNormalMag < m_velocityTolerance) {
@@ -296,12 +302,14 @@ namespace egret
 
             // 衰减法向速度分量
             const Eigen::Vector3d vNew = vParallel + vNormal * (1.0 - m_normalDampingFactor);
+
+            LOG_DEBUG(std::format("New Speed - Old Speed = {}" , (vNew - entity->getSpeedCR()).norm()));
+
             entity->setSpeed(vNew);
         }
     }
 
-    // ==================== 角速度微调 ====================
-
+    //  角速度微调
     void SlidingRail::applyAngularVelocityConstraint([[maybe_unused]] const double dt)
     {
         if (!m_enabled || m_curve == nullptr || dt <= 0.0) {
@@ -346,7 +354,7 @@ namespace egret
         }
     }
 
-    // ==================== 约束误差 ====================
+    //  约束误差 
 
     double SlidingRail::computeConstraintError() const
     {
@@ -369,7 +377,7 @@ namespace egret
             // 注意：findClosestPointOnCurve 不是 const 方法因为它调用了 m_curve，
             // 但 m_curve 的 evaluate/derivative 是 const 方法，所以这里实际上是 const 安全的。
             const double tStart = m_curve->getStartT();
-            const double tEnd   = m_curve->getEndT();
+            const double tEnd = m_curve->getEndT();
 
             // 简化版距离计算（不修改映射，仅计算距离）
             const Eigen::Vector3d pos = entity->getPosition();
@@ -400,20 +408,20 @@ namespace egret
         return maxDist;
     }
 
-    // ==================== 拷贝与克隆 ====================
+    //  拷贝与克隆 
 
     SlidingRail::SlidingRail(const SlidingRail& other)
         : PhysicsAbstract(other)
-        , ConstraintsBase(other)
-        , m_curve(other.m_curve ? other.m_curve->clone() : nullptr)
-        , m_entityParamMap(other.m_entityParamMap)
-        , m_positionTolerance(other.m_positionTolerance)
-        , m_velocityTolerance(other.m_velocityTolerance)
-        , m_angularTolerance(other.m_angularTolerance)
-        , m_pullBackFactor(other.m_pullBackFactor)
-        , m_firstSnapFactor(other.m_firstSnapFactor)
-        , m_normalDampingFactor(other.m_normalDampingFactor)
-        , m_frictionCoeff(other.m_frictionCoeff)
+          , ConstraintsBase(other)
+          , m_curve(other.m_curve ? other.m_curve->clone() : nullptr)
+          , m_entityParamMap(other.m_entityParamMap)
+          , m_positionTolerance(other.m_positionTolerance)
+          , m_velocityTolerance(other.m_velocityTolerance)
+          , m_angularTolerance(other.m_angularTolerance)
+          , m_pullBackFactor(other.m_pullBackFactor)
+          , m_firstSnapFactor(other.m_firstSnapFactor)
+          , m_normalDampingFactor(other.m_normalDampingFactor)
+          , m_frictionCoeff(other.m_frictionCoeff)
     {
     }
 
@@ -427,13 +435,13 @@ namespace egret
         ConstraintsBase::operator=(other);
         m_curve = other.m_curve ? other.m_curve->clone() : nullptr;
         m_entityParamMap = other.m_entityParamMap;
-        m_positionTolerance  = other.m_positionTolerance;
-        m_velocityTolerance  = other.m_velocityTolerance;
-        m_angularTolerance   = other.m_angularTolerance;
-        m_pullBackFactor     = other.m_pullBackFactor;
-        m_firstSnapFactor    = other.m_firstSnapFactor;
+        m_positionTolerance = other.m_positionTolerance;
+        m_velocityTolerance = other.m_velocityTolerance;
+        m_angularTolerance = other.m_angularTolerance;
+        m_pullBackFactor = other.m_pullBackFactor;
+        m_firstSnapFactor = other.m_firstSnapFactor;
         m_normalDampingFactor = other.m_normalDampingFactor;
-        m_frictionCoeff      = other.m_frictionCoeff;
+        m_frictionCoeff = other.m_frictionCoeff;
 
         return *this;
     }

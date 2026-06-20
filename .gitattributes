@@ -3,3 +3,5 @@ dependency/include/** linguist-vendored
 *.py linguist-vendored
 
 doxygen/** linguist-vendored
+
+*.json linguist-vendored

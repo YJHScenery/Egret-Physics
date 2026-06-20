@@ -38,6 +38,7 @@ namespace egret
 
         Box,
         Cylinder,
+        Capsule,
         CylindricalShell,
         Disk,
         Ring,

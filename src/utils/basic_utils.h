@@ -83,5 +83,20 @@ namespace egret
         );
         return std::sqrt(sum);
     }
+
+    // 零参数版本（单独重载，避免空包时 common_type 推导失败）
+    constexpr double sqrtSumOfSquares()
+    {
+        return 0.0;
+    }
+
+    // 变参版本：适用于一个或多个参数
+    template <NumericWithOps... Args>
+    constexpr auto sqrtSumOfSquares(Args... args)
+    {
+        using Common = std::common_type_t<Args...>;
+        Common sum = (quickSquare(static_cast<Common>(args)) + ...);
+        return std::sqrt(sum);
+    }
 }
 #endif // EGRET_PHYSICS_GEOMETRY_H
