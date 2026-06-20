@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "物理引擎模型/碰撞系统/Phase-2：精确检测与响应/Chapter-2-EPA算法：静态碰撞信息处理.md",
+                "file": "物理引擎模型/碰撞系统/Phase-2：精确检测与响应/Chapter-2-EPA算法：静态碰撞信息生成.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Chapter-2-EPA算法：静态碰撞信息处理"
+              "title": "Chapter-2-EPA算法：静态碰撞信息生成"
             }
           }
         ]
@@ -186,10 +186,10 @@
   "active": "086ebcbc03338d85",
   "lastOpenFiles": [
     "物理引擎模型/碰撞系统/Phase-2：精确检测与响应/Chapter-1-GJK算法：静态碰撞检测.md",
-    "物理引擎模型/碰撞系统/Phase-2：精确检测与响应/Chapter-2-EPA算法：静态碰撞信息处理.md",
+    "物理引擎模型/碰撞系统/Phase-2：精确检测与响应/Chapter-2-EPA算法：静态碰撞信息生成.md",
+    "物理引擎模型/碰撞系统/Phase-2：精确检测与响应/Chapter-0-支撑函数与支撑点.md",
     "物理引擎模型/碰撞系统/Phase-2：精确检测与响应/Chapter-3-CCD算法：连续碰撞检测.md",
     "物理引擎模型/碰撞系统/Phase-2：精确检测与响应/Chapter-4-CCD效果器：冲量施加与积分响应.md",
-    "物理引擎模型/碰撞系统/Phase-2：精确检测与响应/Chapter-0-支撑函数与支撑点.md",
     "物理引擎模型/碰撞系统",
     "物理引擎模型/碰撞系统/Phase-1：包围盒粗筛",
     "物理引擎模型/碰撞系统/Phase-2：精确检测与响应",
