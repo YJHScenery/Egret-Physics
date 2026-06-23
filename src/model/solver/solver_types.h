@@ -21,8 +21,7 @@
 #include <cstdint>
 
 #include "Eigen/Dense"
-#include "basic_utils.h"
-#include "physics_utils.h"
+#include <vector>
 
 namespace egret
 {
@@ -95,7 +94,7 @@ namespace egret
      * @invariant   contact 包含有效的接触点数据
      * @invariant   restitution 在 [0, 1] 范围内
      * @invariant   toi 在 [0, dt] 范围内
-     * @see         ContactResolverStrategy, ContactPoint
+     * @see         ContactResolverStrategy
      */
     struct SolverContactConstraint
     {
@@ -105,8 +104,14 @@ namespace egret
         /** 物体 B 在求解器实体缓冲区中的索引。 */
         std::size_t bodyBIndex{0};
 
-        /** 来自碰撞检测器的接触点数据（位置/法线/穿透深度）。 */
-        ContactPoint contact{};
+        /** 世界坐标系下的接触点位置。 */
+        Eigen::Vector3d contactPosition{Eigen::Vector3d::Zero()};
+
+        /** 碰撞法线（单位向量，从物体 B 指向物体 A 的分离方向）。 */
+        Eigen::Vector3d contactNormal{Eigen::Vector3d::Zero()};
+
+        /** 穿透深度（非负值）。 */
+        double penetration{0.0};
 
         /** 该接触对的有效恢复系数（通常取两个物体的最小值或平均值）。 */
         double restitution{0.2};
@@ -130,6 +135,23 @@ namespace egret
     };
 
     /**
+     * @brief       CCD 接触点数据（轻量替代 ContactPoint）。
+     * @details     包含单个接触点的几何信息：位置、法线、穿透深度。
+     *              用于 CcdCollisionEvent 的接触流形。
+     */
+    struct CcdContactData
+    {
+        /** 世界坐标系下的接触点位置。 */
+        Eigen::Vector3d position{Eigen::Vector3d::Zero()};
+
+        /** 碰撞法线（单位向量，从物体 B 指向物体 A 的分离方向）。 */
+        Eigen::Vector3d normal{Eigen::Vector3d::Zero()};
+
+        /** 穿透深度（非负值）。 */
+        double penetration{0.0};
+    };
+
+    /**
      * @brief       CCD碰撞事件，包含碰撞时间和接触信息。
      * @details     CcdCollisionEvent 是CCD碰撞事件结构体，用于TOI事件队列。
      *              包含碰撞发生的时间（TOI）、碰撞的两个实体索引、接触流形和恢复系数。
@@ -138,7 +160,7 @@ namespace egret
      * @invariant   toi 在 [0, dt] 范围内
      * @invariant   bodyAIndex 和 bodyBIndex 是有效的实体数组索引
      * @invariant   manifold 包含有效的接触点数据
-     * @see         SolverContactConstraint, ContactManifold
+     * @see         SolverContactConstraint, CcdContactData
      */
     struct CcdCollisionEvent
     {
@@ -152,7 +174,7 @@ namespace egret
         std::size_t bodyBIndex{0};
 
         /** 接触流形，包含所有接触点。 */
-        ContactManifold manifold{};
+        std::vector<CcdContactData> manifold{};
 
         /** 该接触对的有效恢复系数。 */
         double restitution{0.2};

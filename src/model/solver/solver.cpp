@@ -30,6 +30,7 @@
 #include "broad_phase_strategy/brute_force_broad_strategy.h"
 #include "contact_strategy/frictionless_contact_resolver.h"
 #include "integrator_strategy/semi_implicit_euler_integrator.h"
+#include "continuous_collision_detection.h"
 #include <QMatrix3x3>
 
 namespace egret
@@ -342,7 +343,9 @@ namespace egret
                 constraints.push_back(SolverContactConstraint{
                     .bodyAIndex = pair.bodyAIndex,
                     .bodyBIndex = pair.bodyBIndex,
-                    .contact = contact,
+                    .contactPosition = contact.position,
+                    .contactNormal = contact.normal,
+                    .penetration = contact.penetration,
                     .restitution = restitution
                 });
             }
@@ -368,8 +371,8 @@ namespace egret
             const SolverBodyHandle& bodyA = bodies[pair.bodyAIndex];
             const SolverBodyHandle& bodyB = bodies[pair.bodyBIndex];
 
-            if (bodyA.entity == nullptr || bodyB.entity == nullptr || bodyA.entity->getShape() == nullptr || bodyB.
-                entity->getShape() == nullptr) {
+            if (bodyA.entity == nullptr || bodyB.entity == nullptr ||
+                bodyA.entity->getShape() == nullptr || bodyB.entity->getShape() == nullptr) {
                 continue;
             }
 
@@ -378,47 +381,40 @@ namespace egret
             const Eigen::Vector3d linearVelB = bodyB.entity->getVelocity();
             const Eigen::Vector3d angularVelB = bodyB.entity->getAngularVelocity();
 
-            ContactManifold manifold;
-            auto toiOpt = bodyA.entity->getShape()->continuousCollide(
-                bodyB.entity->getShape().get(),
-                bodyA.entity->getTransformCR(),
-                bodyB.entity->getTransformCR(),
-                linearVelA,
-                angularVelA,
-                linearVelB,
-                angularVelB,
-                dt,
-                manifold);
+            ContinuousCollisionDetection ccd(bodyA.entity, bodyB.entity);
+            auto resultOpt = ccd.computeToi(
+                linearVelA, angularVelA,
+                linearVelB, angularVelB, dt);
 
-            if (!toiOpt.has_value()) {
+            if (!resultOpt.has_value()) {
                 continue;
             }
 
-            const double toi = toiOpt.value();
-            if (toi < 0.0 || toi > dt) {
+            const CcdResult& result = resultOpt.value();
+            if (result.toi < 0.0 || result.toi > dt) {
                 continue;
             }
 
-            for (const ContactPoint& contact : manifold) {
-                if (!contact.position.allFinite() || !contact.normal.allFinite() ||
-                    !std::isfinite(contact.penetration) || contact.normal.squaredNorm() < 1e-12) {
-                    continue;
-                }
-
-                const double restitution = std::isfinite(
-                                               std::min(bodyA.entity->getRestitution(), bodyB.entity->getRestitution()))
-                                               ? std::clamp(
-                                                   std::min(bodyA.entity->getRestitution(),
-                                                            bodyB.entity->getRestitution()), 0.0, 1.0)
-                                               : 0.0;
-                constraints.push_back(SolverContactConstraint{
-                    .bodyAIndex = pair.bodyAIndex,
-                    .bodyBIndex = pair.bodyBIndex,
-                    .contact = contact,
-                    .restitution = restitution,
-                    .toi = toi
-                });
+            if (!result.normal.allFinite() || result.normal.squaredNorm() < 1e-12 ||
+                !result.contactPosition.allFinite()) {
+                continue;
             }
+
+            const double restitution = std::isfinite(
+                                           std::min(bodyA.entity->getRestitution(), bodyB.entity->getRestitution()))
+                                           ? std::clamp(
+                                               std::min(bodyA.entity->getRestitution(),
+                                                        bodyB.entity->getRestitution()), 0.0, 1.0)
+                                           : 0.0;
+            constraints.push_back(SolverContactConstraint{
+                .bodyAIndex = pair.bodyAIndex,
+                .bodyBIndex = pair.bodyBIndex,
+                .contactPosition = result.contactPosition,
+                .contactNormal = result.normal,
+                .penetration = result.penetration,
+                .restitution = restitution,
+                .toi = result.toi
+            });
         }
 
         stats.contactConstraintCount = constraints.size();
@@ -442,8 +438,8 @@ namespace egret
             const SolverBodyHandle& bodyA = bodies[pair.bodyAIndex];
             const SolverBodyHandle& bodyB = bodies[pair.bodyBIndex];
 
-            if (bodyA.entity == nullptr || bodyB.entity == nullptr || bodyA.entity->getShape() == nullptr || bodyB.
-                entity->getShape() == nullptr) {
+            if (bodyA.entity == nullptr || bodyB.entity == nullptr ||
+                bodyA.entity->getShape() == nullptr || bodyB.entity->getShape() == nullptr) {
                 continue;
             }
 
@@ -452,39 +448,22 @@ namespace egret
             const Eigen::Vector3d linearVelB = bodyB.entity->getVelocity();
             const Eigen::Vector3d angularVelB = bodyB.entity->getAngularVelocity();
 
-            ContactManifold manifold;
-            auto toiOpt = bodyA.entity->getShape()->continuousCollide(
-                bodyB.entity->getShape().get(),
-                bodyA.entity->getTransformCR(),
-                bodyB.entity->getTransformCR(),
-                linearVelA,
-                angularVelA,
-                linearVelB,
-                angularVelB,
-                dt,
-                manifold);
+            ContinuousCollisionDetection ccd(bodyA.entity, bodyB.entity);
+            auto resultOpt = ccd.computeToi(
+                linearVelA, angularVelA,
+                linearVelB, angularVelB, dt);
 
-            if (!toiOpt.has_value()) {
+            if (!resultOpt.has_value()) {
                 continue;
             }
 
-            const double toi = toiOpt.value();
-            if (toi < 0.0 || toi > dt) {
+            const CcdResult& result = resultOpt.value();
+            if (result.toi < 0.0 || result.toi > dt) {
                 continue;
             }
 
-            bool validContacts = false;
-            ContactManifold validManifold;
-            for (const ContactPoint& contact : manifold) {
-                if (!contact.position.allFinite() || !contact.normal.allFinite() ||
-                    !std::isfinite(contact.penetration) || contact.normal.squaredNorm() < 1e-12) {
-                    continue;
-                }
-                validManifold.push_back(contact);
-                validContacts = true;
-            }
-
-            if (!validContacts) {
+            if (!result.normal.allFinite() || result.normal.squaredNorm() < 1e-12 ||
+                !result.contactPosition.allFinite()) {
                 continue;
             }
 
@@ -494,11 +473,17 @@ namespace egret
                                                                  bodyB.entity->getRestitution()), 0.0, 1.0)
                                            : 0.0;
 
+            CcdContactData contactData{
+                .position = result.contactPosition,
+                .normal = result.normal,
+                .penetration = result.penetration
+            };
+
             events.push_back(CcdCollisionEvent{
-                .toi = toi,
+                .toi = result.toi,
                 .bodyAIndex = pair.bodyAIndex,
                 .bodyBIndex = pair.bodyBIndex,
-                .manifold = std::move(validManifold),
+                .manifold = {std::move(contactData)},
                 .restitution = restitution
             });
         }
@@ -539,11 +524,13 @@ namespace egret
             std::vector<SolverContactConstraint> currentConstraints;
             auto it = events.begin();
             while (it != events.end() && std::abs(it->toi - earliestToi) < kBatchTimeEpsilon) {
-                for (const ContactPoint& contact : it->manifold) {
+                for (const CcdContactData& contactData : it->manifold) {
                     currentConstraints.push_back(SolverContactConstraint{
                         .bodyAIndex = it->bodyAIndex,
                         .bodyBIndex = it->bodyBIndex,
-                        .contact = contact,
+                        .contactPosition = contactData.position,
+                        .contactNormal = contactData.normal,
+                        .penetration = contactData.penetration,
                         .restitution = it->restitution,
                         .toi = it->toi
                     });

@@ -860,69 +860,69 @@ namespace egret
         //
         // mesh.indices = indices;
 
-        auto mesh{makeTessellatedMesh("../tools/icosahedron.obj")};
-        AABB ab = mesh.getAABB();
-        LOG_DEBUG(std::format("AABB: ({}, {}, {}), ({}, {}, {})", ab.min.x(), ab.min.y(), ab.min.z(), ab.max.x(), ab.max.y(), ab.max.z()));
+        // auto mesh{makeTessellatedMesh("../tools/icosahedron.obj")};
+        // AABB ab = mesh.getAABB();
+        // LOG_DEBUG(std::format("AABB: ({}, {}, {}), ({}, {}, {})", ab.min.x(), ab.min.y(), ab.min.z(), ab.max.x(), ab.max.y(), ab.max.z()));
 
-        m_world->spawnBody("测试样例1", {-400, -400, 400}, {0, 0, 0}, std::move(std::make_unique<ConvexMesh>(std::move(mesh))), 1.0);
+        // m_world->spawnBody("测试样例1", {-400, -400, 400}, {0, 0, 0}, std::move(std::make_unique<ConvexMesh>(std::move(mesh))), 1.0);
 
         std::uint64_t idBox2 = m_world->spawnBox("3", {0, 0, 0}, {0, 0, 0}, {10000, 10000, 130}, 0);
 
 
         m_world->spawnSphere("1123", {110, 0, 300}, {0, 0, 0}, 10, 10);
-        m_world->spawnSphere("1223", {110, 10, 320}, {0, 0, 0}, 10, 10);
-        m_world->spawnSphere("1323", {110, 20, 340}, {0, 0, 0}, 10, 10);
-        m_world->spawnSphere("1423", {110, 30, 360}, {0, 0, 0}, 10, 10);
-        m_world->spawnSphere("1523", {110, 40, 380}, {0, 0, 0}, 10, 10);
-        m_world->spawnSphere("1623", {110, 50, 400}, {0, 0, 0}, 10, 10);
+        // m_world->spawnSphere("1223", {110, 10, 320}, {0, 0, 0}, 10, 10);
+        // m_world->spawnSphere("1323", {110, 20, 340}, {0, 0, 0}, 10, 10);
+        // m_world->spawnSphere("1423", {110, 30, 360}, {0, 0, 0}, 10, 10);
+        // m_world->spawnSphere("1523", {110, 40, 380}, {0, 0, 0}, 10, 10);
+        // m_world->spawnSphere("1623", {110, 50, 400}, {0, 0, 0}, 10, 10);
 
         m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
-        std::uint64_t id1 = m_world->spawnSphere("123", {0, 0, 300}, {0, 0, 0}, 10, 10);
-        std::uint64_t id2 = m_world->spawnSphere("456", {0, 0, 400}, {0, 0, 0}, 10, 0);
-        m_world->createSpring("MySpring", 50.0, 100.0, id2, id1);
+        // std::uint64_t id1 = m_world->spawnSphere("123", {0, 0, 300}, {0, 0, 0}, 10, 10);
+        // std::uint64_t id2 = m_world->spawnSphere("456", {0, 0, 400}, {0, 0, 0}, 10, 0);
+        // m_world->createSpring("MySpring", 50.0, 100.0, id2, id1);
+        //
+        //
+        // std::uint64_t id4 = m_world->spawnSphere("456", {0, 100, 800}, {0, 0, 0}, 10, 5);
+        // m_world->createSimplePendulum("", 100, {0, 0, 800}, id4);
+        //
+        //
+        // std::uint64_t id5 = m_world->spawnSphere("阻力测试", {300, 200, 400}, {0, 200, 0}, 10, 100);
+        // auto airResistance = std::make_unique<AirResistance>(
+        //     UniqueIDGenerator::instance().generate());
+        // auto body = dynamic_cast<RigidBody*>(m_world->getEntity(id5));
+        //
+        // if (body == nullptr) {
+        //     LOG_FATAL("SceneManagerViewModel::rebuildDemoWorld(): body is nullptr");
+        //     return;
+        // }
+
+        // airResistance->addEntity(body, DragConfig{
+        //                              .model = DragModel::Quadratic,
+        //                              .dragCoefficient = 0.47,
+        //                          });
+        //
+        //
+        // std::uint64_t id6 = m_world->spawnSphere("123", {-100, 100, 300}, {0, 0, 0}, 10, 10);
+        // std::uint64_t id7 = m_world->spawnSphere("456", {-100, 100, 400}, {0, 0, 0}, 10, 0);
+        // m_world->createSpring("MySpring", 50.0, 100.0, id6, id7);
+        // auto body2 = dynamic_cast<RigidBody*>(m_world->getEntity(id6));
+        // airResistance->addEntity(body2, DragConfig{
+        //                              .model = DragModel::Quadratic,
+        //                              .dragCoefficient = 0.07,
+        //                          });
+        //
+        //
+        // m_world->registerConstraint("Air Resistance", std::move(airResistance));
 
 
-        std::uint64_t id4 = m_world->spawnSphere("456", {0, 100, 800}, {0, 0, 0}, 10, 5);
-        m_world->createSimplePendulum("", 100, {0, 0, 800}, id4);
+        // auto curve{std::make_unique<CurveHelix>(10, 10, 1000)};
+        // auto rail{std::make_unique<SlidingRail>(UniqueIDGenerator::instance().generate(), std::move(curve))};
 
+        // std::uint64_t id10 = m_world->spawnSphere("45623", {-100, -400, 700}, {0, 0, 0}, 10, 10);
 
-        std::uint64_t id5 = m_world->spawnSphere("阻力测试", {300, 200, 400}, {0, 200, 0}, 10, 100);
-        auto airResistance = std::make_unique<AirResistance>(
-            UniqueIDGenerator::instance().generate());
-        auto body = dynamic_cast<RigidBody*>(m_world->getEntity(id5));
+        //rail->registerEntity(m_world->getEntity(id10));
 
-        if (body == nullptr) {
-            LOG_FATAL("SceneManagerViewModel::rebuildDemoWorld(): body is nullptr");
-            return;
-        }
-
-        airResistance->addEntity(body, DragConfig{
-                                     .model = DragModel::Quadratic,
-                                     .dragCoefficient = 0.47,
-                                 });
-
-
-        std::uint64_t id6 = m_world->spawnSphere("123", {-100, 100, 300}, {0, 0, 0}, 10, 10);
-        std::uint64_t id7 = m_world->spawnSphere("456", {-100, 100, 400}, {0, 0, 0}, 10, 0);
-        m_world->createSpring("MySpring", 50.0, 100.0, id6, id7);
-        auto body2 = dynamic_cast<RigidBody*>(m_world->getEntity(id6));
-        airResistance->addEntity(body2, DragConfig{
-                                     .model = DragModel::Quadratic,
-                                     .dragCoefficient = 0.07,
-                                 });
-
-
-        m_world->registerConstraint("Air Resistance", std::move(airResistance));
-
-
-        auto curve{std::make_unique<CurveHelix>(10, 10, 1000)};
-        auto rail{std::make_unique<SlidingRail>(UniqueIDGenerator::instance().generate(), std::move(curve))};
-
-        std::uint64_t id10 = m_world->spawnSphere("45623", {-100, -400, 700}, {0, 0, 0}, 10, 10);
-
-        rail->registerEntity(m_world->getEntity(id10));
-
-        m_world->registerConstraint("Sliding Rail", std::move(rail));
+         //m_world->registerConstraint("Sliding Rail", std::move(rail));
 
         m_entityCount = static_cast<int>(m_world->getBodyCount());
     }
