@@ -49,16 +49,16 @@ $$
 1. **获取新支撑点**：$\mathbf{p} = \mathbf{x}^*_{m}(A, B, \mathbf{d})$，并将 $\mathbf{x}^*(A, \mathbf{d})$ 和 $\mathbf{x}^*(B, \mathbf{-d})$ 分别存入 $S_A$ 和 $S_B$。
 2. **检查是否越过原点**：若 $\mathbf{p \cdot d} \lt 0$，则说明在当前搜索方向上，闵可夫斯基差的最远点都没有约过原点，原点不可能在差集的内部，则判定 **未发生碰撞**，算法终止。
 3. **将新支撑点加入单纯形**：$\sigma = \sigma \bigcup \set{ \space \mathbf{p} \space }$
-4. **检查是否包含原点**：执行子函数 $C_{o}(\sigma, \mathbf{d})$，此函数包含下述的行为：
-	- 判断当前的单纯形是否 **包含原点**
+4. **检查是否包含原点**：执行子函数 $C_{o}(\sigma, \mathbf{d})$，此函数包含 下述的行为：
+	- 判断当前的单纯形是否 **包含原点**：[[#3. 子函数 $C_o( sigma, mathbf{d})$ 原点存在性判定]]
 	- 如果包含原点，则判断为 **发生碰撞**，子函数结束并返回
-	- 如果不包含，则从单纯形中 **剔除** 不必要的顶点，保留最接近原点 $O$ 的部分
+	- 如果不包含，则从单纯形中 **剔除** 不必要的顶点，保留最接近原点 $O$ 的部分：[[#4. 单纯形剔除]]
 	- **更新搜索方向** $\mathbf{d}$，新的搜索方向指向原点相对于当前单纯形的 **最近的方向**
 ---
-#### 3. 子函数 $C_o(\sigma, \mathbf{d})$
-定义 $n$ 维空间单纯形的顶点为矩阵$\mathbf{V}_{n, k}$（下简记为 $\mathbf{V}$）： 
+#### 3. 子函数 $C_o(\sigma, \mathbf{d})$ 原点存在性判定
+定义 $n$ 维空间单纯形的顶点为矩阵$\mathbf{V}_{n, k+1}$（下简记为 $\mathbf{V}$）： 
 $$
-\mathbf{V} = \begin{bmatrix} \mathbf{v}_1 & \mathbf{v}_2 & \cdots & \mathbf{v}_{k}  \end{bmatrix}
+\mathbf{V} = \begin{bmatrix} \mathbf{v}_0 & \mathbf{v}_1 \cdots & \mathbf{v}_{k}  \end{bmatrix}
 $$
 其中$1 \leq k \leq n + 1$，元素 $\mathbf{v}_i$ 为 $n$ 维空间的点坐标，其定义为：
 $$
@@ -68,11 +68,13 @@ v_1 \\ v_2 \\ \vdots \\ v_n
 \end{pmatrix}
 $$
 
+**定理** $\mathbf{V}_{n, k+1}$ 所确定的单纯形凸包结构是唯一的。
+
 定义重心坐标仿射向量 $\mathbf{\Lambda}$：
 $$
 \mathbf{\Lambda} = 
 \begin{bmatrix} 
-\lambda_1 & \lambda_2 & \cdots & \lambda_k
+\lambda_0 & \lambda_1  & \cdots & \lambda_k
 \end{bmatrix}^T
 $$
 
@@ -88,7 +90,7 @@ $$
 一般而言，我们不需要显式地找出这个 $\mathbf{\Lambda}$，只需要判断是否存在满足条件的解即可。
 
 ---
-#### 4. 单纯形查找与传递
+#### 4. 单纯形剔除
 
 **最近点问题** 判断原点是否存在凸集 $\sigma$ 内部，则有：
 $$
@@ -196,10 +198,16 @@ $$
 $$
 ## 数据处理
 
-最终，GJK 需要向 EPA 阶段提供三项信息：
+最终，GJK 需要向 EPA 阶段提供四项信息：
 $$
-\operatorname{GJK} = \set{\text{collision}, \mathbf{V}_{\sigma}, \set{S_A, S_B}}
+\operatorname{GJK} = \set{\text{collision}, \mathbf{V}_{\sigma}, \set{S_A, S_B}, \set{d_0, \mathbf{a}_0, \mathbf{b}_0}}
 $$
 - $\text{collision}$：是否发生碰撞的布尔值
-- $\mathbf{V}_{\sigma}$：主迭代中获得的单纯形 $\sigma$ 的顶点坐标所构成的矩阵。其行数为空间维数，列数为单纯形的维数
+- $\mathbf{V}_{\sigma}$：主迭代中获得的单纯形 $\sigma$ 的顶点坐标所构成的矩阵。其行数为空间维数，列数为单纯形的维数+1
 - $\set{S_A, S_B}$ ：（前文已提及）搜索过程中凸体 A、B 的所有的支撑点的集合
+- $\set{d_0, \mathbf{a}_0, \mathbf{b}_0}$ 通常情况下，这些数据仅在 **未碰撞** 时有意义。根据 [[#4. 单纯形剔除]] 对最终的 $\mathbf{V}_{\sigma}$ 进行处理，获得初始间隙、物体最近点。具体规则如下：
+	- 计算最优的有效单纯形子集 $S^*_{\sigma}$，计算对应的 $\mathbf{p}^*$，令 $d_0 = \|\mathbf{p}^*\|$。
+	- 依照下述公式计算 $\mathbf{a}_0, \mathbf{b}_0$
+	$$
+	\mathbf{a}_0 = \sum_{i \in S^*_{\sigma}}{\lambda_i^{(S^*_{\sigma})} \mathbf{a}_i} \quad \mathbf{b}_0 = \sum_{i \in S^*_{\sigma}}{\lambda_i^{(S^*_{\sigma})} \mathbf{b}_i}
+	$$

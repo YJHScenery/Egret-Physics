@@ -99,4 +99,34 @@ namespace egret
         return std::sqrt(sum);
     }
 }
+
+#include <Eigen/Dense>
+#include <functional>
+
+// 前向声明辅助结构体
+// ReSharper disable once CppRedundantNamespaceDefinition
+namespace std {
+    template<int n>
+    struct hash<Eigen::Matrix<double, n, 1>> {
+        size_t operator()(const Eigen::Matrix<double, n, 1>& vec) const {
+            return hash_impl(vec, std::integral_constant<int, n>{});
+        }
+    private:
+        // 递归终止：当索引为 0 时，返回初始哈希值
+        static size_t hash_impl(const Eigen::Matrix<double, n, 1>& vec, std::integral_constant<int, 0>) {
+            return 0; // 或者返回一个种子值，如 0x9e3779b9
+        }
+
+        // 递归展开：从最后一个元素向前累加
+        template<int N>
+        static size_t hash_impl(const Eigen::Matrix<double, n, 1>& vec, std::integral_constant<int, N>) {
+            // 先计算前 N-1 个元素的哈希
+            size_t h = hash_impl(vec, std::integral_constant<int, N - 1>{});
+            // 混合当前元素 (第 N-1 个元素，因为索引从 0 开始)
+            h ^= std::hash<double>{}(vec[N - 1]) + 0x9e3779b9 + (h << 6) + (h >> 2);
+            return h;
+        }
+    };
+}
+
 #endif // EGRET_PHYSICS_GEOMETRY_H
