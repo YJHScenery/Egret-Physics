@@ -164,7 +164,7 @@ namespace egret
     // 公共接口实现
     // ============================================================================
 
-    std::optional<ContactManifold> runGjkEpaOnEntities(
+    std::optional<EPAResult3D> runGjkEpaOnEntities(
         PhysicalEntity* entityA,
         PhysicalEntity* entityB)
     {
@@ -189,17 +189,17 @@ namespace egret
         ExpandingPolytopeAlgorithm<3> epa(gjkResult, entityA, entityB);
         EPAResult<3> epaResult = epa.run();
 
-        // 转换为 ContactManifold
-        ContactManifold manifold{};
-        ContactPoint contact{};
-        contact.position = epaResult.contactPoint;
-        contact.normal = epaResult.normal;
-        contact.penetration = epaResult.penetrationDepth;
-        contact.featureA = ContactFeature{ContactFeature::Unknown};
-        contact.featureB = ContactFeature{ContactFeature::Unknown};
-        manifold.push_back(contact);
-
-        return manifold;
+        return epaResult;
+        //
+        // // 转换为 ContactManifold
+        // ContactManifold manifold{};
+        // ContactPoint contact{};
+        // contact.position = epaResult.contactPoint;
+        // contact.normal = epaResult.normal;
+        // contact.penetration = epaResult.penetrationDepth;
+        // contact.featureA = ContactFeature{ContactFeature::Unknown};
+        // contact.featureB = ContactFeature{ContactFeature::Unknown};
+        // manifold.push_back(contact);
     }
 
     std::optional<AdapterCcdResult> runCcdOnEntities(

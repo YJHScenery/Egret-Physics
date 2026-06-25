@@ -35,61 +35,61 @@
 
 namespace egret
 {
-    namespace
-    {
-        constexpr double kAabbFallbackTolerance = 1e-6;
-        constexpr double kAabbFallbackPenetration = 0.002;
-
-        bool buildAabbFallbackContact(const SolverBodyHandle& bodyA,
-                                      const SolverBodyHandle& bodyB,
-                                      ContactManifold& manifold)
-        {
-            if (bodyA.entity->getShape() == nullptr || bodyB.entity->getShape() == nullptr) {
-                return false;
-            }
-
-            const AABB aabbA = bodyA.entity->getShape()->getAABB(bodyA.entity->getTransformCR());
-            const AABB aabbB = bodyB.entity->getShape()->getAABB(bodyB.entity->getTransformCR());
-            const Eigen::Vector3d overlapMin = aabbA.min.cwiseMax(aabbB.min);
-            const Eigen::Vector3d overlapMax = aabbA.max.cwiseMin(aabbB.max);
-            const Eigen::Vector3d overlap = overlapMax - overlapMin;
-
-            if (overlap.x() < -kAabbFallbackTolerance || overlap.y() < -kAabbFallbackTolerance ||
-                overlap.z() < -kAabbFallbackTolerance) {
-                return false;
-            }
-
-            const Eigen::Vector3d stableOverlap = overlap.cwiseMax(0.0);
-            int axisIndex = 0;
-            double minOverlap = stableOverlap.x();
-            for (int index = 1; index < 3; ++index) {
-                if (stableOverlap[index] < minOverlap) {
-                    minOverlap = stableOverlap[index];
-                    axisIndex = index;
-                }
-            }
-
-            Eigen::Vector3d normal = bodyB.entity->getTransformCR().getTranslation() - bodyA.entity->getTransformCR().
-                getTranslation();
-            if (!normal.allFinite() || normal.squaredNorm() < 1e-12) {
-                normal = Eigen::Vector3d::UnitY();
-            }
-            else {
-                normal.normalize();
-            }
-
-            if (normal[axisIndex] < 0.0) {
-                normal = -normal;
-            }
-
-            ContactPoint contact{};
-            contact.position = 0.5 * (overlapMin + overlapMax);
-            contact.normal = normal;
-            contact.penetration = std::max(minOverlap, kAabbFallbackPenetration);
-            manifold.push_back(contact);
-            return true;
-        }
-    }
+    // namespace
+    // {
+    //     constexpr double kAabbFallbackTolerance = 1e-6;
+    //     constexpr double kAabbFallbackPenetration = 0.002;
+    //
+    //     bool buildAabbFallbackContact(const SolverBodyHandle& bodyA,
+    //                                   const SolverBodyHandle& bodyB,
+    //                                   ContactManifold& manifold)
+    //     {
+    //         if (bodyA.entity->getShape() == nullptr || bodyB.entity->getShape() == nullptr) {
+    //             return false;
+    //         }
+    //
+    //         const AABB aabbA = bodyA.entity->getShape()->getAABB(bodyA.entity->getTransformCR());
+    //         const AABB aabbB = bodyB.entity->getShape()->getAABB(bodyB.entity->getTransformCR());
+    //         const Eigen::Vector3d overlapMin = aabbA.min.cwiseMax(aabbB.min);
+    //         const Eigen::Vector3d overlapMax = aabbA.max.cwiseMin(aabbB.max);
+    //         const Eigen::Vector3d overlap = overlapMax - overlapMin;
+    //
+    //         if (overlap.x() < -kAabbFallbackTolerance || overlap.y() < -kAabbFallbackTolerance ||
+    //             overlap.z() < -kAabbFallbackTolerance) {
+    //             return false;
+    //         }
+    //
+    //         const Eigen::Vector3d stableOverlap = overlap.cwiseMax(0.0);
+    //         int axisIndex = 0;
+    //         double minOverlap = stableOverlap.x();
+    //         for (int index = 1; index < 3; ++index) {
+    //             if (stableOverlap[index] < minOverlap) {
+    //                 minOverlap = stableOverlap[index];
+    //                 axisIndex = index;
+    //             }
+    //         }
+    //
+    //         Eigen::Vector3d normal = bodyB.entity->getTransformCR().getTranslation() - bodyA.entity->getTransformCR().
+    //             getTranslation();
+    //         if (!normal.allFinite() || normal.squaredNorm() < 1e-12) {
+    //             normal = Eigen::Vector3d::UnitY();
+    //         }
+    //         else {
+    //             normal.normalize();
+    //         }
+    //
+    //         if (normal[axisIndex] < 0.0) {
+    //             normal = -normal;
+    //         }
+    //
+    //         ContactPoint contact{};
+    //         contact.position = 0.5 * (overlapMin + overlapMax);
+    //         contact.normal = normal;
+    //         contact.penetration = std::max(minOverlap, kAabbFallbackPenetration);
+    //         manifold.push_back(contact);
+    //         return true;
+    //     }
+    // }
 
     Solver::Solver(const SolverConfig& config,
                    std::unique_ptr<IntegratorStrategy> integrator,

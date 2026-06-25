@@ -44,9 +44,14 @@
 
 #include "air_resistance.h"
 #include "shape_box.h"
-#include "shape_sphere.h"
+#include "shape_capsule.h"
 #include "shape_cylinder.h"
-#include "shape_factory_registry.h"
+#include "shape_cylindrical_shell.h"
+#include "shape_disk.h"
+#include "shape_ring.h"
+#include "shape_rod.h"
+#include "shape_sphere.h"
+#include "shape_spherical_shell.h"
 #include "rigid_body.h"
 #include "gravity_field.h"
 #include "gravitational_field.h"
@@ -208,6 +213,67 @@ namespace egret
             }
         }
 
+        /** 根据 ShapeLoadInfo 直接创建对应的形状实例。 */
+        std::unique_ptr<ShapeBase> createShapeFromLoadInfo(const ShapeLoadInfo& info)
+        {
+            switch (static_cast<ShapeType>(info.typeId)) {
+            case ShapeType::Sphere: {
+                const auto it = info.numberParams.find("radius");
+                if (it == info.numberParams.end() || it->second.empty()) return nullptr;
+                return std::make_unique<ShapeSphere>(it->second[0]);
+            }
+            case ShapeType::Box: {
+                const auto it = info.numberParams.find("size");
+                if (it == info.numberParams.end() || it->second.size() < 3) return nullptr;
+                return std::make_unique<ShapeBox>(
+                    Eigen::Vector3d(it->second[0], it->second[1], it->second[2]));
+            }
+            case ShapeType::Capsule: {
+                const auto rIt = info.numberParams.find("radius");
+                const auto hIt = info.numberParams.find("height");
+                if (rIt == info.numberParams.end() || hIt == info.numberParams.end()) return nullptr;
+                if (rIt->second.empty() || hIt->second.empty()) return nullptr;
+                return std::make_unique<ShapeCapsule>(rIt->second[0], hIt->second[0]);
+            }
+            case ShapeType::Cylinder: {
+                const auto rIt = info.numberParams.find("radius");
+                const auto hIt = info.numberParams.find("height");
+                if (rIt == info.numberParams.end() || hIt == info.numberParams.end()) return nullptr;
+                if (rIt->second.empty() || hIt->second.empty()) return nullptr;
+                return std::make_unique<ShapeCylinder>(rIt->second[0], hIt->second[0]);
+            }
+            case ShapeType::CylindricalShell: {
+                const auto rIt = info.numberParams.find("radius");
+                const auto hIt = info.numberParams.find("height");
+                if (rIt == info.numberParams.end() || hIt == info.numberParams.end()) return nullptr;
+                if (rIt->second.empty() || hIt->second.empty()) return nullptr;
+                return std::make_unique<ShapeCylindricalShell>(rIt->second[0], hIt->second[0]);
+            }
+            case ShapeType::Disk: {
+                const auto it = info.numberParams.find("radius");
+                if (it == info.numberParams.end() || it->second.empty()) return nullptr;
+                return std::make_unique<ShapeDisk>(it->second[0]);
+            }
+            case ShapeType::Ring: {
+                const auto it = info.numberParams.find("radius");
+                if (it == info.numberParams.end() || it->second.empty()) return nullptr;
+                return std::make_unique<ShapeRing>(it->second[0]);
+            }
+            case ShapeType::Rod: {
+                const auto it = info.numberParams.find("length");
+                if (it == info.numberParams.end() || it->second.empty()) return nullptr;
+                return std::make_unique<ShapeRod>(it->second[0]);
+            }
+            case ShapeType::SphericalShell: {
+                const auto it = info.numberParams.find("radius");
+                if (it == info.numberParams.end() || it->second.empty()) return nullptr;
+                return std::make_unique<ShapeSphericalShell>(it->second[0]);
+            }
+            default:
+                return nullptr;
+            }
+        }
+
         /** 解析 DragConfig 子对象。 */
         DragConfig parseDragConfig(const QJsonObject& obj)
         {
@@ -283,7 +349,7 @@ namespace egret
             ShapeLoadInfo shapeInfo;
             fillShapeLoadInfo(obj, typeId, shapeInfo);
 
-            std::unique_ptr<ShapeBase> shape = ShapeFactoryRegistry::instance().create(shapeInfo);
+            std::unique_ptr<ShapeBase> shape = createShapeFromLoadInfo(shapeInfo);
             if (!shape) {
                 LOG_WARN("Shape 创建失败");
                 LOG_WARN(obj["name"].toString().toStdString());

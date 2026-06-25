@@ -26,7 +26,6 @@
 #include "gravity_field.h"
 #include "field_base.h"
 #include "transform_transformer.h"
-#include "shape_factory_registry.h"
 #include "convex_mesh.h"
 #include "shape_box.h"
 #include "shape_cylinder.h"
@@ -115,16 +114,6 @@ namespace egret
         m_bodies.push_back(std::move(record));
         rebuildSolverCaches();
         return m_bodies.back()->entity->getId();
-    }
-
-    std::uint64_t WorldSceneManager::spawnBodyFromLoadInfo(const std::string& name,
-                                                           const Eigen::Vector3d& position,
-                                                           const Eigen::Vector3d& speed,
-                                                           const ShapeLoadInfo& shapeInfo,
-                                                           const double mass)
-    {
-        std::unique_ptr<ShapeBase> shape = ShapeFactoryRegistry::instance().create(shapeInfo);
-        return spawnBody(name, position, speed, std::move(shape), mass);
     }
 
     std::uint64_t WorldSceneManager::spawnSphere(const std::string& name,

@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "physics_utils.h"
+#include "collision/expanding_polytope_algorithm.h"
 
 namespace egret
 {
@@ -73,7 +74,7 @@ namespace egret
      * @param   entityB  实体 B（非空）
      * @return  碰撞时返回包含 ContactPoint 的 manifold，否则返回 nullopt
      */
-    std::optional<ContactManifold> runGjkEpaOnEntities(
+    std::optional<EPAResult3D> runGjkEpaOnEntities(
         PhysicalEntity* entityA,
         PhysicalEntity* entityB);
 

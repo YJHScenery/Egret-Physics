@@ -14,7 +14,7 @@
  * @defgroup    组名 (如果文件定义了一个模块组)
  */
 
-#include "shape_factory_registry.h"
+#include "../../src/model/physics/rigid/shape/shape_factory_registry.h"
 
 namespace egret
 {

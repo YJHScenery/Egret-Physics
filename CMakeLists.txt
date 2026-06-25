@@ -126,8 +126,8 @@ include_directories(
         src/model/physics/rigid
         src/model/physics/field
         src/model/physics/rigid/shape
-        .deprecated/register
-        .deprecated/collide_judge
+        # .deprecated/register
+        # .deprecated/collide_judge
         src/model/physics/rigid/shape/standard
         src/view_model/
         src/model/strategy
@@ -197,10 +197,10 @@ set(CPP_FILES
         src/model/physics/rigid/rigid_body.cpp
         src/model/physics/rigid/rigid_body.h
 
-        .deprecated/collide_judge/standard_collide_judge_group.h
-        .deprecated/collide_judge/standard_collide_judge_group.cpp
-        .deprecated/collide_judge/ccd_collide_judge_group.h
-        .deprecated/collide_judge/ccd_collide_judge_group.cpp
+        # .deprecated/collide_judge/standard_collide_judge_group.h
+        # .deprecated/collide_judge/standard_collide_judge_group.cpp
+        # .deprecated/collide_judge/ccd_collide_judge_group.h
+        # .deprecated/collide_judge/ccd_collide_judge_group.cpp
         src/model/physics/rigid/shape/standard/shape_base.cpp
         src/model/physics/rigid/shape/standard/shape_base.h
         src/model/physics/rigid/shape/standard/shape_sphere.cpp
@@ -219,13 +219,13 @@ set(CPP_FILES
         src/model/physics/rigid/shape/standard/shape_cylindrical_shell.h
         src/model/physics/rigid/shape/standard/shape_rod.cpp
         src/model/physics/rigid/shape/standard/shape_rod.h
-        .deprecated/register/shape_register.cpp
-        .deprecated/register/shape_register.h
-        .deprecated/register/shape_factory_registry.cpp
-        .deprecated/register/shape_factory_registry.h
-        .deprecated/register/standard_shape_factory_registration.cpp
-        .deprecated/register/standard_register_dummy.cpp
-        .deprecated/register/ccd_register_dummy.cpp
+        # .deprecated/register/shape_register.cpp
+        # .deprecated/register/shape_register.h
+        # .deprecated/register/shape_factory_registry.cpp
+        # .deprecated/register/shape_factory_registry.h
+        # .deprecated/register/standard_shape_factory_registration.cpp
+        # .deprecated/register/standard_register_dummy.cpp
+        # .deprecated/register/ccd_register_dummy.cpp
 
 
         src/model/physics/field/field_base.cpp
@@ -466,9 +466,9 @@ if (BUILD_TESTS)
             src/model/physics/rigid/rigid_body.cpp
             src/model/physics/rigid/particle.cpp
             src/model/physics/rigid/shape/standard/shape_base.cpp
-            .deprecated/register/shape_register.cpp
-            .deprecated/register/shape_factory_registry.cpp
-            .deprecated/register/standard_shape_factory_registration.cpp
+            # .deprecated/register/shape_register.cpp
+            # .deprecated/register/shape_factory_registry.cpp
+            # .deprecated/register/standard_shape_factory_registration.cpp
             src/model/physics/rigid/shape/standard/shape_sphere.cpp
             src/model/physics/rigid/shape/standard/shape_box.cpp
             src/model/physics/rigid/shape/standard/shape_cylinder.cpp
@@ -477,8 +477,8 @@ if (BUILD_TESTS)
             src/model/physics/rigid/shape/standard/shape_ring.cpp
             src/model/physics/rigid/shape/standard/shape_rod.cpp
             src/model/physics/rigid/shape/standard/shape_spherical_shell.cpp
-            .deprecated/collide_judge/standard_collide_judge_group.cpp
-            .deprecated/collide_judge/ccd_collide_judge_group.cpp
+            # .deprecated/collide_judge/standard_collide_judge_group.cpp
+            # .deprecated/collide_judge/ccd_collide_judge_group.cpp
             src/model/physics/field/field_base.cpp
             src/model/physics/field/gravity_field.cpp
             src/model/scene/world_scene_manager.cpp

@@ -248,20 +248,6 @@ namespace egret
                                    const std::shared_ptr<PhysicalEntity>& entity,
                                    std::unique_ptr<ShapeBase> shape);
 
-        /**
-         * @brief 通过形状加载信息创建实体。
-         * @param name 实体名称。
-         * @param position 初始位置。
-         * @param speed 初始速度。
-         * @param shapeInfo 形状加载信息。
-         * @param mass 质量，0 表示静态体。
-         * @return 新实体的 ID，创建失败返回 0。
-         */
-        std::uint64_t spawnBodyFromLoadInfo(const std::string& name,
-                                            const Eigen::Vector3d& position,
-                                            const Eigen::Vector3d& speed,
-                                            const ShapeLoadInfo& shapeInfo,
-                                            double mass);
 
         /**
          * @brief 创建一个球体实体。

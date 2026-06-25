@@ -74,51 +74,51 @@ namespace egret
         Eigen::Vector3d rotationAxis;
     };
 
-    /**
-     * @brief       接触特征枚举，定义接触点的几何特征类型。
-     * @details     ContactFeature 是接触特征枚举，定义接触点的几何特征类型。
-     *              包含 Unknown（未知）、Vertex（顶点）、Edge（边）、Face（面）四种类型。
-     *              用于碰撞检测的接触点特征识别。
-     *
-     * @see         ContactPoint, ContactManifold
-     */
-    enum class ContactFeature
-    {
-        Unknown = 0,
-        Vertex,
-        Edge,
-        Face
-    };
-
-    /**
-     * @brief       接触点结构体，存储碰撞检测的接触信息。
-     * @details     ContactPoint 是接触点结构体，存储碰撞检测的接触信息。
-     *              包含接触点位置、碰撞法线、穿透深度、接触特征等。
-     *              用于物理引擎的碰撞检测和接触解算。
-     *
-     * @invariant   position 是有效的接触点位置
-     * @invariant   normal 是单位向量（归一化）
-     * @invariant   penetration >= 0，穿透深度为非负值
-     * @see         ContactManifold, ContactFeature
-     */
-    struct ContactPoint
-    {
-        Eigen::Vector3d position;
-        Eigen::Vector3d normal;
-        double penetration;
-        ContactFeature featureA{ContactFeature::Unknown};
-        ContactFeature featureB{ContactFeature::Unknown};
-    };
-
-    /**
-     * @brief       接触 manifold 类型，存储多个接触点。
-     * @details     ContactManifold 是接触 manifold 类型，存储多个接触点。
-     *              用于物理引擎的碰撞检测和接触解算。
-     *              一个 manifold 可以包含多个接触点，用于处理复杂碰撞。
-     *
-     * @see         ContactPoint, SolverContactConstraint
-     */
-    using ContactManifold = std::vector<ContactPoint>;
+    // /**
+    //  * @brief       接触特征枚举，定义接触点的几何特征类型。
+    //  * @details     ContactFeature 是接触特征枚举，定义接触点的几何特征类型。
+    //  *              包含 Unknown（未知）、Vertex（顶点）、Edge（边）、Face（面）四种类型。
+    //  *              用于碰撞检测的接触点特征识别。
+    //  *
+    //  * @see         ContactPoint, ContactManifold
+    //  */
+    // enum class ContactFeature
+    // {
+    //     Unknown = 0,
+    //     Vertex,
+    //     Edge,
+    //     Face
+    // };
+    //
+    // /**
+    //  * @brief       接触点结构体，存储碰撞检测的接触信息。
+    //  * @details     ContactPoint 是接触点结构体，存储碰撞检测的接触信息。
+    //  *              包含接触点位置、碰撞法线、穿透深度、接触特征等。
+    //  *              用于物理引擎的碰撞检测和接触解算。
+    //  *
+    //  * @invariant   position 是有效的接触点位置
+    //  * @invariant   normal 是单位向量（归一化）
+    //  * @invariant   penetration >= 0，穿透深度为非负值
+    //  * @see         ContactManifold, ContactFeature
+    //  */
+    // struct ContactPoint
+    // {
+    //     Eigen::Vector3d position;
+    //     Eigen::Vector3d normal;
+    //     double penetration;
+    //     ContactFeature featureA{ContactFeature::Unknown};
+    //     ContactFeature featureB{ContactFeature::Unknown};
+    // };
+    //
+    // /**
+    //  * @brief       接触 manifold 类型，存储多个接触点。
+    //  * @details     ContactManifold 是接触 manifold 类型，存储多个接触点。
+    //  *              用于物理引擎的碰撞检测和接触解算。
+    //  *              一个 manifold 可以包含多个接触点，用于处理复杂碰撞。
+    //  *
+    //  * @see         ContactPoint, SolverContactConstraint
+    //  */
+    // using ContactManifold = std::vector<ContactPoint>;
 
     template <typename Derived, typename Base>
         requires(std::is_base_of_v<Base, Derived>)
