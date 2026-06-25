@@ -44,7 +44,7 @@ namespace egret
                     continue;
                 }
 
-                Eigen::Vector3d rawNormal = constraint.contact.normal;
+                Eigen::Vector3d rawNormal = constraint.contactNormal;
                 if (!rawNormal.allFinite() || rawNormal.squaredNorm() < 1e-12) {
                     continue;
                 }
@@ -62,7 +62,7 @@ namespace egret
 
                 const Eigen::Vector3d positionA = bodyA.entity->getPosition();
                 const Eigen::Vector3d positionB = bodyB.entity->getPosition();
-                const Eigen::Vector3d contactPosition = constraint.contact.position;
+                const Eigen::Vector3d contactPosition = constraint.contactPosition;
 
                 const Eigen::Vector3d rA = contactPosition - positionA;
                 const Eigen::Vector3d rB = contactPosition - positionB;
@@ -133,7 +133,7 @@ namespace egret
                     continue;
                 }
 
-                Eigen::Vector3d rawNormal = constraint.contact.normal;
+                Eigen::Vector3d rawNormal = constraint.contactNormal;
                 if (!rawNormal.allFinite() || rawNormal.squaredNorm() < 1e-12) {
                     continue;
                 }
@@ -144,7 +144,7 @@ namespace egret
                     continue;
                 }
 
-                const double penetration = std::max(constraint.contact.penetration - config.penetrationSlop, 0.0);
+                const double penetration = std::max(constraint.penetration - config.penetrationSlop, 0.0);
                 if (!std::isfinite(penetration)) {
                     continue;
                 }

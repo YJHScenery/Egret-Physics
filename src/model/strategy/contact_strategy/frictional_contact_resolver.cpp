@@ -70,7 +70,7 @@ namespace egret
         {
             // ---- 1. 预处理与有效性检查 ----
 
-            const Eigen::Vector3d rawNormal = constraint.contact.normal;
+            const Eigen::Vector3d rawNormal = constraint.contactNormal;
             if (!rawNormal.allFinite() || rawNormal.squaredNorm() < 1e-12) {
                 return false;
             }
@@ -88,7 +88,7 @@ namespace egret
 
             const Eigen::Vector3d positionA = bodyA.entity->getPosition();
             const Eigen::Vector3d positionB = bodyB.entity->getPosition();
-            const Eigen::Vector3d contactPos = constraint.contact.position;
+            const Eigen::Vector3d contactPos = constraint.contactPosition;
 
             const Eigen::Vector3d rA = contactPos - positionA;
             const Eigen::Vector3d rB = contactPos - positionB;
@@ -305,7 +305,7 @@ namespace egret
                 continue;
             }
 
-            const Eigen::Vector3d rawNormal = constraint.contact.normal;
+            const Eigen::Vector3d rawNormal = constraint.contactNormal;
             if (!rawNormal.allFinite() || rawNormal.squaredNorm() < 1e-12) {
                 continue;
             }
@@ -320,7 +320,7 @@ namespace egret
 
             const Eigen::Vector3d positionA = bodyA.entity->getPosition();
             const Eigen::Vector3d positionB = bodyB.entity->getPosition();
-            const Eigen::Vector3d contactPos = constraint.contact.position;
+            const Eigen::Vector3d contactPos = constraint.contactPosition;
             const Eigen::Vector3d rA = contactPos - positionA;
             const Eigen::Vector3d rB = contactPos - positionB;
 
@@ -415,7 +415,7 @@ namespace egret
                 // 摩擦效果在速度求解阶段已通过 Coulomb 摩擦锥完整处理，
                 // 位置层面的切向漂移抑制需依赖接触点持久化数据（后续版本补充）。
 
-                Eigen::Vector3d rawNormal = constraint.contact.normal;
+                Eigen::Vector3d rawNormal = constraint.contactNormal;
                 if (!rawNormal.allFinite() || rawNormal.squaredNorm() < 1e-12) {
                     continue;
                 }
@@ -426,7 +426,7 @@ namespace egret
                     continue;
                 }
 
-                const double penetration = std::max(constraint.contact.penetration - config.penetrationSlop, 0.0);
+                const double penetration = std::max(constraint.penetration - config.penetrationSlop, 0.0);
                 if (!std::isfinite(penetration)) {
                     continue;
                 }
