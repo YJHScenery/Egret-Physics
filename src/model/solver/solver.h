@@ -137,17 +137,17 @@ namespace egret
         void runBroadPhase(const SolverSceneSnapshotBase& scene, std::vector<SolverBodyPair>& pairs,
                            SolverStats& stats) const;
 
-        /**
-         * @brief 第 3 阶段：生成窄相位接触约束。
-         * @param scene 场景快照。
-         * @param pairs 广相位生成的候选对。
-         * @param constraints 输出接触约束。
-         * @param stats 可变步骤统计。
-         */
-        static void runNarrowPhase(const SolverSceneSnapshotBase& scene,
-                                   const std::vector<SolverBodyPair>& pairs,
-                                   std::vector<SolverContactConstraint>& constraints,
-                                   SolverStats& stats);
+        // /**
+        //  * @brief 第 3 阶段：生成窄相位接触约束。
+        //  * @param scene 场景快照。
+        //  * @param pairs 广相位生成的候选对。
+        //  * @param constraints 输出接触约束。
+        //  * @param stats 可变步骤统计。
+        //  */
+        // static void runNarrowPhase(const SolverSceneSnapshotBase& scene,
+        //                            const std::vector<SolverBodyPair>& pairs,
+        //                            std::vector<SolverContactConstraint>& constraints,
+        //                            SolverStats& stats);
 
         /**
          * @brief 第 3 阶段（CCD版本）：生成窄相位接触约束（基于连续碰撞检测）。

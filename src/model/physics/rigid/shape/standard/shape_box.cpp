@@ -18,7 +18,6 @@
 
 #include "shape_sphere.h"
 #include "world_scene_manager.h"
-#include "collide_judge/standard_collide_judge_group.h"
 #include <ranges>
 
 namespace egret

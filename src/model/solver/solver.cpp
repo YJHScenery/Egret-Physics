@@ -30,7 +30,7 @@
 #include "broad_phase_strategy/brute_force_broad_strategy.h"
 #include "contact_strategy/frictionless_contact_resolver.h"
 #include "integrator_strategy/semi_implicit_euler_integrator.h"
-#include "../physics/rigid/collision_new/ccd_solver_adapter.h"
+#include "ccd_solver_adapter.h"
 #include <QMatrix3x3>
 
 namespace egret
@@ -282,64 +282,64 @@ namespace egret
         }
     }
 
-    void Solver::runNarrowPhase(const SolverSceneSnapshotBase& scene,
-                                const std::vector<SolverBodyPair>& pairs,
-                                std::vector<SolverContactConstraint>& constraints,
-                                SolverStats& stats)
-    {
-        const auto bodies = scene.getBodies();
-        stats.narrowPhaseTestCount = pairs.size();
-
-        for (const SolverBodyPair& pair : pairs) {
-            if (pair.bodyAIndex >= bodies.size() || pair.bodyBIndex >= bodies.size()) {
-                continue;
-            }
-
-            const SolverBodyHandle& bodyA = bodies[pair.bodyAIndex];
-            const SolverBodyHandle& bodyB = bodies[pair.bodyBIndex];
-
-            if (bodyA.entity->getShape() == nullptr || bodyB.entity->getShape() == nullptr) {
-                continue;
-            }
-
-            auto manifoldOpt = runGjkEpaOnEntities(bodyA.entity, bodyB.entity);
-            bool collided = manifoldOpt.has_value();
-            ContactManifold manifold{};
-
-            if (collided) {
-                manifold = std::move(manifoldOpt.value());
-            } else {
-                collided = buildAabbFallbackContact(bodyA, bodyB, manifold);
-            }
-            if (!collided) {
-                continue;
-            }
-
-            for (const ContactPoint& contact : manifold) {
-                if (!contact.position.allFinite() || !contact.normal.allFinite() ||
-                    !std::isfinite(contact.penetration) || contact.penetration <= 0.0 ||
-                    contact.normal.squaredNorm() < 1e-12) {
-                    continue;
-                }
-                const double restitution = std::isfinite(
-                                               std::min(bodyA.entity->getRestitution(), bodyB.entity->getRestitution()))
-                                               ? std::clamp(
-                                                   std::min(bodyA.entity->getRestitution(),
-                                                            bodyB.entity->getRestitution()), 0.0, 1.0)
-                                               : 0.0;
-                constraints.push_back(SolverContactConstraint{
-                    .bodyAIndex = pair.bodyAIndex,
-                    .bodyBIndex = pair.bodyBIndex,
-                    .contactPosition = contact.position,
-                    .contactNormal = contact.normal,
-                    .penetration = contact.penetration,
-                    .restitution = restitution
-                });
-            }
-        }
-
-        stats.contactConstraintCount = constraints.size();
-    }
+    // void Solver::runNarrowPhase(const SolverSceneSnapshotBase& scene,
+    //                             const std::vector<SolverBodyPair>& pairs,
+    //                             std::vector<SolverContactConstraint>& constraints,
+    //                             SolverStats& stats)
+    // {
+    //     const auto bodies = scene.getBodies();
+    //     stats.narrowPhaseTestCount = pairs.size();
+    //
+    //     for (const SolverBodyPair& pair : pairs) {
+    //         if (pair.bodyAIndex >= bodies.size() || pair.bodyBIndex >= bodies.size()) {
+    //             continue;
+    //         }
+    //
+    //         const SolverBodyHandle& bodyA = bodies[pair.bodyAIndex];
+    //         const SolverBodyHandle& bodyB = bodies[pair.bodyBIndex];
+    //
+    //         if (bodyA.entity->getShape() == nullptr || bodyB.entity->getShape() == nullptr) {
+    //             continue;
+    //         }
+    //
+    //         auto manifoldOpt = runGjkEpaOnEntities(bodyA.entity, bodyB.entity);
+    //         bool collided = manifoldOpt.has_value();
+    //         ContactManifold manifold{};
+    //
+    //         if (collided) {
+    //             manifold = std::move(manifoldOpt.value());
+    //         } else {
+    //             collided = buildAabbFallbackContact(bodyA, bodyB, manifold);
+    //         }
+    //         if (!collided) {
+    //             continue;
+    //         }
+    //
+    //         for (const ContactPoint& contact : manifold) {
+    //             if (!contact.position.allFinite() || !contact.normal.allFinite() ||
+    //                 !std::isfinite(contact.penetration) || contact.penetration <= 0.0 ||
+    //                 contact.normal.squaredNorm() < 1e-12) {
+    //                 continue;
+    //             }
+    //             const double restitution = std::isfinite(
+    //                                            std::min(bodyA.entity->getRestitution(), bodyB.entity->getRestitution()))
+    //                                            ? std::clamp(
+    //                                                std::min(bodyA.entity->getRestitution(),
+    //                                                         bodyB.entity->getRestitution()), 0.0, 1.0)
+    //                                            : 0.0;
+    //             constraints.push_back(SolverContactConstraint{
+    //                 .bodyAIndex = pair.bodyAIndex,
+    //                 .bodyBIndex = pair.bodyBIndex,
+    //                 .contactPosition = contact.position,
+    //                 .contactNormal = contact.normal,
+    //                 .penetration = contact.penetration,
+    //                 .restitution = restitution
+    //             });
+    //         }
+    //     }
+    //
+    //     stats.contactConstraintCount = constraints.size();
+    // }
 
     void Solver::runNarrowPhaseCcd(const SolverSceneSnapshotBase& scene,
                                    const std::vector<SolverBodyPair>& pairs,

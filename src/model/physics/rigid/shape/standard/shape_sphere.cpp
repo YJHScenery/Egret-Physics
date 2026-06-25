@@ -19,7 +19,6 @@
 #include "constants.h"
 #include "shape_box.h"
 #include "world_scene_manager.h"
-#include "collide_judge/standard_collide_judge_group.h"
 
 namespace egret
 {

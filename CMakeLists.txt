@@ -119,15 +119,15 @@ include_directories(
         src/model/solver
         src/model/scene
         src/model/physics
-        src/model/physics/rigid/collision_new
+        src/model/physics/collision
         src/model/geometry
         src/model/geometry/surface
         src/model/geometry/curve
         src/model/physics/rigid
         src/model/physics/field
         src/model/physics/rigid/shape
-        src/model/physics/rigid/shape/register
-        src/model/physics/rigid/shape/standard/collide_judge
+        .deprecated/register
+        .deprecated/collide_judge
         src/model/physics/rigid/shape/standard
         src/view_model/
         src/model/strategy
@@ -197,10 +197,10 @@ set(CPP_FILES
         src/model/physics/rigid/rigid_body.cpp
         src/model/physics/rigid/rigid_body.h
 
-        src/model/physics/rigid/shape/standard/collide_judge/standard_collide_judge_group.h
-        src/model/physics/rigid/shape/standard/collide_judge/standard_collide_judge_group.cpp
-        src/model/physics/rigid/shape/standard/collide_judge/ccd_collide_judge_group.h
-        src/model/physics/rigid/shape/standard/collide_judge/ccd_collide_judge_group.cpp
+        .deprecated/collide_judge/standard_collide_judge_group.h
+        .deprecated/collide_judge/standard_collide_judge_group.cpp
+        .deprecated/collide_judge/ccd_collide_judge_group.h
+        .deprecated/collide_judge/ccd_collide_judge_group.cpp
         src/model/physics/rigid/shape/standard/shape_base.cpp
         src/model/physics/rigid/shape/standard/shape_base.h
         src/model/physics/rigid/shape/standard/shape_sphere.cpp
@@ -219,13 +219,13 @@ set(CPP_FILES
         src/model/physics/rigid/shape/standard/shape_cylindrical_shell.h
         src/model/physics/rigid/shape/standard/shape_rod.cpp
         src/model/physics/rigid/shape/standard/shape_rod.h
-        src/model/physics/rigid/shape/register/shape_register.cpp
-        src/model/physics/rigid/shape/register/shape_register.h
-        src/model/physics/rigid/shape/register/shape_factory_registry.cpp
-        src/model/physics/rigid/shape/register/shape_factory_registry.h
-        src/model/physics/rigid/shape/register/standard_shape_factory_registration.cpp
-        src/model/physics/rigid/shape/register/standard_register_dummy.cpp
-        src/model/physics/rigid/shape/register/ccd_register_dummy.cpp
+        .deprecated/register/shape_register.cpp
+        .deprecated/register/shape_register.h
+        .deprecated/register/shape_factory_registry.cpp
+        .deprecated/register/shape_factory_registry.h
+        .deprecated/register/standard_shape_factory_registration.cpp
+        .deprecated/register/standard_register_dummy.cpp
+        .deprecated/register/ccd_register_dummy.cpp
 
 
         src/model/physics/field/field_base.cpp
@@ -339,11 +339,11 @@ set(CPP_FILES
         src/view_model/simulator/visual_item/scene_convex_mesh_model.h
         src/model/physics/rigid/shape/standard/shape_capsule.cpp
         src/model/physics/rigid/shape/standard/shape_capsule.h
-        src/model/physics/rigid/collision_new/gilbert_johnson_keerthi.h
-        src/model/physics/rigid/collision_new/expanding_polytope_algorithm.h
-        src/model/physics/rigid/collision_new/continuous_collision_detector.h
-        src/model/physics/rigid/collision_new/ccd_solver_adapter.h
-        src/model/physics/rigid/collision_new/ccd_solver_adapter.cpp
+        src/model/physics/collision/gilbert_johnson_keerthi.h
+        src/model/physics/collision/expanding_polytope_algorithm.h
+        src/model/physics/collision/continuous_collision_detector.h
+        src/model/solver/ccd_solver_adapter.h
+        src/model/solver/ccd_solver_adapter.cpp
 
         src/model/physics/motion/motion_utils.h
         src/model/physics/motion/generalization_rigid_motion.h
@@ -359,7 +359,7 @@ add_executable(${PROJECT_NAME}
 
 # CCD 适配器翻译单元包含全部 GJK/EPA/CCD 模板实例化，需 /bigobj
 set_source_files_properties(
-    src/model/physics/rigid/collision_new/ccd_solver_adapter.cpp
+    src/model/physics/collision/ccd_solver_adapter.cpp
     PROPERTIES COMPILE_FLAGS "/bigobj"
 )
 
@@ -466,9 +466,9 @@ if (BUILD_TESTS)
             src/model/physics/rigid/rigid_body.cpp
             src/model/physics/rigid/particle.cpp
             src/model/physics/rigid/shape/standard/shape_base.cpp
-            src/model/physics/rigid/shape/register/shape_register.cpp
-            src/model/physics/rigid/shape/register/shape_factory_registry.cpp
-            src/model/physics/rigid/shape/register/standard_shape_factory_registration.cpp
+            .deprecated/register/shape_register.cpp
+            .deprecated/register/shape_factory_registry.cpp
+            .deprecated/register/standard_shape_factory_registration.cpp
             src/model/physics/rigid/shape/standard/shape_sphere.cpp
             src/model/physics/rigid/shape/standard/shape_box.cpp
             src/model/physics/rigid/shape/standard/shape_cylinder.cpp
@@ -477,8 +477,8 @@ if (BUILD_TESTS)
             src/model/physics/rigid/shape/standard/shape_ring.cpp
             src/model/physics/rigid/shape/standard/shape_rod.cpp
             src/model/physics/rigid/shape/standard/shape_spherical_shell.cpp
-            src/model/physics/rigid/shape/standard/collide_judge/standard_collide_judge_group.cpp
-            src/model/physics/rigid/shape/standard/collide_judge/ccd_collide_judge_group.cpp
+            .deprecated/collide_judge/standard_collide_judge_group.cpp
+            .deprecated/collide_judge/ccd_collide_judge_group.cpp
             src/model/physics/field/field_base.cpp
             src/model/physics/field/gravity_field.cpp
             src/model/scene/world_scene_manager.cpp
