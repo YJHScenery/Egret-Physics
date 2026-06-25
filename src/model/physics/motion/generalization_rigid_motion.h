@@ -93,7 +93,7 @@ namespace egret
 
         /**
          * @brief   获取质量
-         * @return  质量值（> 0）
+         * @return  质量值（>= 0）
          */
         [[nodiscard]] double mass() const { return m_mass; }
 
@@ -153,7 +153,12 @@ namespace egret
         void setForce(const Force& f)
         {
             m_force = f;
-            m_acceleration = m_force / m_mass;
+            m_acceleration = decltype(m_acceleration)::Zero();
+
+            if (m_mass != 0) {
+                m_acceleration = m_force / m_mass;
+            }
+
         }
 
         /// @brief 获取力
@@ -364,7 +369,7 @@ namespace egret
     void GeneralizationRigidMotion<Dimension>::setMass(double mass)
 
     {
-        if (mass <= 0.0) {
+        if (mass < 0.0) {
             throw std::invalid_argument(std::format(
                 "GeneralizationRigidMotion::setMass: 质量必须为正数，当前值 = {}", std::to_string(mass)));
         }

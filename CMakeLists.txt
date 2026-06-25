@@ -342,6 +342,9 @@ set(CPP_FILES
         src/model/physics/rigid/collision_new/gilbert_johnson_keerthi.h
         src/model/physics/rigid/collision_new/expanding_polytope_algorithm.h
         src/model/physics/rigid/collision_new/continuous_collision_detector.h
+        src/model/physics/rigid/collision_new/ccd_solver_adapter.h
+        src/model/physics/rigid/collision_new/ccd_solver_adapter.cpp
+
         src/model/physics/motion/motion_utils.h
         src/model/physics/motion/generalization_rigid_motion.h
 
@@ -352,6 +355,12 @@ add_executable(${PROJECT_NAME}
         ${CPP_FILES}
         ${QRC_FILES}
         resources/app.rc
+)
+
+# CCD 适配器翻译单元包含全部 GJK/EPA/CCD 模板实例化，需 /bigobj
+set_source_files_properties(
+    src/model/physics/rigid/collision_new/ccd_solver_adapter.cpp
+    PROPERTIES COMPILE_FLAGS "/bigobj"
 )
 
 # QXlsx 静态库

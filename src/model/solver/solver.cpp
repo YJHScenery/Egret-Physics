@@ -30,7 +30,7 @@
 #include "broad_phase_strategy/brute_force_broad_strategy.h"
 #include "contact_strategy/frictionless_contact_resolver.h"
 #include "integrator_strategy/semi_implicit_euler_integrator.h"
-#include "continuous_collision_detection.h"
+#include "../physics/rigid/collision_new/ccd_solver_adapter.h"
 #include <QMatrix3x3>
 
 namespace egret
@@ -302,26 +302,13 @@ namespace egret
                 continue;
             }
 
-            ContactManifold manifold;
-            bool collided = bodyA.entity->getShape()->collide(bodyB.entity->getShape().get(),
-                                                              bodyA.entity->getTransformCR(),
-                                                              bodyB.entity->getTransformCR(), manifold);
+            auto manifoldOpt = runGjkEpaOnEntities(bodyA.entity, bodyB.entity);
+            bool collided = manifoldOpt.has_value();
+            ContactManifold manifold{};
 
-            if (!collided) {
-                ContactManifold reversedManifold;
-                collided = bodyB.entity->getShape()->collide(bodyA.entity->getShape().get(),
-                                                             bodyB.entity->getTransformCR(),
-                                                             bodyA.entity->getTransformCR(), reversedManifold);
-                if (collided) {
-                    manifold.reserve(reversedManifold.size());
-                    for (ContactPoint contact : reversedManifold) {
-                        contact.normal = -contact.normal;
-                        manifold.push_back(contact);
-                    }
-                }
-            }
-
-            if (!collided) {
+            if (collided) {
+                manifold = std::move(manifoldOpt.value());
+            } else {
                 collided = buildAabbFallbackContact(bodyA, bodyB, manifold);
             }
             if (!collided) {
@@ -376,27 +363,19 @@ namespace egret
                 continue;
             }
 
-            const Eigen::Vector3d linearVelA = bodyA.entity->getVelocity();
-            const Eigen::Vector3d angularVelA = bodyA.entity->getAngularVelocity();
-            const Eigen::Vector3d linearVelB = bodyB.entity->getVelocity();
-            const Eigen::Vector3d angularVelB = bodyB.entity->getAngularVelocity();
-
-            ContinuousCollisionDetection ccd(bodyA.entity, bodyB.entity);
-            auto resultOpt = ccd.computeToi(
-                linearVelA, angularVelA,
-                linearVelB, angularVelB, dt);
+            auto resultOpt = runCcdOnEntities(bodyA.entity, bodyB.entity, dt);
 
             if (!resultOpt.has_value()) {
                 continue;
             }
 
-            const CcdResult& result = resultOpt.value();
-            if (result.toi < 0.0 || result.toi > dt) {
+            const AdapterCcdResult& result = resultOpt.value();
+            if (result.timeOfImpact < 0.0 || result.timeOfImpact > dt) {
                 continue;
             }
 
             if (!result.normal.allFinite() || result.normal.squaredNorm() < 1e-12 ||
-                !result.contactPosition.allFinite()) {
+                !result.contactPoint.allFinite()) {
                 continue;
             }
 
@@ -409,11 +388,11 @@ namespace egret
             constraints.push_back(SolverContactConstraint{
                 .bodyAIndex = pair.bodyAIndex,
                 .bodyBIndex = pair.bodyBIndex,
-                .contactPosition = result.contactPosition,
+                .contactPosition = result.contactPoint,
                 .contactNormal = result.normal,
-                .penetration = result.penetration,
+                .penetration = result.penetrationDepth,
                 .restitution = restitution,
-                .toi = result.toi
+                .toi = result.timeOfImpact
             });
         }
 
@@ -443,27 +422,19 @@ namespace egret
                 continue;
             }
 
-            const Eigen::Vector3d linearVelA = bodyA.entity->getVelocity();
-            const Eigen::Vector3d angularVelA = bodyA.entity->getAngularVelocity();
-            const Eigen::Vector3d linearVelB = bodyB.entity->getVelocity();
-            const Eigen::Vector3d angularVelB = bodyB.entity->getAngularVelocity();
-
-            ContinuousCollisionDetection ccd(bodyA.entity, bodyB.entity);
-            auto resultOpt = ccd.computeToi(
-                linearVelA, angularVelA,
-                linearVelB, angularVelB, dt);
+            auto resultOpt = runCcdOnEntities(bodyA.entity, bodyB.entity, dt);
 
             if (!resultOpt.has_value()) {
                 continue;
             }
 
-            const CcdResult& result = resultOpt.value();
-            if (result.toi < 0.0 || result.toi > dt) {
+            const AdapterCcdResult& result = resultOpt.value();
+            if (result.timeOfImpact < 0.0 || result.timeOfImpact > dt) {
                 continue;
             }
 
             if (!result.normal.allFinite() || result.normal.squaredNorm() < 1e-12 ||
-                !result.contactPosition.allFinite()) {
+                !result.contactPoint.allFinite()) {
                 continue;
             }
 
@@ -474,13 +445,13 @@ namespace egret
                                            : 0.0;
 
             CcdContactData contactData{
-                .position = result.contactPosition,
+                .position = result.contactPoint,
                 .normal = result.normal,
-                .penetration = result.penetration
+                .penetration = result.penetrationDepth
             };
 
             events.push_back(CcdCollisionEvent{
-                .toi = result.toi,
+                .toi = result.timeOfImpact,
                 .bodyAIndex = pair.bodyAIndex,
                 .bodyBIndex = pair.bodyBIndex,
                 .manifold = {std::move(contactData)},
