@@ -339,14 +339,11 @@ set(CPP_FILES
         src/view_model/simulator/visual_item/scene_convex_mesh_model.h
         src/model/physics/rigid/shape/standard/shape_capsule.cpp
         src/model/physics/rigid/shape/standard/shape_capsule.h
-        src/model/physics/rigid/collision_new/gilbert_johnson_keerthi.cpp
         src/model/physics/rigid/collision_new/gilbert_johnson_keerthi.h
-        src/model/physics/rigid/collision_new/expanding_polytope_algorithm.cpp
         src/model/physics/rigid/collision_new/expanding_polytope_algorithm.h
-        src/model/physics/rigid/collision_new/continuous_collision_detection.cpp
-        src/model/physics/rigid/collision_new/continuous_collision_detection.h
-        src/model/physics/rigid/collision_new/ccd_integrator_adapter.cpp
-        src/model/physics/rigid/collision_new/ccd_integrator_adapter.h
+        src/model/physics/rigid/collision_new/continuous_collision_detector.h
+        src/model/physics/motion/motion_utils.h
+        src/model/physics/motion/generalization_rigid_motion.h
 
 )
 

@@ -23,6 +23,7 @@
 #include "aabb.h"
 
 #include "async_logger.h"
+#include "dimension_concept.h"
 
 namespace egret
 {
@@ -126,7 +127,7 @@ namespace egret
         // 使用 dynamic_cast 进行安全检查（需要多态类型）
         auto* d = dynamic_cast<Derived*>(ptr.get());
         if (!d) {
-            LOG_FATAL_LITERAL("Cannot Cast This Pointer");
+            LOG_FATAL("Cannot Cast This Pointer");
             return nullptr; // 或者抛出异常
         }
 
@@ -134,5 +135,7 @@ namespace egret
         ptr.release();
         return std::unique_ptr<Derived>(d);
     }
+
+
 }
 #endif // EGRET_PHYSICS_PHYSICS_UTILS_H
