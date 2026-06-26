@@ -1,5 +1,5 @@
 /**
- * @file        continuous_collision_detector.h
+ * @file        continuous_collision_detector.ixx
  * @brief       CCD（Continuous Collision Detection）连续碰撞检测算法
  * @details     通过保守推进（Conservative Advancement）框架，在连续时间域内
  *              检测两个凸体之间的碰撞时间（TOI），避免离散检测的隧穿效应。
@@ -19,22 +19,22 @@
  * @ingroup     Physics
  */
 
-#ifndef EGRET_PHYSICS_CONTINUOUS_COLLISION_DETECTOR_H
-#define EGRET_PHYSICS_CONTINUOUS_COLLISION_DETECTOR_H
-
+module;
 #include "dimension_concept.h"
 #include "motion/generalization_rigid_motion.h"
 #include "motion/motion_utils.h"
-#include "gilbert_johnson_keerthi.h"
-#include "expanding_polytope_algorithm.h"
 #include <Eigen/Dense>
 #include <functional>
 #include <limits>
 #include <vector>
 #include <unordered_set>
 #include <algorithm>
+export module collision:continuous_collision_detector;
 
-namespace egret
+import :gilbert_johnson_keerthi;
+import :expanding_polytope_algorithm;
+
+export namespace egret
 {
     // CCDResult —— CCD 算法的输出结构体
 
@@ -628,7 +628,7 @@ namespace egret
     {
         // 构造独立 GJK 实例，复用支撑函数回调
         GilbertJohnsonKeerthi<Dimension> gjk(m_supportA, m_supportB, posA, rotA, posB, rotB,
-            kEpsilonGJK, kMaxGJKIterations);
+                                             kEpsilonGJK, kMaxGJKIterations);
         gjk.initialize();
         const GJKResult<Dimension> gjkResult = gjk.run();
 
@@ -643,7 +643,7 @@ namespace egret
             result.distance = gjkResult.distance;
             result.closestPair = gjkResult.minimumVerticesPair;
             result.closestPointMinkowski = gjkResult.minimumVerticesPair.first
-                                         - gjkResult.minimumVerticesPair.second;
+                - gjkResult.minimumVerticesPair.second;
         }
 
         return result;
@@ -791,4 +791,4 @@ namespace egret
     using ContinuousCollisionDetector3D = ContinuousCollisionDetector<3>;
 } // namespace egret
 
-#endif // EGRET_PHYSICS_CONTINUOUS_COLLISION_DETECTOR_H
+// #endif // EGRET_PHYSICS_CONTINUOUS_COLLISION_DETECTOR_H

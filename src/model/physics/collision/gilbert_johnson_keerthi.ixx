@@ -2,8 +2,10 @@
 // Created by jehor on 2026/6/23.
 //
 
-#ifndef EGRET_PHYSICS_GILBERT_JOHNSON_KEERTHI_H
-#define EGRET_PHYSICS_GILBERT_JOHNSON_KEERTHI_H
+// #ifndef EGRET_PHYSICS_GILBERT_JOHNSON_KEERTHI_H
+// #define EGRET_PHYSICS_GILBERT_JOHNSON_KEERTHI_H
+
+module;
 #include "physics_utils.h"
 #include "physics_abstract.h"
 #include "basic_utils.h"
@@ -13,8 +15,9 @@
 #include <set>
 #include <unordered_set>
 #include <functional>
+export module collision:gilbert_johnson_keerthi;
 
-namespace egret
+export namespace egret
 {
     template <unsigned int Dimension> requires ValidDimension<Dimension>
     struct GJKResult
@@ -35,7 +38,7 @@ namespace egret
          * @note 行向量：空间坐标分量
          */
         matrix_type simplex{};
-        
+
         /// @brief 与 simplex 各列对应的凸体 A 支撑点（按迭代顺序，供 EPA 使用）
         std::vector<vector_type> supportAHistory{};
 
@@ -48,11 +51,10 @@ namespace egret
 
         // 原始物体最近点对
         std::pair<vector_type, vector_type> minimumVerticesPair{};
-
     };
 
 
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     class GilbertJohnsonKeerthi
     {
     public:
@@ -104,8 +106,10 @@ namespace egret
         double m_epsilon{1e-10};
 
         /// @brief 最大迭代次数，防止无限循环
-        int m_maxIterations{static_cast<int>(
-            quickPower<std::uint64_t, std::uint64_t, Dimension>(10))};
+        int m_maxIterations{
+            static_cast<int>(
+                quickPower<std::uint64_t, std::uint64_t, Dimension>(10))
+        };
 
         /// @brief 凸体 A 的支撑函数回调
         SupportCallback m_supportAFunc;
@@ -182,24 +186,24 @@ namespace egret
     };
 
 
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     GilbertJohnsonKeerthi<Dimension>::GilbertJohnsonKeerthi(
         SupportCallback supportA, SupportCallback supportB,
         const vector_type& posA, const matrix_type& rotA,
         const vector_type& posB, const matrix_type& rotB,
         double epsilon, int maxIterations)
         : m_supportAFunc(std::move(supportA))
-        , m_supportBFunc(std::move(supportB))
-        , m_positionA(posA)
-        , m_rotationA(rotA)
-        , m_positionB(posB)
-        , m_rotationB(rotB)
-        , m_epsilon(epsilon)
-        , m_maxIterations(maxIterations)
+          , m_supportBFunc(std::move(supportB))
+          , m_positionA(posA)
+          , m_rotationA(rotA)
+          , m_positionB(posB)
+          , m_rotationB(rotB)
+          , m_epsilon(epsilon)
+          , m_maxIterations(maxIterations)
     {
     }
 
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     void GilbertJohnsonKeerthi<Dimension>::initialize()
     {
         // 1. 选定初始方向：center(B) - center(A)
@@ -229,7 +233,7 @@ namespace egret
         m_currentDirection = -supportP;
     }
 
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     GilbertJohnsonKeerthi<Dimension>::result_type GilbertJohnsonKeerthi<Dimension>::run()
     {
         result_type gjkResult;
@@ -273,7 +277,7 @@ namespace egret
         return gjkResult;
     }
 
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     double GilbertJohnsonKeerthi<Dimension>::computeOptimalSubset()
     {
         const Eigen::Index N = m_currentSimplex.cols();
@@ -364,7 +368,7 @@ namespace egret
         return bestDistance;
     }
 
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     bool GilbertJohnsonKeerthi<Dimension>::containsOrigin()
     {
         const double bestDistance = computeOptimalSubset();
@@ -403,7 +407,7 @@ namespace egret
         return false;
     }
 
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     void GilbertJohnsonKeerthi<Dimension>::buildDataWhenNotCollided(result_type& result)
     {
         // 计算最优子集（结果缓存在成员变量中）
@@ -427,16 +431,16 @@ namespace egret
         result.minimumVerticesPair = {a0, b0};
     }
 
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     void GilbertJohnsonKeerthi<Dimension>::addNewColToCurrentSimplex(vector_type newCol)
     {
         m_currentSimplex.conservativeResize(Eigen::NoChange, m_currentSimplex.cols() + 1);
         m_currentSimplex.col(m_currentSimplex.cols() - 1) = std::move(newCol);
     }
-// ──── 三维类型别名 ────
-using GJKResult3D = GJKResult<3>;
-using GilbertJohnsonKeerthi3D = GilbertJohnsonKeerthi<3>;
 
+    // ──── 三维类型别名 ────
+    using GJKResult3D = GJKResult<3>;
+    using GilbertJohnsonKeerthi3D = GilbertJohnsonKeerthi<3>;
 } // egret
-
-#endif //EGRET_PHYSICS_GILBERT_JOHNSON_KEERTHI_H
+//
+// #endif //EGRET_PHYSICS_GILBERT_JOHNSON_KEERTHI_H

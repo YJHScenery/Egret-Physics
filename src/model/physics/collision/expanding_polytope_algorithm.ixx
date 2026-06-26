@@ -1,5 +1,5 @@
 /**
- * @file        expanding_polytope_algorithm.h
+ * @file        expanding_polytope_algorithm.ixx
  * @brief       EPA（Expanding Polytope Algorithm）算法头文件
  * @details     以 GJK 最终单纯形为初始多面体，通过迭代扩展逼近闵可夫斯基差边界，
  *              提取碰撞法线、穿透深度和接触点等碰撞响应所需信息。
@@ -14,18 +14,20 @@
  * @ingroup     Physics
  */
 
-#ifndef EGRET_PHYSICS_EXPANDING_POLYTOPE_ALGORITHM_H
-#define EGRET_PHYSICS_EXPANDING_POLYTOPE_ALGORITHM_H
-
+// #ifndef EGRET_PHYSICS_EXPANDING_POLYTOPE_ALGORITHM_H
+// #define EGRET_PHYSICS_EXPANDING_POLYTOPE_ALGORITHM_H
+module;
 #include <Eigen/Dense>
 #include <vector>
 #include <array>
 #include <utility>
 #include <functional>
 #include "dimension_concept.h"
-#include "gilbert_johnson_keerthi.h"
+export module collision: expanding_polytope_algorithm;
 
-namespace egret
+import :gilbert_johnson_keerthi;
+
+export namespace egret
 {
     /**
      * @brief       EPA 算法结果结构体
@@ -227,11 +229,6 @@ namespace egret
         [[nodiscard]] EPAResult<Dimension> extractResult(const Face& closestFace) const;
     };
 
-} // namespace egret
-
-
-namespace egret
-{
     // 构造 / 主入口
 
     template<unsigned int Dimension> requires ValidDimension<Dimension>
@@ -638,4 +635,4 @@ using EPAResult3D = EPAResult<3>;
 using ExpandingPolytopeAlgorithm3D = ExpandingPolytopeAlgorithm<3>;
 
 } // namespace egret
-#endif // EGRET_PHYSICS_EXPANDING_POLYTOPE_ALGORITHM_H
+// #endif // EGRET_PHYSICS_EXPANDING_POLYTOPE_ALGORITHM_H

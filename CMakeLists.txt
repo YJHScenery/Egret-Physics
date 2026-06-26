@@ -339,14 +339,13 @@ set(CPP_FILES
         src/view_model/simulator/visual_item/scene_convex_mesh_model.h
         src/model/physics/rigid/shape/standard/shape_capsule.cpp
         src/model/physics/rigid/shape/standard/shape_capsule.h
-        src/model/physics/collision/gilbert_johnson_keerthi.h
-        src/model/physics/collision/expanding_polytope_algorithm.h
-        src/model/physics/collision/continuous_collision_detector.h
+
         src/model/solver/ccd_solver_adapter.h
         src/model/solver/ccd_solver_adapter.cpp
 
         src/model/physics/motion/motion_utils.h
         src/model/physics/motion/generalization_rigid_motion.h
+
 
 )
 
@@ -356,6 +355,24 @@ add_executable(${PROJECT_NAME}
         ${QRC_FILES}
         resources/app.rc
 )
+
+set(COLLISION_MODULE_FILES
+        src/model/physics/collision/collision.ixx
+        src/model/physics/collision/gilbert_johnson_keerthi.ixx
+        src/model/physics/collision/expanding_polytope_algorithm.ixx
+        src/model/physics/collision/continuous_collision_detector.ixx
+)
+
+target_sources(${PROJECT_NAME}
+        PUBLIC
+        FILE_SET CXX_MODULES FILES
+            ${COLLISION_MODULE_FILES}
+        PRIVATE
+)
+
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE /std:c++20 /experimental:module)
+endif()
 
 # CCD 适配器翻译单元包含全部 GJK/EPA/CCD 模板实例化，需 /bigobj
 set_source_files_properties(

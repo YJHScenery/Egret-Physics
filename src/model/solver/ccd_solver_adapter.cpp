@@ -17,15 +17,16 @@
 #include "ccd_solver_adapter.h"
 
 // ── 重型模板头文件 —— 仅在 .cpp 中引入 ──
-#include "collision/continuous_collision_detector.h"
-#include "collision/gilbert_johnson_keerthi.h"
-#include "collision/expanding_polytope_algorithm.h"
+
 #include "motion/generalization_rigid_motion.h"
 #include "motion/motion_utils.h"
 #include "rigid/physical_entity.h"
 #include "transform.h"
 
 #include <memory>
+
+import collision;
+
 
 namespace egret
 {

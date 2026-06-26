@@ -24,7 +24,8 @@
 #include <vector>
 
 #include "physics_utils.h"
-#include "collision/expanding_polytope_algorithm.h"
+
+import collision;
 
 namespace egret
 {
