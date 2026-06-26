@@ -359,7 +359,9 @@ namespace egret
          * @return  CCDResult 包含接触信息（碰撞法线由 p* 方向确定）
          */
         result_type extractContactFromGJK(
-            const internal_gjk_result_type& gjkResult, double t) const;
+            const internal_gjk_result_type& gjkResult,
+            const vector_type& posA, const vector_type& posB,
+            double t) const;
 
         // ── TOI 精化 ──
 
@@ -505,7 +507,7 @@ namespace egret
 
             if (d < kEpsilonDistance) {
                 // 距离极小 → 视为接触
-                return extractContactFromGJK(gjkResult, t);
+                return extractContactFromGJK(gjkResult, posA, posB, t);
             }
 
             // ④ 确定速度上界
@@ -1288,10 +1290,11 @@ namespace egret
     }
 
     // ── 接触信息提取（近接触情形） ──
-
     template <unsigned int Dimension> requires ValidDimension<Dimension>
     auto ContinuousCollisionDetector<Dimension>::extractContactFromGJK(
-        const internal_gjk_result_type& gjkResult, double t) const -> result_type
+        const internal_gjk_result_type& gjkResult,
+        const vector_type& posA, const vector_type& posB,
+        double t) const -> result_type
     {
         result_type contactResult{};
 
@@ -1301,14 +1304,24 @@ namespace egret
         contactResult.isCollided = true;
         contactResult.timeOfImpact = t;
 
-        if (d > kEpsilonGJK) {
-            // 分离法线：方向为 p* 的单位向量（B 指向 A）
+        // 近接触时 d 极小（< kEpsilonGJK），pStar/d 会放大 GJK 中 Gram 矩阵
+        // 求逆引入的数值噪声（~1e-15 → 法线偏差 ~1e-7 rad），累积导致漂移。
+        // 当 d 不足时回退到稳定的物体中心连线方向。
+        const vector_type centerDir = posB - posA;
+        const double centerDist = centerDir.norm();
+
+        if (d > centerDist * 1e-4 && d > kEpsilonGJK) {
+            // d 足够大：GJK 最近点法线可靠
             contactResult.normal = pStar / d;
         }
+        else if (centerDist > kEpsilonGJK) {
+            // 回退到物体中心连线方向
+            contactResult.normal = centerDir / centerDist;
+        }
         else {
-            // 退化：取任意方向
+            // 两物体中心重合：任意方向
             contactResult.normal = vector_type::Zero();
-            contactResult.normal(0) = 1.0;
+            contactResult.normal(Dimension - 1) = 1.0;
         }
 
         contactResult.penetrationDepth = 0.0; // 近接触，穿透深度为零
@@ -1363,7 +1376,7 @@ namespace egret
             result.timeOfImpact = tHi;
         }
         else if (gjkResult.distance < kEpsilonDistance) {
-            result = extractContactFromGJK(gjkResult, tHi);
+            result = extractContactFromGJK(gjkResult, posA, posB, tHi);
         }
         else {
             // 回退：未检测到碰撞
