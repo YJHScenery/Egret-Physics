@@ -29,10 +29,7 @@
 
 namespace egret
 {
-    // ============================================================================
     // 内部辅助：向量 ↔ 反对称矩阵 转换
-    // ============================================================================
-
     /**
      * @brief   将 3D 角速度向量转换为反对称矩阵
      * @details ω = (ωx, ωy, ωz) → Ω ∈ 𝔰𝔬(3)
@@ -46,10 +43,8 @@ namespace egret
         return mat;
     }
 
-    // ============================================================================
-    // 内部辅助：包围半径计算
-    // ============================================================================
 
+    // 内部辅助：包围半径计算
     /**
      * @brief   从形状的 AABB 估算包围半径
      */
@@ -66,10 +61,8 @@ namespace egret
         return halfExtent.norm();
     }
 
-    // ============================================================================
-    // 内部辅助：PhysicalEntity → GeneralizationRigidMotion<3>
-    // ============================================================================
 
+    // 内部辅助：PhysicalEntity → GeneralizationRigidMotion<3>
     /**
      * @brief   从 PhysicalEntity 构造维度泛化运动状态
      * @details 使用 Screw 模型（恒定速度），加速度和角加速度置零。
@@ -108,10 +101,8 @@ namespace egret
         return motion;
     }
 
-    // ============================================================================
-    // 内部辅助：ShapeBase → SupportCallback
-    // ============================================================================
 
+    // 内部辅助：ShapeBase → SupportCallback
     /**
      * @brief   从 ShapeBase 创建 CCD 所需的支撑函数回调
      * @details 内部维护一个 Transform 实例，每次调用时原地更新位置和旋转，
@@ -160,10 +151,8 @@ namespace egret
         };
     }
 
-    // ============================================================================
-    // 公共接口实现
-    // ============================================================================
 
+    // 公共接口实现
     std::optional<EPAResult3D> runGjkEpaOnEntities(
         PhysicalEntity* entityA,
         PhysicalEntity* entityB)
@@ -176,8 +165,20 @@ namespace egret
             return std::nullopt;
         }
 
+        // 创建支撑函数回调（复用 makeSupportCallbackRaw）
+        auto supportA = makeSupportCallbackRaw(entityA->getShape().get());
+        auto supportB = makeSupportCallbackRaw(entityB->getShape().get());
+
+        // 提取当前世界空间姿态
+        const Transform& transA = entityA->getTransformCR();
+        const Transform& transB = entityB->getTransformCR();
+        const Eigen::Vector3d posA = transA.getTranslation();
+        const Eigen::Vector3d posB = transB.getTranslation();
+        const Eigen::Matrix3d rotA = transA.getRotationMatrix();
+        const Eigen::Matrix3d rotB = transB.getRotationMatrix();
+
         // GJK 检测
-        GilbertJohnsonKeerthi<3> gjk(entityA, entityB);
+        GilbertJohnsonKeerthi<3> gjk(supportA, supportB, posA, rotA, posB, rotB);
         gjk.initialize();
         GJKResult<3> gjkResult = gjk.run();
 
@@ -186,20 +187,10 @@ namespace egret
         }
 
         // EPA 提取碰撞信息
-        ExpandingPolytopeAlgorithm<3> epa(gjkResult, entityA, entityB);
+        ExpandingPolytopeAlgorithm<3> epa(gjkResult, supportA, supportB, posA, rotA, posB, rotB);
         EPAResult<3> epaResult = epa.run();
 
         return epaResult;
-        //
-        // // 转换为 ContactManifold
-        // ContactManifold manifold{};
-        // ContactPoint contact{};
-        // contact.position = epaResult.contactPoint;
-        // contact.normal = epaResult.normal;
-        // contact.penetration = epaResult.penetrationDepth;
-        // contact.featureA = ContactFeature{ContactFeature::Unknown};
-        // contact.featureB = ContactFeature{ContactFeature::Unknown};
-        // manifold.push_back(contact);
     }
 
     std::optional<AdapterCcdResult> runCcdOnEntities(

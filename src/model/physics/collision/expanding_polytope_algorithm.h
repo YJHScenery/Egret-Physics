@@ -21,9 +21,9 @@
 #include <vector>
 #include <array>
 #include <utility>
+#include <functional>
 #include "dimension_concept.h"
 #include "gilbert_johnson_keerthi.h"
-#include "physical_entity.h"
 
 namespace egret
 {
@@ -69,21 +69,38 @@ namespace egret
         using vector_type = Eigen::Matrix<double, Dimension, 1>;
         using matrix_type = Eigen::Matrix<double, Dimension, Eigen::Dynamic>;
 
+        /// @brief 支撑函数回调：给定世界空间方向、位置和旋转，返回世界空间支撑点
+        using SupportCallback = std::function<vector_type(
+            const vector_type& worldDir,
+            const vector_type& position,
+            const matrix_type& rotation
+        )>;
+
         /// @brief EPA 收敛容差
-        static constexpr double kEpsilon = 1e-10;
+        double m_epsilon{1e-10};
 
         /// @brief 最大迭代次数
-        static constexpr int kMaxIterations = 100;
+        int m_maxIterations{100};
 
         /**
          * @brief 使用 GJK 结果构造 EPA 算法实例
          * @param gjkResult GJK 阶段产生的结果（必须 isCollided == true）
-         * @param entityA   碰撞实体 A
-         * @param entityB   碰撞实体 B
+         * @param supportA  凸体 A 的支撑函数回调
+         * @param supportB  凸体 B 的支撑函数回调
+         * @param posA      凸体 A 的世界空间位置
+         * @param rotA      凸体 A 的世界空间旋转矩阵
+         * @param posB      凸体 B 的世界空间位置
+         * @param rotB      凸体 B 的世界空间旋转矩阵
+         * @param epsilon   容差
+         * @param maxIterations 最大迭代次数
          */
         ExpandingPolytopeAlgorithm(const GJKResult<Dimension>& gjkResult,
-                                   PhysicalEntity* entityA,
-                                   PhysicalEntity* entityB);
+                                   SupportCallback supportA,
+                                   SupportCallback supportB,
+                                   const vector_type& posA, const matrix_type& rotA,
+                                   const vector_type& posB, const matrix_type& rotB,
+                                   double epsilon = 1e-10,
+                                   int maxIterations = 100);
 
         /**
          * @brief 运行 EPA 迭代，提取碰撞信息
@@ -140,10 +157,25 @@ namespace egret
         /// @brief 与 m_vertices 各列对应的凸体 B 支撑点
         std::vector<vector_type> m_supportB{};
 
-        // ──── 实体引用 ────
+        // ──── 支撑函数回调 ────
 
-        PhysicalEntity* m_entityA{nullptr};
-        PhysicalEntity* m_entityB{nullptr};
+        /// @brief 凸体 A 的支撑函数回调
+        SupportCallback m_supportAFunc;
+
+        /// @brief 凸体 B 的支撑函数回调
+        SupportCallback m_supportBFunc;
+
+        /// @brief 凸体 A 的世界空间位置
+        vector_type m_positionA{vector_type::Zero()};
+
+        /// @brief 凸体 B 的世界空间位置
+        vector_type m_positionB{vector_type::Zero()};
+
+        /// @brief 凸体 A 的世界空间旋转矩阵
+        matrix_type m_rotationA{matrix_type::Identity()};
+
+        /// @brief 凸体 B 的世界空间旋转矩阵
+        matrix_type m_rotationB{matrix_type::Identity()};
 
         // ──── 私有方法 ────
 
@@ -205,10 +237,19 @@ namespace egret
     template<unsigned int Dimension> requires ValidDimension<Dimension>
     ExpandingPolytopeAlgorithm<Dimension>::ExpandingPolytopeAlgorithm(
         const GJKResult<Dimension>& gjkResult,
-        PhysicalEntity* entityA,
-        PhysicalEntity* entityB)
-        : m_entityA(entityA)
-        , m_entityB(entityB)
+        SupportCallback supportA,
+        SupportCallback supportB,
+        const vector_type& posA, const matrix_type& rotA,
+        const vector_type& posB, const matrix_type& rotB,
+        double epsilon, int maxIterations)
+        : m_supportAFunc(std::move(supportA))
+        , m_supportBFunc(std::move(supportB))
+        , m_positionA(posA)
+        , m_rotationA(rotA)
+        , m_positionB(posB)
+        , m_rotationB(rotB)
+        , m_epsilon(epsilon)
+        , m_maxIterations(maxIterations)
     {
         initializeFromGJK(gjkResult);
     }
@@ -245,20 +286,18 @@ namespace egret
                 }
             }
 
-            if (dir.squaredNorm() > kEpsilon * kEpsilon) {
+            if (dir.squaredNorm() > m_epsilon * m_epsilon) {
                 dir.normalize();
-                const Transform& transA = m_entityA->getTransformCR();
-                const Transform& transB = m_entityB->getTransformCR();
 
-                const auto sA = m_entityA->getShape()->support(dir, transA);
-                const auto sB = m_entityB->getShape()->support(-dir, transB);
+                const auto sA = m_supportAFunc(dir, m_positionA, m_rotationA);
+                const auto sB = m_supportBFunc(-dir, m_positionB, m_rotationB);
                 const vector_type sP = sA - sB;
 
                 expandPolytope(sP, sA, sB);
             }
         }
 
-        for (int iter = 0; iter < kMaxIterations; ++iter) {
+        for (int iter = 0; iter < m_maxIterations; ++iter) {
             // 步骤 1：寻找最近面
             if (m_faces.empty()) {
                 break;
@@ -278,16 +317,13 @@ namespace egret
             const double dMin = closestFace.distance;
 
             // 步骤 2：沿法向量方向获取新支撑点
-            const Transform& transA = m_entityA->getTransformCR();
-            const Transform& transB = m_entityB->getTransformCR();
-
-            const auto supportA = m_entityA->getShape()->support(n, transA);
-            const auto supportB = m_entityB->getShape()->support(-n, transB);
+            const auto supportA = m_supportAFunc(n, m_positionA, m_rotationA);
+            const auto supportB = m_supportBFunc(-n, m_positionB, m_rotationB);
             const vector_type supportP = supportA - supportB;
 
             // 步骤 3：终止条件检查  p · n - d_min ≤ ε
             const double projection = supportP.dot(n);
-            if (projection - dMin <= kEpsilon) {
+            if (projection - dMin <= m_epsilon) {
                 // 收敛：提取结果
                 return extractResult(closestFace);
             }
@@ -394,7 +430,7 @@ namespace egret
         vector_type ni = ViT.completeOrthogonalDecomposition().solve(ones);
 
         const double niNorm = ni.norm();
-        if (niNorm < kEpsilon) {
+        if (niNorm < m_epsilon) {
             face.normal = vector_type::Zero();
             face.distance = 0.0;
             return;
@@ -422,7 +458,7 @@ namespace egret
         const Face& face, const vector_type& point) const
     {
         // 点在面的外侧 ⇔ n · p > d + ε
-        return face.normal.dot(point) > face.distance + kEpsilon;
+        return face.normal.dot(point) > face.distance + m_epsilon;
     }
 
     // 多面体扩展
@@ -505,7 +541,7 @@ namespace egret
             computeFaceNormal(newFace);
 
             // 仅当法向量有效时添加
-            if (newFace.normal.squaredNorm() > kEpsilon * kEpsilon) {
+            if (newFace.normal.squaredNorm() > m_epsilon * m_epsilon) {
                 m_faces.push_back(std::move(newFace));
             }
         }
@@ -571,7 +607,7 @@ namespace egret
                 lambda(j) = std::max(0.0, std::min(1.0, lambda(j)));
             }
             const double sum = lambda.sum();
-            if (sum > kEpsilon) {
+            if (sum > m_epsilon) {
                 lambda /= sum;
             } else {
                 lambda = Eigen::VectorXd::Constant(k, 1.0 / static_cast<double>(k));

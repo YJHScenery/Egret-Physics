@@ -12,8 +12,7 @@
 #include <Eigen/Dense>
 #include <set>
 #include <unordered_set>
-
-#include "physical_entity.h"
+#include <functional>
 
 namespace egret
 {
@@ -65,10 +64,36 @@ namespace egret
 
         using vertex_set_type = result_type::vertex_set_type;
 
+        /// @brief 支撑函数回调：给定世界空间方向、位置和旋转，返回世界空间支撑点
+        /// @param worldDir  世界空间中的方向向量
+        /// @param position  物体中心的世界空间位置
+        /// @param rotation  物体的世界空间旋转矩阵 R ∈ SO(n)
+        /// @return 世界空间中的支撑点
+        using SupportCallback = std::function<vector_type(
+            const vector_type& worldDir,
+            const vector_type& position,
+            const matrix_type& rotation
+        )>;
 
         GilbertJohnsonKeerthi() = default;
 
-        GilbertJohnsonKeerthi(PhysicalEntity* entityA, PhysicalEntity* entityB);
+        /**
+         * @brief 构造 GJK 算法实例
+         * @param supportA  凸体 A 的支撑函数回调
+         * @param supportB  凸体 B 的支撑函数回调
+         * @param posA      凸体 A 的世界空间位置
+         * @param rotA      凸体 A 的世界空间旋转矩阵
+         * @param posB      凸体 B 的世界空间位置
+         * @param rotB      凸体 B 的世界空间旋转矩阵
+         * @param epsilon   原点包含判定容差（默认 1e-10）
+         * @param maxIterations  最大迭代次数（默认 10^Dimension）
+         */
+        GilbertJohnsonKeerthi(SupportCallback supportA, SupportCallback supportB,
+                              const vector_type& posA, const matrix_type& rotA,
+                              const vector_type& posB, const matrix_type& rotB,
+                              double epsilon = 1e-10,
+                              int maxIterations = static_cast<int>(
+                                  quickPower<std::uint64_t, std::uint64_t, Dimension>(10)));
 
         void initialize();
 
@@ -76,12 +101,29 @@ namespace egret
 
     private:
         /// @brief GJK 收敛容差（原点包含判定的阈值）
-        static constexpr double kEpsilon = 1e-10;
+        double m_epsilon{1e-10};
 
         /// @brief 最大迭代次数，防止无限循环
-        static constexpr int kMaxIterations = quickPower<std::uint64_t, std::uint64_t, result_type::dimension>(10);
+        int m_maxIterations{static_cast<int>(
+            quickPower<std::uint64_t, std::uint64_t, Dimension>(10))};
 
-        std::pair<PhysicalEntity*, PhysicalEntity*> m_entities{nullptr, nullptr};
+        /// @brief 凸体 A 的支撑函数回调
+        SupportCallback m_supportAFunc;
+
+        /// @brief 凸体 B 的支撑函数回调
+        SupportCallback m_supportBFunc;
+
+        /// @brief 凸体 A 的世界空间位置
+        vector_type m_positionA{vector_type::Zero()};
+
+        /// @brief 凸体 B 的世界空间位置
+        vector_type m_positionB{vector_type::Zero()};
+
+        /// @brief 凸体 A 的世界空间旋转矩阵
+        matrix_type m_rotationA{matrix_type::Identity()};
+
+        /// @brief 凸体 B 的世界空间旋转矩阵
+        matrix_type m_rotationB{matrix_type::Identity()};
 
         /**
          * @brief 原点包含性判定子函数 C_o(σ, d)
@@ -141,29 +183,37 @@ namespace egret
 
 
     template<unsigned int Dimension> requires ValidDimension<Dimension>
-    GilbertJohnsonKeerthi<Dimension>::GilbertJohnsonKeerthi(PhysicalEntity* entityA, PhysicalEntity* entityB)
-        : m_entities({entityA, entityB})
+    GilbertJohnsonKeerthi<Dimension>::GilbertJohnsonKeerthi(
+        SupportCallback supportA, SupportCallback supportB,
+        const vector_type& posA, const matrix_type& rotA,
+        const vector_type& posB, const matrix_type& rotB,
+        double epsilon, int maxIterations)
+        : m_supportAFunc(std::move(supportA))
+        , m_supportBFunc(std::move(supportB))
+        , m_positionA(posA)
+        , m_rotationA(rotA)
+        , m_positionB(posB)
+        , m_rotationB(rotB)
+        , m_epsilon(epsilon)
+        , m_maxIterations(maxIterations)
     {
     }
 
     template<unsigned int Dimension> requires ValidDimension<Dimension>
     void GilbertJohnsonKeerthi<Dimension>::initialize()
     {
-        const Transform& transA = m_entities.first->getTransformCR();
-        const Transform& transB = m_entities.second->getTransformCR();
-
         // 1. 选定初始方向：center(B) - center(A)
-        m_currentDirection = transB.getTranslation() - transA.getTranslation();
+        m_currentDirection = m_positionB - m_positionA;
 
         // 若中心重合，使用默认方向 (0, 0, ..., 1)
-        if (m_currentDirection.squaredNorm() < kEpsilon * kEpsilon) {
+        if (m_currentDirection.squaredNorm() < m_epsilon * m_epsilon) {
             m_currentDirection = vector_type(vector_type::Zero());
             m_currentDirection(Dimension - 1) = 1.0;
         }
 
         // 2. 获取第一个闵可夫斯基差支撑点
-        const auto supportA = m_entities.first->getShape()->support(m_currentDirection, transA);
-        const auto supportB = m_entities.second->getShape()->support(-m_currentDirection, transB);
+        const auto supportA = m_supportAFunc(m_currentDirection, m_positionA, m_rotationA);
+        const auto supportB = m_supportBFunc(-m_currentDirection, m_positionB, m_rotationB);
 
         supportVerticesPair.first.insert(supportA);
         supportVerticesPair.second.insert(supportB);
@@ -184,13 +234,10 @@ namespace egret
     {
         result_type gjkResult;
 
-        for (std::uint64_t iter = 0; iter < kMaxIterations; ++iter) {
-            const Transform& transA = m_entities.first->getTransformCR();
-            const Transform& transB = m_entities.second->getTransformCR();
-
+        for (std::uint64_t iter = 0; iter < static_cast<std::uint64_t>(m_maxIterations); ++iter) {
             // 1. 获取新支撑点
-            const auto supportA = m_entities.first->getShape()->support(m_currentDirection, transA);
-            const auto supportB = m_entities.second->getShape()->support(-m_currentDirection, transB);
+            const auto supportA = m_supportAFunc(m_currentDirection, m_positionA, m_rotationA);
+            const auto supportB = m_supportBFunc(-m_currentDirection, m_positionB, m_rotationB);
             //
             // supportVerticesPair.first.insert(supportA);
             // supportVerticesPair.second.insert(supportB);
@@ -283,7 +330,7 @@ namespace egret
             // 提取重心坐标 λ，检查是否全部为正
             bool allPositive = true;
             for (int j = 0; j <= m; ++j) {
-                if (x(j) <= -kEpsilon) {
+                if (x(j) <= -m_epsilon) {
                     allPositive = false;
                     break;
                 }
@@ -323,7 +370,7 @@ namespace egret
         const double bestDistance = computeOptimalSubset();
 
         // 原点包含判定：||p*|| < ε
-        if (bestDistance < kEpsilon) {
+        if (bestDistance < m_epsilon) {
             // 碰撞：保留完整单纯形供 EPA 使用，不裁剪
             return true;
         }

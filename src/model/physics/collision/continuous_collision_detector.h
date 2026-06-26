@@ -23,8 +23,10 @@
 #define EGRET_PHYSICS_CONTINUOUS_COLLISION_DETECTOR_H
 
 #include "dimension_concept.h"
-#include "../../motion/generalization_rigid_motion.h"
-#include "../../motion/motion_utils.h"
+#include "motion/generalization_rigid_motion.h"
+#include "motion/motion_utils.h"
+#include "gilbert_johnson_keerthi.h"
+#include "expanding_polytope_algorithm.h"
 #include <Eigen/Dense>
 #include <functional>
 #include <limits>
@@ -292,41 +294,6 @@ namespace egret
         internal_gjk_result_type computeGJKDistance(
             const vector_type& posA, const matrix_type& rotA,
             const vector_type& posB, const matrix_type& rotB) const;
-
-        /**
-         * @brief   GJK 原点包含性判定子函数 C_o(σ, d)
-         * @details 枚举单纯形所有非空子集，通过 Gram 矩阵求解重心坐标，
-         *          找到距离原点最近的子单纯形上的最近点。
-         *          若 ‖p*‖ < ε 则原点在单纯形内部。
-         *          否则更新搜索方向为 -p* 并裁剪单纯形。
-         *
-         * @param   simplex         当前单纯形矩阵（会被裁剪）
-         * @param   supportAHistory  对应的 A 支撑历史（会被裁剪）
-         * @param   supportBHistory  对应的 B 支撑历史（会被裁剪）
-         * @param   searchDir        搜索方向（会被更新为 -p*）
-         * @return  true 若原点在单纯形内部（碰撞），false 否则
-         */
-        bool containsOrigin(
-            dynamic_matrix_type& simplex,
-            std::vector<vector_type>& supportAHistory,
-            std::vector<vector_type>& supportBHistory,
-            vector_type& searchDir) const;
-
-        /**
-         * @brief   计算单纯形上距离原点最近的子单纯形
-         * @details 枚举子集、求解 Gram 矩阵、筛选有效重心坐标、选取最优解。
-         *
-         * @param   simplex  单纯形矩阵
-         * @param   outSubsetIndices  输出：最优子集的顶点索引
-         * @param   outBarycentric    输出：最优子集的重心坐标 λ
-         * @param   outClosestPoint   输出：最优子集上的最近点 p*
-         * @return  最近点到原点的距离 ‖p*‖
-         */
-        double computeOptimalSubset(
-            const dynamic_matrix_type& simplex,
-            std::vector<int>& outSubsetIndices,
-            Eigen::VectorXd& outBarycentric,
-            vector_type& outClosestPoint) const;
 
         // ── 内部 EPA 碰撞信息提取 ──
 
@@ -652,641 +619,68 @@ namespace egret
         return {position, rotation};
     }
 
-    // ── 内部 GJK 距离查询 ──
+    // ── 内部 GJK 距离查询（委托独立 GilbertJohnsonKeerthi） ──
 
     template <unsigned int Dimension> requires ValidDimension<Dimension>
     auto ContinuousCollisionDetector<Dimension>::computeGJKDistance(
         const vector_type& posA, const matrix_type& rotA,
         const vector_type& posB, const matrix_type& rotB) const -> internal_gjk_result_type
     {
-        internal_gjk_result_type result;
+        // 构造独立 GJK 实例，复用支撑函数回调
+        GilbertJohnsonKeerthi<Dimension> gjk(m_supportA, m_supportB, posA, rotA, posB, rotB,
+            kEpsilonGJK, kMaxGJKIterations);
+        gjk.initialize();
+        const GJKResult<Dimension> gjkResult = gjk.run();
 
-        // ── 闵可夫斯基差支撑函数 ──
-        auto minkowskiSupport = [&](const vector_type& dir) -> vector_type
-        {
-            const vector_type sA = m_supportA(dir, posA, rotA);
-            const vector_type sB = m_supportB(-dir, posB, rotB);
-            return sA - sB;
-        };
+        // 将 GJKResult 映射到 internal_gjk_result_type
+        internal_gjk_result_type result{};
+        result.isCollided = gjkResult.isCollided;
+        result.simplex = gjkResult.simplex;
+        result.supportAHistory = gjkResult.supportAHistory;
+        result.supportBHistory = gjkResult.supportBHistory;
 
-        // ── 初始化 ──
-        // 初始方向：center(B) - center(A)
-        vector_type dir = posB - posA;
-        if (dir.squaredNorm() < kEpsilonGJK * kEpsilonGJK) {
-            dir = vector_type::Zero();
-            dir(Dimension - 1) = 1.0;
+        if (!gjkResult.isCollided) {
+            result.distance = gjkResult.distance;
+            result.closestPair = gjkResult.minimumVerticesPair;
+            result.closestPointMinkowski = gjkResult.minimumVerticesPair.first
+                                         - gjkResult.minimumVerticesPair.second;
         }
-
-        // 第一个支撑点
-        const vector_type p0 = minkowskiSupport(dir);
-        dynamic_matrix_type simplex(Dimension, 1);
-        simplex.col(0) = p0;
-
-        std::vector<vector_type> supportAHistory{};
-        std::vector<vector_type> supportBHistory{};
-        supportAHistory.push_back(m_supportA(dir, posA, rotA));
-        supportBHistory.push_back(m_supportB(-dir, posB, rotB));
-
-        // 更新搜索方向
-        dir = -p0;
-
-        // ── 主迭代循环 ──
-        for (int iter = 0; iter < kMaxGJKIterations; ++iter) {
-            // 获取新支撑点
-            const vector_type p = minkowskiSupport(dir);
-            supportAHistory.push_back(m_supportA(dir, posA, rotA));
-            supportBHistory.push_back(m_supportB(-dir, posB, rotB));
-
-            // 检查是否越过原点
-            if (p.dot(dir) < 0.0) {
-                // 原点不在差集内部 → 未碰撞
-                result.isCollided = false;
-
-                // 计算分离距离与最近点对
-                std::vector<int> subsetIndices{};
-                Eigen::VectorXd barycentric{};
-                vector_type closestPoint{};
-                const double distance = computeOptimalSubset(
-                    simplex, subsetIndices, barycentric, closestPoint);
-
-                result.distance = distance;
-                result.closestPointMinkowski = closestPoint;
-
-                // 计算原始物体最近点对
-                vector_type a0 = vector_type::Zero();
-                vector_type b0 = vector_type::Zero();
-                for (Eigen::Index j = 0; j < static_cast<Eigen::Index>(subsetIndices.size()); ++j) {
-                    const int idx = subsetIndices[static_cast<size_t>(j)];
-                    if (idx < static_cast<int>(supportAHistory.size())) {
-                        a0 += barycentric(j) * supportAHistory[static_cast<size_t>(idx)];
-                        b0 += barycentric(j) * supportBHistory[static_cast<size_t>(idx)];
-                    }
-                }
-                result.closestPair = {a0, b0};
-
-                // 填充单纯形和支撑历史
-                result.simplex = simplex;
-                result.supportAHistory = supportAHistory;
-                result.supportBHistory = supportBHistory;
-
-                return result;
-            }
-
-            // 将新支撑点加入单纯形
-            simplex.conservativeResize(Eigen::NoChange, simplex.cols() + 1);
-            simplex.col(simplex.cols() - 1) = p;
-
-            // 检查是否包含原点
-            if (containsOrigin(simplex, supportAHistory, supportBHistory, dir)) {
-                // 碰撞！
-                result.isCollided = true;
-                result.simplex = simplex;
-                result.supportAHistory = supportAHistory;
-                result.supportBHistory = supportBHistory;
-                return result;
-            }
-            // containsOrigin 已更新 dir 并裁剪 simplex
-        }
-
-        // 迭代次数耗尽：视为未碰撞，使用最后一个单纯形计算距离
-        result.isCollided = false;
-
-        std::vector<int> subsetIndices{};
-        Eigen::VectorXd barycentric{};
-        vector_type closestPoint{};
-        const double distance = computeOptimalSubset(
-            simplex, subsetIndices, barycentric, closestPoint);
-
-        result.distance = distance;
-        result.closestPointMinkowski = closestPoint;
-
-        vector_type a0 = vector_type::Zero();
-        vector_type b0 = vector_type::Zero();
-        for (Eigen::Index j = 0; j < static_cast<Eigen::Index>(subsetIndices.size()); ++j) {
-            const int idx = subsetIndices[static_cast<size_t>(j)];
-            if (idx < static_cast<int>(supportAHistory.size())) {
-                a0 += barycentric(j) * supportAHistory[static_cast<size_t>(idx)];
-                b0 += barycentric(j) * supportBHistory[static_cast<size_t>(idx)];
-            }
-        }
-        result.closestPair = {a0, b0};
-        result.simplex = simplex;
-        result.supportAHistory = supportAHistory;
-        result.supportBHistory = supportBHistory;
 
         return result;
     }
 
-    // ── GJK 原点包含性判定 ──
-
-    template <unsigned int Dimension> requires ValidDimension<Dimension>
-    bool ContinuousCollisionDetector<Dimension>::containsOrigin(
-        dynamic_matrix_type& simplex,
-        std::vector<vector_type>& supportAHistory,
-        std::vector<vector_type>& supportBHistory,
-        vector_type& searchDir) const
-    {
-        std::vector<int> subsetIndices{};
-        Eigen::VectorXd barycentric{};
-        vector_type closestPoint{};
-
-        const double distance = computeOptimalSubset(
-            simplex, subsetIndices, barycentric, closestPoint);
-
-        // 原点包含判定
-        if (distance < kEpsilonGJK) {
-            return true;
-        }
-
-        // 未碰撞：更新搜索方向
-        searchDir = -closestPoint;
-
-        // 裁剪单纯形，仅保留最优子集的顶点
-        const auto newCols = static_cast<Eigen::Index>(subsetIndices.size());
-        dynamic_matrix_type newSimplex(Dimension, newCols);
-        std::vector<vector_type> newSupportA{};
-        std::vector<vector_type> newSupportB{};
-        newSupportA.reserve(subsetIndices.size());
-        newSupportB.reserve(subsetIndices.size());
-
-        for (size_t j = 0; j < subsetIndices.size(); ++j) {
-            const int idx = subsetIndices[j];
-            newSimplex.col(static_cast<Eigen::Index>(j)) = simplex.col(idx);
-            if (idx < static_cast<int>(supportAHistory.size())) {
-                newSupportA.push_back(supportAHistory[static_cast<size_t>(idx)]);
-                newSupportB.push_back(supportBHistory[static_cast<size_t>(idx)]);
-            }
-        }
-
-        simplex = std::move(newSimplex);
-        supportAHistory = std::move(newSupportA);
-        supportBHistory = std::move(newSupportB);
-
-        return false;
-    }
-
-    // ── GJK 最优子集计算 ──
-
-    template <unsigned int Dimension> requires ValidDimension<Dimension>
-    double ContinuousCollisionDetector<Dimension>::computeOptimalSubset(
-        const dynamic_matrix_type& simplex,
-        std::vector<int>& outSubsetIndices,
-        Eigen::VectorXd& outBarycentric,
-        vector_type& outClosestPoint) const
-    {
-        const Eigen::Index N = simplex.cols();
-
-        double bestDistance{std::numeric_limits<double>::max()};
-        std::vector<int> bestSubset{};
-        Eigen::VectorXd bestLambda{};
-        vector_type bestClosestPoint = vector_type::Zero();
-
-        // 枚举所有非空子集（位掩码）
-        const int totalSubsets = 1 << static_cast<int>(N);
-        for (int mask = 1; mask < totalSubsets; ++mask) {
-            // 提取子集索引
-            std::vector<int> subset{};
-            subset.reserve(static_cast<size_t>(N));
-            for (int i = 0; i < static_cast<int>(N); ++i) {
-                if (mask & (1 << i)) {
-                    subset.push_back(i);
-                }
-            }
-
-            const int m = static_cast<int>(subset.size()) - 1;
-            const int gramSize = m + 2;
-
-            // 构造 Gram 矩阵
-            Eigen::MatrixXd gramMatrix = Eigen::MatrixXd::Zero(gramSize, gramSize);
-            for (int r = 0; r <= m; ++r) {
-                const int ir = subset[r];
-                for (int c = 0; c <= m; ++c) {
-                    const int ic = subset[c];
-                    gramMatrix(r, c) = simplex.col(ir).dot(simplex.col(ic));
-                }
-                gramMatrix(r, m + 1) = 1.0;
-                gramMatrix(m + 1, r) = 1.0;
-            }
-            gramMatrix(m + 1, m + 1) = 0.0;
-
-            // 右端向量 b = [0, ..., 0, 1]ᵀ
-            Eigen::VectorXd b = Eigen::VectorXd::Zero(gramSize);
-            b(m + 1) = 1.0;
-
-            // 求解 G · [λ, μ]ᵀ = b
-            Eigen::FullPivLU<Eigen::MatrixXd> lu(gramMatrix);
-            if (!lu.isInvertible()) {
-                continue;
-            }
-
-            Eigen::VectorXd x = lu.solve(b);
-
-            // 检查重心坐标是否全为正
-            bool allPositive{true};
-            for (int j = 0; j <= m; ++j) {
-                if (x(j) <= -kEpsilonGJK) {
-                    allPositive = false;
-                    break;
-                }
-            }
-
-            if (!allPositive) {
-                continue;
-            }
-
-            // 计算最近点 p* = Σ λ_j v_{i_j}
-            vector_type pStar = vector_type::Zero();
-            for (int j = 0; j <= m; ++j) {
-                pStar += x(j) * simplex.col(subset[j]);
-            }
-
-            const double dist = pStar.norm();
-
-            if (dist < bestDistance) {
-                bestDistance = dist;
-                bestSubset = std::move(subset);
-                bestLambda = x.head(m + 1);
-                bestClosestPoint = pStar;
-            }
-        }
-
-        // 输出最优子集信息
-        outSubsetIndices = std::move(bestSubset);
-        outBarycentric = std::move(bestLambda);
-        outClosestPoint = bestClosestPoint;
-
-        return bestDistance;
-    }
-
     // ── 内部 EPA 碰撞信息提取 ──
-
     template <unsigned int Dimension> requires ValidDimension<Dimension>
     auto ContinuousCollisionDetector<Dimension>::computeEPA(
         const internal_gjk_result_type& gjkResult,
         const vector_type& posA, const matrix_type& rotA,
         const vector_type& posB, const matrix_type& rotB) const -> result_type
     {
-        result_type epaResult{};
+        // 将 InternalGJKResult 转换为 GJKResult 供独立 EPA 使用
+        GJKResult<Dimension> gjkRes{};
+        gjkRes.isCollided = true;
+        gjkRes.simplex = gjkResult.simplex;
+        gjkRes.supportAHistory = gjkResult.supportAHistory;
+        gjkRes.supportBHistory = gjkResult.supportBHistory;
 
-        // ── 闵可夫斯基差支撑函数 ──
-        auto minkowskiSupport = [&](const vector_type& dir) -> vector_type
-        {
-            const vector_type sA = m_supportA(dir, posA, rotA);
-            const vector_type sB = m_supportB(-dir, posB, rotB);
-            return sA - sB;
-        };
+        // 构造独立 EPA 实例，复用支撑函数回调
+        ExpandingPolytopeAlgorithm<Dimension> epa(
+            gjkRes,
+            m_supportA, m_supportB,
+            posA, rotA, posB, rotB,
+            kEpsilonEPA, kMaxEPAIterations);
 
-        // ── EPA 面的数据结构 ──
-        struct EPAFace
-        {
-            std::vector<int> vertexIndices{};
-            vector_type normal{vector_type::Zero()};
-            double distance{0.0};
-        };
 
-        // ── 初始化多面体 ──
-        dynamic_matrix_type vertices = gjkResult.simplex;
-        std::vector<vector_type> supportAHist = gjkResult.supportAHistory;
-        std::vector<vector_type> supportBHist = gjkResult.supportBHistory;
+        const EPAResult<Dimension> epaRes = epa.run();
 
-        const Eigen::Index initCols = vertices.cols();
+        // 将 EPAResult 映射到 CCDResult
+        result_type ccdResult{};
+        ccdResult.normal = epaRes.normal;
+        ccdResult.penetrationDepth = epaRes.penetrationDepth;
+        ccdResult.contactPoint = epaRes.contactPoint;
+        ccdResult.closestPair = epaRes.closestPair;
 
-        // 若初始顶点数不足 Dimension + 1，先扩展一次
-        if (initCols < static_cast<Eigen::Index>(Dimension + 1)) {
-            vector_type extDir{};
-
-            if (initCols == 1) {
-                extDir = vector_type::Zero();
-                extDir(0) = 1.0;
-            }
-            else {
-                // 构建偏移矩阵
-                Eigen::Matrix<double, Dimension, Eigen::Dynamic> centered(
-                    Dimension, initCols - 1);
-                for (Eigen::Index j = 1; j < initCols; ++j) {
-                    centered.col(j - 1) = vertices.col(j) - vertices.col(0);
-                }
-                Eigen::FullPivHouseholderQR<
-                    Eigen::Matrix<double, Dimension, Eigen::Dynamic>
-                > qr(centered);
-                const Eigen::Index rank = qr.rank();
-                if (rank < static_cast<Eigen::Index>(Dimension)) {
-                    extDir = qr.matrixQ().col(rank);
-                }
-                else {
-                    extDir = vector_type::Zero();
-                    extDir(Dimension - 1) = 1.0;
-                }
-            }
-
-            if (extDir.squaredNorm() > kEpsilonEPA * kEpsilonEPA) {
-                extDir.normalize();
-                const vector_type sP = minkowskiSupport(extDir);
-                vertices.conservativeResize(Eigen::NoChange, vertices.cols() + 1);
-                vertices.col(vertices.cols() - 1) = sP;
-                supportAHist.push_back(m_supportA(extDir, posA, rotA));
-                supportBHist.push_back(m_supportB(-extDir, posB, rotB));
-            }
-        }
-
-        // ── 面计算辅助函数 ──
-        auto computeFaceNormal = [&](EPAFace& face)
-        {
-            const int k = static_cast<int>(face.vertexIndices.size());
-            if (k < 1) {
-                face.normal = vector_type::Zero();
-                face.distance = 0.0;
-                return;
-            }
-
-            // 构建 V_i 矩阵
-            Eigen::Matrix<double, Dimension, Eigen::Dynamic> Vi(Dimension, k);
-            for (int c = 0; c < k; ++c) {
-                Vi.col(c) = vertices.col(face.vertexIndices[c]);
-            }
-
-            const Eigen::VectorXd ones = Eigen::VectorXd::Ones(k);
-            const Eigen::MatrixXd ViT = Vi.transpose();
-            vector_type ni = ViT.completeOrthogonalDecomposition().solve(ones);
-
-            const double niNorm = ni.norm();
-            if (niNorm < kEpsilonEPA) {
-                face.normal = vector_type::Zero();
-                face.distance = 0.0;
-                return;
-            }
-
-            face.normal = ni / niNorm;
-            face.distance = 1.0 / niNorm;
-
-            // 确保法向量指向多面体外部
-            const vector_type v0 = vertices.col(face.vertexIndices[0]);
-            if (face.normal.dot(v0) < 0.0) {
-                face.normal = -face.normal;
-            }
-        };
-
-        auto rebuildFaces = [&]() -> std::vector<EPAFace>
-        {
-            std::vector<EPAFace> faces{};
-            const Eigen::Index nCols = vertices.cols();
-
-            if (nCols < 2) {
-                return faces;
-            }
-
-            for (Eigen::Index i = 0; i < nCols; ++i) {
-                EPAFace face{};
-                face.vertexIndices.reserve(static_cast<size_t>(nCols - 1));
-                for (Eigen::Index j = 0; j < nCols; ++j) {
-                    if (j != i) {
-                        face.vertexIndices.push_back(static_cast<int>(j));
-                    }
-                }
-                computeFaceNormal(face);
-                if (face.normal.squaredNorm() > kEpsilonEPA * kEpsilonEPA) {
-                    faces.push_back(std::move(face));
-                }
-            }
-            return faces;
-        };
-
-        // 初始化面列表
-        std::vector<EPAFace> faces = rebuildFaces();
-
-        // ── EPA 主迭代 ──
-        for (int iter = 0; iter < kMaxEPAIterations; ++iter) {
-            if (faces.empty()) {
-                break;
-            }
-
-            // 步骤 1：寻找最近面
-            int closestIdx{0};
-            double minDist = faces[0].distance;
-            for (size_t i = 1; i < faces.size(); ++i) {
-                if (faces[i].distance < minDist) {
-                    minDist = faces[i].distance;
-                    closestIdx = static_cast<int>(i);
-                }
-            }
-
-            const EPAFace& closestFace = faces[closestIdx];
-            const vector_type n = closestFace.normal;
-            const double dMin = closestFace.distance;
-
-            // 步骤 2：沿法向量方向获取新支撑点
-            const vector_type supportP = minkowskiSupport(n);
-
-            // 步骤 3：终止条件检查
-            const double projection = supportP.dot(n);
-            if (projection - dMin <= kEpsilonEPA) {
-                // 收敛：提取结果
-                const vector_type pStar = dMin * n;
-
-                // 计算 p* 在最近面上的重心坐标
-                const int k = static_cast<int>(closestFace.vertexIndices.size());
-                std::vector<vector_type> faceVerts(static_cast<size_t>(k));
-                std::vector<vector_type> faceSA(static_cast<size_t>(k));
-                std::vector<vector_type> faceSB(static_cast<size_t>(k));
-
-                for (int j = 0; j < k; ++j) {
-                    const int idx = closestFace.vertexIndices[j];
-                    faceVerts[j] = vertices.col(idx);
-                    faceSA[j] = (idx < static_cast<int>(supportAHist.size()))
-                                    ? supportAHist[static_cast<size_t>(idx)]
-                                    : vector_type::Zero();
-                    faceSB[j] = (idx < static_cast<int>(supportBHist.size()))
-                                    ? supportBHist[static_cast<size_t>(idx)]
-                                    : vector_type::Zero();
-                }
-
-                Eigen::VectorXd lambda(k);
-                if (k >= 2) {
-                    Eigen::Matrix<double, Dimension, Eigen::Dynamic> D(Dimension, k - 1);
-                    for (int j = 1; j < k; ++j) {
-                        D.col(j - 1) = faceVerts[j] - faceVerts[0];
-                    }
-                    const vector_type q = pStar - faceVerts[0];
-
-                    Eigen::VectorXd lambdaPrime = D.completeOrthogonalDecomposition().solve(q);
-                    lambda(0) = 1.0 - lambdaPrime.sum();
-                    for (int j = 1; j < k; ++j) {
-                        lambda(j) = lambdaPrime(j - 1);
-                    }
-
-                    for (int j = 0; j < k; ++j) {
-                        lambda(j) = std::max(0.0, std::min(1.0, lambda(j)));
-                    }
-                    const double sum = lambda.sum();
-                    if (sum > kEpsilonEPA) {
-                        lambda /= sum;
-                    }
-                    else {
-                        lambda = Eigen::VectorXd::Constant(k, 1.0 / static_cast<double>(k));
-                    }
-                }
-                else {
-                    lambda = Eigen::VectorXd::Constant(k, 1.0 / static_cast<double>(k));
-                }
-
-                // 计算原始物体上的最近点
-                vector_type aStar = vector_type::Zero();
-                vector_type bStar = vector_type::Zero();
-                for (int j = 0; j < k; ++j) {
-                    aStar += lambda(j) * faceSA[j];
-                    bStar += lambda(j) * faceSB[j];
-                }
-
-                epaResult.normal = n;
-                epaResult.penetrationDepth = dMin;
-                epaResult.contactPoint = (aStar + bStar) * 0.5;
-                epaResult.closestPair = {aStar, bStar};
-                return epaResult;
-            }
-
-            // 步骤 4：扩展多面体
-            const int newVertexIdx = static_cast<int>(vertices.cols());
-            vertices.conservativeResize(Eigen::NoChange, vertices.cols() + 1);
-            vertices.col(newVertexIdx) = supportP;
-            supportAHist.push_back(m_supportA(n, posA, rotA));
-            supportBHist.push_back(m_supportB(-n, posB, rotB));
-
-            // 识别可见面
-            std::vector<int> visibleFaceIndices{};
-            visibleFaceIndices.reserve(faces.size());
-            for (size_t i = 0; i < faces.size(); ++i) {
-                if (faces[i].normal.dot(supportP) > faces[i].distance + kEpsilonEPA) {
-                    visibleFaceIndices.push_back(static_cast<int>(i));
-                }
-            }
-
-            if (visibleFaceIndices.empty()) {
-                // 新顶点在多面体内部，回退
-                vertices.conservativeResize(Eigen::NoChange, vertices.cols() - 1);
-                supportAHist.pop_back();
-                supportBHist.pop_back();
-
-                // 使用当前最近面提取结果
-                const vector_type pStar = dMin * n;
-                const int k = static_cast<int>(closestFace.vertexIndices.size());
-                std::vector<vector_type> faceSA(static_cast<size_t>(k));
-                std::vector<vector_type> faceSB(static_cast<size_t>(k));
-
-                for (int j = 0; j < k; ++j) {
-                    const int idx = closestFace.vertexIndices[j];
-                    faceSA[j] = (idx < static_cast<int>(supportAHist.size()))
-                                    ? supportAHist[static_cast<size_t>(idx)]
-                                    : vector_type::Zero();
-                    faceSB[j] = (idx < static_cast<int>(supportBHist.size()))
-                                    ? supportBHist[static_cast<size_t>(idx)]
-                                    : vector_type::Zero();
-                }
-
-                // 简化：取面上顶点的平均
-                vector_type aStar = vector_type::Zero();
-                vector_type bStar = vector_type::Zero();
-                for (int j = 0; j < k; ++j) {
-                    aStar += faceSA[j];
-                    bStar += faceSB[j];
-                }
-                aStar /= static_cast<double>(k);
-                bStar /= static_cast<double>(k);
-
-                epaResult.normal = n;
-                epaResult.penetrationDepth = dMin;
-                epaResult.contactPoint = (aStar + bStar) * 0.5;
-                epaResult.closestPair = {aStar, bStar};
-                return epaResult;
-            }
-
-            // 收集边界脊
-            struct VectorHash
-            {
-                size_t operator()(const std::vector<int>& v) const
-                {
-                    size_t h{0};
-                    for (int x : v) {
-                        h ^= std::hash<int>{}(x) + 0x9e3779b9 + (h << 6) + (h >> 2);
-                    }
-                    return h;
-                }
-            };
-
-            std::unordered_set<std::vector<int>, VectorHash> boundaryRidges{};
-            for (int fi : visibleFaceIndices) {
-                const EPAFace& face = faces[fi];
-                const int nv = static_cast<int>(face.vertexIndices.size());
-                for (int omit = 0; omit < nv; ++omit) {
-                    std::vector<int> ridge{};
-                    ridge.reserve(static_cast<size_t>(nv - 1));
-                    for (int j = 0; j < nv; ++j) {
-                        if (j != omit) {
-                            ridge.push_back(face.vertexIndices[j]);
-                        }
-                    }
-                    std::ranges::sort(ridge);
-                    if (boundaryRidges.contains(ridge)) {
-                        boundaryRidges.erase(ridge);
-                    }
-                    else {
-                        boundaryRidges.insert(std::move(ridge));
-                    }
-                }
-            }
-
-            // 移除可见面
-            std::ranges::sort(visibleFaceIndices, std::greater());
-            for (int fi : visibleFaceIndices) {
-                faces.erase(faces.begin() + fi);
-            }
-
-            // 用边界脊 + 新顶点构建新面
-            for (const auto& ridge : boundaryRidges) {
-                EPAFace newFace{};
-                newFace.vertexIndices = ridge;
-                newFace.vertexIndices.push_back(newVertexIdx);
-                computeFaceNormal(newFace);
-                if (newFace.normal.squaredNorm() > kEpsilonEPA * kEpsilonEPA) {
-                    faces.push_back(std::move(newFace));
-                }
-            }
-        }
-
-        // 迭代耗尽：使用当前最近面
-        if (!faces.empty()) {
-            int closestIdx{0};
-            double minDist = faces[0].distance;
-            for (size_t i = 1; i < faces.size(); ++i) {
-                if (faces[i].distance < minDist) {
-                    minDist = faces[i].distance;
-                    closestIdx = static_cast<int>(i);
-                }
-            }
-
-            const EPAFace& face = faces[closestIdx];
-            // 简化提取
-            const int k = static_cast<int>(face.vertexIndices.size());
-            vector_type aStar = vector_type::Zero();
-            vector_type bStar = vector_type::Zero();
-            for (int j = 0; j < k; ++j) {
-                const int idx = face.vertexIndices[j];
-                aStar += (idx < static_cast<int>(supportAHist.size()))
-                             ? supportAHist[static_cast<size_t>(idx)]
-                             : vector_type::Zero();
-                bStar += (idx < static_cast<int>(supportBHist.size()))
-                             ? supportBHist[static_cast<size_t>(idx)]
-                             : vector_type::Zero();
-            }
-            aStar /= static_cast<double>(k);
-            bStar /= static_cast<double>(k);
-
-            epaResult.normal = face.normal;
-            epaResult.penetrationDepth = minDist;
-            epaResult.contactPoint = (aStar + bStar) * 0.5;
-            epaResult.closestPair = {aStar, bStar};
-        }
-
-        return epaResult;
+        return ccdResult;
     }
 
     // ── 接触信息提取（近接触情形） ──
