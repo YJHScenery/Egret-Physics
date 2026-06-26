@@ -230,8 +230,8 @@ namespace egret
             MotionModel::Screw
         );
 
-        // 执行 CCD（启用 TOI 精化）
-        CCDResult<3> ccdResult = detector.run(dt, true);
+        // 执行 CCD（启用 TOI 精化，80 次迭代匹配旧版二分搜索精度）
+        CCDResult<3> ccdResult = detector.run(dt, true, 80);
 
         if (!ccdResult.isCollided) {
             return std::nullopt;

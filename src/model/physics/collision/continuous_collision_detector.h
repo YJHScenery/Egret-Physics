@@ -166,14 +166,14 @@ namespace egret
 
         // ── 编译期常量 ──
 
-        /// @brief GJK 原点包含判定容差
-        static constexpr double kEpsilonGJK = 1e-10;
+        /// @brief GJK 原点包含判定容差（与旧版 collide_judge 的 kGjkEpsilon 对齐）
+        static constexpr double kEpsilonGJK = 1e-8;
 
-        /// @brief EPA 收敛容差
-        static constexpr double kEpsilonEPA = 1e-10;
+        /// @brief EPA 收敛容差（与旧版 collide_judge 的 kEpaTolerance 对齐，1e-6）
+        static constexpr double kEpsilonEPA = 1e-6;
 
-        /// @brief 分离距离容差（低于此值视为接触）
-        static constexpr double kEpsilonDistance = 1e-8;
+        /// @brief 分离距离容差（低于此值视为接触，与旧版 EPA 容差对齐）
+        static constexpr double kEpsilonDistance = 1e-6;
 
         /// @brief 速度上界容差（低于此值视为无接近趋势）
         static constexpr double kEpsilonVelocity = 1e-12;
@@ -462,9 +462,37 @@ namespace egret
 
                 // TOI 精化
                 if (enableRefine && t > 0.0) {
+                    // 使用 EPA 最近点对计算接触法线方向的实际相对接近速度，
+                    // 替代全局速度上界 m_constVelocityBound。
+                    // 全局上界在擦边碰撞时会严重高估分离速度，导致 tLo 过近、
+                    // 二分区间两端都处于穿透状态，精化收敛到错误的 TOI。
+                    const auto [vA, omegaA] = getVelocity(m_motionA, t);
+                    const auto [vB, omegaB] = getVelocity(m_motionB, t);
+
+                    double approachSpeed = m_constVelocityBound; // 回退值
+
+                    if constexpr (Dimension == 3) {
+                        // 从反对称矩阵提取角速度向量
+                        const Eigen::Vector3d angVelA(omegaA(2, 1), omegaA(0, 2), omegaA(1, 0));
+                        const Eigen::Vector3d angVelB(omegaB(2, 1), omegaB(0, 2), omegaB(1, 0));
+
+                        const auto& [aStar, bStar] = epaResult.closestPair;
+                        const Eigen::Vector3d rA = aStar - posA;
+                        const Eigen::Vector3d rB = bStar - posB;
+
+                        const Eigen::Vector3d vContactA = vA + angVelA.cross(rA);
+                        const Eigen::Vector3d vContactB = vB + angVelB.cross(rB);
+
+                        // 正值 = 正在接近
+                        const double relApproach = -(vContactB - vContactA).dot(epaResult.normal);
+                        if (relApproach > kEpsilonVelocity) {
+                            approachSpeed = relApproach;
+                        }
+                    }
+
                     const double tLo = std::max(0.0, t - (epaResult.penetrationDepth > 0.0
                                                               ? epaResult.penetrationDepth / std::max(
-                                                                  m_constVelocityBound, kEpsilonVelocity)
+                                                                  approachSpeed, kEpsilonVelocity)
                                                               : kMinTimeStep));
                     return refineTOI(tLo, t, maxRefineIter);
                 }

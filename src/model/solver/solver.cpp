@@ -369,8 +369,11 @@ namespace egret
                 continue;
             }
 
+            constexpr double kEpsTime = 1e-10;
+
             const AdapterCcdResult& result = resultOpt.value();
-            if (result.timeOfImpact < 0.0 || result.timeOfImpact > dt) {
+            // 拒绝 TOI 过于接近 dt 的碰撞，与旧版 continuousCollideGeneric 行为一致
+            if (result.timeOfImpact < 0.0 || result.timeOfImpact > dt - kEpsTime) {
                 continue;
             }
 
@@ -428,8 +431,10 @@ namespace egret
                 continue;
             }
 
+            constexpr double kEpsTime = 1e-10;
+
             const AdapterCcdResult& result = resultOpt.value();
-            if (result.timeOfImpact < 0.0 || result.timeOfImpact > dt) {
+            if (result.timeOfImpact < 0.0 || result.timeOfImpact > dt - kEpsTime) {
                 continue;
             }
 
