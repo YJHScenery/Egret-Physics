@@ -164,7 +164,7 @@ namespace egret
                 }
             }
 
-            inertiaTensor += moment.transpose() * Eigen::Matrix3d::Identity() - moment;
+            inertiaTensor += moment.trace() * Eigen::Matrix3d::Identity() - moment;
         }
 
         return inertiaTensor;
