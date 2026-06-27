@@ -333,6 +333,13 @@ add_executable(${PROJECT_NAME}
         resources/app.rc
 )
 
+# CCD 适配器翻译单元包含全部 GJK/EPA/CCD 模板实例化，需 /bigobj
+set_source_files_properties(
+        src/model/solver/ccd_solver_adapter.cpp
+        PROPERTIES COMPILE_FLAGS "/bigobj"
+)
+
+
 set(COLLISION_MODULE_FILES
         src/model/physics/collision/collision.ixx
         src/model/physics/collision/gilbert_johnson_keerthi.ixx
@@ -350,12 +357,6 @@ target_sources(${PROJECT_NAME}
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /std:c++20 /experimental:module)
 endif()
-
-# CCD 适配器翻译单元包含全部 GJK/EPA/CCD 模板实例化，需 /bigobj
-set_source_files_properties(
-    src/model/physics/collision/ccd_solver_adapter.cpp
-    PROPERTIES COMPILE_FLAGS "/bigobj"
-)
 
 # QXlsx 静态库
 add_library(QXlsx::QXlsx STATIC IMPORTED)

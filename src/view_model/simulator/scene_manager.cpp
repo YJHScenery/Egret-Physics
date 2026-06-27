@@ -926,11 +926,16 @@ namespace egret
         //
         // mesh.indices = indices;
 
-        // auto mesh{makeTessellatedMesh("../tools/icosahedron.obj")};
-        // AABB ab = mesh.getAABB();
-        // LOG_DEBUG(std::format("AABB: ({}, {}, {}), ({}, {}, {})", ab.min.x(), ab.min.y(), ab.min.z(), ab.max.x(), ab.max.y(), ab.max.z()));
+        auto mesh{makeTessellatedMesh("../tools/icosahedron.obj")};
+        AABB ab = mesh.getAABB();
+        LOG_DEBUG(std::format("AABB: ({}, {}, {}), ({}, {}, {})", ab.min.x(), ab.min.y(), ab.min.z(), ab.max.x(), ab.max.y(), ab.max.z()));
+
+
+        auto shapeTest{std::make_unique<ShapeBox>(100, 100, 100)};
+
 
         // m_world->spawnBody("测试样例1", {-400, -400, 400}, {0, 0, 0}, std::move(std::make_unique<ConvexMesh>(std::move(mesh))), 1.0);
+        m_world->spawnBody("测试样例1", {-400, -400, 400}, {0, 0, 0}, std::move(std::move(shapeTest)), 1.0);
 
         std::uint64_t idBox2 = m_world->spawnBox("3", {0, 0, 0}, {0, 0, 0}, {10000, 10000, 130}, 0);
 

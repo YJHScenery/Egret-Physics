@@ -37,6 +37,7 @@ namespace egret
      */
     static Eigen::Matrix3d vectorToSkewSymmetric(const Eigen::Vector3d& omega)
     {
+        LOG_DEBUG(std::format("omega: ({}, {}, {})", omega.x(), omega.y(), omega.z()));
         Eigen::Matrix3d mat{};
         mat << 0.0, -omega.z(), omega.y(),
             omega.z(), 0.0, -omega.x(),

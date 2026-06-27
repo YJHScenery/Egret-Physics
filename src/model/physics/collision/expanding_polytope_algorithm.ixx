@@ -33,7 +33,7 @@ export namespace egret
      * @brief       EPA 算法结果结构体
      * @details     包含碰撞响应所需的全部几何信息：碰撞法线、穿透深度、接触点、最近点对。
      */
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     struct EPAResult
     {
         using vector_type = Eigen::Matrix<double, Dimension, 1>;
@@ -64,7 +64,7 @@ export namespace egret
      * @remark      该类假定输入 GJKResult 的 isCollided == true
      * @see         GilbertJohnsonKeerthi, GJKResult, EPAResult
      */
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     class ExpandingPolytopeAlgorithm
     {
     public:
@@ -209,7 +209,7 @@ export namespace egret
          * @return true 如果点在面的外侧（n · p > d + ε）
          */
         [[nodiscard]] bool isFaceVisibleFromPoint(const Face& face,
-                                                   const vector_type& point) const;
+                                                  const vector_type& point) const;
 
         /**
          * @brief 扩展多面体：将新顶点加入并重建凸包
@@ -231,7 +231,7 @@ export namespace egret
 
     // 构造 / 主入口
 
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     ExpandingPolytopeAlgorithm<Dimension>::ExpandingPolytopeAlgorithm(
         const GJKResult<Dimension>& gjkResult,
         SupportCallback supportA,
@@ -240,18 +240,18 @@ export namespace egret
         const vector_type& posB, const matrix_type& rotB,
         double epsilon, int maxIterations)
         : m_supportAFunc(std::move(supportA))
-        , m_supportBFunc(std::move(supportB))
-        , m_positionA(posA)
-        , m_rotationA(rotA)
-        , m_positionB(posB)
-        , m_rotationB(rotB)
-        , m_epsilon(epsilon)
-        , m_maxIterations(maxIterations)
+          , m_supportBFunc(std::move(supportB))
+          , m_positionA(posA)
+          , m_rotationA(rotA)
+          , m_positionB(posB)
+          , m_rotationB(rotB)
+          , m_epsilon(epsilon)
+          , m_maxIterations(maxIterations)
     {
         initializeFromGJK(gjkResult);
     }
 
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     EPAResult<Dimension> ExpandingPolytopeAlgorithm<Dimension>::run()
     {
         // 若初始单纯形顶点数不足 Dimension + 1（非满维），先执行一次扩展
@@ -263,7 +263,8 @@ export namespace egret
                 // 单点：取第一个标准基向量
                 dir = vector_type::Zero();
                 dir(0) = 1.0;
-            } else {
+            }
+            else {
                 // 构建偏移矩阵 D = [v_1 - v_0, ..., v_{cols-1} - v_0]
                 Eigen::Matrix<double, Dimension, Eigen::Dynamic> centered(Dimension, cols - 1);
                 for (Eigen::Index j = 1; j < cols; ++j) {
@@ -276,7 +277,8 @@ export namespace egret
                 const Eigen::Index rank = qr.rank();
                 if (rank < static_cast<Eigen::Index>(Dimension)) {
                     dir = qr.matrixQ().col(rank);
-                } else {
+                }
+                else {
                     // 已经满维（不应出现于此分支），使用备选方向
                     dir = vector_type::Zero();
                     dir(Dimension - 1) = 1.0;
@@ -346,7 +348,7 @@ export namespace egret
     }
 
     // 初始化
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     void ExpandingPolytopeAlgorithm<Dimension>::initializeFromGJK(const GJKResult<Dimension>& gjkResult)
     {
         const Eigen::Index N = gjkResult.simplex.cols();
@@ -377,7 +379,7 @@ export namespace egret
 
     // 面计算
 
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     void ExpandingPolytopeAlgorithm<Dimension>::computeFaces()
     {
         m_faces.clear();
@@ -402,10 +404,10 @@ export namespace egret
         }
     }
 
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     void ExpandingPolytopeAlgorithm<Dimension>::computeFaceNormal(Face& face) const
     {
-        const int k = static_cast<int>(face.vertexIndices.size());  // 面顶点数
+        const int k = static_cast<int>(face.vertexIndices.size()); // 面顶点数
 
         if (k < 1) {
             face.normal = vector_type::Zero();
@@ -423,7 +425,7 @@ export namespace egret
         const Eigen::VectorXd ones = Eigen::VectorXd::Ones(k);
 
         // 统一使用伪逆求解 V_i^T n_i = 1_k（处理满维与非满维情形）
-        const Eigen::MatrixXd ViT = Vi.transpose();  // k × Dimension
+        const Eigen::MatrixXd ViT = Vi.transpose(); // k × Dimension
         vector_type ni = ViT.completeOrthogonalDecomposition().solve(ones);
 
         const double niNorm = ni.norm();
@@ -450,7 +452,7 @@ export namespace egret
     }
 
     // 面可见性判定
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     bool ExpandingPolytopeAlgorithm<Dimension>::isFaceVisibleFromPoint(
         const Face& face, const vector_type& point) const
     {
@@ -459,7 +461,7 @@ export namespace egret
     }
 
     // 多面体扩展
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     void ExpandingPolytopeAlgorithm<Dimension>::expandPolytope(
         const vector_type& newVertex,
         const vector_type& supportA,
@@ -492,8 +494,10 @@ export namespace egret
 
         // 2. 收集边界脊（在可见面中恰好出现一次的 (Dimension-2)-单纯形）
         // 使用排序顶点索引向量的哈希集合来计数
-        struct VectorHash {
-            size_t operator()(const std::vector<int>& v) const {
+        struct VectorHash
+        {
+            size_t operator()(const std::vector<int>& v) const
+            {
                 size_t h = 0;
                 for (int x : v) {
                     h ^= std::hash<int>{}(x) + 0x9e3779b9 + (h << 6) + (h >> 2);
@@ -518,7 +522,8 @@ export namespace egret
                 // 切换计数：出现奇数次→边界脊，偶数次→内部脊
                 if (boundaryRidges.contains(ridge)) {
                     boundaryRidges.erase(ridge);
-                } else {
+                }
+                else {
                     boundaryRidges.insert(std::move(ridge));
                 }
             }
@@ -545,7 +550,7 @@ export namespace egret
     }
 
     // 结果提取
-    template<unsigned int Dimension> requires ValidDimension<Dimension>
+    template <unsigned int Dimension> requires ValidDimension<Dimension>
     EPAResult<Dimension> ExpandingPolytopeAlgorithm<Dimension>::extractResult(const Face& closestFace) const
     {
         EPAResult<Dimension> result;
@@ -574,9 +579,11 @@ export namespace egret
             const int idx = closestFace.vertexIndices[j];
             faceVertices[j] = m_vertices.col(idx);
             faceSupportA[j] = (idx < static_cast<int>(m_supportA.size()))
-                ? m_supportA[idx] : vector_type::Zero();
+                                  ? m_supportA[idx]
+                                  : vector_type::Zero();
             faceSupportB[j] = (idx < static_cast<int>(m_supportB.size()))
-                ? m_supportB[idx] : vector_type::Zero();
+                                  ? m_supportB[idx]
+                                  : vector_type::Zero();
         }
 
         // 求解重心坐标：p* = Σ λ_j v_j, Σ λ_j = 1, λ_j ≥ 0
@@ -606,10 +613,12 @@ export namespace egret
             const double sum = lambda.sum();
             if (sum > m_epsilon) {
                 lambda /= sum;
-            } else {
+            }
+            else {
                 lambda = Eigen::VectorXd::Constant(k, 1.0 / static_cast<double>(k));
             }
-        } else {
+        }
+        else {
             // 单点退化：直接使用该点
             lambda = Eigen::VectorXd::Constant(k, 1.0 / static_cast<double>(k));
         }
@@ -630,9 +639,11 @@ export namespace egret
         return result;
     }
 
-// ──── 三维类型别名 ────
-using EPAResult3D = EPAResult<3>;
-using ExpandingPolytopeAlgorithm3D = ExpandingPolytopeAlgorithm<3>;
+    // ──── 类型别名 ────
+    using EPAResult2D = EPAResult<2>;
+    using EPAResult3D = EPAResult<3>;
 
+    using ExpandingPolytopeAlgorithm2D = ExpandingPolytopeAlgorithm<2>;
+    using ExpandingPolytopeAlgorithm3D = ExpandingPolytopeAlgorithm<3>;
 } // namespace egret
 // #endif // EGRET_PHYSICS_EXPANDING_POLYTOPE_ALGORITHM_H

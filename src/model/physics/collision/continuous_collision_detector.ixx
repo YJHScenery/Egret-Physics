@@ -29,6 +29,8 @@ module;
 #include <vector>
 #include <unordered_set>
 #include <algorithm>
+
+#include "boost/asio/associated_executor.hpp"
 export module collision:continuous_collision_detector;
 
 import :gilbert_johnson_keerthi;
@@ -278,7 +280,7 @@ export namespace egret
         std::pair<vector_type, matrix_type> interpolateState(
             const motion_type& motion, double t) const;
 
-        // ── 内部 GJK 距离查询 ──
+        // ── GJK 距离查询 ──
 
         /**
          * @brief   在给定姿态下执行 GJK 距离查询
@@ -785,9 +787,12 @@ export namespace egret
     // 三维类型别名
 
     /// @brief 三维 CCD 结果
+    ///
+    using CCDResult2D = CCDResult<2>;
     using CCDResult3D = CCDResult<3>;
 
     /// @brief 三维 CCD 连续碰撞检测器
+    using ContinuousCollisionDetector2D = ContinuousCollisionDetector<2>;
     using ContinuousCollisionDetector3D = ContinuousCollisionDetector<3>;
 } // namespace egret
 

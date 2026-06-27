@@ -134,9 +134,9 @@ namespace egret
         void updateMatrix();
 
         // TRS 原始分量
-        Eigen::Vector3d m_translation;
+        Eigen::Vector3d m_translation{Eigen::Vector3d::Zero()};
         Eigen::Quaterniond m_rotation;
-        Eigen::Vector3d m_scale;
+        Eigen::Vector3d m_scale{Eigen::Vector3d::Ones()};
         // 矩阵缓存
         Eigen::Matrix4d m_localToWorld{};
         Eigen::Matrix4d m_worldToLocal{};

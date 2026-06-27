@@ -179,9 +179,9 @@ namespace egret
 
         Transform m_transform{}; // 世界变换（包含位置、旋转、缩放）
 
-        Eigen::Vector3d m_velocity{}; // 参考点的速度
+        Eigen::Vector3d m_velocity{Eigen::Vector3d::Zero()}; // 参考点的速度
 
-        Eigen::Vector3d m_angularVelocity{}; // 参考点的角速度
+        Eigen::Vector3d m_angularVelocity{Eigen::Vector3d::Zero()}; // 参考点的角速度
 
         std::vector<Force> m_forces; // 受力组/N
 

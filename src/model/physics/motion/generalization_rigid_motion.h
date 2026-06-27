@@ -155,7 +155,7 @@ namespace egret
             m_force = f;
             m_acceleration = decltype(m_acceleration)::Zero();
 
-            if (m_mass != 0) {
+            if (m_mass <= kMassEpsilon) {
                 m_acceleration = m_force / m_mass;
             }
 
@@ -262,6 +262,8 @@ namespace egret
         void advance(double dt);
 
     private:
+        static constexpr double kMassEpsilon = 1e-8;
+
         //  内部推进实现
 
         /**

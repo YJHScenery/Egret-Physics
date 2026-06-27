@@ -438,8 +438,11 @@ export namespace egret
         m_currentSimplex.col(m_currentSimplex.cols() - 1) = std::move(newCol);
     }
 
-    // ──── 三维类型别名 ────
+    // ──── 类型别名 ────
+    using GJKResult2D = GJKResult<2>;
     using GJKResult3D = GJKResult<3>;
+
+    using GilbertJohnsonKeerthi2D = GilbertJohnsonKeerthi<2>;
     using GilbertJohnsonKeerthi3D = GilbertJohnsonKeerthi<3>;
 } // egret
 //
