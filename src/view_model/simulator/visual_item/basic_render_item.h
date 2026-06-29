@@ -4,6 +4,7 @@
 
 #ifndef EGRET_PHYSICS_BASIC_RENDER_ITEM_H
 #define EGRET_PHYSICS_BASIC_RENDER_ITEM_H
+#include <cstdint>
 
 template <typename StrType>
 struct BasicRenderItem

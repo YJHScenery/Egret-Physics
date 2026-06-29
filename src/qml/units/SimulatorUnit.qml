@@ -721,6 +721,7 @@ ColumnLayout {
                     DirectionalLight {
                         eulerRotation: Qt.vector3d(-35, 22, 20)
                         brightness: 1.8
+                        castsShadow: true
                     }
 
                     DirectionalLight {
@@ -749,7 +750,7 @@ ColumnLayout {
                                 objectName: "body-" + bodyId
 
                                 pickable: true
-                                
+                                receivesShadows: true
                                 property bool isSelected: canvas3d.selectedBodyId === bodyId
 
                                 source: resourceHelper.getSourceByShape(bodyKind)

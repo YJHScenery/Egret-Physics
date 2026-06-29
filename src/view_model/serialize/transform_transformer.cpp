@@ -116,17 +116,17 @@ namespace egret
         {
 
             return unitScale * Eigen::Vector3d{
-                                   (scale.y() * height),
-                                   (scale.z() * radius),
-                                   (scale.x() * radius)};
+                                   (scale.y() * radius * 2),
+                                   (scale.z() * height),
+                                   (scale.x() * radius * 2)};
         }
         case ShapeType::CylindricalShell:
         {
 
             return Eigen::Vector3d{
-                (scale.y() * radius),
+                (scale.y() * radius * 2),
                 (scale.z() * height),
-                (scale.x() * radius)};
+                (scale.x() * radius * 2)};
         }
         case ShapeType::Disk:
         {

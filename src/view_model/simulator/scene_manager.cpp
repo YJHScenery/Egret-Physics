@@ -941,12 +941,13 @@ namespace egret
 
 
         m_world->spawnSphere("1123", {110, 0, 300}, {0, 0, 0}, 10, 10);
-        // m_world->spawnSphere("1223", {110, 10, 320}, {0, 0, 0}, 10, 10);
-        // m_world->spawnSphere("1323", {110, 20, 340}, {0, 0, 0}, 10, 10);
-        // m_world->spawnSphere("1423", {110, 30, 360}, {0, 0, 0}, 10, 10);
-        // m_world->spawnSphere("1523", {110, 40, 380}, {0, 0, 0}, 10, 10);
-        // m_world->spawnSphere("1623", {110, 50, 400}, {0, 0, 0}, 10, 10);
+        m_world->spawnSphere("1223", {110, 10, 320}, {0, 0, 0}, 10, 10);
+        m_world->spawnSphere("1323", {110, 20, 340}, {0, 0, 0}, 10, 10);
+        m_world->spawnSphere("1423", {110, 30, 360}, {0, 0, 0}, 10, 10);
+        m_world->spawnSphere("1523", {110, 40, 380}, {0, 0, 0}, 10, 10);
+        m_world->spawnSphere("1623", {110, 50, 400}, {0, 0, 0}, 10, 10);
 
+        m_world->spawnCylinder("cylinder", {-100, -100, 400}, {0, 0, 0}, 100, 200, 10);
         m_world->addGravityField({0.0, 0.0, -180.0}, {0.0, 0.0, 0.0}, "重力场");
         // std::uint64_t id1 = m_world->spawnSphere("123", {0, 0, 300}, {0, 0, 0}, 10, 10);
         // std::uint64_t id2 = m_world->spawnSphere("456", {0, 0, 400}, {0, 0, 0}, 10, 0);
