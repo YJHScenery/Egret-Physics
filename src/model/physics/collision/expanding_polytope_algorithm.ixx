@@ -23,6 +23,7 @@ module;
 #include <utility>
 #include <functional>
 #include "dimension_concept.h"
+
 export module collision: expanding_polytope_algorithm;
 
 import :gilbert_johnson_keerthi;
