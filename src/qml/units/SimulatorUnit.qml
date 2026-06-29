@@ -722,6 +722,8 @@ ColumnLayout {
                         eulerRotation: Qt.vector3d(-35, 22, 20)
                         brightness: 1.8
                         castsShadow: true
+                        shadowMapQuality: Light.ShadowMapQualityHigh
+                        softShadowQuality: Light.PCF32
                     }
 
                     DirectionalLight {
