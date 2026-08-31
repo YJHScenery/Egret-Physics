@@ -22,10 +22,9 @@
 #include "motion/motion_utils.h"
 #include "rigid/physical_entity.h"
 #include "transform.h"
+#include "continuous_collision_detector.h"
 
 #include <memory>
-
-import collision;
 
 
 namespace egret

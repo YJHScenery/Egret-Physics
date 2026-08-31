@@ -348,6 +348,11 @@ namespace egret
         m_simulationTime = 0.0;
         m_stepCount = 0;
         m_nextId = 1;
+
+        // 场景清空后休眠策略的内部状态表同步重置，防止陈旧 ID 与新实体冲突
+        if (m_solver != nullptr) {
+            m_solver->resetSleepStates();
+        }
     }
 
     SolverStepResult WorldSceneManager::tick(const double dt)
@@ -360,6 +365,21 @@ namespace egret
         const SolverStepResult result = m_solver->step(*this, dt);
         ++m_stepCount;
         return result;
+    }
+
+    void WorldSceneManager::endFrame()
+    {
+        if (m_solver != nullptr) {
+            m_solver->endFrame();
+        }
+    }
+
+    SleepStrategy* WorldSceneManager::getSleepStrategy()
+    {
+        if (m_solver == nullptr) {
+            return nullptr;
+        }
+        return m_solver->getSleepStrategy();
     }
 
     std::vector<SceneRenderItem> WorldSceneManager::buildRenderItems() const
@@ -723,7 +743,10 @@ namespace egret
             SolverBodyHandle handle{};
             handle.entity = body->entity.get();
             // handle.shape = body->entity->getShape().get();
-            handle.inverseMass = body->entity->getMass() > 0.0 ? 1.0 / body->entity->getMass() : 0.0;
+            // 休眠实体以静态体身份参与碰撞检测：逆质量置 0，
+            // 既跳过积分，又避免接触冲量在冻结实体上累积速度。
+            const bool asleep = body->entity->isAsleep();
+            handle.inverseMass = (!asleep && body->entity->getMass() > 0.0) ? 1.0 / body->entity->getMass() : 0.0;
             handle.enableCollision = body->enableCollision;
             handle.enableIntegration = body->enableIntegration;
 

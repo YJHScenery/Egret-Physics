@@ -28,6 +28,7 @@ namespace egret
     class IntegratorStrategy;
     class BroadPhaseStrategy;
     class ContactResolverStrategy;
+    class SleepStrategy;
 
     /**
      * @brief       带策略扩展点的流水线式求解器类。
@@ -99,6 +100,32 @@ namespace egret
          * @param contactResolver 新的接触解算策略实例。
          */
         void setContactResolver(std::unique_ptr<ContactResolverStrategy> contactResolver);
+
+        /**
+         * @brief 在运行时替换休眠策略。
+         * @details 传入 nullptr 可关闭休眠机制。缺省为 nullptr（向后兼容）。
+         * @param sleepStrategy 新的休眠策略实例。
+         */
+        void setSleepStrategy(std::unique_ptr<SleepStrategy> sleepStrategy);
+
+        /**
+         * @brief 返回当前休眠策略指针。
+         * @return 休眠策略指针，未设置时返回 nullptr。
+         */
+        [[nodiscard]] SleepStrategy* getSleepStrategy();
+
+        /**
+         * @brief 渲染帧结束回调。
+         * @details 转发给休眠策略的 onRenderFrameEnd()，用于结算渲染帧内的冻结计数。
+         *          未设置休眠策略时为空操作。
+         */
+        void endFrame();
+
+        /**
+         * @brief 重置休眠策略的全部内部状态。
+         * @details 场景重置或实体集合重建时调用，防止陈旧 ID 与新实体冲突。
+         */
+        void resetSleepStates();
 
         [[nodiscard]] std::string_view getIntegratorName() const;
 
@@ -247,6 +274,9 @@ namespace egret
 
         /** 接触解算阶段使用的策略。 */
         std::unique_ptr<ContactResolverStrategy> m_contactResolver;
+
+        /** 休眠判定阶段使用的策略（缺省 nullptr 表示禁用休眠）。 */
+        std::unique_ptr<SleepStrategy> m_sleepStrategy;
     };
 }
 

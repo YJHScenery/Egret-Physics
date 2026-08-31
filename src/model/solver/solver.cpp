@@ -30,6 +30,7 @@
 #include "broad_phase_strategy/brute_force_broad_strategy.h"
 #include "contact_strategy/frictionless_contact_resolver.h"
 #include "integrator_strategy/semi_implicit_euler_integrator.h"
+#include "sleep_strategy/sleep_strategy.h"
 #include "ccd_solver_adapter.h"
 #include <QMatrix3x3>
 
@@ -119,6 +120,12 @@ namespace egret
         updateExternalForces(scene);
         applyConstraintForces(scene, dt, result.stats);
 
+        // 休眠判定：在受力累加完成之后、碰撞检测之前执行，
+        // 此时实体的合力为本步最终外力，解冻比对才基于有效基线。
+        if (m_sleepStrategy != nullptr) {
+            m_sleepStrategy->evaluate(scene, dt);
+        }
+
         std::vector<SolverBodyPair> pairs;
         std::vector<SolverContactConstraint> constraints;
         std::vector<CcdCollisionEvent> ccdEvents;
@@ -183,6 +190,30 @@ namespace egret
     void Solver::setContactResolver(std::unique_ptr<ContactResolverStrategy> contactResolver)
     {
         m_contactResolver = std::move(contactResolver);
+    }
+
+    void Solver::setSleepStrategy(std::unique_ptr<SleepStrategy> sleepStrategy)
+    {
+        m_sleepStrategy = std::move(sleepStrategy);
+    }
+
+    SleepStrategy* Solver::getSleepStrategy()
+    {
+        return m_sleepStrategy.get();
+    }
+
+    void Solver::endFrame()
+    {
+        if (m_sleepStrategy != nullptr) {
+            m_sleepStrategy->onRenderFrameEnd();
+        }
+    }
+
+    void Solver::resetSleepStates()
+    {
+        if (m_sleepStrategy != nullptr) {
+            m_sleepStrategy->reset();
+        }
     }
 
     std::string_view Solver::getIntegratorName() const
@@ -582,11 +613,16 @@ namespace egret
         const auto bodies = scene.getBodies();
         stats.bodyCount = bodies.size();
         stats.dynamicBodyCount = 0;
+        stats.frozenBodyCount = 0;
         stats.totalKineticEnergy = 0.0;
 
         for (const SolverBodyHandle& body : bodies) {
             if (body.entity == nullptr) {
                 continue;
+            }
+
+            if (body.entity->isAsleep()) {
+                ++stats.frozenBodyCount;
             }
 
             if (body.inverseMass <= 0.0) {

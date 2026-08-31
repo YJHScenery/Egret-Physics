@@ -264,6 +264,9 @@ namespace egret
         /** 逆质量非零的动态实体数量。 */
         std::size_t dynamicBodyCount{0};
 
+        /** 处于休眠（冻结）状态的实体数量。 */
+        std::size_t frozenBodyCount{0};
+
         /** 广相位返回的候选碰撞对数量。 */
         std::size_t broadPhasePairCount{0};
 

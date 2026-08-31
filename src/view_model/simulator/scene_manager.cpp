@@ -38,6 +38,8 @@
 #include "broad_phase_strategy/brute_force_broad_strategy.h"
 #include "contact_strategy/frictionless_contact_resolver.h"
 #include "integrator_strategy/semi_implicit_euler_integrator.h"
+#include "kinetic_sleep_strategy.h"
+#include "sleep_strategy.h"
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -551,6 +553,9 @@ namespace egret
             std::make_unique<OctreeBroadStrategy>(),
             std::make_unique<FrictionalContactResolverStrategy>());
 
+        // 挂载休眠策略：解决实体受恒定外力时无法自然静止的问题
+        solver->setSleepStrategy(std::make_unique<KineticSleepStrategy>(m_sleepConfig));
+
         m_world = std::make_unique<WorldSceneManager>(std::move(solver));
         m_world->clear();
     }
@@ -648,6 +653,99 @@ namespace egret
     {
         const std::string_view name{m_world->getBroadStrategyName()};
         return QString::fromUtf8(name.data(), static_cast<qsizetype>(name.size()));
+    }
+
+    QString SceneManagerViewModel::getSleepStrategyName() const
+    {
+        if (m_world == nullptr) {
+            return {};
+        }
+
+        SleepStrategy* const strategy = m_world->getSleepStrategy();
+        if (strategy == nullptr) {
+            return {};
+        }
+
+        const std::string_view name{strategy->name()};
+        return QString::fromUtf8(name.data(), static_cast<qsizetype>(name.size()));
+    }
+
+    void SceneManagerViewModel::setSleepEnabled(const bool enabled)
+    {
+        m_sleepConfig.enabled = enabled;
+        if (m_world != nullptr) {
+            if (SleepStrategy* const strategy = m_world->getSleepStrategy(); strategy != nullptr) {
+                strategy->setConfig(m_sleepConfig);
+            }
+        }
+    }
+
+    void SceneManagerViewModel::setWakeUpForceRatio(const double ratio)
+    {
+        if (ratio <= 0.0 || ratio > 1.0) {
+            qWarning() << "setWakeUpForceRatio: 无效比例" << ratio << "，必须在 (0, 1] 范围内";
+            return;
+        }
+        m_sleepConfig.wakeUpForceRatio = ratio;
+        if (m_world != nullptr) {
+            if (SleepStrategy* const strategy = m_world->getSleepStrategy(); strategy != nullptr) {
+                strategy->setConfig(m_sleepConfig);
+            }
+        }
+    }
+
+    void SceneManagerViewModel::setSleepMetricType(const int type)
+    {
+        if (type < 0 || type > 2) {
+            qWarning() << "setSleepMetricType: 无效指标类型" << type << "，可选 0=速度平方 1=动能 2=动量";
+            return;
+        }
+        m_sleepConfig.metricType = static_cast<SleepMetricType>(type);
+        if (m_world != nullptr) {
+            if (SleepStrategy* const strategy = m_world->getSleepStrategy(); strategy != nullptr) {
+                strategy->setConfig(m_sleepConfig);
+            }
+        }
+    }
+
+    void SceneManagerViewModel::setSleepThreshold(const double threshold)
+    {
+        if (threshold < 0.0) {
+            qWarning() << "setSleepThreshold: 阈值不能为负" << threshold;
+            return;
+        }
+
+        switch (m_sleepConfig.metricType) {
+        case SleepMetricType::SpeedSquared:
+            m_sleepConfig.speedSquaredThreshold = threshold;
+            break;
+        case SleepMetricType::KineticEnergy:
+            m_sleepConfig.kineticEnergyThreshold = threshold;
+            break;
+        case SleepMetricType::Momentum:
+            m_sleepConfig.momentumThreshold = threshold;
+            break;
+        }
+
+        if (m_world != nullptr) {
+            if (SleepStrategy* const strategy = m_world->getSleepStrategy(); strategy != nullptr) {
+                strategy->setConfig(m_sleepConfig);
+            }
+        }
+    }
+
+    void SceneManagerViewModel::setSleepFrozenFrameCount(const int frameCount)
+    {
+        if (frameCount <= 0) {
+            qWarning() << "setSleepFrozenFrameCount: 帧数必须为正" << frameCount;
+            return;
+        }
+        m_sleepConfig.frozenFrameCount = static_cast<std::uint32_t>(frameCount);
+        if (m_world != nullptr) {
+            if (SleepStrategy* const strategy = m_world->getSleepStrategy(); strategy != nullptr) {
+                strategy->setConfig(m_sleepConfig);
+            }
+        }
     }
 
     void SceneManagerViewModel::play()
@@ -806,6 +904,11 @@ namespace egret
             ++subStepCount;
         }
 
+        // 渲染帧结束：结算休眠策略在本渲染帧内的冻结计数
+        if (m_world != nullptr) {
+            m_world->endFrame();
+        }
+
         // 修复死亡螺旋：累加器超限时钳制到 maxSubSteps*dt，
         // 保留溢出时间在下一帧继续消耗，而非丢弃导致物理时间永久落后。
         const double maxAccumulator = m_fixedStepSeconds * static_cast<double>(m_maxSubSteps);
@@ -940,6 +1043,7 @@ namespace egret
         std::uint64_t idBox2 = m_world->spawnBox("3", {0, 0, 0}, {0, 0, 0}, {10000, 10000, 130}, 0);
 
 
+        m_world->spawnBox("1", {100, 100, 100}, {0, 0, 0}, {100, 10, 10}, 10);
         m_world->spawnSphere("1123", {110, 0, 300}, {0, 0, 0}, 10, 10);
         m_world->spawnSphere("1223", {110, 10, 320}, {0, 0, 0}, 10, 10);
         m_world->spawnSphere("1323", {110, 20, 340}, {0, 0, 0}, 10, 10);

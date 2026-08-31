@@ -1,5 +1,5 @@
 /**
- * @file        continuous_collision_detector.ixx
+ * @file        continuous_collision_detector.h
  * @brief       CCD（Continuous Collision Detection）连续碰撞检测算法
  * @details     通过保守推进（Conservative Advancement）框架，在连续时间域内
  *              检测两个凸体之间的碰撞时间（TOI），避免离散检测的隧穿效应。
@@ -19,7 +19,8 @@
  * @ingroup     Physics
  */
 
-module;
+#ifndef EGRET_PHYSICS_CONTINUOUS_COLLISION_DETECTOR_H
+#define EGRET_PHYSICS_CONTINUOUS_COLLISION_DETECTOR_H
 #include "dimension_concept.h"
 #include "motion/generalization_rigid_motion.h"
 #include "motion/motion_utils.h"
@@ -31,12 +32,11 @@ module;
 #include <algorithm>
 
 #include "boost/asio/associated_executor.hpp"
-export module collision:continuous_collision_detector;
 
-import :gilbert_johnson_keerthi;
-import :expanding_polytope_algorithm;
+#include "gilbert_johnson_keerthi.h"
+#include "expanding_polytope_algorithm.h"
 
-export namespace egret
+namespace egret
 {
     // CCDResult —— CCD 算法的输出结构体
 
@@ -796,4 +796,4 @@ export namespace egret
     using ContinuousCollisionDetector3D = ContinuousCollisionDetector<3>;
 } // namespace egret
 
-// #endif // EGRET_PHYSICS_CONTINUOUS_COLLISION_DETECTOR_H
+#endif // EGRET_PHYSICS_CONTINUOUS_COLLISION_DETECTOR_H

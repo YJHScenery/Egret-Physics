@@ -129,6 +129,10 @@ include_directories(
         src/model/physics/rigid/shape/standard
         src/view_model/
         src/model/strategy
+        src/model/strategy/broad_phase_strategy
+        src/model/strategy/contact_strategy
+        src/model/strategy/integrator_strategy
+        src/model/strategy/sleep_strategy
         src/view_model/simulator
         src/view_model/simulator/visual_item
         src/view_model/serialize
@@ -246,6 +250,12 @@ set(CPP_FILES
         src/model/strategy/integrator_strategy/velocity_verlet_integrator.h
         src/model/strategy/integrator_strategy/velocity_verlet_integrator.cpp
 
+        src/model/strategy/sleep_strategy/sleep_config.h
+        src/model/strategy/sleep_strategy/sleep_metric.h
+        src/model/strategy/sleep_strategy/sleep_strategy.h
+        src/model/strategy/sleep_strategy/kinetic_sleep_strategy.h
+        src/model/strategy/sleep_strategy/kinetic_sleep_strategy.cpp
+
         src/view_model/simulator/scene_manager.cpp
         src/view_model/simulator/scene_manager.h
         src/view_model/simulator/visual_item/scene_body_model.h
@@ -323,6 +333,12 @@ set(CPP_FILES
         src/model/physics/motion/motion_utils.h
         src/model/physics/motion/generalization_rigid_motion.h
 
+        # 碰撞检测模板头文件（原 collision 模块已改为经典头文件）
+        src/model/physics/collision/collision.h
+        src/model/physics/collision/gilbert_johnson_keerthi.h
+        src/model/physics/collision/expanding_polytope_algorithm.h
+        src/model/physics/collision/continuous_collision_detector.h
+
 
 )
 
@@ -338,25 +354,6 @@ set_source_files_properties(
         src/model/solver/ccd_solver_adapter.cpp
         PROPERTIES COMPILE_FLAGS "/bigobj"
 )
-
-
-set(COLLISION_MODULE_FILES
-        src/model/physics/collision/collision.ixx
-        src/model/physics/collision/gilbert_johnson_keerthi.ixx
-        src/model/physics/collision/expanding_polytope_algorithm.ixx
-        src/model/physics/collision/continuous_collision_detector.ixx
-)
-
-target_sources(${PROJECT_NAME}
-        PUBLIC
-        FILE_SET CXX_MODULES FILES
-            ${COLLISION_MODULE_FILES}
-        PRIVATE
-)
-
-if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /std:c++20 /experimental:module)
-endif()
 
 # QXlsx 静态库
 add_library(QXlsx::QXlsx STATIC IMPORTED)
@@ -451,6 +448,7 @@ if (BUILD_TESTS)
     set(TEST_SOURCES
             # tests/test_collision.cpp
             tests/test_ccd.cpp
+            tests/test_sleep.cpp
             # tests/test_connecting_line_scene.cpp
             # tests/boost_test_dependency.h
     )
@@ -460,6 +458,8 @@ if (BUILD_TESTS)
             src/model/physics/rigid/physical_entity.cpp
             src/model/physics/rigid/rigid_body.cpp
             src/model/physics/rigid/particle.cpp
+            src/model/strategy/sleep_strategy/kinetic_sleep_strategy.cpp
+            src/utils/io/async_logger.cpp
             src/model/physics/rigid/shape/standard/shape_base.cpp
             # .deprecated/register/shape_register.cpp
             # .deprecated/register/shape_factory_registry.cpp

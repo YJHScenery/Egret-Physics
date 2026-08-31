@@ -29,6 +29,7 @@
 
 #include <memory>
 
+#include "sleep_config.h"
 #include "visual_item/scene_body_model.h"
 #include "visual_item/scene_constraint_model.h"
 #include "visual_item/scene_convex_mesh_model.h"
@@ -257,6 +258,39 @@ namespace egret
         /** 获取广相位碰撞检测策略器名称 */
         [[nodiscard]] Q_INVOKABLE QString getBroadStrategyName() const;
 
+        /** 获取当前休眠策略器名称（未启用时返回空字符串）。 */
+        [[nodiscard]] Q_INVOKABLE QString getSleepStrategyName() const;
+
+        /**
+         * @brief 启用或禁用休眠策略。
+         * @param enabled true 表示启用休眠机制。
+         */
+        Q_INVOKABLE void setSleepEnabled(bool enabled);
+
+        /**
+         * @brief 设置解冻受力比例。
+         * @param ratio 解冻比例，例如 0.01 表示受力变化超过基线 1% 时解冻。
+         */
+        Q_INVOKABLE void setWakeUpForceRatio(double ratio);
+
+        /**
+         * @brief 设置冻结指标类型。
+         * @param type 指标类型：0=速度平方，1=动能，2=动量。
+         */
+        Q_INVOKABLE void setSleepMetricType(int type);
+
+        /**
+         * @brief 设置冻结阈值。
+         * @param threshold 冻结阈值，单位取决于当前指标类型。
+         */
+        Q_INVOKABLE void setSleepThreshold(double threshold);
+
+        /**
+         * @brief 设置连续冻结所需渲染帧数。
+         * @param frameCount 连续通过的渲染帧数阈值。
+         */
+        Q_INVOKABLE void setSleepFrozenFrameCount(int frameCount);
+
         /** 开始运行。 */
         Q_INVOKABLE void play();
 
@@ -419,6 +453,9 @@ namespace egret
 
         /** 固定步长，单位秒。 */
         double m_fixedStepSeconds{1.0 / 120.0};
+
+        /** 休眠策略的运行时配置（ViewModel 层持有，用于 QML 参数同步）。 */
+        SleepConfig m_sleepConfig{};
 
         /**
          * @brief 时间缩放因子。

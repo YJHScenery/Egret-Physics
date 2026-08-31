@@ -2,10 +2,9 @@
 // Created by jehor on 2026/6/23.
 //
 
-// #ifndef EGRET_PHYSICS_GILBERT_JOHNSON_KEERTHI_H
-// #define EGRET_PHYSICS_GILBERT_JOHNSON_KEERTHI_H
+#ifndef EGRET_PHYSICS_GILBERT_JOHNSON_KEERTHI_H
+#define EGRET_PHYSICS_GILBERT_JOHNSON_KEERTHI_H
 
-module;
 #include "physics_utils.h"
 #include "physics_abstract.h"
 #include "basic_utils.h"
@@ -15,9 +14,8 @@ module;
 #include <set>
 #include <unordered_set>
 #include <functional>
-export module collision:gilbert_johnson_keerthi;
 
-export namespace egret
+namespace egret
 {
     template <unsigned int Dimension> requires ValidDimension<Dimension>
     struct GJKResult
@@ -440,4 +438,4 @@ export namespace egret
     using GilbertJohnsonKeerthi3D = GilbertJohnsonKeerthi<3>;
 } // egret
 //
-// #endif //EGRET_PHYSICS_GILBERT_JOHNSON_KEERTHI_H
+#endif //EGRET_PHYSICS_GILBERT_JOHNSON_KEERTHI_H

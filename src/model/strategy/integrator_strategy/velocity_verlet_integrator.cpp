@@ -64,6 +64,11 @@ namespace egret
                 continue;
             }
 
+            // 休眠实体跳过积分，保持冻结状态
+            if (entity->isAsleep()) {
+                continue;
+            }
+
             BodyState s{};
             s.handle = &body;
             s.aOld = entity->getJoinForce() / entity->getMass();

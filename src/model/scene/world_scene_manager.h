@@ -419,6 +419,18 @@ namespace egret
         SolverStepResult tick(double dt);
 
         /**
+         * @brief 渲染帧结束回调。
+         * @details 转发给求解器，供休眠策略结算本渲染帧的冻结计数。
+         */
+        void endFrame();
+
+        /**
+         * @brief 返回求解器持有的休眠策略指针。
+         * @return 休眠策略指针，未设置时返回 nullptr。
+         */
+        [[nodiscard]] SleepStrategy* getSleepStrategy();
+
+        /**
          * @brief 生成供 ViewModel 渲染的轻量化数据快照。
          * @return 渲染条目列表。
          */

@@ -87,6 +87,26 @@ namespace egret
 
         [[nodiscard]] virtual bool isFixed() const { return m_mass <= 0; }
 
+        /**
+         * @brief 查询实体是否处于休眠（冻结）状态。
+         * @return true 表示实体已冻结，false 表示清醒。
+         */
+        [[nodiscard]] bool isAsleep() const { return m_asleep; }
+
+        /**
+         * @brief 设置实体的休眠状态。
+         * @details 进入休眠时清零线速度与角速度，使实体完全静止；
+         *          唤醒时仅清除标志，速度保持为零，由后续积分重新累积。
+         * @param asleep true 表示冻结，false 表示唤醒。
+         */
+        void setAsleep(bool asleep);
+
+        /**
+         * @brief 唤醒休眠实体。
+         * @details 等价于 setAsleep(false)，语义更明确的便捷接口。
+         */
+        void wakeUp() { setAsleep(false); }
+
         [[nodiscard]] double getRestitution() const { return m_restitution; }
 
         void setPosition(const Eigen::Vector3d &position) { m_transform.setTranslation(position); }
@@ -192,6 +212,8 @@ namespace egret
         double m_mass{}; // 质量/kg
 
         double m_restitution{1.0}; // 碰撞恢复系数
+
+        bool m_asleep{false}; // 休眠（冻结）标志，冻结后跳过积分
 
         std::uint64_t m_id{};
     };

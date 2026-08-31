@@ -116,6 +116,16 @@ namespace egret
         return false;
     }
 
+    void PhysicalEntity::setAsleep(const bool asleep)
+    {
+        m_asleep = asleep;
+        if (asleep) {
+            // 冻结时清零速度，消除接触解算残留的微小抖动
+            m_velocity.setZero();
+            m_angularVelocity.setZero();
+        }
+    }
+
     Eigen::Vector3d PhysicalEntity::getJoinForce()
     {
         Eigen::Vector3d joinForce{};

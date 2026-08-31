@@ -43,6 +43,11 @@ namespace egret
                 continue;
             }
 
+            // 休眠实体跳过积分，保持冻结状态
+            if (entity->isAsleep()) {
+                continue;
+            }
+
             // === 平动：半隐式欧拉 ===
             // a = F / m
             const Eigen::Vector3d acceleration = entity->getJoinForce() / entity->getMass();
