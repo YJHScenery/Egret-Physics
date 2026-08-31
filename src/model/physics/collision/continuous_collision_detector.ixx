@@ -189,7 +189,7 @@ export namespace egret
         static constexpr int kMaxGJKIterations = 64;
 
         /// @brief EPA 最大迭代次数
-        static constexpr int kMaxEPAIterations = 100;
+        static constexpr int kMaxEPAIterations = 1000;
 
         /// @brief TOI 精化最大迭代次数
         static constexpr int kMaxRefineIterations = 20;

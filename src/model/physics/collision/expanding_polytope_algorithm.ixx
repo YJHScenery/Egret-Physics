@@ -83,7 +83,7 @@ export namespace egret
         double m_epsilon{1e-10};
 
         /// @brief 最大迭代次数
-        int m_maxIterations{100};
+        int m_maxIterations{1000};
 
         /**
          * @brief 使用 GJK 结果构造 EPA 算法实例

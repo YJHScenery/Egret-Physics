@@ -38,7 +38,7 @@ $$
 	 $$
 	 \mathbf{d} = \operatorname{center}(B) - \operatorname{center}(A)
 	 $$
-   若中心重合，任意指定，例如 $\mathbf{d} = (0, 0, 1)$
+   若中心重合，任意指定，例如 $\mathbf{d} = (0, 0, \cdots, 1)$
 2. **获取第一个支撑点**：$\mathbf{p}_0 = \mathbf{x}^*_{m}(A, B, \mathbf{d})$
 3. **初始化单纯形**：$\sigma = \{ \mathbf{p}_0 \}$
 4. **更新搜索方向**：$\mathbf{d} = -\mathbf{p}_0$

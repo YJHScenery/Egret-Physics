@@ -106,10 +106,7 @@ export namespace egret
         double m_epsilon{1e-10};
 
         /// @brief 最大迭代次数，防止无限循环
-        int m_maxIterations{
-            static_cast<int>(
-                quickPower<std::uint64_t, std::uint64_t, Dimension>(10))
-        };
+        int m_maxIterations{1000};
 
         /// @brief 凸体 A 的支撑函数回调
         SupportCallback m_supportAFunc;
@@ -242,9 +239,6 @@ export namespace egret
             // 1. 获取新支撑点
             const auto supportA = m_supportAFunc(m_currentDirection, m_positionA, m_rotationA);
             const auto supportB = m_supportBFunc(-m_currentDirection, m_positionB, m_rotationB);
-            //
-            // supportVerticesPair.first.insert(supportA);
-            // supportVerticesPair.second.insert(supportB);
 
             const vector_type supportP = supportA - supportB;
 
