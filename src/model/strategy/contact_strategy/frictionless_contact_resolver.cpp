@@ -15,6 +15,7 @@
  */
 #include "frictionless_contact_resolver.h"
 #include "physical_entity.h"
+#include <algorithm>
 #include <cmath>
 //
 // Created by jehor on 2026/4/25.
@@ -156,8 +157,13 @@ namespace egret
                     const Eigen::Vector3d correction = correctionMagnitude * normal;
 
                     if (bodyA.inverseMass > 0.0) {
-                        Eigen::Vector3d correctedPosition = bodyA.entity->getPosition() - correction * bodyA.
-                            inverseMass;
+                        // 每个实体实际位移单独钳制，防止退化接触造成位置突变
+                        Eigen::Vector3d correctionA = correction * bodyA.inverseMass;
+                        const double correctionANorm = correctionA.norm();
+                        if (correctionANorm > config.maxPositionCorrectionPerStep && correctionANorm > 1e-12) {
+                            correctionA *= config.maxPositionCorrectionPerStep / correctionANorm;
+                        }
+                        Eigen::Vector3d correctedPosition = bodyA.entity->getPosition() - correctionA;
 
                         if (correctedPosition.allFinite()) {
                             bodyA.entity->setPosition(correctedPosition);
@@ -165,8 +171,12 @@ namespace egret
                     }
 
                     if (bodyB.inverseMass > 0.0) {
-                        Eigen::Vector3d correctedPosition = bodyB.entity->getPosition() + correction * bodyB.
-                            inverseMass;
+                        Eigen::Vector3d correctionB = correction * bodyB.inverseMass;
+                        const double correctionBNorm = correctionB.norm();
+                        if (correctionBNorm > config.maxPositionCorrectionPerStep && correctionBNorm > 1e-12) {
+                            correctionB *= config.maxPositionCorrectionPerStep / correctionBNorm;
+                        }
+                        Eigen::Vector3d correctedPosition = bodyB.entity->getPosition() + correctionB;
 
                         if (correctedPosition.allFinite()) {
                             bodyB.entity->setPosition(correctedPosition);

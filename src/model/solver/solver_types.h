@@ -216,6 +216,13 @@ namespace egret
         /** 类 Baumgarte 的修正强度，范围为 [0, 1]，用于位置稳定化。 */
         double positionCorrectionBeta{0.2};
 
+        /**
+         * @brief 每个接触约束在单步内允许的最大位置修正量（单位：米）。
+         * @details 用于抑制退化接触（如薄板-大地面）中 EPA/GJK 给出的异常穿透深度
+         *          导致的突然位置跳变。参考 Box2D 的 b2_maxLinearCorrection。
+         */
+        double maxPositionCorrectionPerStep{0.2};
+
         /** 单步积分允许的最大平移幅度上限。 */
         double maxTranslationPerStep{10.0};
 

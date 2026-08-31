@@ -439,16 +439,27 @@ namespace egret
                     const Eigen::Vector3d correction = correctionMagnitude * normal;
 
                     if (bodyA.inverseMass > 0.0) {
+                        // 每个实体实际位移单独钳制，防止退化接触造成位置突变
+                        Eigen::Vector3d correctionA = correction * bodyA.inverseMass;
+                        const double correctionANorm = correctionA.norm();
+                        if (correctionANorm > config.maxPositionCorrectionPerStep && correctionANorm > 1e-12) {
+                            correctionA *= config.maxPositionCorrectionPerStep / correctionANorm;
+                        }
                         const Eigen::Vector3d correctedPos = bodyA.entity->getPosition()
-                            - correction * bodyA.inverseMass;
+                            - correctionA;
                         if (correctedPos.allFinite()) {
                             bodyA.entity->setPosition(correctedPos);
                         }
                     }
 
                     if (bodyB.inverseMass > 0.0) {
+                        Eigen::Vector3d correctionB = correction * bodyB.inverseMass;
+                        const double correctionBNorm = correctionB.norm();
+                        if (correctionBNorm > config.maxPositionCorrectionPerStep && correctionBNorm > 1e-12) {
+                            correctionB *= config.maxPositionCorrectionPerStep / correctionBNorm;
+                        }
                         const Eigen::Vector3d correctedPos = bodyB.entity->getPosition()
-                            + correction * bodyB.inverseMass;
+                            + correctionB;
                         if (correctedPos.allFinite()) {
                             bodyB.entity->setPosition(correctedPos);
                         }

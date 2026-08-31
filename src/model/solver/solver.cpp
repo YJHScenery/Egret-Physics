@@ -36,6 +36,12 @@
 
 namespace egret
 {
+    namespace
+    {
+        /** CCD 事件允许的最大穿透深度（米），超过则钳制，防止退化 EPA 结果造成位置跳变。 */
+        constexpr double kMaxCcdPenetration = 1.0;
+    }
+
     // namespace
     // {
     //     constexpr double kAabbFallbackTolerance = 1e-6;
@@ -120,12 +126,6 @@ namespace egret
         updateExternalForces(scene);
         applyConstraintForces(scene, dt, result.stats);
 
-        // 休眠判定：在受力累加完成之后、碰撞检测之前执行，
-        // 此时实体的合力为本步最终外力，解冻比对才基于有效基线。
-        if (m_sleepStrategy != nullptr) {
-            m_sleepStrategy->evaluate(scene, dt);
-        }
-
         std::vector<SolverBodyPair> pairs;
         std::vector<SolverContactConstraint> constraints;
         std::vector<CcdCollisionEvent> ccdEvents;
@@ -154,6 +154,13 @@ namespace egret
 
             // 速度/角速度约束必须在积分前执行，确保积分使用修正后的速度
             applyVelocityAndAngularConstraints(scene, dt, result.stats);
+
+            // 休眠判定：接触解算与速度约束修正之后、积分之前执行。
+            // 此时速度是接触冲量修正后的值，静置实体的速度才真正接近零，
+            // 否则评估到的是"积分后又被重力加速"的速度（≈ g·dt），永远无法冻结。
+            if (m_sleepStrategy != nullptr) {
+                m_sleepStrategy->evaluate(scene, dt);
+            }
 
             if (m_config.enableIntegration) {
                 integrate(scene, dt, result.stats);
@@ -413,6 +420,12 @@ namespace egret
                 continue;
             }
 
+            // 穿透深度净化：非有限值直接丢弃；异常大值钳制，防止位置修正跳变
+            if (!std::isfinite(result.penetrationDepth)) {
+                continue;
+            }
+            const double penetrationDepth = std::clamp(result.penetrationDepth, 0.0, kMaxCcdPenetration);
+
             const double restitution = std::isfinite(
                                            std::min(bodyA.entity->getRestitution(), bodyB.entity->getRestitution()))
                                            ? std::clamp(
@@ -424,7 +437,7 @@ namespace egret
                 .bodyBIndex = pair.bodyBIndex,
                 .contactPosition = result.contactPoint,
                 .contactNormal = result.normal,
-                .penetration = result.penetrationDepth,
+                .penetration = penetrationDepth,
                 .restitution = restitution,
                 .toi = result.timeOfImpact
             });
@@ -474,6 +487,12 @@ namespace egret
                 continue;
             }
 
+            // 穿透深度净化：非有限值直接丢弃；异常大值钳制，防止位置修正跳变
+            if (!std::isfinite(result.penetrationDepth)) {
+                continue;
+            }
+            const double penetrationDepth = std::clamp(result.penetrationDepth, 0.0, kMaxCcdPenetration);
+
             const double restitution = std::isfinite(std::min(bodyA.entity->getRestitution(),
                                                               bodyB.entity->getRestitution()))
                                            ? std::clamp(std::min(bodyA.entity->getRestitution(),
@@ -483,7 +502,7 @@ namespace egret
             CcdContactData contactData{
                 .position = result.contactPoint,
                 .normal = result.normal,
-                .penetration = result.penetrationDepth
+                .penetration = penetrationDepth
             };
 
             events.push_back(CcdCollisionEvent{
@@ -519,6 +538,8 @@ namespace egret
             if (timeToCollision > remainingTime + kTimeEpsilon) {
                 integrate(scene, remainingTime, stats);
                 currentTime += remainingTime;
+                // 关键：将剩余时间清零，避免循环结束后的最终积分重复推进同一段时间
+                remainingTime = 0.0;
                 break;
             }
 
@@ -552,6 +573,12 @@ namespace egret
             }
 
             ++substepCount;
+        }
+
+        // 休眠判定：TOI 子步全部处理完毕、最终积分之前执行，
+        // 与非 TOI 路径保持一致——此时速度已被最后一次接触冲量修正。
+        if (m_sleepStrategy != nullptr) {
+            m_sleepStrategy->evaluate(scene, dt);
         }
 
         if (remainingTime > kTimeEpsilon) {
