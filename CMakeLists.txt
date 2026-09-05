@@ -11,7 +11,7 @@ set(CMAKE_PREFIX_PATH "D:/Qt/6.9.3/msvc2022_64")
 option(BUILD_DOCS "Build documentation with Doxygen" ON)
 
 
-# ========== 获取Git信息 ==========
+# ========== 获取Git信息 =========
 # 获取完整提交哈希（40位）
 execute_process(
         COMMAND git rev-parse HEAD
