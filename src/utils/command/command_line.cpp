@@ -85,8 +85,7 @@ namespace egret::command
             app.set_version_flag("--version", std::string{EGRET_VERSION_STRING});
 
             app.add_flag("--solve", options.solve, "离线求解场景并写出仿真文件");
-            app.add_option("scene", options.sceneFile,
-                           "场景 JSON 文件路径（与 --solve 搭配；省略时使用内置预设场景）");
+            app.add_option("scene", options.sceneFile, "场景 JSON 文件路径（与 --solve 搭配）");
             app.add_option("--duration", options.durationSeconds, "仿真时长，单位秒（默认 60）");
             app.add_option("--sample", options.sampleMs,
                            "文件采样间隔，单位毫秒：1 / 2 / 5 / 10 / 20（默认 10）");

@@ -1192,18 +1192,6 @@ ColumnLayout {
                         }
                     }
 
-                    // ---- 初始状态来源（预设场景 / 已加载场景） ----
-                    Text {
-                        Layout.fillWidth: true
-                        text: "初始状态："
-                            + (sceneController.sceneSourceLabel.length > 0
-                                ? sceneController.sceneSourceLabel
-                                : "无（请先加载场景）")
-                        color: "#9EC4EA"
-                        font.pixelSize: 10
-                        elide: Text.ElideRight
-                    }
-
                     // ---- 求解进度 ----
                     Item {
                         Layout.fillWidth: true
