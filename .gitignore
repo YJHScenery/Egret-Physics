@@ -25,3 +25,5 @@ count.py
 /logs/
 
 /release/
+
+/build-verify/

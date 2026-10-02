@@ -46,10 +46,19 @@
 #include "view/qt_media_helper.h"
 #include "view_model/editor/clipboard_helper.h"
 
+#include "command_line.h"
+
 
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
+
+    // 命令行分支：无参数时进入图形界面；其余模式在创建 QML 引擎之前处理完毕。
+    const egret::command::Request command = egret::command::parse(app.arguments());
+    if (command.mode != egret::command::Mode::Gui) {
+        return egret::command::execute(command);
+    }
+
     QQuickStyle::setStyle("Fusion");
 
     std::function<void()> exitReady{

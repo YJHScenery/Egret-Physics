@@ -143,6 +143,7 @@ include_directories(
         src/view/geometry/
         src/utils
         src/utils/io
+        src/utils/command
 )
 
 set(QT_MODULES_LIST
@@ -174,6 +175,13 @@ set(CPP_FILES
         src/utils/io/async_logger.cpp
         src/utils/io/async_logger.h
         src/utils/language/cpp_property.cpp
+
+        src/utils/command/command_line.cpp
+        src/utils/command/command_line.h
+        src/utils/command/solve_command.cpp
+        src/utils/command/solve_command.h
+        src/utils/command/parse_command.cpp
+        src/utils/command/parse_command.h
 
         src/model/geometry/curve/curve_base.h
         src/model/geometry/curve/curve_base.cpp

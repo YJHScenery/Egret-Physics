@@ -22,6 +22,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QStandardPaths>
 
 #include <algorithm>
 #include <cmath>
@@ -352,6 +353,10 @@ namespace egret
         for (std::uint64_t step = 1; step <= totalSteps; ++step) {
             std::ignore = world->tick(stepSeconds);
 
+            if (request.progressCallback && (step % 100 == 0)) {
+                request.progressCallback(step, totalSteps);
+            }
+
             if (step % k != 0) {
                 continue;
             }
@@ -375,6 +380,10 @@ namespace egret
             return false;
         }
 
+        if (request.progressCallback) {
+            request.progressCallback(totalSteps, totalSteps);
+        }
+
         if (report != nullptr) {
             report->stepCount = totalSteps;
             report->frameCount = writer.frameCount();
@@ -387,5 +396,11 @@ namespace egret
         }
 
         return true;
+    }
+
+    QString OfflineSimulationRunner::defaultSimulationFilePath()
+    {
+        const QString baseDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        return baseDir + QStringLiteral("/simulations/egret_simulation.egps");
     }
 }

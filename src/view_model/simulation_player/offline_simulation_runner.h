@@ -27,6 +27,7 @@
 #include <QString>
 
 #include <cstdint>
+#include <functional>
 
 #include "eps_format.h"
 #include "solver_types.h"
@@ -64,6 +65,14 @@ namespace egret
 
             /** 求解器运行时配置（迭代次数、穿透容差等）。 */
             SolverConfig solverConfig{};
+
+            /**
+             * @brief 进度回调。
+             * @details 参数为「已完成的求解步数」与「总求解步数」。
+             *          每 100 步回调一次并在结束时补一次，供界面进度条使用；
+             *          置空则不回调，求解过程完全静默。
+             */
+            std::function<void(std::uint64_t completedSteps, std::uint64_t totalSteps)> progressCallback{};
         };
 
         /**
@@ -97,6 +106,15 @@ namespace egret
          * @return 成功返回 true。
          */
         [[nodiscard]] static bool run(const Request& request, Report* report, QString* errorMessage);
+
+        /**
+         * @brief  返回默认的仿真文件缓存路径。
+         * @details 位于系统的应用数据目录下（Windows 为
+         *          %APPDATA%/<应用名>/simulations/egret_simulation.egps），
+         *          目录不存在时由调用方负责创建。
+         * @return 绝对路径。
+         */
+        [[nodiscard]] static QString defaultSimulationFilePath();
 
     private:
         /** 本类只提供静态接口，禁止实例化。 */
