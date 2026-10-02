@@ -85,7 +85,8 @@ namespace egret::command
             app.set_version_flag("--version", std::string{EGRET_VERSION_STRING});
 
             app.add_flag("--solve", options.solve, "离线求解场景并写出仿真文件");
-            app.add_option("scene", options.sceneFile, "场景 JSON 文件路径（与 --solve 搭配）");
+            app.add_option("scene", options.sceneFile,
+                           "场景 JSON 文件路径（与 --solve 搭配；省略时使用内置预设场景）");
             app.add_option("--duration", options.durationSeconds, "仿真时长，单位秒（默认 60）");
             app.add_option("--sample", options.sampleMs,
                            "文件采样间隔，单位毫秒：1 / 2 / 5 / 10 / 20（默认 10）");
@@ -119,10 +120,16 @@ namespace egret::command
         CLI::App app{"Egret Physics 物理引擎命令行接口"};
         addOptions(app, options);
 
+        // CLI11 的 std::vector 重载要求「逆序、且不含程序名」的实参列表
+        // （与内部 parse(argc, argv) 的构造方式一致）；若按正序连程序名一起传入，
+        // 选项取值会整体错位，表现为 “Could not convert: --duration = --solve”。
         std::vector<std::string> argv{};
         argv.reserve(static_cast<std::size_t>(arguments.size()));
-        for (const QString& argument : arguments) {
-            argv.push_back(argument.toStdString());
+        for (auto iterator = arguments.crbegin(); iterator != arguments.crend(); ++iterator) {
+            argv.push_back(iterator->toStdString());
+        }
+        if (!argv.empty()) {
+            argv.pop_back(); // 反转后位于末尾的元素即原 argv[0]（程序名）
         }
 
         try {

@@ -47,6 +47,7 @@
 #include "view_model/editor/clipboard_helper.h"
 
 #include "command_line.h"
+#include "simulation_export_controller.h"
 
 
 int main(int argc, char* argv[])
@@ -109,6 +110,7 @@ int main(int argc, char* argv[])
     qmlRegisterType<egret::CurveGeometry>("EgretPhysics", 1, 0, "CurveGeometry");
 
     egret::SceneManagerViewModel sceneController;
+    egret::SimulationExportController simulationExporter;
     egret::QtComponentHelper qtHelper;
     egret::ResourceHelper resourceHelper;
     egret::FileHandler fileHandler;
@@ -119,6 +121,7 @@ int main(int argc, char* argv[])
     // egret::EditorManager::instance()->addModels(egret::createDefaultModels());
 
     engine.rootContext()->setContextProperty("sceneController", &sceneController);
+    engine.rootContext()->setContextProperty("simulationExporter", &simulationExporter);
     engine.rootContext()->setContextProperty("qtHelper", &qtHelper);
     engine.rootContext()->setContextProperty("resourceHelper", &resourceHelper);
     engine.rootContext()->setContextProperty("fileHandler", &fileHandler);

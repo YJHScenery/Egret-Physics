@@ -29,6 +29,7 @@
 #include <unordered_set>
 #include <QBuffer>
 #include <QFile>
+#include <QFileInfo>
 #include <QTextStream>
 #include <QtConcurrent>
 #include <xlsxdocument.h>
@@ -305,6 +306,164 @@ namespace egret
                 cfg.enableRotationalDrag = obj["enable_rotational_drag"].
                     toBool();
             return cfg;
+        }
+
+        /** 把三维向量序列化为场景 JSON 数组。 */
+        QJsonArray toJsonArray(const Eigen::Vector3d& value)
+        {
+            return QJsonArray{value.x(), value.y(), value.z()};
+        }
+
+        /** 把四元数序列化为场景 JSON 数组（w, x, y, z）。 */
+        QJsonArray toJsonArray(const Eigen::Quaterniond& value)
+        {
+            return QJsonArray{value.w(), value.x(), value.y(), value.z()};
+        }
+
+        /**
+         * @brief  把单个刚体序列化为场景 JSON 条目（category = 0）。
+         * @details 形状参数直接取自 ShapeBase::getLoadInfo()，再映射回
+         *          createSceneFromJsonString 认识的键名（size → box_size 等）。
+         * @param  models 目标模型数组。
+         * @param  entity 实体指针。
+         * @param  name 实体名称。
+         * @return 形状可被加载器还原时追加条目并返回 true，否则返回 false。
+         */
+        bool appendBodyJson(QJsonArray* models, PhysicalEntity* entity, const std::string& name)
+        {
+            if (models == nullptr || entity == nullptr || entity->getShape() == nullptr) {
+                return false;
+            }
+
+            const ShapeLoadInfo info{entity->getShape()->getLoadInfo()};
+            const auto shapeType{static_cast<ShapeType>(info.typeId)};
+            const Transform& transform{entity->getTransformCR()};
+
+            QJsonObject obj;
+            obj["category"] = 0;
+            obj["type"] = static_cast<qint64>(info.typeId);
+            obj["id"] = QString::number(entity->getId());
+            obj["name"] = QString::fromStdString(name);
+            obj["pos"] = toJsonArray(entity->getPosition());
+            obj["initial_velocity"] = toJsonArray(entity->getVelocity());
+            obj["initial_angular_velocity"] = toJsonArray(entity->getAngularVelocity());
+            obj["rotation"] = toJsonArray(transform.getRotation());
+            obj["scale"] = toJsonArray(transform.getScale());
+            obj["mass"] = entity->getMass();
+            obj["restitution"] = entity->getRestitution();
+            obj["visible"] = true;
+
+            const auto emitParam = [&info, &obj](const char* sourceKey, const char* targetKey,
+                                                 const bool asVector)
+            {
+                const auto iterator{info.numberParams.find(sourceKey)};
+                if (iterator == info.numberParams.end() || iterator->second.empty()) {
+                    return false;
+                }
+                if (asVector) {
+                    if (iterator->second.size() < 3) {
+                        return false;
+                    }
+                    obj[targetKey] = QJsonArray{iterator->second[0], iterator->second[1], iterator->second[2]};
+                }
+                else {
+                    obj[targetKey] = iterator->second[0];
+                }
+                return true;
+            };
+
+            bool paramsOk{false};
+            switch (shapeType) {
+            case ShapeType::Box:
+                paramsOk = emitParam("size", "box_size", true);
+                break;
+            case ShapeType::Sphere:
+            case ShapeType::SphericalShell:
+            case ShapeType::Disk:
+            case ShapeType::Ring:
+                paramsOk = emitParam("radius", "radius", false);
+                break;
+            case ShapeType::Cylinder:
+            case ShapeType::CylindricalShell: {
+                const bool radiusOk{emitParam("radius", "radius", false)};
+                const bool heightOk{emitParam("height", "height", false)};
+                paramsOk = radiusOk && heightOk;
+                break;
+            }
+            case ShapeType::Rod:
+                paramsOk = emitParam("length", "length", false);
+                break;
+            case ShapeType::Capsule:
+                // 加载器的 fillShapeLoadInfo 尚未处理胶囊参数，跳过以免静默变形
+                return false;
+            default:
+                // 凸体网格等形状没有可写入 JSON 的参数
+                return false;
+            }
+
+            if (!paramsOk) {
+                return false;
+            }
+
+            models->append(obj);
+            return true;
+        }
+
+        /**
+         * @brief  把单个力场序列化为场景 JSON 条目（category = 1）。
+         * @param  models 目标模型数组。
+         * @param  field 力场指针。
+         * @param  name 力场名称。
+         * @return 支持的场类型追加条目并返回 true，否则返回 false。
+         */
+        bool appendFieldJson(QJsonArray* models, FieldBase* field, const std::string& name)
+        {
+            if (models == nullptr || field == nullptr) {
+                return false;
+            }
+
+            QJsonObject obj;
+            obj["category"] = 1;
+            obj["id"] = QString::number(field->getId());
+            obj["name"] = QString::fromStdString(name);
+
+            switch (field->getType()) {
+            case FieldType::Gravity: {
+                const auto* gravity{dynamic_cast<GravityField*>(field)};
+                if (gravity == nullptr) {
+                    return false;
+                }
+                obj["type"] = 1;
+                obj["pos"] = toJsonArray(Eigen::Vector3d::Zero());
+
+                QJsonObject data;
+                data["gravity"] = toJsonArray(gravity->getGravity());
+                data["reference_point"] = toJsonArray(Eigen::Vector3d::Zero());
+                obj["field_data"] = data;
+                break;
+            }
+            case FieldType::Gravitation: {
+                const auto* gravitation{dynamic_cast<GravitationalField*>(field)};
+                if (gravitation == nullptr) {
+                    return false;
+                }
+                obj["type"] = 2;
+                obj["pos"] = toJsonArray(gravitation->getPosition());
+
+                QJsonObject data;
+                data["speed"] = toJsonArray(gravitation->getVelocity());
+                data["mass"] = gravitation->getMass();
+                data["coupling"] = gravitation->getCouplingCoefficient();
+                data["fixed"] = gravitation->isFixed();
+                obj["field_data"] = data;
+                break;
+            }
+            default:
+                return false;
+            }
+
+            models->append(obj);
+            return true;
         }
     } // anonymous namespace
 
@@ -825,6 +984,8 @@ namespace egret
         const QByteArray data = file.readAll();
         file.close();
         loadSceneFromJsonString(QString::fromUtf8(data));
+        // 场景来自文件：把来源描述细化到文件名，供离线仿真面板提示初始状态
+        setSceneSourceLabel(QStringLiteral("场景文件：%1").arg(QFileInfo(fileName).fileName()));
     }
 
     void SceneManagerViewModel::loadSceneFromJsonString(const QString& jsonString)
@@ -871,6 +1032,9 @@ namespace egret
         m_accumulator = 0.0;
         m_entityCount = static_cast<int>(m_world->getBodyCount());
 
+        // 记录场景 JSON，供离线求解器复用同一份场景描述
+        setCurrentSceneJson(jsonString, QStringLiteral("已加载场景"));
+
         // 4. 刷新视图模型
         refreshBodyModel();
         refreshConstraintModel();
@@ -881,6 +1045,90 @@ namespace egret
         emit stepCountChanged();
         emit entityCountChanged();
         emit entityChanged();
+    }
+
+    QString SceneManagerViewModel::currentSceneJson() const
+    {
+        return m_currentSceneJson;
+    }
+
+    QString SceneManagerViewModel::sceneSourceLabel() const
+    {
+        return m_sceneSourceLabel;
+    }
+
+    void SceneManagerViewModel::setCurrentSceneJson(const QString& json, const QString& sourceLabel)
+    {
+        m_currentSceneJson = json;
+        setSceneSourceLabel(sourceLabel);
+    }
+
+    void SceneManagerViewModel::setSceneSourceLabel(const QString& sourceLabel)
+    {
+        if (m_sceneSourceLabel == sourceLabel) {
+            return;
+        }
+        m_sceneSourceLabel = sourceLabel;
+        emit sceneSourceChanged();
+    }
+
+    QString SceneManagerViewModel::serializeWorldToSceneJson(int* skippedObjects) const
+    {
+        int skipped{0};
+        QJsonArray models;
+
+        if (m_world != nullptr) {
+            // ---- 刚体（引力场同时出现在力场列表中，这里跳过，由力场遍统一输出） ----
+            const std::vector<std::string> bodyNames{m_world->getBodyNames()};
+            const std::vector<PhysicalEntity*> entities{m_world->getAllPhysicalEntities()};
+
+            for (std::size_t index = 0; index < entities.size(); ++index) {
+                PhysicalEntity* entity{entities[index]};
+                if (entity == nullptr || dynamic_cast<FieldBase*>(entity) != nullptr) {
+                    continue;
+                }
+
+                const std::string name{index < bodyNames.size() ? bodyNames[index] : std::string{}};
+                if (appendBodyJson(&models, entity, name)) {
+                    continue;
+                }
+
+                ++skipped;
+                LOG_INFO(std::format("离线仿真快照：刚体 {} 的形状无法写入场景 JSON，已跳过（不影响实时仿真）",
+                                     entity->getId()));
+            }
+
+            // ---- 力场 ----
+            for (FieldBase* field : m_world->getAllFields()) {
+                if (field == nullptr) {
+                    continue;
+                }
+
+                const std::string name{"field-" + std::to_string(field->getId())};
+                if (appendFieldJson(&models, field, name)) {
+                    continue;
+                }
+
+                ++skipped;
+                LOG_INFO(std::format("离线仿真快照：力场 {} 无法写入场景 JSON，已跳过（不影响实时仿真）",
+                                     field->getId()));
+            }
+
+            // ---- 约束：场景 JSON 方言暂未定义约束参数的序列化形式 ----
+            const auto constraintCount{static_cast<int>(m_world->getAllConstraints().size())};
+            if (constraintCount > 0) {
+                skipped += constraintCount;
+                LOG_INFO(std::format("离线仿真快照：{} 个约束无法写入场景 JSON，离线仿真将不含约束", constraintCount));
+            }
+        }
+
+        if (skippedObjects != nullptr) {
+            *skippedObjects = skipped;
+        }
+
+        QJsonObject root;
+        root["models"] = models;
+        return QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact));
     }
 
     QVector3D SceneManagerViewModel::buildRenderPosition(const QVector3D& position)
@@ -1008,6 +1256,8 @@ namespace egret
 
         // 用场景描述块重建场景；之后每一帧只需把记录的状态套用到实体上。
         loadSceneFromJsonString(QString::fromStdString(reader->sceneJson()));
+        // 场景来自仿真文件：来源描述标明是回放文件内嵌的场景
+        setSceneSourceLabel(QStringLiteral("仿真文件：%1").arg(QFileInfo(m_simulationFile).fileName()));
         if (m_world == nullptr || m_world->getBodyCount() == 0) {
             m_simulationError = QStringLiteral("仿真文件的场景描述块无法重建场景");
             emit simulationChanged();
@@ -1287,14 +1537,24 @@ namespace egret
         // mesh.indices = indices;
 
         auto mesh{makeTessellatedMesh("../tools/icosahedron.obj")};
-        AABB ab = mesh.getAABB();
-        LOG_DEBUG(std::format("AABB: ({}, {}, {}), ({}, {}, {})", ab.min.x(), ab.min.y(), ab.min.z(), ab.max.x(), ab.max.y(), ab.max.z()));
+        if (mesh.vertices.empty()) {
+            // 相对路径依赖进程工作目录：加载失败时直接跳过示例体，
+            // 否则空网格会在后续求解 / 渲染阶段造成访问冲突。
+            LOG_WARN_LITERAL("rebuildDemoWorld: 无法加载 ../tools/icosahedron.obj，已跳过凸体网格示例（请从构建目录启动程序）");
+        }
+        else {
+            AABB ab = mesh.getAABB();
+            LOG_DEBUG(std::format("AABB: ({}, {}, {}), ({}, {}, {})", ab.min.x(), ab.min.y(), ab.min.z(), ab.max.x(), ab.max.y(), ab.max.z()));
+        }
 
 
         auto shapeTest{std::make_unique<ShapeBox>(100, 100, 100)};
 
 
-        m_world->spawnBody("测试样例1", {-400, -400, 400}, {0, 0, 0}, std::move(std::make_unique<ConvexMesh>(std::move(mesh))), 1.0);
+        if (!mesh.vertices.empty()) {
+            m_world->spawnBody("测试样例1", {-400, -400, 400}, {0, 0, 0},
+                               std::move(std::make_unique<ConvexMesh>(std::move(mesh))), 1.0);
+        }
         // m_world->spawnBody("测试样例1", {-400, -400, 400}, {0, 0, 0}, std::move(std::move(shapeTest)), 1.0);
 
         std::uint64_t idBox2 = m_world->spawnBox("3", {0, 0, 0}, {0, 0, 0}, {10000, 10000, 130}, 0);
@@ -1358,6 +1618,15 @@ namespace egret
          //m_world->registerConstraint("Sliding Rail", std::move(rail));
 
         m_entityCount = static_cast<int>(m_world->getBodyCount());
+
+        // 预设场景的 t=0 状态即离线仿真的初始状态：此处立刻快照一份场景 JSON，
+        // 使「离线仿真」面板无需用户先加载场景文件即可求解预设场景。
+        int skippedObjects{0};
+        const QString snapshot{serializeWorldToSceneJson(&skippedObjects)};
+        setCurrentSceneJson(snapshot,
+                            skippedObjects > 0
+                                ? QStringLiteral("内置预设场景（%1 个对象无法序列化，已忽略）").arg(skippedObjects)
+                                : QStringLiteral("内置预设场景"));
     }
 
     void SceneManagerViewModel::refreshBodyModel()

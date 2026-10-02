@@ -29,6 +29,7 @@ import EgretPhysics 1.0
 import "qrc:/components/components"
 import "qrc:/materials/materials"
 import "qrc:/components/components/basic"
+import "qrc:/components/components/viewport"
 
 ColumnLayout {
     id: simulatorRoot
@@ -36,8 +37,16 @@ ColumnLayout {
     property bool dataStreamVisible: true
     property bool infoPanelVisible: true
     property var theme
-    property alias coordinateSystem: coordinateSystem
+    property alias coordinateSystem: canvas3d.coordinateSystem
 
+    /** 离线仿真：求解推进步长（毫秒）。 */
+    property real simulationSolverStepMs: 0.5
+
+    /** 离线仿真：采样间隔（毫秒），只能取 1 / 2 / 5 / 10 / 20。 */
+    property int simulationSampleMs: 10
+
+    /** 离线仿真：仿真总时长（秒）。 */
+    property real simulationDurationSeconds: 60
 
     spacing: 4
 
@@ -87,6 +96,27 @@ ColumnLayout {
         onRejected: {
             console.log("用户取消保存")
         }
+    }
+
+    FileDialog {
+        id: saveSimulationFileDialog
+        title: "保存离线仿真文件"
+        fileMode: FileDialog.SaveFile
+        currentFolder: documentsFolder
+        defaultSuffix: "egps"
+        nameFilters: [
+            "Egret 仿真文件 (*.egps)",
+            "所有文件 (*)"
+        ]
+
+        onAccepted: {
+            simulationExporter.saveAs(simulatorRoot.localPathFromUrl(selectedFile));
+        }
+    }
+
+    /** 把 file:/// URL 转换为本地路径。 */
+    function localPathFromUrl(fileUrl) {
+        return fileUrl.toString().replace(/^file:\/\/\//, "");
     }
 
     function formatVec(x, y, z) {
@@ -600,377 +630,11 @@ ColumnLayout {
             Layout.fillHeight: true
             title: "场景视图 / Dynamics Canvas"
 
-            Item {
+            // 3D 视口（共享组件）：渲染与相机计算在组件内部，
+            // 鼠标交互 / 拾取 / 右键菜单由本单元叠加在组件之上。
+            SimulationViewport {
                 id: canvas3d
                 anchors.fill: parent
-                property real orbitYaw: 45
-                property real orbitPitch: 55
-                property real orbitDistance: 900
-                property real orbitTargetX: 0
-                property real orbitTargetY: 0
-                property real orbitTargetZ: 0
-                property real lineThickness: 0.45
-                property string selectedBodyId: ""
-                property int gridCount: 41
-                property real gridSpacing: 50
-                // property string activeDragBodyId: ""
-                property point lastMousePoint: Qt.point(0, 0)
-                property point pressPoint: Qt.point(0, 0)
-
-                function clamp(value, minValue, maxValue) {
-                    return Math.max(minValue, Math.min(maxValue, value));
-                }
-
-                function cameraState() {
-                    const cam = cameraPhysicsPosition();
-                    return {
-                        positionX: cam.x,
-                        positionY: cam.y,
-                        positionZ: cam.z,
-                        targetX: orbitTargetX,
-                        targetY: orbitTargetY,
-                        targetZ: orbitTargetZ,
-                        upX: 0,
-                        upY: 0,
-                        upZ: 1,
-                        fovY: sceneCamera.fieldOfView,
-                        nearClip: sceneCamera.clipNear,
-                        farClip: sceneCamera.clipFar
-                    };
-                }
-                
-                function toRenderVector(x, y, z){
-                    return Qt.vector3d(y, z, x)
-                }
-
-                function updateCameraPose() {
-                    updateGridSpacing();
-                    updateGridLineCount();
-                    const cam = cameraPhysicsPosition();
-                    const target = toRenderVector(orbitTargetX, orbitTargetY, orbitTargetZ);
-                    sceneCamera.position = toRenderVector(cam.x, cam.y, cam.z);
-                    sceneCamera.lookAt(target);
-                }
-
-
-                function updateGridSpacing() {
-                    const distance = orbitDistance;
-                    const newSpacing = distance < 400 ? 20 : (distance < 1200 ? 50 : 100);
-                    if (Math.abs(newSpacing - gridSpacing) > 0.1) {
-                        gridSpacing = newSpacing;
-                    }
-                }
-
-
-                function updateGridLineCount() {
-                    const h = sceneView.height;
-                    const w = sceneView.width;
-                    if (h <= 0 || w <= 0) {
-                        return;
-                    }
-                    const fovRad = sceneCamera.fieldOfView * Math.PI / 180.0;
-                    const halfHeight = orbitDistance * Math.tan(fovRad / 2.0);
-                    const aspect = w / h;
-                    const halfWidth = halfHeight * aspect;
-                    const extent = Math.max(halfWidth, halfHeight) * 1.2;
-                    const desired = Math.floor(extent / Math.max(gridSpacing, 0.05)) * 2 + 1;
-                    const clamped = Math.max(41, Math.min(desired, 1201));
-                    if (gridCount !== clamped) {
-                        gridCount = clamped;
-                    }
-                }
-
-                function cameraPhysicsPosition() {
-                    const yawRad = orbitYaw * Math.PI / 180.0;
-                    const pitchRad = orbitPitch * Math.PI / 180.0;
-                    const cp = Math.cos(pitchRad);
-                    const sp = Math.sin(pitchRad);
-                    const cy = Math.cos(yawRad);
-                    const sy = Math.sin(yawRad);
-
-                    const px = orbitTargetX + orbitDistance * cp * cy;
-                    const py = orbitTargetY + orbitDistance * cp * sy;
-                    const pz = orbitTargetZ + orbitDistance * sp;
-                    return Qt.vector3d(px, py, pz);
-                }
-
-
-                Component.onCompleted: {
-                    updateCameraPose();
-                }
-
-                View3D {
-                    id: sceneView
-                    anchors.fill: parent
-                    camera: sceneCamera
-
-                    environment: SceneEnvironment {
-                        backgroundMode: SceneEnvironment.Color
-                        clearColor: "#061425"
-                        antialiasingMode: SceneEnvironment.MSAA
-                        antialiasingQuality: SceneEnvironment.VeryHigh
-                    }
-
-                    PerspectiveCamera {
-                        id: sceneCamera
-                        fieldOfView: 45
-                        clipNear: 1
-                        clipFar: 50000
-                    }
-
-                    DirectionalLight {
-                        eulerRotation: Qt.vector3d(-35, 22, 20)
-                        brightness: 1.8
-                        castsShadow: true
-                        shadowMapQuality: Light.ShadowMapQualityHigh
-                        softShadowQuality: Light.PCF32
-                    }
-
-                    DirectionalLight {
-                        eulerRotation: Qt.vector3d(-120, -30, -70)
-                        brightness: 0.7
-                    }
-
-                    Node {
-                        id: worldRoot
-                        Coordinate {
-                            id: coordinateSystem
-                            orbitDistance: canvas3d.orbitDistance
-                            gridStep: canvas3d.gridSpacing
-                            maxGridLines: canvas3d.gridCount
-                            gridExtent: (canvas3d.gridCount - 1) * canvas3d.gridSpacing * 0.5
-                            camera: sceneCamera
-                            viewportWidth: sceneView.width
-                            viewportHeight: sceneView.height
-                        }
-
-                        Repeater3D {
-                            model: sceneController.bodyModel
-
-                            delegate: Model {
-                                id: mainViewModel
-                                objectName: "body-" + bodyId
-
-                                pickable: true
-                                receivesShadows: true
-                                property bool isSelected: canvas3d.selectedBodyId === bodyId
-
-                                source: resourceHelper.getSourceByShape(bodyKind)
-                                property var renderCenter: bodyPosition
-                                property var renderScale: bodyScale
-                                property var renderRotation: bodyRotation
-
-                                position: Qt.vector3d(renderCenter[0], renderCenter[1], renderCenter[2])
-                                scale: Qt.vector3d(renderScale[0], renderScale[1], renderScale[2])
-                                rotation: Qt.quaternion(renderRotation[0], renderRotation[1], renderRotation[2], renderRotation[3])
-
-                                materials: PrincipledMaterial {
-                                    baseColor: isSelected ? "#5078a0" : bodyColor
-                                    roughness: 0.18
-                                    specularAmount: 0.7
-                                    emissiveFactor: isSelected ? "#1A6AA6" : "#000000"
-                                }
-
-                            }
-                        }
-
-                        // -- 约束器渲染 --
-                        // 坐标转换已在 C++ buildConstraintRenderItems() 中完成
-                        // (x,y,z) → (y,z,x)，与 buildRenderItems() 保持一致
-                        // QML 中直接使用转换后的值
-
-                        // 计算从默认 Z 轴指向目标方向的旋转四元数
-                        function rotationFromZTo(dir) {
-                            var len = dir.length();
-                            if (len < 0.0001) return Qt.quaternion(1, 0, 0, 0);
-                            dir = dir.times(1.0 / len);
-                            var forward = Qt.vector3d(0, 0, 1);
-                            var dot = forward.dotProduct(dir);
-                            if (dot > 0.9999) return Qt.quaternion(1, 0, 0, 0);
-                            if (dot < -0.9999) return Qt.quaternion(0, 0, 1, 0);
-                            var axis = forward.crossProduct(dir).normalized();
-                            var halfAngleRad = Math.acos(dot) * 0.5;
-                            var sinHalf = Math.sin(halfAngleRad);
-                            var cosHalf = Math.cos(halfAngleRad);
-                            return Qt.quaternion(
-                                cosHalf,
-                                axis.x * sinHalf,
-                                axis.y * sinHalf,
-                                axis.z * sinHalf);
-                        }
-
-                        // 计算二维平面上与方向垂直的向量（用于曲线偏移）
-                        function perpendicular2D(dir) {
-                            var len = dir.length();
-                            if (len < 0.0001) return Qt.vector3d(0, 1, 0);
-                            var perp = Qt.vector3d(-dir.y, dir.x, 0);
-                            var pLen = perp.length();
-                            if (pLen < 0.0001) {
-                                perp = Qt.vector3d(0, 0, 1);
-                                pLen = 1.0;
-                            }
-                            return perp.times(1.0 / pLen);
-                        }
-
-                        Repeater3D {
-                            model: sceneController.constraintModel
-
-                            delegate: Node {
-                                id: constraintNode
-
-                                // 约束两端位置（C++ 中已转换为渲染坐标系）
-                                property var renderPosA: Qt.vector3d(
-                                    constraintPositionA[0],
-                                    constraintPositionA[1],
-                                    constraintPositionA[2])
-                                property var renderPosB: Qt.vector3d(
-                                    constraintPositionB[0],
-                                    constraintPositionB[1],
-                                    constraintPositionB[2])
-
-                                // 方向向量与长度
-                                property var direction: renderPosB.minus(renderPosA)
-                                property var entityDist: direction.length()
-
-                                // 松弛系数：0 = 完全松弛，1 = 完全绷紧
-                                property var slackRatio: constraintConstraintLength > 0
-                                    ? Math.min(constraintCurrentDistance / constraintConstraintLength, 1.0)
-                                    : 1.0
-
-                                // 只对连接两个实体的约束可见
-                                visible: constraintKind > 0 && entityDist > 0.001
-
-                                // ---- 主体直线（非弹簧类型） ----
-                                // 使用薄盒体渲染为线段，长度为两端实体间的实际距离
-                                Model {
-                                    visible: (constraintKind === 1 || constraintKind === 2 || constraintKind === 3) && slackRatio >= 0.9
-
-                                    x: constraintNode.renderPosA.x + constraintNode.direction.x * 0.5
-                                    y: constraintNode.renderPosA.y + constraintNode.direction.y * 0.5
-                                    z: constraintNode.renderPosA.z + constraintNode.direction.z * 0.5
-
-                                    source: "#Cube"
-                                    scale: Qt.vector3d(0.01, 0.01, 0.01 * constraintNode.entityDist)
-                                    rotation: worldRoot.rotationFromZTo(constraintNode.direction)
-
-                                    materials: PrincipledMaterial {
-                                        baseColor: constraintColor
-                                        roughness: 0.35
-                                        specularAmount: 0.5
-                                    }
-                                }
-
-                                // ---- 弹簧螺旋线（仅 Spring 类型） ----
-                                // 使用 SpringGeometry 生成等距等宽螺旋线（LineStrip 图元）
-                                // 通过 EgretLineMaterial 渲染干净的单色线条
-                                // 几何体沿 Z 轴从 0 → 1，因此定位到 A，scale.z 拉伸后自然覆盖到 B
-                                Model {
-                                    visible: constraintKind === 5
-
-                                    // 定位到端点 A（几何体 z=0 端）
-                                    x: constraintNode.renderPosA.x
-                                    y: constraintNode.renderPosA.y
-                                    z: constraintNode.renderPosA.z
-
-                                    geometry: SpringGeometry {
-                                        coilCount: 32
-                                        segmentsPerTurn: 32
-                                    }
-
-                                    // 螺旋半径与距离成比例，长度精确匹配两端距离
-                                    // property real springCoilScale: 0.2 * Math.max(0.2, constraintNode.entityDist * 0.15)
-
-                                    // 螺旋半径固定
-                                    property real springCoilScale: 8
-                                    scale: Qt.vector3d(springCoilScale, springCoilScale, constraintNode.entityDist)
-                                    rotation: worldRoot.rotationFromZTo(constraintNode.direction)
-
-                                    materials: EgretLineMaterial {
-                                        lineColor: constraintColor
-                                    }
-                                }
-
-
-                                // ---- 松弛曲线指示器（非弹簧类型） ----
-                                // 当约束松弛时（slackRatio < 0.9），沿贝塞尔曲线渲染弧线
-                                // 使用 BezierCurveGeometry + EgretLineMaterial 渲染干净的单色线条
-                                // 曲线控制点偏移量与松弛程度成正比
-                                property real curveOffset: slackRatio < 0.9
-                                    ? (1.0 - slackRatio) * constraintConstraintLength * 1.5
-                                    : 0.0
-
-                                // 曲线分段数，随距离增加而增多以保证平滑
-                                property int curveSegments: slackRatio < 0.9
-                                    ? Math.max(32, Math.min(32, Math.ceil(entityDist * 0.03)))
-                                    : 0
-
-                                // 控制点 = 中点 + 垂直偏移
-                                property var midPt: renderPosA.plus(direction.times(0.5))
-                                property var perpDir: worldRoot.perpendicular2D(direction)
-                                property var controlPt: midPt.plus(perpDir.times(curveOffset))
-
-                                // 贝塞尔曲线（LineStrip 图元）
-                                Model {
-                                    visible: (constraintKind === 1 || constraintKind === 2) && slackRatio < 0.9
-
-                                    geometry: BezierCurveGeometry {
-                                        controlPoints: [
-                                            constraintNode.renderPosA,
-                                            constraintNode.controlPt,
-                                            constraintNode.renderPosB
-                                        ]
-                                        segments: constraintNode.curveSegments
-                                    }
-
-                                    materials: EgretLineMaterial {
-                                        lineColor: constraintColor
-                                    }
-                                }
-                            }
-                        }
-
-                        // ---- 曲线轨道渲染（SlidingRail） ----
-                        // 从 sceneController.curveModel 获取曲线数据
-                        // 坐标转换已在 CurveGeometry::rebuild() 中完成
-                        // (x,y,z) → (y,z,x)，与渲染管线保持一致
-                        Repeater3D {
-                            model: sceneController.curveModel
-
-                            delegate: Model {
-                                geometry: curveGeometry
-
-                                materials: EgretLineMaterial {
-                                    lineColor: curveColor
-                                }
-                            }
-                        }
-
-                        // ---- 凸体网格渲染（ConvexMesh） ----
-                        // 从 sceneController.convexMeshModel 获取网格数据
-                        // 坐标转换已在 ConvexMeshGeometry::rebuild() 中完成
-                        // (x,y,z) → (y,z,x)，与渲染管线保持一致
-                        Repeater3D {
-                            model: sceneController.convexMeshModel
-
-                            delegate: Model {
-                                geometry: convexMeshGeometry
-
-                                position: convexMeshPosition
-                                scale: convexMeshScale
-                                rotation: convexMeshRotation
-
-                                materials: PrincipledMaterial {
-                                    cullMode: Material.NoCulling
-                                    baseColor: convexMeshColor
-                                    roughness: 0.3
-                                    metalness: 0.1
-                                    opacity: 1
-                                    alphaMode: PrincipledMaterial.Opaque
-                                }
-                            }
-                        }
-                    }
-                }
 
                 Rectangle {
                     anchors.left: parent.left
@@ -1038,7 +702,7 @@ ColumnLayout {
                                 }
 
                                 // 尝试 pick 3D 物体
-                                const pickResult = sceneView.pick(mouse.x, mouse.y);
+                                const pickResult = canvas3d.pickAt(mouse.x, mouse.y);
                                 if (pickResult && pickResult.objectHit) {
                                     const objName = pickResult.objectHit.objectName;
                                     if (objName && objName.startsWith("body-")) {
@@ -1285,7 +949,7 @@ ColumnLayout {
                 visible: simulatorRoot.infoPanelVisible
                 opacity: simulatorRoot.infoPanelVisible ? 1 : 0
                 enabled: simulatorRoot.infoPanelVisible
-                Layout.preferredHeight: 200
+                Layout.preferredHeight: 160
                 title: "仿真控制"
 
                 ColumnLayout {
@@ -1386,6 +1050,231 @@ ColumnLayout {
                             font.pixelSize: 14
                             font.bold: true
                         }
+                    }
+
+                    Item {
+                        Layout.fillHeight: true
+                    }
+                }
+            }
+
+            // ============ 离线仿真（EPS 导出） ============
+            GlassPanel {
+                id: offlineSimulationPanel
+                Layout.preferredWidth: simulatorRoot.infoPanelVisible ? 260 : 0
+                Layout.minimumWidth: simulatorRoot.infoPanelVisible ? 260 : 0
+                Layout.maximumWidth: simulatorRoot.infoPanelVisible ? 260 : 0
+                visible: simulatorRoot.infoPanelVisible
+                opacity: simulatorRoot.infoPanelVisible ? 1 : 0
+                enabled: simulatorRoot.infoPanelVisible
+                Layout.preferredHeight: 340
+                title: "离线仿真"
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    spacing: 6
+
+                    // ---- 求解步长 ----
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Text {
+                            text: "求解步长"
+                            color: "#AAC4D8"
+                            font.pixelSize: 11
+                            font.bold: true
+                        }
+
+                        FloatField {
+                            Layout.fillWidth: true
+                            from: 0.01
+                            to: 10
+                            decimals: 2
+                            suffix: "ms"
+                            enabled: !simulationExporter.running
+                            value: simulatorRoot.simulationSolverStepMs
+
+                            onValueChanged: {
+                                simulatorRoot.simulationSolverStepMs = value;
+                            }
+                        }
+                    }
+
+                    // ---- 采样间隔（五档） ----
+                    Text {
+                        text: "采样间隔 (ms)"
+                        color: "#AAC4D8"
+                        font.pixelSize: 11
+                        font.bold: true
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+
+                        Repeater {
+                            model: [1, 2, 5, 10, 20]
+
+                            Rectangle {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 22
+                                radius: theme.radiusS
+
+                                readonly property bool active:
+                                    simulatorRoot.simulationSampleMs === modelData
+
+                                color: active
+                                    ? "#1A5E9E"
+                                    : (sampleBtnMouse.containsMouse ? "#1E3D5C" : "#1A2D44")
+                                border.width: 1
+                                border.color: active ? "#58B8FF" : "#3A5A7A"
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: modelData
+                                    color: "#EAF5FF"
+                                    font.pixelSize: 11
+                                    font.bold: parent.active
+                                }
+
+                                MouseArea {
+                                    id: sampleBtnMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    enabled: !simulationExporter.running
+                                    onClicked: {
+                                        simulatorRoot.simulationSampleMs = modelData;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ---- 仿真时长 ----
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Text {
+                            text: "仿真时长"
+                            color: "#AAC4D8"
+                            font.pixelSize: 11
+                            font.bold: true
+                        }
+
+                        FloatField {
+                            Layout.fillWidth: true
+                            from: 0.1
+                            to: 3600
+                            decimals: 1
+                            suffix: "s"
+                            enabled: !simulationExporter.running
+                            value: simulatorRoot.simulationDurationSeconds
+
+                            onValueChanged: {
+                                simulatorRoot.simulationDurationSeconds = value;
+                            }
+                        }
+                    }
+
+                    EgretPushButton {
+                        text: simulationExporter.running ? "离线求解中…" : "开始离线仿真"
+                        enabled: !simulationExporter.running
+                        onClicked: {
+                            simulationExporter.start(
+                                sceneController.currentSceneJson(),
+                                simulatorRoot.simulationDurationSeconds,
+                                simulatorRoot.simulationSolverStepMs,
+                                simulatorRoot.simulationSampleMs);
+                        }
+                    }
+
+                    // ---- 初始状态来源（预设场景 / 已加载场景） ----
+                    Text {
+                        Layout.fillWidth: true
+                        text: "初始状态："
+                            + (sceneController.sceneSourceLabel.length > 0
+                                ? sceneController.sceneSourceLabel
+                                : "无（请先加载场景）")
+                        color: "#9EC4EA"
+                        font.pixelSize: 10
+                        elide: Text.ElideRight
+                    }
+
+                    // ---- 求解进度 ----
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 16
+
+                        Rectangle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width
+                            height: 6
+                            radius: 3
+                            color: "#12365D"
+                            border.width: 1
+                            border.color: "#2E5D89"
+
+                            Rectangle {
+                                width: Math.max(0, Math.min(parent.width * simulationExporter.progress, parent.width))
+                                height: parent.height
+                                radius: parent.radius
+                                color: theme.accent
+                            }
+                        }
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: (100 * Math.max(0, Math.min(simulationExporter.progress, 1))).toFixed(0)
+                            + "%   ·   "
+                            + (simulationExporter.statusMessage.length > 0
+                                ? simulationExporter.statusMessage
+                                : "尚未执行")
+                        color: "#9EC4EA"
+                        font.pixelSize: 10
+                        elide: Text.ElideRight
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: simulationExporter.errorMessage
+                        color: theme.danger
+                        font.pixelSize: 10
+                        wrapMode: Text.WordWrap
+                        visible: simulationExporter.errorMessage.length > 0
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        EgretPushButton {
+                            text: "保存…"
+                            enabled: simulationExporter.frameCount > 0 && !simulationExporter.running
+                            onClicked: {
+                                saveSimulationFileDialog.open();
+                            }
+                        }
+
+                        EgretPushButton {
+                            text: "删除缓存"
+                            enabled: !simulationExporter.running
+                            onClicked: {
+                                simulationExporter.removeCacheFile();
+                            }
+                        }
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: "缓存：" + simulationExporter.defaultFilePath()
+                        color: "#5F84AD"
+                        font.pixelSize: 9
+                        elide: Text.ElideMiddle
                     }
 
                     Item {

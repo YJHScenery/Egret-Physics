@@ -153,6 +153,8 @@ namespace egret
 
         Q_PROPERTY(double playbackRate READ playbackRate WRITE setPlaybackRate NOTIFY playbackRateChanged)
 
+        Q_PROPERTY(QString sceneSourceLabel READ sceneSourceLabel NOTIFY sceneSourceChanged)
+
     public:
         /** 默认构造。 */
         explicit SceneManagerViewModel(QObject* parent = nullptr);
@@ -408,6 +410,18 @@ namespace egret
 
         Q_INVOKABLE void loadSceneFromJsonString(const QString& jsonString);
 
+        /**
+         * @brief 返回最近一次成功加载的场景 JSON 文本。
+         * @details 供离线求解器复用同一份场景数据；从未加载过场景时返回空串。
+         */
+        Q_INVOKABLE [[nodiscard]] QString currentSceneJson() const;
+
+        /**
+         * @brief 返回当前场景来源的可读描述。
+         * @details 例如「内置预设场景」「已加载场景」；界面用它提示离线仿真的初始状态。
+         */
+        [[nodiscard]] QString sceneSourceLabel() const;
+
         // /**
         //  * @brief 将屏幕坐标映射到世界 XY 平面（z 固定）上的点。
         //  * @param screenX 屏幕像素 X。
@@ -459,6 +473,9 @@ namespace egret
 
         /** 播放倍速变化。 */
         void playbackRateChanged();
+
+        /** 场景来源描述变化。 */
+        void sceneSourceChanged();
 
         /** 一帧求解完成。 */
         void frameAdvanced();
@@ -605,6 +622,12 @@ namespace egret
         /** 最近一次加载失败的原因。 */
         QString m_simulationError{};
 
+        /** 最近一次成功加载的场景 JSON 文本（供离线求解复用）。 */
+        QString m_currentSceneJson{};
+
+        /** 当前场景 JSON 的来源描述（供界面提示初始状态）。 */
+        QString m_sceneSourceLabel{};
+
         /** 当前播放帧号。 */
         int m_playbackFrame{0};
 
@@ -649,6 +672,30 @@ namespace egret
 
         /** 将所有录制中的缓冲区导出到各自文件。 */
         void flushRecordings();
+
+        /**
+         * @brief  把当前世界状态反向序列化为场景 JSON。
+         * @details 输出格式与 createSceneFromJsonString 的输入完全一致，因此可以直接
+         *          交给离线求解器复用。当前支持解析形状（盒 / 球 / 圆柱 / 圆柱壳 /
+         *          圆盘 / 圆环 / 球壳 / 杆）与重力场、引力场；凸体网格、胶囊、曲线与
+         *          约束无法从世界状态还原，会被跳过并计入 skippedObjects。
+         * @param  skippedObjects 输出被跳过的对象数量，可为 nullptr。
+         * @return 场景 JSON 文本。
+         */
+        [[nodiscard]] QString serializeWorldToSceneJson(int* skippedObjects) const;
+
+        /**
+         * @brief  更新当前场景 JSON 快照与来源描述，并通知 QML。
+         * @param  json 场景 JSON 文本。
+         * @param  sourceLabel 来源描述，如「内置预设场景」。
+         */
+        void setCurrentSceneJson(const QString& json, const QString& sourceLabel);
+
+        /**
+         * @brief 更新场景来源描述并通知 QML（内容相同时不重复发信号）。
+         * @param sourceLabel 来源描述。
+         */
+        void setSceneSourceLabel(const QString& sourceLabel);
 
         /** 模型层世界管理器。 */
         std::unique_ptr<WorldSceneManager> m_world;

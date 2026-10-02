@@ -18,9 +18,16 @@
         <file>components/SceneEntityListPanel.qml</file>
         <file>components/message_box/EgretMessageDialog.qml</file>
         <file>components/message_box/EgretMessageBox.js</file>
+        <file>components/viewport/SimulationViewport.qml</file>
+        <file>components/viewport/BodyDelegate.qml</file>
+        <file>components/viewport/ConstraintDelegate.qml</file>
+        <file>components/viewport/CurveDelegate.qml</file>
+        <file>components/viewport/ConvexMeshDelegate.qml</file>
+        <file>components/viewport/ViewportMath.js</file>
     </qresource>
     <qresource prefix="/units">
         <file>units/SimulatorUnit.qml</file>
+        <file>units/PlayerUnit.qml</file>
         <file>units/EditorUnit.qml</file>
     </qresource>
     <qresource prefix="/shaders">

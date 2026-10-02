@@ -53,6 +53,9 @@ ApplicationWindow {
             label: "场景编辑器"; route: "solver"
         }
         ListElement {
+            label: "播放器"; route: "player"
+        }
+        ListElement {
             label: "参数扫描"; route: "sweep"
         }
         ListElement {
@@ -597,6 +600,14 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 visible: mainRowLayout.currentRoute === "solver"
+            }
+
+            PlayerUnit {
+                id: playerUnit
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                visible: mainRowLayout.currentRoute === "player"
+                theme: theme
             }
         }
 

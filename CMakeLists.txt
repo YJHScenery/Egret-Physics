@@ -270,6 +270,8 @@ set(CPP_FILES
         src/view_model/simulator/scene_manager.h
         src/view_model/simulation_player/offline_simulation_runner.cpp
         src/view_model/simulation_player/offline_simulation_runner.h
+        src/view_model/simulation_player/simulation_export_controller.cpp
+        src/view_model/simulation_player/simulation_export_controller.h
         src/view_model/simulator/visual_item/scene_body_model.h
         src/view_model/simulator/visual_item/scene_body_model.cpp
         src/view_model/simulator/visual_item/scene_constraint_model.h

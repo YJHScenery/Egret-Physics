@@ -23,6 +23,7 @@
 #include <cstdio>
 
 #include "offline_simulation_runner.h"
+#include "scene_manager.h"
 
 namespace egret::command
 {
@@ -52,15 +53,22 @@ namespace egret::command
         QTextStream out(stdout);
         QTextStream err(stderr);
 
-        if (request.sceneFile.isEmpty()) {
-            err << "请通过 --solve <scene.json> 指定场景文件。\n";
-            err.flush();
-            return 2;
-        }
-
         QString sceneJson;
         QString error;
-        if (!readTextFile(request.sceneFile, &sceneJson, &error)) {
+
+        if (request.sceneFile.isEmpty()) {
+            // 未指定场景文件：使用内置预设场景，与图形界面「离线仿真」面板保持一致。
+            const SceneManagerViewModel presetScene{};
+            sceneJson = presetScene.currentSceneJson();
+            if (sceneJson.isEmpty()) {
+                err << "无法生成内置预设场景快照。\n";
+                err.flush();
+                return 1;
+            }
+            out << "未指定场景文件，使用内置预设场景。\n";
+            out.flush();
+        }
+        else if (!readTextFile(request.sceneFile, &sceneJson, &error)) {
             err << error << "\n";
             err.flush();
             return 1;
