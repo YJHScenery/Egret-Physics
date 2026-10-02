@@ -452,7 +452,7 @@ namespace egret
         double m_fps{0.0};
 
         /** 固定步长，单位秒。 */
-        double m_fixedStepSeconds{1.0 / 120.0};
+        double m_fixedStepSeconds{1.0 / 1000.0};
 
         /** 休眠策略的运行时配置（ViewModel 层持有，用于 QML 参数同步）。 */
         SleepConfig m_sleepConfig{};
@@ -464,8 +464,15 @@ namespace egret
          */
         double m_timeScale{1.0};
 
-        /** 每帧最多补偿的固定步数，避免“死亡螺旋”。 */
-        int m_maxSubSteps{5};
+        /**
+         * @brief 每个定时器周期最多补偿的固定步数，避免“死亡螺旋”。
+         * @details 本值决定仿真时间能否跟上真实时间，关系为
+         *          每秒可推进的仿真时间 = (1000 / 定时器周期 ms) × m_maxSubSteps × m_fixedStepSeconds。
+         *          定时器周期 16 ms、步长 1 ms 时，至少需要 16 步才能达到 1 倍实时；
+         *          取 32 即 2 倍余量，卡顿之后仍能追回落后的仿真时间。
+         * @remark 修改 m_fixedStepSeconds 或 m_timer 的周期后，必须同步复核本值。
+         */
+        int m_maxSubSteps{32};
 
         /** 固定步长累加器。 */
         double m_accumulator{0.0};

@@ -1,0 +1,65 @@
+# TODO：待复核项
+
+> **文件用途**：集中记录「当前不处理、但必须回头复核」的事项，避免它们散落在对话与注释里被遗忘。
+>
+> **维护约定**
+> - 每条必须写明：编号、位置（文件:行）、当前取值、需要复核的理由、建议动作。
+> - 复核完成后把 `[ ]` 改为 `[x]`，并在该条末尾追加 `→ 结论：…`。
+> - 本文件只记录复核项与待办，不记录已完成的功能说明。
+
+## 1. 求解步长改为 1 ms 后需要复核的数值阈值
+
+**背景**：`src/view_model/simulator/scene_manager.h:455` 的 `m_fixedStepSeconds` 已由 `1.0 / 120.0`
+（≈ 8.333 ms）改为 `1.0 / 1000.0`（1 ms）。凡是「以步长或步内位移为量纲」的阈值都需要回头复核——
+步长缩小 8.33 倍后，这些阈值的相对大小全部变了。同步已把 `m_maxSubSteps` 由 5 提高到 32
+（16 ms 周期 ÷ 1 ms 步长 = 16，取 2 倍余量），以恢复 1 倍实时的推进速度。
+
+| 编号 | 位置 | 当前取值 | 复核理由 | 建议动作 |
+|------|------|---------|---------|---------|
+| T-01 | `src/model/solver/solver_types.h:214` `penetrationSlop` | `0.001` m | 1 ms 步长下静止接触的单步穿透量约 $g\Delta t^2 \approx 10^{-5}$ m，比 slop 小两个数量级，位置修正几乎不会触发 | [ ] 若观察到物体缓慢下沉或持续漂移，降到 `1e-4` 量级；若接触出现抖动则维持原值 |
+| T-02 | `src/model/solver/solver_types.h:217` `positionCorrectionBeta` | `0.2` | 与 T-01 的 slop 联动，slop 改了它也要跟着看 | [ ] 与 T-01 一并复核 |
+| T-03 | `src/model/solver/solver_types.h:224` `maxPositionCorrectionPerStep` | `0.2` m | 单步位置修正上限；步长变小后更难触发 | [ ] 确认不再出现位置跳变即可，一般无需修改 |
+| T-04 | `src/model/solver/solver_types.h:227` `maxTranslationPerStep` | `10.0` m | 单步平移上限；1 ms 步长下几乎不可能触发 | [ ] 确认即可 |
+| T-05 | `src/model/strategy/sleep_strategy/sleep_config.h:66` `speedSquaredThreshold` | `1e-4` | 阈值与速度量级相关，而积分得到的速度随步长变化 | [ ] 复核静止物体能否按预期进入休眠 |
+| T-06 | `src/model/strategy/sleep_strategy/sleep_config.h:78` `wakeUpAbsoluteForceThreshold` | `1e-4` | 同上，影响唤醒判定 | [ ] 复核被外力击打后能否正常唤醒 |
+| T-07 | `src/model/strategy/sleep_strategy/sleep_config.h:81` `frozenFrameCount` | `30`（单位是**渲染帧**，不是求解步） | 现在一个渲染帧要跑 16 个求解步，冻结判定所覆盖的仿真时长随之变化 | [ ] 确认「30 帧 ≈ 0.48 s」冻结延迟是否符合预期 |
+| T-08 | `src/model/solver/solver.cpp` `kMaxCcdPenetration` | `1.0` m | CCD 穿透深度钳制值，与步长无关，但改制后仍值得确认 | [ ] 确认即可 |
+| T-09 | `src/model/physics/collision/continuous_collision_detector.h` `kEpsilonDistance` / `kEpsilonGJK` / `kEpsilonEPA` | `1e-6` / `1e-8` / `1e-6` | 步长变小后单步位移变小，容差相对于位移变大，可能把接触误判为分离或反之 | [ ] 复核接触判定是否出现漏检或误判 |
+| T-10 | `src/view_model/simulator/scene_manager.h:455` `m_fixedStepSeconds` + `:468` `m_maxSubSteps` | `1 ms` + `32` | 两者必须保持 `m_maxSubSteps ≥ 定时器周期 / 步长`，否则仿真时间会再次落后于真实时间 | [ ] 若后续调整任一项，重新按公式核算并同步两者 |
+
+## 2. 需要实测标定的量
+
+| 编号 | 事项 | 为什么要标定 | 建议动作 |
+|------|------|-------------|---------|
+| M-01 | 单步各阶段耗时（广相 / 窄相 CCD / 接触解算 / 积分） | 判断 0.5 ms 推进步长能否满足实时；当前只有模型估算（每步 65 µs–1.6 ms 的区间），缺少实测值 | [ ] 给 `SolverStats` 增加四个计时字段，跑 2000 步标定，并把结果写入 eps 的 `SCNE` 块 |
+| M-02 | eps 文件 zstd 实际压缩率 | 草案 §8.8 的体积表目前是经验估计区间 | [ ] 实现写出流程后用真实场景标定并回填该表 |
+| M-03 | 20 实体场景在 1 ms 步长下的实时余量 | 验证 `m_maxSubSteps = 32` 是否足够，以及渲染帧率是否稳定在 62.5 Hz | [ ] 观察界面 FPS 卡片与 `simTime` / 真实时间的比值 |
+
+## 3. 需要联网核实
+
+| 编号 | 事项 | 说明 |
+|------|------|------|
+| W-01 | `.egps` 扩展名是否已被占用 | 本机注册表实测未被占用，但本地结果不能证明互联网上无人使用；见 eps 草案 §2.1 |
+| W-02 | eps 草案 §14 的参考文献链接 | 当前环境无法联网，全部链接标记为【待核实】 |
+
+## 4. 与 EPS 草案相关的待确认项
+
+以下条目属于设计决策，未定之前不应开始对应实现，明细见
+`docs/EPS 模拟数据文件格式规范（草案）.md` §13：
+
+- [ ] 曲线与凸体网格是否逐帧记录（草案 §8.6）
+- [ ] 默认精度取 `float64` 还是 `float32`
+- [ ] 是否接受「一次模拟内实体集合固定」的 v1 简化
+- [ ] `--parse` 的输出格式
+- [ ] 求解器与播放器是同一可执行文件还是拆成两个
+- [ ] 渲染目标 120 Hz 的落实方式（固定刷新定时器 / 跟随 vsync）
+- [ ] 推进步长的最终取值（当前按 0.5 ms 撰写）
+- [ ] `--solve` 的输入来源（场景 JSON / 编辑器当前场景）
+
+## 5. 遗留问题
+
+- [ ] **平面平行接触的异常抖动**仍未解决（见 `ISSUES.md`，相关提交 `796a7c36`「抖动没解决，先不管了」）。
+      下一步需要复现条件（场景、参数、运行时长）才能对照日志定位。
+- [ ] 日志缺失：`cmake-build-release/logs/qdebug_output.log` 已被清空或删除（当前只剩 548 字节的
+      `async_logger.log`）。后续复现任何问题之前，请先确认日志目录会被正常写入，
+      否则无法按 AGENTS.md 的诊断流程取证。
