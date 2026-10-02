@@ -596,6 +596,14 @@ namespace egret
         void advancePlayback(double realFrameSeconds);
 
         /**
+         * @brief  按需启动 / 停止 16 ms 帧定时器。
+         * @details 实时求解与离线播放共用同一个定时器：只要「实时仿真在跑」或
+         *          「播放处于播放中」，定时器就必须运行；两者都停止时立即停表。
+         *          启动定时器时同步重置帧计时时钟，避免把等待时间算进第一帧。
+         */
+        void syncFrameTimer();
+
+        /**
          * @brief 把指定帧的数据套用到世界的实体上，并刷新 Qt 模型。
          * @param frame 帧号。
          * @return 成功返回 true。

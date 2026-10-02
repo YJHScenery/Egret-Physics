@@ -760,8 +760,7 @@ namespace egret
         }
 
         setRunning(true);
-        m_frameClock.restart();
-        m_timer.start();
+        syncFrameTimer();
     }
 
     void SceneManagerViewModel::pause()
@@ -770,8 +769,28 @@ namespace egret
             return;
         }
 
-        m_timer.stop();
         setRunning(false);
+        // 若播放仍在进行，定时器交由播放继续使用，此处不强制停表
+        syncFrameTimer();
+    }
+
+    void SceneManagerViewModel::syncFrameTimer()
+    {
+        // 实时求解与离线播放二者都需要帧回调；都停止时才关掉定时器
+        const bool frameCallbackNeeded{m_running || m_playbackPlaying};
+
+        if (!frameCallbackNeeded) {
+            if (m_timer.isActive()) {
+                m_timer.stop();
+            }
+            return;
+        }
+
+        if (!m_timer.isActive()) {
+            // 停表期间累积的真实时间不应计入下一帧，因此重启时重置计时
+            m_frameClock.restart();
+            m_timer.start();
+        }
     }
 
     void SceneManagerViewModel::toggleRunning()
@@ -1030,9 +1049,14 @@ namespace egret
         m_playbackFrame = 0;
         m_playbackTime = 0.0;
 
+        // 进入播放模式：实时求解必须停表（两者共用同一个帧定时器与同一个世界），
+        // 播放本身由 playSimulation() 按需启动定时器。
+        pause();
+
         applySimulationFrame(0);
         emit simulationChanged();
         emit playbackStateChanged();
+        syncFrameTimer();
         return true;
     }
 
@@ -1055,6 +1079,8 @@ namespace egret
         m_accumulator = 0.0;
         emit simulationChanged();
         emit playbackStateChanged();
+        // 退出播放模式：若没有实时仿真在跑，帧回调已无人需要，停表
+        syncFrameTimer();
     }
 
     void SceneManagerViewModel::setPlaybackFrame(const int frame)
@@ -1092,6 +1118,7 @@ namespace egret
             return;
         }
         m_playbackPlaying = true;
+        syncFrameTimer();
         emit playbackStateChanged();
     }
 
@@ -1101,6 +1128,7 @@ namespace egret
             return;
         }
         m_playbackPlaying = false;
+        syncFrameTimer();
         emit playbackStateChanged();
     }
 
