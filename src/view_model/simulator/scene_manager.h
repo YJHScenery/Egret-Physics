@@ -43,6 +43,11 @@ namespace egret
 {
     class WorldSceneManager;
 
+    namespace eps
+    {
+        class EpsReader;
+    }
+
     struct FieldRecord;
 
     struct ConstraintRecord;
@@ -128,12 +133,104 @@ namespace egret
 
         Q_PROPERTY(SceneConvexMeshModel *convexMeshModel READ convexMeshModel CONSTANT)
 
+        Q_PROPERTY(bool simulationLoaded READ isSimulationLoaded NOTIFY simulationChanged)
+
+        Q_PROPERTY(QString simulationFile READ simulationFile NOTIFY simulationChanged)
+
+        Q_PROPERTY(QString simulationError READ simulationError NOTIFY simulationChanged)
+
+        Q_PROPERTY(int simulationFrameCount READ simulationFrameCount NOTIFY simulationChanged)
+
+        Q_PROPERTY(double simulationDurationSeconds READ simulationDurationSeconds NOTIFY simulationChanged)
+
+        Q_PROPERTY(double simulationSampleIntervalMs READ simulationSampleIntervalMs NOTIFY simulationChanged)
+
+        Q_PROPERTY(int playbackFrame READ playbackFrame NOTIFY playbackStateChanged)
+
+        Q_PROPERTY(double playbackTimeSeconds READ playbackTimeSeconds NOTIFY playbackStateChanged)
+
+        Q_PROPERTY(bool playbackPlaying READ isPlaybackPlaying NOTIFY playbackStateChanged)
+
+        Q_PROPERTY(double playbackRate READ playbackRate WRITE setPlaybackRate NOTIFY playbackRateChanged)
+
     public:
         /** 默认构造。 */
         explicit SceneManagerViewModel(QObject* parent = nullptr);
 
-        /** 默认析构。 */
-        ~SceneManagerViewModel() override = default;
+        /**
+         * @brief 默认析构。
+         * @details 定义放在 .cpp 中：本类持有 eps::EpsReader 的 unique_ptr，
+         *          此处只有前置声明，需要完整类型才能实例化删除器。
+         */
+        ~SceneManagerViewModel() override;
+
+        // ------------------------------------------------------------------
+        //  离线仿真文件播放（与实时求解互斥：只要加载了文件就进入播放模式）
+        // ------------------------------------------------------------------
+
+        /** 是否已加载仿真文件。 */
+        [[nodiscard]] bool isSimulationLoaded() const;
+
+        /** 当前打开的仿真文件路径。 */
+        [[nodiscard]] QString simulationFile() const;
+
+        /** 最近一次加载失败的原因；无错误时为空串。 */
+        [[nodiscard]] QString simulationError() const;
+
+        /** 仿真文件的总帧数。 */
+        [[nodiscard]] int simulationFrameCount() const;
+
+        /** 仿真的总时长（秒）。 */
+        [[nodiscard]] double simulationDurationSeconds() const;
+
+        /** 文件采样间隔（毫秒）。 */
+        [[nodiscard]] double simulationSampleIntervalMs() const;
+
+        /** 当前播放到的帧号。 */
+        [[nodiscard]] int playbackFrame() const;
+
+        /** 当前播放时间（秒）。 */
+        [[nodiscard]] double playbackTimeSeconds() const;
+
+        /** 是否正在播放。 */
+        [[nodiscard]] bool isPlaybackPlaying() const;
+
+        /** 播放倍速。 */
+        [[nodiscard]] double playbackRate() const;
+
+        /** 设置播放倍速。 */
+        void setPlaybackRate(double rate);
+
+        /**
+         * @brief 打开仿真文件并重建场景。
+         * @param fileName 文件路径。
+         * @return 成功返回 true；失败时可通过 simulationError 读取原因。
+         */
+        Q_INVOKABLE bool openSimulationFile(const QString& fileName);
+
+        /** 打开默认缓存位置的仿真文件。 */
+        Q_INVOKABLE bool openDefaultSimulationFile();
+
+        /** 关闭当前仿真文件并回到实时求解模式。 */
+        Q_INVOKABLE void closeSimulationFile();
+
+        /** 跳到指定帧。 */
+        Q_INVOKABLE void setPlaybackFrame(int frame);
+
+        /** 跳到指定播放时间（秒）。 */
+        Q_INVOKABLE void setPlaybackTime(double seconds);
+
+        /** 相对当前帧前后跳若干帧。 */
+        Q_INVOKABLE void stepPlaybackFrame(int delta);
+
+        /** 开始播放。 */
+        Q_INVOKABLE void playSimulation();
+
+        /** 暂停播放。 */
+        Q_INVOKABLE void pauseSimulation();
+
+        /** 在播放与暂停之间切换。 */
+        Q_INVOKABLE void toggleSimulationPlayback();
 
         // 从 json 创建 PhysicalEntity 等实例以供仿真器使用
         static SceneRecord createSceneFromJsonString(const QString& jsonString);
@@ -354,6 +451,15 @@ namespace egret
         /** 时间缩放因子变化。 */
         void timeScaleChanged();
 
+        /** 仿真文件或元信息变化。 */
+        void simulationChanged();
+
+        /** 播放进度或播放状态变化。 */
+        void playbackStateChanged();
+
+        /** 播放倍速变化。 */
+        void playbackRateChanged();
+
         /** 一帧求解完成。 */
         void frameAdvanced();
 
@@ -476,6 +582,40 @@ namespace egret
 
         /** 固定步长累加器。 */
         double m_accumulator{0.0};
+
+        /**
+         * @brief 播放推进：按真实时间推进播放时钟并切换到对应帧。
+         * @param realFrameSeconds 本渲染帧的真实耗时（秒）。
+         */
+        void advancePlayback(double realFrameSeconds);
+
+        /**
+         * @brief 把指定帧的数据套用到世界的实体上，并刷新 Qt 模型。
+         * @param frame 帧号。
+         * @return 成功返回 true。
+         */
+        bool applySimulationFrame(int frame);
+
+        /** 离线仿真文件读取器；为空表示当前处于实时求解模式。 */
+        std::unique_ptr<eps::EpsReader> m_simulationReader{};
+
+        /** 当前打开的仿真文件路径。 */
+        QString m_simulationFile{};
+
+        /** 最近一次加载失败的原因。 */
+        QString m_simulationError{};
+
+        /** 当前播放帧号。 */
+        int m_playbackFrame{0};
+
+        /** 当前播放时间（秒）。 */
+        double m_playbackTime{0.0};
+
+        /** 播放倍速。 */
+        double m_playbackRate{1.0};
+
+        /** 是否正在播放。 */
+        bool m_playbackPlaying{false};
 
         /** 帧计时器，用于驱动实时步进。 */
         QTimer m_timer;

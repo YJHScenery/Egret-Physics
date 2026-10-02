@@ -18,6 +18,8 @@
 #endif
 
 #include "scene_manager.h"
+#include "eps_reader.h"
+#include "offline_simulation_runner.h"
 #include <QCryptographicHash>
 #include "basic_render_item.h"
 
@@ -146,6 +148,8 @@ namespace egret
         refreshConvexMeshModel();
         m_frameClock.start();
     }
+
+    SceneManagerViewModel::~SceneManagerViewModel() = default;
 
     // -----------------------------------------------------------------------
     //  内部辅助 — JSON 解析 helper
@@ -892,10 +896,16 @@ namespace egret
     void SceneManagerViewModel::onFrameTick()
     {
         const double realFrameSeconds = std::max(0.0, static_cast<double>(m_frameClock.restart()) / 1000.0);
+        updateFps(realFrameSeconds);
+
+        // 播放模式：已加载仿真文件时不再求解，只按真实时间把播放时钟推进到对应帧。
+        if (m_simulationReader != nullptr) {
+            advancePlayback(realFrameSeconds);
+            return;
+        }
 
         // 时间缩放：累加器按缩放后的虚拟时间推进，物理积分仍以 m_fixedStepSeconds 为准
         m_accumulator += realFrameSeconds * m_timeScale;
-        updateFps(realFrameSeconds);
 
         int subStepCount = 0;
         while (m_accumulator >= m_fixedStepSeconds && subStepCount < m_maxSubSteps) {
@@ -915,6 +925,253 @@ namespace egret
         if (m_accumulator > maxAccumulator) {
             m_accumulator = maxAccumulator;
         }
+    }
+
+    // -----------------------------------------------------------------------
+    //  离线仿真文件播放
+    // -----------------------------------------------------------------------
+
+    bool SceneManagerViewModel::isSimulationLoaded() const
+    {
+        return m_simulationReader != nullptr;
+    }
+
+    QString SceneManagerViewModel::simulationFile() const
+    {
+        return m_simulationFile;
+    }
+
+    QString SceneManagerViewModel::simulationError() const
+    {
+        return m_simulationError;
+    }
+
+    int SceneManagerViewModel::simulationFrameCount() const
+    {
+        return m_simulationReader == nullptr ? 0 : static_cast<int>(m_simulationReader->frameCount());
+    }
+
+    double SceneManagerViewModel::simulationSampleIntervalMs() const
+    {
+        return m_simulationReader == nullptr
+                   ? 0.0
+                   : static_cast<double>(m_simulationReader->sampleIntervalNs()) / 1.0e6;
+    }
+
+    double SceneManagerViewModel::simulationDurationSeconds() const
+    {
+        if (m_simulationReader == nullptr) {
+            return 0.0;
+        }
+        return static_cast<double>(simulationFrameCount()) * simulationSampleIntervalMs() / 1000.0;
+    }
+
+    int SceneManagerViewModel::playbackFrame() const
+    {
+        return m_playbackFrame;
+    }
+
+    double SceneManagerViewModel::playbackTimeSeconds() const
+    {
+        return m_playbackTime;
+    }
+
+    bool SceneManagerViewModel::isPlaybackPlaying() const
+    {
+        return m_playbackPlaying;
+    }
+
+    double SceneManagerViewModel::playbackRate() const
+    {
+        return m_playbackRate;
+    }
+
+    void SceneManagerViewModel::setPlaybackRate(const double rate)
+    {
+        const double clamped = std::clamp(rate, 0.01, 100.0);
+        if (qFuzzyCompare(clamped, m_playbackRate)) {
+            return;
+        }
+        m_playbackRate = clamped;
+        emit playbackRateChanged();
+    }
+
+    bool SceneManagerViewModel::openSimulationFile(const QString& fileName)
+    {
+        auto reader = std::make_unique<eps::EpsReader>(fileName);
+        QString error;
+        if (!reader->open(&error)) {
+            m_simulationError = error;
+            emit simulationChanged();
+            return false;
+        }
+
+        // 用场景描述块重建场景；之后每一帧只需把记录的状态套用到实体上。
+        loadSceneFromJsonString(QString::fromStdString(reader->sceneJson()));
+        if (m_world == nullptr || m_world->getBodyCount() == 0) {
+            m_simulationError = QStringLiteral("仿真文件的场景描述块无法重建场景");
+            emit simulationChanged();
+            return false;
+        }
+
+        m_simulationReader = std::move(reader);
+        m_simulationFile = fileName;
+        m_simulationError.clear();
+        m_playbackPlaying = false;
+        m_playbackFrame = 0;
+        m_playbackTime = 0.0;
+
+        applySimulationFrame(0);
+        emit simulationChanged();
+        emit playbackStateChanged();
+        return true;
+    }
+
+    bool SceneManagerViewModel::openDefaultSimulationFile()
+    {
+        return openSimulationFile(OfflineSimulationRunner::defaultSimulationFilePath());
+    }
+
+    void SceneManagerViewModel::closeSimulationFile()
+    {
+        if (m_simulationReader == nullptr) {
+            return;
+        }
+
+        m_simulationReader.reset();
+        m_simulationFile.clear();
+        m_playbackPlaying = false;
+        m_playbackFrame = 0;
+        m_playbackTime = 0.0;
+        m_accumulator = 0.0;
+        emit simulationChanged();
+        emit playbackStateChanged();
+    }
+
+    void SceneManagerViewModel::setPlaybackFrame(const int frame)
+    {
+        if (m_simulationReader == nullptr) {
+            return;
+        }
+
+        const int total = simulationFrameCount();
+        const int clamped = std::clamp(frame, 0, total > 0 ? total - 1 : 0);
+        m_playbackFrame = clamped;
+        m_playbackTime = static_cast<double>(clamped) * simulationSampleIntervalMs() / 1000.0;
+
+        applySimulationFrame(clamped);
+        emit playbackStateChanged();
+    }
+
+    void SceneManagerViewModel::setPlaybackTime(const double seconds)
+    {
+        const double interval = simulationSampleIntervalMs() / 1000.0;
+        if (m_simulationReader == nullptr || interval <= 0.0) {
+            return;
+        }
+        setPlaybackFrame(static_cast<int>(seconds / interval));
+    }
+
+    void SceneManagerViewModel::stepPlaybackFrame(const int delta)
+    {
+        setPlaybackFrame(m_playbackFrame + delta);
+    }
+
+    void SceneManagerViewModel::playSimulation()
+    {
+        if (m_simulationReader == nullptr || m_playbackPlaying) {
+            return;
+        }
+        m_playbackPlaying = true;
+        emit playbackStateChanged();
+    }
+
+    void SceneManagerViewModel::pauseSimulation()
+    {
+        if (!m_playbackPlaying) {
+            return;
+        }
+        m_playbackPlaying = false;
+        emit playbackStateChanged();
+    }
+
+    void SceneManagerViewModel::toggleSimulationPlayback()
+    {
+        if (m_playbackPlaying) {
+            pauseSimulation();
+        }
+        else {
+            playSimulation();
+        }
+    }
+
+    void SceneManagerViewModel::advancePlayback(const double realFrameSeconds)
+    {
+        if (!m_playbackPlaying || m_simulationReader == nullptr) {
+            return;
+        }
+
+        m_playbackTime += realFrameSeconds * m_playbackRate;
+
+        const double interval = simulationSampleIntervalMs() / 1000.0;
+        if (interval <= 0.0) {
+            return;
+        }
+
+        const int target = static_cast<int>(m_playbackTime / interval);
+        if (target >= simulationFrameCount()) {
+            setPlaybackFrame(simulationFrameCount() - 1);
+            pauseSimulation();
+            return;
+        }
+
+        if (target != m_playbackFrame) {
+            m_playbackFrame = target;
+            applySimulationFrame(target);
+            emit playbackStateChanged();
+        }
+    }
+
+    bool SceneManagerViewModel::applySimulationFrame(const int frame)
+    {
+        if (m_simulationReader == nullptr || m_world == nullptr) {
+            return false;
+        }
+
+        eps::FrameState state{};
+        QString error;
+        if (!m_simulationReader->readFrame(static_cast<std::uint64_t>(std::max(0, frame)), &state, &error)) {
+            m_simulationError = error;
+            emit simulationChanged();
+            return false;
+        }
+
+        const std::vector<PhysicalEntity*> entities = m_world->getAllPhysicalEntities();
+        for (const eps::BodyState& body : state.bodies) {
+            if (body.slot >= entities.size()) {
+                continue;
+            }
+            PhysicalEntity* entity = entities[body.slot];
+            if (entity == nullptr) {
+                continue;
+            }
+            entity->setPosition(body.position);
+            entity->setRotation(body.rotation);
+            entity->setSpeed(body.linearVelocity);
+            entity->setAngular(body.angularVelocity);
+        }
+
+        m_simTime = static_cast<double>(state.simTimeNs) / 1.0e9;
+        m_stepCount = state.stepIndex;
+
+        refreshBodyModel();
+        refreshConstraintModel();
+        refreshCurveModel();
+        refreshConvexMeshModel();
+        emit simTimeChanged();
+        emit stepCountChanged();
+        emit entityChanged();
+        return true;
     }
 
     void SceneManagerViewModel::rebuildDemoWorld()
