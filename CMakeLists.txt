@@ -136,6 +136,8 @@ include_directories(
         src/view_model/simulator
         src/view_model/simulator/visual_item
         src/view_model/serialize
+        src/view_model/simulation_serializer
+        src/view_model/simulation_player
         src/view_model/editor
         src/view
         src/view/geometry/
@@ -258,6 +260,8 @@ set(CPP_FILES
 
         src/view_model/simulator/scene_manager.cpp
         src/view_model/simulator/scene_manager.h
+        src/view_model/simulation_player/offline_simulation_runner.cpp
+        src/view_model/simulation_player/offline_simulation_runner.h
         src/view_model/simulator/visual_item/scene_body_model.h
         src/view_model/simulator/visual_item/scene_body_model.cpp
         src/view_model/simulator/visual_item/scene_constraint_model.h
@@ -270,6 +274,13 @@ set(CPP_FILES
         src/view_model/editor/parameter_manager.h
         src/view_model/serialize/model_item_data.cpp
         src/view_model/serialize/model_item_data.h
+        src/view_model/simulation_serializer/eps_crc32c.h
+        src/view_model/simulation_serializer/eps_common.h
+        src/view_model/simulation_serializer/eps_format.h
+        src/view_model/simulation_serializer/eps_writer.cpp
+        src/view_model/simulation_serializer/eps_writer.h
+        src/view_model/simulation_serializer/eps_reader.cpp
+        src/view_model/simulation_serializer/eps_reader.h
 
         src/view/qt_component_helper.cpp
         src/view/qt_component_helper.h
