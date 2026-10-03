@@ -28,4 +28,4 @@ count.py
 
 /build-verify/
 
-/demo/test.epsx
+/demo/*.epsx
