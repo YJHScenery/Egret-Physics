@@ -22,6 +22,7 @@
 #include <QQmlContext>
 
 #include <QIcon>
+#include <QUrl>
 
 #include "view_model/simulator/scene_manager.h"
 #include "basic_utils.h"
@@ -131,8 +132,12 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty("qtHelper", &qtHelper);
     engine.rootContext()->setContextProperty("resourceHelper", &resourceHelper);
     engine.rootContext()->setContextProperty("fileHandler", &fileHandler);
-    engine.rootContext()->setContextProperty("documentsFolder",
-                                             QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation));
+    // FileDialog 的 currentFolder 是 url 属性：必须传 file:// URL。
+    // 传裸路径（"C:/Users/..."）会被解析成 scheme = "c"，Qt 会打印
+    // QWindowsNativeFileDialogBase::shellItem : Unhandled scheme: "c"。
+    engine.rootContext()->setContextProperty(
+        "documentsFolder",
+        QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)));
     engine.rootContext()->setContextProperty("mediaHelper", &qtMediaHelper);
 
 

@@ -129,6 +129,10 @@ ApplicationWindow {
                     }case 1: {
                         EditorManager.loadFromJson(localPath);
                         break;
+                    }case 2: {
+                        // 离线仿真工作区：场景加载到它自己的世界里（即求解初始状态）
+                        offlineSceneController.loadSceneFronJsonFile(localPath);
+                        break;
                     }
                 }
             }
@@ -196,7 +200,7 @@ ApplicationWindow {
                             text: "新建(&N)",
                             shortcut: "Ctrl+N",
                             onTriggered: function () {
-                                workspaceComboBox.currentIndex = 1
+                                mainRowLayout.currentRoute = "solver"
                                 sceneController.reset();
                             },
                             icon: "qrc:/main_icons/assets/icons/new_scene.svg"
@@ -207,13 +211,19 @@ ApplicationWindow {
                             onTriggered: function () {
                                 console.log("Open scene");
 
-                                switch (workspaceComboBox.currentIndex){
-                                    case 0:{
-                                        openJsonFileDialog.mode = 0;
+                                // 按「路由」而不是 Combo 索引分派：Combo 项一旦增减，
+                                // 索引就会错位（离线仿真曾被误派给编辑器）。
+                                switch (mainRowLayout.currentRoute){
+                                    case "solver":{
+                                        openJsonFileDialog.mode = 1;   // 场景编辑器
                                         openJsonFileDialog.open();
                                         break;
-                                    }case 1:{
-                                        openJsonFileDialog.mode = 1;
+                                    }case "offline":{
+                                        openJsonFileDialog.mode = 2;   // 离线仿真
+                                        openJsonFileDialog.open();
+                                        break;
+                                    }default:{
+                                        openJsonFileDialog.mode = 0;   // 实时仿真（默认）
                                         openJsonFileDialog.open();
                                         break;
                                     }
@@ -225,7 +235,7 @@ ApplicationWindow {
                             text: "保存(&S)",
                             shortcut: "Ctrl+S",
                             onTriggered: function () {
-                                if (workspaceComboBox.currentIndex !== 1){
+                                if (mainRowLayout.currentRoute !== "solver"){
                                     mainMsgDialog.title = "警告"
                                     mainMsgDialog.text = "仿真器不支持保存文件！"
                                     mainMsgDialog.open();
@@ -241,7 +251,7 @@ ApplicationWindow {
                             text: "另存为...(&A)",
                             shortcut: "Ctrl+Shift+S",
                             onTriggered: function () {
-                                if (workspaceComboBox.currentIndex !== 1){
+                                if (mainRowLayout.currentRoute !== "solver"){
                                     mainMsgDialog.title = "警告"
                                     mainMsgDialog.text = "仿真器不支持保存文件！"
                                     mainMsgDialog.open();
