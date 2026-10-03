@@ -154,8 +154,14 @@ namespace egret
         Q_PROPERTY(double playbackRate READ playbackRate WRITE setPlaybackRate NOTIFY playbackRateChanged)
 
     public:
-        /** 默认构造。 */
-        explicit SceneManagerViewModel(QObject* parent = nullptr);
+        /**
+         * @brief 默认构造。
+         * @param parent Qt 父对象。
+         * @param buildDemoScene 是否在构造时建立内置示例场景。离线仿真工作区传入
+         *        false：它需要一个「空世界」起点，未加载场景时只渲染坐标系与网格，
+         *        也避免再依赖 `../tools/icosahedron.obj` 等外部资源。
+         */
+        explicit SceneManagerViewModel(QObject* parent = nullptr, bool buildDemoScene = true);
 
         /**
          * @brief 默认析构。

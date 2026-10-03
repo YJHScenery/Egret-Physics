@@ -130,8 +130,9 @@ namespace egret
         }
     }
 
-    SceneManagerViewModel::SceneManagerViewModel(QObject* parent) : QObject(parent), m_bodyModel(this),
-                                                                    m_convexMeshModel(this)
+    SceneManagerViewModel::SceneManagerViewModel(QObject* parent, const bool buildDemoScene) : QObject(parent),
+        m_bodyModel(this),
+        m_convexMeshModel(this)
     {
         m_timer.setInterval(16);
         m_timer.setTimerType(Qt::PreciseTimer);
@@ -141,7 +142,9 @@ namespace egret
         connect(&m_flushTimer, &QTimer::timeout, this, &SceneManagerViewModel::flushRecordings);
 
         initialize();
-        rebuildDemoWorld();
+        if (buildDemoScene) {
+            rebuildDemoWorld();
+        }
         refreshBodyModel();
         refreshConstraintModel();
         refreshCurveModel();

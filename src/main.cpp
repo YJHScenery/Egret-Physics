@@ -110,6 +110,8 @@ int main(int argc, char* argv[])
     qmlRegisterType<egret::CurveGeometry>("EgretPhysics", 1, 0, "CurveGeometry");
 
     egret::SceneManagerViewModel sceneController;
+    // 离线仿真工作区使用独立的空场景控制器：初始不加载任何场景，只显示坐标系与网格
+    egret::SceneManagerViewModel offlineSceneController{nullptr, false};
     egret::SimulationExportController simulationExporter;
     egret::QtComponentHelper qtHelper;
     egret::ResourceHelper resourceHelper;
@@ -121,6 +123,7 @@ int main(int argc, char* argv[])
     // egret::EditorManager::instance()->addModels(egret::createDefaultModels());
 
     engine.rootContext()->setContextProperty("sceneController", &sceneController);
+    engine.rootContext()->setContextProperty("offlineSceneController", &offlineSceneController);
     engine.rootContext()->setContextProperty("simulationExporter", &simulationExporter);
     engine.rootContext()->setContextProperty("qtHelper", &qtHelper);
     engine.rootContext()->setContextProperty("resourceHelper", &resourceHelper);

@@ -493,28 +493,26 @@ ApplicationWindow {
                             mainRowLayout.currentRoute = workspaceRouteModel.get(index).route;
                         }
 
-                        contentItem: Row {
-                            spacing: 6
+                        // contentItem 只用单个 Text：控制项（与基础样式一致）会负责它的
+                        // 尺寸，Text 自己按 horizontalAlignment / verticalAlignment 对齐，
+                        // 这样「左对齐 + 上下居中」最稳；放入位置器（Row / RowLayout）
+                        // 反而会破坏这套对齐，出现文字贴顶、上下边距不等。
+                        // 「不再维护」小标签用富文本着色，从而与标签共用同一个 Text。
+                        readonly property string badgeText: currentIndex >= 0
+                            ? workspaceRouteModel.get(currentIndex).badge
+                            : ""
 
-                            Text {
-                                text: workspaceComboBox.displayText
-                                color: theme.textPrimary
-                                font.pixelSize: 13
-                                elide: Text.ElideRight
-                                verticalAlignment: Text.AlignVCenter
-                            }
-
-                            Text {
-                                visible: workspaceComboBox.currentIndex >= 0
-                                    && workspaceRouteModel.get(workspaceComboBox.currentIndex).badge.length > 0
-                                text: workspaceComboBox.currentIndex >= 0
-                                    ? workspaceRouteModel.get(workspaceComboBox.currentIndex).badge
-                                    : ""
-                                color: theme.warning
-                                font.pixelSize: 11
-                                font.bold: true
-                                verticalAlignment: Text.AlignVCenter
-                            }
+                        contentItem: Text {
+                            textFormat: Text.RichText
+                            text: workspaceComboBox.displayText
+                                + (workspaceComboBox.badgeText.length > 0
+                                    ? "    <font color=\"" + theme.warning.toString() + "\">"
+                                        + workspaceComboBox.badgeText + "</font>"
+                                    : "")
+                            color: theme.textPrimary
+                            font.pixelSize: 13
+                            horizontalAlignment: Text.AlignLeft
+                            verticalAlignment: Text.AlignVCenter
                         }
 
                         indicator: Canvas {
@@ -576,28 +574,27 @@ ApplicationWindow {
                         {
                             width: listView ? listView.width : workspaceComboBox.width
                             height: 34
+                            // 基础样式默认 padding: 12，会把 34 px 的行压到只剩 10 px 内容高度，
+                            // 文字只能溢出显示、上下留白不可控；这里改为上下 0，让内容区占满行高。
+                            topPadding: 0
+                            bottomPadding: 0
                             text: model.label
                             highlighted: workspaceComboBox.highlightedIndex === index
-                            contentItem: Row {
-                                spacing: 6
-
-                                Text {
-                                    text: model.label
-                                    color: highlighted ? "#E7F2FF" : "#9ABFE3"
-                                    font.pixelSize: 12
-                                    verticalAlignment: Text.AlignVCenter
-                                    elide: Text.ElideRight
-                                    leftPadding: 10
-                                }
-
-                                Text {
-                                    visible: model.badge !== undefined && model.badge.length > 0
-                                    text: model.badge !== undefined ? model.badge : ""
-                                    color: theme.warning
-                                    font.pixelSize: 11
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                }
+                            // 与 ComboBox 本体保持同一套对齐方式：单个 Text + 左右内边距，
+                            // 左对齐、上下居中；小标签同样走富文本着色。
+                            contentItem: Text {
+                                textFormat: Text.RichText
+                                text: model.label
+                                    + ((model.badge !== undefined && model.badge.length > 0)
+                                        ? "    <font color=\"" + theme.warning.toString() + "\">"
+                                            + model.badge + "</font>"
+                                        : "")
+                                color: highlighted ? "#E7F2FF" : "#9ABFE3"
+                                font.pixelSize: 12
+                                horizontalAlignment: Text.AlignLeft
+                                verticalAlignment: Text.AlignVCenter
+                                leftPadding: 10
+                                rightPadding: 10
                             }
                             background: Rectangle {
                                 radius: theme.radiusS

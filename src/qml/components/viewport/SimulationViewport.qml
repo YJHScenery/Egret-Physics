@@ -50,6 +50,25 @@ Item {
     /** 当前高亮的实体 ID，空串表示无选中。 */
     property string selectedBodyId: ""
 
+    // ============ 数据来源 ============
+
+    /**
+     * @brief 视口渲染的数据来源。
+     * @details 默认绑定实时仿真器（上下文属性 sceneController）。离线仿真工作区会注入
+     *          自己的场景控制器，从而在不影响实时仿真的前提下预览「待求解场景」，
+     *          且未加载场景时只显示坐标系与网格。
+     */
+    property var bodyModelSource: sceneController.bodyModel
+
+    /** 约束模型来源，默认实时仿真器。 */
+    property var constraintModelSource: sceneController.constraintModel
+
+    /** 曲线模型来源，默认实时仿真器。 */
+    property var curveModelSource: sceneController.curveModel
+
+    /** 凸体网格模型来源，默认实时仿真器。 */
+    property var convexMeshModelSource: sceneController.convexMeshModel
+
     /** 网格线数量。 */
     property int gridCount: 41
 
@@ -231,7 +250,7 @@ Item {
 
             // ---- 刚体渲染 ----
             Repeater3D {
-                model: sceneController.bodyModel
+                model: viewportRoot.bodyModelSource
 
                 delegate: BodyDelegate {
                     selectedBodyId: viewportRoot.selectedBodyId
@@ -242,7 +261,7 @@ Item {
             // 坐标转换已在 C++ buildConstraintRenderItems() 中完成
             // (x,y,z) → (y,z,x)，与 buildRenderItems() 保持一致
             Repeater3D {
-                model: sceneController.constraintModel
+                model: viewportRoot.constraintModelSource
 
                 delegate: ConstraintDelegate {}
             }
@@ -250,7 +269,7 @@ Item {
             // ---- 曲线轨道渲染（SlidingRail） ----
             // 坐标转换已在 CurveGeometry::rebuild() 中完成
             Repeater3D {
-                model: sceneController.curveModel
+                model: viewportRoot.curveModelSource
 
                 delegate: CurveDelegate {}
             }
@@ -258,7 +277,7 @@ Item {
             // ---- 凸体网格渲染（ConvexMesh） ----
             // 坐标转换已在 ConvexMeshGeometry::rebuild() 中完成
             Repeater3D {
-                model: sceneController.convexMeshModel
+                model: viewportRoot.convexMeshModelSource
 
                 delegate: ConvexMeshDelegate {}
             }

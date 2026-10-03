@@ -17,6 +17,7 @@
 
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import QtQuick.Controls.Basic 2.15 as Basic
 import QtQuick.Layouts 1.15
 import QtQuick.Dialogs
 
@@ -57,7 +58,7 @@ ColumnLayout {
         ]
 
         onAccepted: {
-            sceneController.loadSceneFronJsonFile(offlineRoot.localPathFromUrl(selectedFile));
+            offlineSceneController.loadSceneFronJsonFile(offlineRoot.localPathFromUrl(selectedFile));
         }
     }
 
@@ -91,6 +92,12 @@ ColumnLayout {
                 id: offlineViewport
                 anchors.fill: parent
 
+                // 使用离线工作区自己的场景控制器：初始为空世界，只渲染坐标系与网格
+                bodyModelSource: offlineSceneController.bodyModel
+                constraintModelSource: offlineSceneController.constraintModel
+                curveModelSource: offlineSceneController.curveModel
+                convexMeshModelSource: offlineSceneController.convexMeshModel
+
                 // ---- 操作提示 ----
                 Rectangle {
                     anchors.left: parent.left
@@ -109,7 +116,7 @@ ColumnLayout {
                         anchors.margins: 10
                         color: "#D4EAFB"
                         font.pixelSize: 12
-                        text: "坐标系: World z-up, 右手系\n右键拖拽旋转视角, 滚轮缩放\n求解在后台线程执行，界面不会卡住"
+                    text: "坐标系: World z-up, 右手系\n右键拖拽旋转视角, 滚轮缩放\n求解在后台线程执行，界面不会卡住"
                     }
                 }
 
@@ -174,7 +181,7 @@ ColumnLayout {
                     Layout.preferredHeight: 32
                     Layout.maximumHeight: 32
                     metricName: "实体"
-                    metricValue: sceneController.entityCount
+                    metricValue: offlineSceneController.entityCount
                     metricUnit: "obj"
                     metricColor: theme.warning
                     nameFontSize: 12
@@ -265,7 +272,7 @@ ColumnLayout {
 
                     Text {
                         Layout.fillWidth: true
-                        text: "当前场景实体数：" + sceneController.entityCount
+                        text: "当前场景实体数：" + offlineSceneController.entityCount
                         color: "#BDD8F3"
                         font.pixelSize: 11
                     }
@@ -401,7 +408,7 @@ ColumnLayout {
                             enabled: !simulationExporter.running
                             onClicked: {
                                 simulationExporter.start(
-                                    sceneController.currentSceneJson(),
+                                    offlineSceneController.currentSceneJson(),
                                     offlineRoot.durationSeconds,
                                     offlineRoot.solverStepMs,
                                     offlineRoot.sampleMs);
@@ -492,6 +499,103 @@ ColumnLayout {
 
                     Item {
                         Layout.fillHeight: true
+                    }
+                }
+            }
+
+            // ============ 参数信息（求解概览） ============
+            // 从「实时仿真」工作区迁移而来：离线求解读取当前场景并复用同一套策略组合
+            // （Velocity Verlet 积分 + 八叉树广相 + 有摩擦接触），因此这里展示的就是
+            // 实际参与离线求解的模型参数。
+            GlassPanel {
+                id: parameterOverviewPanel
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                title: "参数信息"
+
+                ScrollView {
+                    id: overviewScrollView
+                    anchors.fill: parent
+                    clip: true
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                    rightPadding: overviewScrollBar.visible ? (overviewScrollBar.width) : 0
+                    ScrollBar.vertical: Basic.ScrollBar {
+                        id: overviewScrollBar
+                        width: 8
+                        policy: ScrollBar.AsNeeded
+                        visible: size < 1.0
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+
+                        contentItem: Rectangle {
+                            radius: theme.radiusS
+                            implicitWidth: 8
+                            color: theme.accent
+                            opacity: overviewScrollBar.pressed ? 0.9 : 0.7
+                        }
+
+                        background: Rectangle {
+                            radius: theme.radiusS
+                            implicitWidth: 8
+                            color: "#0F2A4C"
+                            border.width: 1
+                            border.color: theme.border
+                            opacity: 0.6
+                        }
+                    }
+
+                    ColumnLayout {
+                        width: Math.max(0, overviewScrollView.availableWidth - overviewScrollView.rightPadding)
+                        spacing: 6
+
+                        Repeater {
+                            model: [
+                                "广相位碰撞模型：" + offlineSceneController.getBroadStrategyName(),
+                                "积分器: " + offlineSceneController.getIntegratorName(),
+                                "碰撞模型: CCD",
+                                "约束求解: Sequential Impulse",
+                                "误差阈值: 1e-6",
+                                "采样语义: 抽帧",
+                                "默认精度: float64",
+                                "实体集合: 一次模拟内固定"]
+
+                            delegate: Rectangle {
+                                id: overviewItem
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 30
+                                property bool hovered: false
+                                radius: theme.radiusS
+                                color: hovered ? "#122c5d" : "#12365D"
+                                border.width: 1
+                                border.color: "#2E5D89"
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onEntered: {
+                                        overviewItem.hovered = true;
+                                    }
+                                    onExited: {
+                                        overviewItem.hovered = false;
+                                    }
+                                }
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 10
+                                    text: modelData
+                                    color: "#BDD8F3"
+                                    font.pixelSize: 13
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+
+                        Item {
+                            Layout.fillHeight: true
+                        }
                     }
                 }
             }

@@ -27,6 +27,7 @@ EXCLUDE_DIRS = {
     "cmake-build-release",
     ".deprecated",
     "build",
+    "build-verify",
     "dist",
     "venv",
     ".venv",
