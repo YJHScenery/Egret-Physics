@@ -62,4 +62,7 @@
     <qresource prefix="/units">
         <file>assets/units/triangle_arrow.svg</file>
     </qresource>
+    <qresource prefix="/file_icon">
+        <file>assets/file_icon/simulation-file-blue.ico</file>
+    </qresource>
 </RCC>

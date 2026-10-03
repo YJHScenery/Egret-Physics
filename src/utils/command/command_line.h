@@ -43,8 +43,18 @@ namespace egret::command
         /** --parse / -p：解析仿真文件的指定帧。 */
         Parse,
 
-        /** --play / -r：以播放器模式打开文件（尚未实现）。 */
+        /**
+         * --play / -r：以播放器模式打开文件。
+         * 该模式不在此处执行：main.cpp 会继续进入图形界面，并在播放器工作区
+         * 打开指定文件、自动开始播放（Windows 双击 .epsx 即走这条路径）。
+         */
         Play,
+
+        /** --register-epsx：把 .epsx 注册到当前用户。 */
+        RegisterAssociation,
+
+        /** --unregister-epsx：删除当前用户的 .epsx 关联。 */
+        UnregisterAssociation,
 
         /** --help / -h：打印帮助。 */
         Help,

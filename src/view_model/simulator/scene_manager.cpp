@@ -28,7 +28,11 @@
 #include <numbers>
 #include <unordered_set>
 #include <QBuffer>
+#include <QCoreApplication>
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
+#include <QStringList>
 #include <QTextStream>
 #include <QtConcurrent>
 #include <xlsxdocument.h>
@@ -1326,16 +1330,39 @@ namespace egret
         //
         // mesh.indices = indices;
 
-        auto mesh{makeTessellatedMesh("../tools/icosahedron.obj")};
-        AABB ab = mesh.getAABB();
-        LOG_DEBUG(std::format("AABB: ({}, {}, {}), ({}, {}, {})", ab.min.x(), ab.min.y(), ab.min.z(), ab.max.x(), ab.max.y(), ab.max.z()));
+        // 示例网格的定位基准：进程工作目录可能是项目根目录、部署目录或任意位置
+        // （双击 .epsx 由资源管理器启动时尤其不受控），因此逐个尝试候选路径；
+        // 全部落空时返回首个候选，交由下面的空网格判断处理，避免以空网格构造 ConvexMesh。
+        const auto resolveDemoMeshPath = []() -> std::string
+        {
+            const QStringList candidates{
+                QStringLiteral("../tools/icosahedron.obj"),
+                QDir(QCoreApplication::applicationDirPath())
+                    .absoluteFilePath(QStringLiteral("../tools/icosahedron.obj")),
+                QDir(QCoreApplication::applicationDirPath())
+                    .absoluteFilePath(QStringLiteral("tools/icosahedron.obj")),
+            };
+            for (const QString& candidate : candidates) {
+                if (QFileInfo::exists(candidate)) {
+                    return QDir::toNativeSeparators(QFileInfo(candidate).absoluteFilePath()).toStdString();
+                }
+            }
+            return candidates.constFirst().toStdString();
+        };
 
+        const std::string demoMeshPath = resolveDemoMeshPath();
+        auto mesh{makeTessellatedMesh(demoMeshPath)};
+        if (mesh.vertices.empty() || mesh.indices.empty()) {
+            // 网格缺失时跳过该实体，其余示例场景照常建立：
+            // TessellatedMesh::getAABB() 会访问 vertices[0]，空网格继续走下去是未定义行为。
+            LOG_WARN(std::format("示例网格加载失败，已跳过示例实体：{}", demoMeshPath));
+        }
+        else {
+            AABB ab = mesh.getAABB();
+            LOG_DEBUG(std::format("AABB: ({}, {}, {}), ({}, {}, {})", ab.min.x(), ab.min.y(), ab.min.z(), ab.max.x(), ab.max.y(), ab.max.z()));
 
-        auto shapeTest{std::make_unique<ShapeBox>(100, 100, 100)};
-
-
-        m_world->spawnBody("测试样例1", {-400, -400, 400}, {0, 0, 0}, std::move(std::make_unique<ConvexMesh>(std::move(mesh))), 1.0);
-        // m_world->spawnBody("测试样例1", {-400, -400, 400}, {0, 0, 0}, std::move(std::move(shapeTest)), 1.0);
+            m_world->spawnBody("测试样例1", {-400, -400, 400}, {0, 0, 0}, std::move(std::make_unique<ConvexMesh>(std::move(mesh))), 1.0);
+        }
 
         std::uint64_t idBox2 = m_world->spawnBox("3", {0, 0, 0}, {0, 0, 0}, {10000, 10000, 130}, 0);
 

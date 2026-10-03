@@ -73,7 +73,7 @@ EPSX 文件用于把一次模拟的**全部逐帧状态**固化下来，使解�
 
 ```
 HKCU\Software\Classes\EgretPhysics.Simulation          (默认) = "Egret Physics Simulation"
-HKCU\Software\Classes\EgretPhysics.Simulation\DefaultIcon (默认) = "<安装目录>\Egret_Physics.exe,0"
+HKCU\Software\Classes\EgretPhysics.Simulation\DefaultIcon (默认) = "<用户数据目录>\simulation-file-blue.epsx.ico"
 HKCU\Software\Classes\EgretPhysics.Simulation\shell\open\command
                                                         (默认) = "\"<安装目录>\Egret_Physics.exe\" --play \"%1\""
 HKCU\Software\Classes\.epsx                             (默认) = "EgretPhysics.Simulation"
@@ -88,6 +88,19 @@ reg add "HKCU\Software\Classes\.epsx" /ve /d "EgretPhysics.Simulation" /f
 reg delete "HKCU\Software\Classes\.epsx" /f
 reg delete "HKCU\Software\Classes\EgretPhysics.Simulation" /f
 ```
+
+程序内置了与上面等价、且会自动填写当前可执行文件路径的两条命令（推荐用它，避免手工拼 `%CD%`）：
+
+```
+Egret_Physics.exe --register-epsx      # 写入上述键，并把图标释放到用户数据目录
+Egret_Physics.exe --unregister-epsx     # 删除上述两个键，并清理图标副本
+```
+
+- DefaultIcon 使用随程序分发的 `resources/assets/file_icon/simulation-file-blue.ico`
+  （已加入 `resources/global.qrc` 的 `/file_icon` 前缀）；注册时复制为
+  `%LOCALAPPDATA%\EgretPhysicsStudio\simulation-file-blue.epsx.ico`，因此不依赖安装目录是否可写，
+  也不使用 `Egret_Physics.exe,0`（那是主程序图标，不是本格式的文件图标）。
+- 关联指向当前运行的可执行文件：更换构建 / 部署位置后重新执行一次 `--register-epsx` 即可刷新。
 
 ## 3. 总体结构
 
@@ -517,8 +530,10 @@ AoS + `strideBytes` 让所有段共用同一套「定位 / 跳过」逻辑，无
 | 命令 | 含义 |
 |------|------|
 | `name --parse epsx <integer>` / `name -p epsx <integer>` | 解析指定帧，把该帧全部实体数据以 JSON 打印到标准输出 |
-| `name --play <file.epsx>` / `name --replay <file.epsx>` / `name -r <file.epsx>` | 以播放器模式打开文件（Windows 双击关联使用此入口） |
+| `name --play <file.epsx>` / `name --replay <file.epsx>` / `name -r <file.epsx>` | 以播放器模式打开文件：进入图形界面的「播放器」工作区、载入该文件并自动开始播放（Windows 双击关联使用此入口） |
 | `name --solve <scene.json> --duration <seconds> --sample <1\|2\|5\|10\|20> -o <file.epsx>` | 求解器模式，离线求解并写出模拟文件 |
+| `name --register-epsx` | 把 `.epsx` 关联到当前可执行文件（只写 `HKCU\Software\Classes`，无需管理员） |
+| `name --unregister-epsx` | 删除当前用户的 `.epsx` 关联 |
 
 `--solve` 的 `--sample` 省略时取**默认值 10 ms**；五档取值全部保留，也可在界面侧改为下拉选择。
 

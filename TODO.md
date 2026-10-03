@@ -88,7 +88,15 @@
 
 - [ ] **实机运行验证**：全部 QML 只能由用户实机运行确认（语法用 `qmllint` 抽查、资源已进 qrc，
       但渲染与交互效果需要人工确认）。
-- [ ] **文件关联**：`.epsx` 尚未注册到 `HKCU\Software\Classes`，双击启动播放器未接通。
+- [x] **文件关联**：已实现。新增 `src/utils/os/windows/file_association.{h,cpp}`（只写
+      `HKCU\Software\Classes`，含 `DefaultIcon` / `shell\open\command` / `OpenWithProgids`）与命令行
+      `--register-epsx` / `--unregister-epsx`；`main.cpp` 的 `--play` 不再提前退出，改为进入图形界面、
+      切到「播放器」工作区、打开文件后调用 `playSimulation()` 自动播放（`MainWindow.qml` 的
+      `startupWorkspaceRoute` / `startupSimulationFile`）；文件图标取
+      `resources/assets/file_icon/simulation-file-blue.ico`（已加入 `resources/global.qrc` 的
+      `/file_icon` 前缀，注册时释放到 `%LOCALAPPDATA%\EgretPhysicsStudio\simulation-file-blue.epsx.ico`）。
+      → 结论：本机已按 `cmake-build-release\Egret_Physics.exe` 完成注册（注册表已核对）。更换可执行文件
+      位置后重新执行 `Egret_Physics.exe --register-epsx` 即可刷新指向；实机双击验证仍待用户确认。
 - [ ] **保留能力未实现**：文件头中的 `float32` 几何、zstd 压缩位已定义但读取器会明确拒绝，
       写入端也不会产生此类文件。
 - [ ] **约束与场的帧记录不完整**：`CONS`/`FLDS` 段当前只记录 ID、槽位、类型、启用标志、

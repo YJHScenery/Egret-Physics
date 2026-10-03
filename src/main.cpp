@@ -23,6 +23,7 @@
 
 #include <QIcon>
 #include <QUrl>
+#include <QDir>
 
 #include "view_model/simulator/scene_manager.h"
 #include "basic_utils.h"
@@ -55,10 +56,19 @@ int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
 
-    // 命令行分支：无参数时进入图形界面；其余模式在创建 QML 引擎之前处理完毕。
+    // 命令行分支：无参数时进入图形界面；纯命令行模式在创建 QML 引擎之前处理完毕。
+    // --play 是例外：它要在图形界面里打开「播放器」工作区并自动播放，
+    // 因此不在这里提前退出，而是把文件路径带进下面的界面流程。
     const egret::command::Request command = egret::command::parse(app.arguments());
-    if (command.mode != egret::command::Mode::Gui) {
+    if (command.mode != egret::command::Mode::Gui && command.mode != egret::command::Mode::Play) {
         return egret::command::execute(command);
+    }
+
+    // 双击 .epsx 时资源管理器给出的工作目录不受控（可能是 %SystemRoot%\System32），
+    // 而日志、示例网格等资源都按相对路径解析；把工作目录钉在可执行文件所在目录，
+    // 让双击启动与「在部署目录运行」表现一致。
+    if (command.mode == egret::command::Mode::Play) {
+        QDir::setCurrent(QCoreApplication::applicationDirPath());
     }
 
     QQuickStyle::setStyle("Fusion");
@@ -139,6 +149,15 @@ int main(int argc, char* argv[])
         "documentsFolder",
         QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)));
     engine.rootContext()->setContextProperty("mediaHelper", &qtMediaHelper);
+
+    // 播放器启动信息：--play <file> 时让主窗口直接切到播放器工作区并自动播放。
+    const bool startInPlayer = command.mode == egret::command::Mode::Play;
+    engine.rootContext()->setContextProperty(
+        "startupWorkspaceRoute",
+        startInPlayer ? QStringLiteral("player") : QString{});
+    engine.rootContext()->setContextProperty(
+        "startupSimulationFile",
+        startInPlayer ? QDir::toNativeSeparators(command.playFile) : QString{});
 
 
     const QUrl url(QStringLiteral("qrc:/main/main/MainWindow.qml"));

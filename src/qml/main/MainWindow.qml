@@ -622,7 +622,25 @@ ApplicationWindow {
             id: mainRowLayout
             Layout.fillWidth: true
             Layout.fillHeight: true
-            property string currentRoute: "scene";
+
+            // 默认进入实时仿真工作区；由命令行 --play 启动时直接落在播放器工作区。
+            property string currentRoute: (typeof startupWorkspaceRoute !== "undefined"
+                                           && startupWorkspaceRoute.length > 0)
+                ? startupWorkspaceRoute
+                : "scene"
+
+            // 双击 .epsx 启动（--play <文件>）：切到播放器工作区，
+            // 打开传入的文件并立即开始播放。
+            Component.onCompleted: {
+                if (typeof startupSimulationFile === "undefined"
+                        || startupSimulationFile.length === 0) {
+                    return;
+                }
+                currentRoute = "player";
+                if (playerSceneController.openSimulationFile(startupSimulationFile)) {
+                    playerSceneController.playSimulation();
+                }
+            }
 
             spacing: 6
 

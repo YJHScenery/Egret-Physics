@@ -170,6 +170,8 @@ set(CPP_FILES
         src/utils/transform.cpp
         src/utils/os/windows/windows_config.h
         src/utils/os/windows/windows_config.cpp
+        src/utils/os/windows/file_association.h
+        src/utils/os/windows/file_association.cpp
         src/utils/io/database_controller.cpp
         src/utils/io/database_controller.h
         src/utils/io/async_logger.cpp
