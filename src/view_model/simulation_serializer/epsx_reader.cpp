@@ -1,6 +1,6 @@
 /**
- * @file        eps_reader.cpp
- * @brief       EPS 文件随机访问读取器实现。
+ * @file        epsx_reader.cpp
+ * @brief       EPSX 文件随机访问读取器实现。
  * @details     实现文件头校验、场景描述块解析、帧索引读取（含缺失索引时的顺序扫描回退），
  *              以及帧载荷到 FrameState 的解码。
  *
@@ -12,10 +12,10 @@
  * @license     GPL v3.0
  *
  * @ingroup     Serialize
- * @defgroup    Eps (Egret Physics Simulation 文件格式)
+ * @defgroup    EPSX (Egret Physics Simulation 文件格式)
  */
 
-#include "eps_reader.h"
+#include "epsx_reader.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -24,7 +24,7 @@
 #include <algorithm>
 #include <tuple>
 
-namespace egret::eps
+namespace egret::epsx
 {
     namespace
     {
@@ -225,20 +225,20 @@ namespace egret::eps
         }
     }
 
-    EpsReader::EpsReader(QString filePath) :
+    EpsxReader::EpsxReader(QString filePath) :
         m_filePath(std::move(filePath))
     {
     }
 
-    EpsReader::~EpsReader()
+    EpsxReader::~EpsxReader()
     {
         close();
     }
 
-    bool EpsReader::open(QString* errorMessage)
+    bool EpsxReader::open(QString* errorMessage)
     {
         if (m_open) {
-            setError(errorMessage, QStringLiteral("EPS 读取器已经打开"));
+            setError(errorMessage, QStringLiteral("EPSX 读取器已经打开"));
             return false;
         }
 
@@ -259,7 +259,7 @@ namespace egret::eps
         return true;
     }
 
-    void EpsReader::close()
+    void EpsxReader::close()
     {
         if (m_file.isOpen()) {
             m_file.close();
@@ -267,10 +267,10 @@ namespace egret::eps
         m_open = false;
     }
 
-    bool EpsReader::parseFileHeader(QString* errorMessage)
+    bool EpsxReader::parseFileHeader(QString* errorMessage)
     {
         if (m_file.size() < static_cast<qint64>(kFileHeaderBytes)) {
-            setError(errorMessage, QStringLiteral("文件长度不足 %1 字节，不是有效的 EPS 文件")
+            setError(errorMessage, QStringLiteral("文件长度不足 %1 字节，不是有效的 EPSX 文件")
                                        .arg(kFileHeaderBytes));
             return false;
         }
@@ -322,7 +322,7 @@ namespace egret::eps
         }
 
         if (versionMajor != kVersionMajor) {
-            setError(errorMessage, QStringLiteral("不支持的 EPS 主版本号 %1（当前支持 %2）")
+            setError(errorMessage, QStringLiteral("不支持的 EPSX 主版本号 %1（当前支持 %2）")
                                        .arg(versionMajor)
                                        .arg(kVersionMajor));
             return false;
@@ -352,7 +352,7 @@ namespace egret::eps
         return true;
     }
 
-    bool EpsReader::parseSceneChunk(QString* errorMessage)
+    bool EpsxReader::parseSceneChunk(QString* errorMessage)
     {
         std::vector<std::byte> payload;
         if (!readChunkPayload(m_sceneChunkOffset, kTagScene, &payload, errorMessage)) {
@@ -412,7 +412,7 @@ namespace egret::eps
         return true;
     }
 
-    bool EpsReader::parseFrameIndex(QString* errorMessage)
+    bool EpsxReader::parseFrameIndex(QString* errorMessage)
     {
         m_index.clear();
         m_hasTrailer = false;
@@ -470,7 +470,7 @@ namespace egret::eps
         return true;
     }
 
-    bool EpsReader::scanFrameChunks(QString* errorMessage)
+    bool EpsxReader::scanFrameChunks(QString* errorMessage)
     {
         // 从场景块之后开始，顺序遍历块头，收集所有 FRAM 块。
         const qint64 fileSize = m_file.size();
@@ -543,7 +543,7 @@ namespace egret::eps
         return true;
     }
 
-    bool EpsReader::readChunkPayload(const std::uint64_t chunkOffset,
+    bool EpsxReader::readChunkPayload(const std::uint64_t chunkOffset,
                                      const FourCC& expectedTag,
                                      std::vector<std::byte>* payload,
                                      QString* errorMessage)
@@ -605,10 +605,10 @@ namespace egret::eps
         return true;
     }
 
-    bool EpsReader::readFrame(const std::uint64_t frameIndex, FrameState* out, QString* errorMessage)
+    bool EpsxReader::readFrame(const std::uint64_t frameIndex, FrameState* out, QString* errorMessage)
     {
         if (!m_open) {
-            setError(errorMessage, QStringLiteral("EPS 读取器尚未打开"));
+            setError(errorMessage, QStringLiteral("EPSX 读取器尚未打开"));
             return false;
         }
         if (out == nullptr) {
@@ -631,7 +631,7 @@ namespace egret::eps
         return parseFramePayload(payload, out, errorMessage);
     }
 
-    bool EpsReader::readBody(const std::uint64_t frameIndex,
+    bool EpsxReader::readBody(const std::uint64_t frameIndex,
                              const std::uint32_t slot,
                              BodyState* out,
                              QString* errorMessage)
@@ -657,7 +657,7 @@ namespace egret::eps
         return false;
     }
 
-    bool EpsReader::parseFramePayload(const std::vector<std::byte>& payload,
+    bool EpsxReader::parseFramePayload(const std::vector<std::byte>& payload,
                                       FrameState* out,
                                       QString* errorMessage) const
     {

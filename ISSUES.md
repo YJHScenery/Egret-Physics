@@ -29,7 +29,7 @@
   `std::vector<std::string>` 传给 `CLI::App::parse`，而该重载要求「逆序、不含程序名」，
   导致 `--solve` / `--parse` / `--play` 的选项取值整体错位，报
   `Could not convert: --duration = --solve`。只有 `--help`（不依赖取值）看起来正常。
-  现已改为倒序构建并丢弃程序名，实测 `--solve` / `--parse eps <n>` / `--help` 均正常。
+  现已改为倒序构建并丢弃程序名，实测 `--solve` / `--parse EPSX <n>` / `--help` 均正常。
 
 ## 架构
 

@@ -1,13 +1,13 @@
 /**
- * @file        eps_format.h
- * @brief       EPS（Egret Physics Simulation）文件格式的常量与内存记录结构。
+ * @file        epsx_format.h
+ * @brief       EPSX（Egret Physics Simulation）文件格式的常量与内存记录结构。
  * @details     本文件只描述「格式长什么样」，不含任何读写实现：
  *              - 文件级常量（魔数、版本、各层定长头长度、对齐要求）；
  *              - 块类型 FourCC 与标志位定义；
  *              - 采样间隔 / 推进步长的常量与抽帧比推导；
  *              - 帧内各段（刚体 / 约束 / 力场）的内存记录结构与其字节步长。
  *
- *              逐字段落盘格式见 docs/EPS 模拟数据文件格式规范（草案）.md。
+ *              逐字段落盘格式见 docs/EPSX 模拟数据文件格式规范（草案）.md。
  *              当前实现为 v1：仅使用 float64 精度、不压缩、定长帧段，
  *              文件头中的压缩与 float32 标志位保留但尚未启用。
  *
@@ -19,11 +19,11 @@
  * @license     GPL v3.0
  *
  * @ingroup     Serialize
- * @defgroup    Eps (Egret Physics Simulation 文件格式)
+ * @defgroup    EPSX (Egret Physics Simulation 文件格式)
  */
 
-#ifndef EGRET_PHYSICS_EPS_FORMAT_H
-#define EGRET_PHYSICS_EPS_FORMAT_H
+#ifndef EGRET_PHYSICS_EPSX_FORMAT_H
+#define EGRET_PHYSICS_EPSX_FORMAT_H
 
 #include <array>
 #include <cstddef>
@@ -34,22 +34,23 @@
 
 #include <Eigen/Dense>
 
-#include "eps_common.h"
+#include "epsx_common.h"
 
-namespace egret::eps
+namespace egret::epsx
 {
     // ---------------------------------------------------------------------
     //  文件级常量
     // ---------------------------------------------------------------------
 
     /**
-     * 文件魔数：0x89 'E' 'P' 'S' CR LF SUB LF。
+     * 文件魔数：0x89 'E' 'P' 'S' 'X' CR LF SUB，共 8 字节（十六进制 89 45 50 53 58 0D 0A 1A）。
      * 首字节大于 0x7F 且含 CR/LF，任何文本模式传输造成的换行转换都会立刻破坏它，
-     * 从而被识别为「不是 EPS 文件」而不是被当成文本解析。
+     * 从而被识别为「不是 EPSX 文件」而不是被当成文本解析。
+     * 魔数保持 8 字节是为了维持 64 字节文件头与 8 字节对齐不变。
      */
     inline constexpr std::array<std::uint8_t, 8> kFileMagic{
         0x89u, static_cast<std::uint8_t>('E'), static_cast<std::uint8_t>('P'),
-        static_cast<std::uint8_t>('S'), 0x0Du, 0x0Au, 0x1Au, 0x0Au};
+        static_cast<std::uint8_t>('S'), static_cast<std::uint8_t>('X'), 0x0Du, 0x0Au, 0x1Au};
 
     /** 格式主版本号。 */
     inline constexpr std::uint16_t kVersionMajor{1};
@@ -384,4 +385,4 @@ namespace egret::eps
     }
 }
 
-#endif // EGRET_PHYSICS_EPS_FORMAT_H
+#endif // EGRET_PHYSICS_EPSX_FORMAT_H

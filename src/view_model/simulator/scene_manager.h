@@ -43,9 +43,9 @@ namespace egret
 {
     class WorldSceneManager;
 
-    namespace eps
+    namespace epsx
     {
-        class EpsReader;
+        class EpsxReader;
     }
 
     struct FieldRecord;
@@ -159,7 +159,7 @@ namespace egret
 
         /**
          * @brief 默认析构。
-         * @details 定义放在 .cpp 中：本类持有 eps::EpsReader 的 unique_ptr，
+         * @details 定义放在 .cpp 中：本类持有 epsx::EpsxReader 的 unique_ptr，
          *          此处只有前置声明，需要完整类型才能实例化删除器。
          */
         ~SceneManagerViewModel() override;
@@ -611,7 +611,7 @@ namespace egret
         bool applySimulationFrame(int frame);
 
         /** 离线仿真文件读取器；为空表示当前处于实时求解模式。 */
-        std::unique_ptr<eps::EpsReader> m_simulationReader{};
+        std::unique_ptr<epsx::EpsxReader> m_simulationReader{};
 
         /** 当前打开的仿真文件路径。 */
         QString m_simulationFile{};

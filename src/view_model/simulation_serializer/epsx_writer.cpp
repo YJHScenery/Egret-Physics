@@ -1,7 +1,7 @@
 /**
- * @file        eps_writer.cpp
- * @brief       EPS 文件流式写入器实现。
- * @details     实现 eps_writer.h 中声明的写入流程：文件头、场景描述块、
+ * @file        epsx_writer.cpp
+ * @brief       EPSX 文件流式写入器实现。
+ * @details     实现 epsx_writer.h 中声明的写入流程：文件头、场景描述块、
  *              逐帧数据块、索引块与尾块，以及文件头的回填。
  *
  * @author      jehor
@@ -12,17 +12,17 @@
  * @license     GPL v3.0
  *
  * @ingroup     Serialize
- * @defgroup    Eps (Egret Physics Simulation 文件格式)
+ * @defgroup    EPSX (Egret Physics Simulation 文件格式)
  */
 
-#include "eps_writer.h"
+#include "epsx_writer.h"
 
 #include <QFileInfo>
 #include <QDir>
 
 #include <limits>
 
-namespace egret::eps
+namespace egret::epsx
 {
     namespace
     {
@@ -159,12 +159,12 @@ namespace egret::eps
         }
     }
 
-    EpsWriter::EpsWriter(QString filePath) :
+    EpsxWriter::EpsxWriter(QString filePath) :
         m_filePath(std::move(filePath))
     {
     }
 
-    EpsWriter::~EpsWriter()
+    EpsxWriter::~EpsxWriter()
     {
         if (m_open) {
             m_file.close();
@@ -172,10 +172,10 @@ namespace egret::eps
         }
     }
 
-    bool EpsWriter::open(const SceneInfo& info, QString* errorMessage)
+    bool EpsxWriter::open(const SceneInfo& info, QString* errorMessage)
     {
         if (m_open) {
-            setError(errorMessage, QStringLiteral("EPS 写入器已经处于打开状态"));
+            setError(errorMessage, QStringLiteral("EPSX 写入器已经处于打开状态"));
             return false;
         }
 
@@ -232,10 +232,10 @@ namespace egret::eps
         return true;
     }
 
-    bool EpsWriter::writeFrame(const FrameState& frame, QString* errorMessage)
+    bool EpsxWriter::writeFrame(const FrameState& frame, QString* errorMessage)
     {
         if (!m_open) {
-            setError(errorMessage, QStringLiteral("EPS 写入器尚未打开"));
+            setError(errorMessage, QStringLiteral("EPSX 写入器尚未打开"));
             return false;
         }
 
@@ -275,10 +275,10 @@ namespace egret::eps
         return true;
     }
 
-    bool EpsWriter::close(QString* errorMessage)
+    bool EpsxWriter::close(QString* errorMessage)
     {
         if (!m_open) {
-            setError(errorMessage, QStringLiteral("EPS 写入器尚未打开或已经收尾"));
+            setError(errorMessage, QStringLiteral("EPSX 写入器尚未打开或已经收尾"));
             return false;
         }
 
@@ -326,7 +326,7 @@ namespace egret::eps
         return patched;
     }
 
-    std::vector<std::byte> EpsWriter::buildFileHeader() const
+    std::vector<std::byte> EpsxWriter::buildFileHeader() const
     {
         std::vector<std::byte> header;
         header.reserve(kFileHeaderBytes);
@@ -355,7 +355,7 @@ namespace egret::eps
         return header;
     }
 
-    std::vector<std::byte> EpsWriter::buildSceneChunkPayload() const
+    std::vector<std::byte> EpsxWriter::buildSceneChunkPayload() const
     {
         std::vector<std::byte> payload;
         payload.reserve(m_info.sceneJson.size());
@@ -365,7 +365,7 @@ namespace egret::eps
         return payload;
     }
 
-    std::vector<std::byte> EpsWriter::buildFramePayload(const FrameState& frame) const
+    std::vector<std::byte> EpsxWriter::buildFramePayload(const FrameState& frame) const
     {
         std::vector<std::byte> payload;
         payload.reserve(static_cast<std::size_t>(framePayloadBytes(frame.bodies.size(),
@@ -395,7 +395,7 @@ namespace egret::eps
         return payload;
     }
 
-    bool EpsWriter::writeChunk(const FourCC& tag,
+    bool EpsxWriter::writeChunk(const FourCC& tag,
                                const std::vector<std::byte>& payload,
                                std::uint64_t* chunkOffset,
                                std::uint32_t* chunkLength,
@@ -438,7 +438,7 @@ namespace egret::eps
         return true;
     }
 
-    bool EpsWriter::writeRaw(const std::vector<std::byte>& bytes, QString* errorMessage)
+    bool EpsxWriter::writeRaw(const std::vector<std::byte>& bytes, QString* errorMessage)
     {
         if (bytes.empty()) {
             return true;
@@ -453,7 +453,7 @@ namespace egret::eps
         return true;
     }
 
-    bool EpsWriter::patchFileHeader(QString* errorMessage)
+    bool EpsxWriter::patchFileHeader(QString* errorMessage)
     {
         const std::vector<std::byte> header = buildFileHeader();
         if (header.size() != kFileHeaderBytes) {
@@ -474,7 +474,7 @@ namespace egret::eps
         return m_file.seek(m_file.size());
     }
 
-    std::size_t EpsWriter::paddingFor(const std::size_t payloadLength) noexcept
+    std::size_t EpsxWriter::paddingFor(const std::size_t payloadLength) noexcept
     {
         const std::size_t remainder = payloadLength % kAlignment;
         return remainder == 0 ? 0 : kAlignment - remainder;

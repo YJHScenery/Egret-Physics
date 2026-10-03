@@ -1,6 +1,6 @@
 /**
  * @file        offline_simulation_runner.cpp
- * @brief       离线求解器实现：驱动 WorldSceneManager 求解并按抽帧写入 EPS 文件。
+ * @brief       离线求解器实现：驱动 WorldSceneManager 求解并按抽帧写入 EPSX 文件。
  * @details     使用与实时模拟完全相同的策略组合（Velocity Verlet 积分、八叉树广相、
  *              有摩擦接触解算、动能休眠），保证离线结果与实时预览在同样步长下一致。
  *
@@ -35,7 +35,7 @@
 #include "constraints_base.h"
 #include "contact_strategy/frictional_contact_resolver.h"
 #include "egret_version.h"
-#include "eps_writer.h"
+#include "epsx_writer.h"
 #include "field_base.h"
 #include "integrator_strategy/velocity_verlet_integrator.h"
 #include "kinetic_sleep_strategy.h"
@@ -71,12 +71,12 @@ namespace egret
          * @param  simTimeNs 对应的仿真时刻（纳秒）。
          * @return 帧记录。
          */
-        eps::FrameState snapshotFrame(WorldSceneManager& world,
+        epsx::FrameState snapshotFrame(WorldSceneManager& world,
                                       const std::uint32_t frameIndex,
                                       const std::uint64_t stepIndex,
                                       const std::uint64_t simTimeNs)
         {
-            eps::FrameState frame{};
+            epsx::FrameState frame{};
             frame.frameIndex = frameIndex;
             frame.stepIndex = stepIndex;
             frame.simTimeNs = simTimeNs;
@@ -90,7 +90,7 @@ namespace egret
                     continue;
                 }
 
-                eps::BodyState body{};
+                epsx::BodyState body{};
                 body.id = entity->getId();
                 body.slot = static_cast<std::uint32_t>(slot);
                 body.position = entity->getPositionCR();
@@ -102,15 +102,15 @@ namespace egret
 
                 std::uint32_t flags{0};
                 if (entity->isAsleep()) {
-                    flags |= eps::kBodyStateAsleep;
+                    flags |= epsx::kBodyStateAsleep;
                 }
                 if (!entity->isFixed()) {
-                    flags |= eps::kBodyStateIntegration;
+                    flags |= epsx::kBodyStateIntegration;
                 }
                 else {
-                    flags |= eps::kBodyStateStatic;
+                    flags |= epsx::kBodyStateStatic;
                 }
-                flags |= eps::kBodyStateCollision;
+                flags |= epsx::kBodyStateCollision;
                 body.stateFlags = flags;
 
                 frame.bodies.push_back(body);
@@ -124,11 +124,11 @@ namespace egret
                     continue;
                 }
 
-                eps::ConstraintState state{};
+                epsx::ConstraintState state{};
                 state.id = constraint->getId();
                 state.slot = static_cast<std::uint32_t>(slot);
                 state.type = static_cast<std::uint32_t>(constraint->getType());
-                state.flags = constraint->isEnabled() ? eps::kConstraintFlagEnabled : 0u;
+                state.flags = constraint->isEnabled() ? epsx::kConstraintFlagEnabled : 0u;
                 state.restLength = constraint->getReferenceLength();
                 state.error = constraint->computeConstraintError();
                 state.currentLength = state.restLength + state.error;
@@ -161,11 +161,11 @@ namespace egret
                     continue;
                 }
 
-                eps::FieldState state{};
+                epsx::FieldState state{};
                 state.id = field->getId();
                 state.slot = static_cast<std::uint32_t>(slot);
                 state.type = static_cast<std::uint32_t>(field->getType());
-                state.flags = eps::kFieldFlagEnabled;
+                state.flags = epsx::kFieldFlagEnabled;
                 frame.fields.push_back(state);
             }
 
@@ -174,7 +174,7 @@ namespace egret
 
         /**
          * @brief  构造场景描述块 JSON。
-         * @details 在编辑器导出的场景 JSON 基础上追加 EPS 元信息（采样、求解器配置、
+         * @details 在编辑器导出的场景 JSON 基础上追加 EPSX 元信息（采样、求解器配置、
          *          帧段布局与实体表），使文件自包含。
          * @param  sceneJson 编辑器导出的场景 JSON。
          * @param  info 写入器的静态信息。
@@ -185,7 +185,7 @@ namespace egret
          * @return 紧凑 JSON 文本。
          */
         std::string buildSceneDescription(const QString& sceneJson,
-                                          const eps::EpsWriter::SceneInfo& info,
+                                          const epsx::EpsxWriter::SceneInfo& info,
                                           const SolverConfig& solverConfig,
                                           WorldSceneManager& world,
                                           const std::uint64_t frameCount,
@@ -194,7 +194,7 @@ namespace egret
         {
             QJsonObject root = QJsonDocument::fromJson(sceneJson.toUtf8()).object();
 
-            root[QStringLiteral("format")] = QStringLiteral("EGPS");
+            root[QStringLiteral("format")] = QStringLiteral("EPSX");
             root[QStringLiteral("formatVersion")] = QStringLiteral("1.0");
             root[QStringLiteral("generator")] = QString::fromStdString(info.generator);
 
@@ -211,7 +211,7 @@ namespace egret
                 QJsonObject section{};
                 section[QStringLiteral("type")] = QStringLiteral("BODY");
                 section[QStringLiteral("recordVersion")] = 1;
-                section[QStringLiteral("strideBytes")] = static_cast<int>(eps::kBodyStrideFloat64);
+                section[QStringLiteral("strideBytes")] = static_cast<int>(epsx::kBodyStrideFloat64);
                 section[QStringLiteral("count")] = static_cast<int>(info.bodyCount);
                 sections.append(section);
             }
@@ -219,7 +219,7 @@ namespace egret
                 QJsonObject section{};
                 section[QStringLiteral("type")] = QStringLiteral("CONS");
                 section[QStringLiteral("recordVersion")] = 1;
-                section[QStringLiteral("strideBytes")] = static_cast<int>(eps::kConstraintStrideFloat64);
+                section[QStringLiteral("strideBytes")] = static_cast<int>(epsx::kConstraintStrideFloat64);
                 section[QStringLiteral("count")] = static_cast<int>(info.constraintCount);
                 sections.append(section);
             }
@@ -227,7 +227,7 @@ namespace egret
                 QJsonObject section{};
                 section[QStringLiteral("type")] = QStringLiteral("FLDS");
                 section[QStringLiteral("recordVersion")] = 1;
-                section[QStringLiteral("strideBytes")] = static_cast<int>(eps::kFieldStrideFloat64);
+                section[QStringLiteral("strideBytes")] = static_cast<int>(epsx::kFieldStrideFloat64);
                 section[QStringLiteral("count")] = static_cast<int>(info.fieldCount);
                 sections.append(section);
             }
@@ -285,13 +285,13 @@ namespace egret
         }
 
         const std::optional<std::uint64_t> decimation =
-            eps::decimationFor(request.solverStepNs, request.sampleIntervalNs);
+            epsx::decimationFor(request.solverStepNs, request.sampleIntervalNs);
         if (!decimation.has_value()) {
             setError(errorMessage, QStringLiteral("采样间隔必须是求解步长的整数倍"));
             return false;
         }
 
-        const std::uint64_t durationNs = eps::secondsToNanoseconds(request.durationSeconds);
+        const std::uint64_t durationNs = epsx::secondsToNanoseconds(request.durationSeconds);
         const std::uint64_t totalSteps = durationNs / request.solverStepNs;
         const std::uint64_t frameCount = durationNs / request.sampleIntervalNs + 1;
 
@@ -322,7 +322,7 @@ namespace egret
         const std::vector<FieldBase*> fields = world->getAllFields();
 
         // ---- 2. 打开输出文件 ----
-        eps::EpsWriter::SceneInfo info{};
+        epsx::EpsxWriter::SceneInfo info{};
         info.generator = buildGeneratorString();
         info.solverStepNs = request.solverStepNs;
         info.sampleIntervalNs = request.sampleIntervalNs;
@@ -333,7 +333,7 @@ namespace egret
         info.sceneJson = buildSceneDescription(request.sceneJson, info, request.solverConfig, *world,
                                                frameCount, durationNs, decimation.value());
 
-        eps::EpsWriter writer(request.outputPath);
+        epsx::EpsxWriter writer(request.outputPath);
         if (!writer.open(info, errorMessage)) {
             return false;
         }
@@ -347,14 +347,25 @@ namespace egret
         }
 
         // ---- 4. 求解并按抽帧比记录 ----
-        const double stepSeconds = eps::nanosecondsToSeconds(request.solverStepNs);
+        const double stepSeconds = epsx::nanosecondsToSeconds(request.solverStepNs);
         const std::uint64_t k = decimation.value();
+
+        std::uint64_t performedSteps{0};
+        bool canceled{false};
 
         for (std::uint64_t step = 1; step <= totalSteps; ++step) {
             std::ignore = world->tick(stepSeconds);
+            performedSteps = step;
 
-            if (request.progressCallback && (step % 100 == 0)) {
-                request.progressCallback(step, totalSteps);
+            if (step % 100 == 0) {
+                if (request.progressCallback) {
+                    request.progressCallback(step, totalSteps);
+                }
+                // 与进度回调同频检查取消请求，避免每步都调用回调
+                if (request.shouldCancel && request.shouldCancel()) {
+                    canceled = true;
+                    break;
+                }
             }
 
             if (step % k != 0) {
@@ -380,13 +391,14 @@ namespace egret
             return false;
         }
 
-        if (request.progressCallback) {
+        if (request.progressCallback && !canceled) {
             request.progressCallback(totalSteps, totalSteps);
         }
 
         if (report != nullptr) {
-            report->stepCount = totalSteps;
+            report->stepCount = performedSteps;
             report->frameCount = writer.frameCount();
+            report->canceled = canceled;
             report->wallClockSeconds = static_cast<double>(timer.elapsed()) / 1000.0;
             report->bodyCount = info.bodyCount;
             report->constraintCount = info.constraintCount;
@@ -401,6 +413,6 @@ namespace egret
     QString OfflineSimulationRunner::defaultSimulationFilePath()
     {
         const QString baseDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        return baseDir + QStringLiteral("/simulations/egret_simulation.egps");
+        return baseDir + QStringLiteral("/simulations/egret_simulation.epsx");
     }
 }

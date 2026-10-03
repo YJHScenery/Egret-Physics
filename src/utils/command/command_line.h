@@ -78,7 +78,7 @@ namespace egret::command
         /** 求解推进步长（毫秒）。 */
         double solverStepMs{0.5};
 
-        /** --parse 的对象类型，当前只接受 "eps"。 */
+        /** --parse 的对象类型，当前只接受 "epsx"。 */
         QString parseTarget{};
 
         /** --parse 的帧号。 */

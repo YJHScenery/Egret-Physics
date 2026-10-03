@@ -1,7 +1,7 @@
 /**
  * @file        parse_command.h
  * @brief       --parse / -p 功能：解析仿真文件的指定帧。
- * @details     打开 EPS 文件，读取指定帧，把帧内全部实体、约束、力场数据
+ * @details     打开 EPSX 文件，读取指定帧，把帧内全部实体、约束、力场数据
  *              以单行 JSON 打印到标准输出，便于脚本与人工核对。
  *
  * @author      jehor

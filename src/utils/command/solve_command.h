@@ -2,7 +2,7 @@
  * @file        solve_command.h
  * @brief       --solve 功能：离线求解场景并写出仿真文件。
  * @details     读取场景 JSON，交给 OfflineSimulationRunner 以固定推进步长求解，
- *              按采样间隔抽帧写入 EPS 文件，并把进度打印到标准输出。
+ *              按采样间隔抽帧写入 EPSX 文件，并把进度打印到标准输出。
  *
  * @author      jehor
  * @date        2026-10-02

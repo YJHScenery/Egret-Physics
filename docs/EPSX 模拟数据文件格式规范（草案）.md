@@ -1,12 +1,16 @@
-# EPS（Egret Physics Simulation）模拟数据文件格式规范
+# EPSX（Egret Physics Simulation eXtended）模拟数据文件格式规范
 
-> **状态：草案（Draft v0.4）**
-> 本文档定义 Egret Physics Simulation 二进制容器格式，扩展名建议 `.egps`（见 §2.1）。
+> **状态：草案（Draft v0.5）**
+> 本文档定义 Egret Physics Simulation 二进制容器格式，扩展名定为 `.epsx`（见 §2.1）；
+> **逐字节的编码规范见同目录《EPSX 模拟数据文件编码格式规范.md》**，本文档保留设计目标、决策与接口约定。
 > v0.2 相对 v0.1 的变更：采样间隔确定为「抽帧」语义、求解步长确定为 0.5 ms、帧记录范围扩大到全部实体类型、
-> 补充命令行缩写评估、扩展名改为 `.egps`。
+> 补充命令行缩写评估、扩展名由 `.eps` 改为 `.egps`。
 > v0.3 相对 v0.2 的变更：新增 §4.3，明确区分「求解推进步长 / 采样间隔 / 渲染帧率」三个时间量，
 > 并说明当前离线实现中渲染与求解步是耦合的。
 > v0.4 相对 v0.3 的变更：采样间隔的**默认值改为 10 ms**；五档取值与 `sampleIntervalNs` 参数本身全部保留。
+> v0.5 相对 v0.4 的变更：扩展名由 `.egps` 改为 **`.epsx`**；格式名、命名空间、类名与文件名统一为 EPSX
+> （`egret::epsx`、`EpsxReader`、`EpsxWriter`、`epsx_format.h` 等）；文件魔数改为
+> `89 45 50 53 58 0D 0A 1A`（仍为 8 字节）；`--parse` 的对象类型关键字改为 `epsx`；新增编码格式文档。
 > 文中标注 `【待确认】` 的条目需要项目作者决策，`【待核实】` 的条目需要在联网环境下复核。
 
 ## 1. 背景与设计目标
@@ -16,7 +20,7 @@
 该方式有三个固有缺陷：渲染帧率与物理解算相互耦合；解算快于 / 慢于实时时会丢帧或追帧；
 运行结果无法回放、无法逐帧比对，因而难以定位抖动一类的数值问题。
 
-EPS 文件用于把一次模拟的**全部逐帧状态**固化下来，使解算与播放解耦。设计目标：
+EPSX 文件用于把一次模拟的**全部逐帧状态**固化下来，使解算与播放解耦。设计目标：
 
 | 目标 | 具体要求 |
 |------|---------|
@@ -30,10 +34,10 @@ EPS 文件用于把一次模拟的**全部逐帧状态**固化下来，使解算
 
 ## 2. 命名、扩展名与系统关联
 
-格式名仍为 **EPS**（Egret Physics Simulation），文档与命令行里的 `eps` 一律指格式名；
-文件扩展名不再沿用 `.eps`，理由与最终选择见 §2.1。
+格式名为 **EPSX**（Egret Physics Simulation eXtended，前身为 EPS / EGPS），文档与命令行里的 `epsx` 一律指格式名；
+文件扩展名定为 **`.epsx`**，理由见 §2.1。
 
-### 2.1 扩展名：`.eps` 的冲突与改用 `.egps`
+### 2.1 扩展名：避开 `.eps`，最终定为 `.epsx`
 
 `.eps` 同时也是被广泛使用的 **Adobe Encapsulated PostScript** 扩展名。本机注册表实测结果：
 
@@ -44,16 +48,17 @@ EPS 文件用于把一次模拟的**全部逐帧状态**固化下来，使解算
 
 结论：本机把 `.eps` 关联到播放器不会与现有软件冲突，但在安装了 Adobe 系软件或 PostScript 查看器的机器上，
 用户极可能在资源管理器里双击到真正的 PostScript 文件——两份互相不兼容的数据共用同一个扩展名，
-只能靠文件内容区分，代价过高。
+只能靠文件内容区分，代价过高。因此**不采用 `.eps`**。
 
-【已决策】改用项目自有扩展名 **`.egps`**（EGret Physics Simulation）。本机注册表实测候选占用情况：
+【已决策】扩展名定为 **`.epsx`**（Egret Physics Simulation eXtended）。本机注册表实测候选占用情况：
 
 | 候选扩展名 | `HKCR\<ext>` | `HKCU\...\FileExts\<ext>` | 说明 |
 |-----------|-------------|---------------------------|------|
-| `.egps` | 未注册 | 无记录 | **推荐**：4 字符，项目缩写，本机无冲突 |
+| `.epsx` | 未注册 | 无记录 | **采用**：与格式名 EPSX 同名，4 字符，本机无冲突 |
+| `.egps` | 未注册 | 无记录 | 早期候选（EGret Physics Simulation），v0.5 起被 `.epsx` 取代 |
 | `.epsim` | 未注册 | 无记录 | 语义最直白（Egret Physics SIMulation），但与 `eps` 形近，容易再次混淆 |
 | `.egret` | 未注册 | 无记录 | 与白鹭引擎（Egret Engine）同名，品牌上易撞 |
-| `.egp` / `.epsx` / `.epsm` / `.egsy` | 未注册 | 无记录 | 均无本机冲突，缩写可读性不如 `.egps` |
+| `.egp` / `.epsm` / `.egsy` | 未注册 | 无记录 | 均无本机冲突，缩写可读性不如 `.epsx` |
 
 【待核实】本地注册表只能证明「本机没有已安装的软件占用该扩展名」，不能证明它在互联网上无人使用。
 正式定名前需要联网核对通用扩展名索引，结论回填到本小节。
@@ -71,16 +76,16 @@ HKCU\Software\Classes\EgretPhysics.Simulation          (默认) = "Egret Physics
 HKCU\Software\Classes\EgretPhysics.Simulation\DefaultIcon (默认) = "<安装目录>\Egret_Physics.exe,0"
 HKCU\Software\Classes\EgretPhysics.Simulation\shell\open\command
                                                         (默认) = "\"<安装目录>\Egret_Physics.exe\" --play \"%1\""
-HKCU\Software\Classes\.egps                             (默认) = "EgretPhysics.Simulation"
+HKCU\Software\Classes\.epsx                             (默认) = "EgretPhysics.Simulation"
 ```
 
 ```
 # 注册（当前用户，无需管理员）
 reg add "HKCU\Software\Classes\EgretPhysics.Simulation\shell\open\command" /ve /d "\"%CD%\Egret_Physics.exe\" --play \"%1\"" /f
-reg add "HKCU\Software\Classes\.egps" /ve /d "EgretPhysics.Simulation" /f
+reg add "HKCU\Software\Classes\.epsx" /ve /d "EgretPhysics.Simulation" /f
 
 # 注销
-reg delete "HKCU\Software\Classes\.egps" /f
+reg delete "HKCU\Software\Classes\.epsx" /f
 reg delete "HKCU\Software\Classes\EgretPhysics.Simulation" /f
 ```
 
@@ -201,7 +206,7 @@ $$
 而「渲染按 120 Hz 进行」目前只是一句设计意图，代码里没有对应的定时器或刷新策略，
 真正限制刷新节奏的是 16 ms 的 `QTimer` 与显示器的 vsync。
 
-EPS 记录的是**采样帧**，抽自求解推进步，与渲染帧无关。播放器显示第 $n$ 个显示帧时，
+EPSX 记录的是**采样帧**，抽自求解推进步，与渲染帧无关。播放器显示第 $n$ 个显示帧时，
 按当前播放时间 $t$ 取最近的采样帧号：
 
 $$
@@ -251,7 +256,7 @@ $$
 
 ```jsonc
 {
-  "format": "EGPS",
+  "format": "EPSX",
   "formatVersion": "1.0",
   "generator": { "app": "Egret Physics", "version": "1.0.0", "gitCommit": "7908ad9b" },
   "createdAtUtc": "2026-09-26T12:00:00Z",
@@ -511,16 +516,16 @@ AoS + `strideBytes` 让所有段共用同一套「定位 / 跳过」逻辑，无
 
 | 命令 | 含义 |
 |------|------|
-| `name --parse eps <integer>` / `name -p eps <integer>` | 解析指定帧，把该帧全部实体数据以 JSON 打印到标准输出 |
-| `name --play <file.egps>` / `name --replay <file.egps>` / `name -r <file.egps>` | 以播放器模式打开文件（Windows 双击关联使用此入口） |
-| `name --solve <scene.json> --duration <seconds> --sample <1\|2\|5\|10\|20> -o <file.egps>` | 求解器模式，离线求解并写出模拟文件 |
+| `name --parse epsx <integer>` / `name -p epsx <integer>` | 解析指定帧，把该帧全部实体数据以 JSON 打印到标准输出 |
+| `name --play <file.epsx>` / `name --replay <file.epsx>` / `name -r <file.epsx>` | 以播放器模式打开文件（Windows 双击关联使用此入口） |
+| `name --solve <scene.json> --duration <seconds> --sample <1\|2\|5\|10\|20> -o <file.epsx>` | 求解器模式，离线求解并写出模拟文件 |
 
 `--solve` 的 `--sample` 省略时取**默认值 10 ms**；五档取值全部保留，也可在界面侧改为下拉选择。
 
 ### 11.1 `--parse` 的行为约定
 
-- 参数顺序固定为「对象类型 + 整数」。`text` 目前只接受 `eps` 一个取值
-  （指**格式名** EPS，与扩展名 `.egps` 无关），其他取值报错并返回非零退出码；
+- 参数顺序固定为「对象类型 + 整数」。`text` 目前只接受 `epsx` 一个取值
+  （指**格式名** EPSX，与扩展名 `.epsx` 无关），其他取值报错并返回非零退出码；
 - 帧号从 0 开始，越界时返回非零退出码与明确错误信息；
 - 输出为**单行 JSON**（便于管道与脚本处理），写入标准输出；错误信息写入标准错误；
 - 输出内容至少包含帧级字段 `frameIndex`、`stepIndex`、`simTimeNs`、`intervalNs`、`solverStepNs`，
@@ -560,7 +565,7 @@ Windows 文件关联中使用长选项 `--play "%1"`，可读性更好。
 
 本项目已有的追踪导出（`SceneManagerViewModel::exportTrackingAsync` → QXlsx）面向人工查看，
 帧率低、字段少、文件体积大，无法承担「全实体 × 高采样率 × 可随机访问」的回放需求，
-因此 EPS 作为**二进制回放格式**与 XLSX 导出并存，不相互替代。
+因此 EPSX 作为**二进制回放格式**与 XLSX 导出并存，不相互替代。
 
 ## 13. 待确认问题清单
 
@@ -571,7 +576,7 @@ Windows 文件关联中使用长选项 `--play "%1"`，可读性更好。
 | 采样间隔语义 | 抽帧 | §4.2 |
 | 求解步长 | 0.5 ms，需在离线求解器中新建 | §4.2 |
 | 帧记录范围 | 全部对象类型；曲线与网格按静态几何记录一次 | §8.3–§8.6 |
-| 扩展名 | `.egps` | §2.1 |
+| 扩展名 | `.epsx` | §2.1 |
 | `--play` 缩写 | `-r` / `--replay` | §11.2 |
 | 采样间隔默认值 | **10 ms**；`sampleIntervalNs` 参数与五档取值全部保留 | §4.2 |
 

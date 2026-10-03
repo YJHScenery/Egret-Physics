@@ -1,7 +1,7 @@
 /**
- * @file        eps_crc32c.h
- * @brief       EPS 文件格式使用的 CRC-32C（Castagnoli）校验算法。
- * @details     提供编译期生成的查找表与一次调用的校验接口，用于为 EPS 文件头、
+ * @file        epsx_crc32c.h
+ * @brief       EPSX 文件格式使用的 CRC-32C（Castagnoli）校验算法。
+ * @details     提供编译期生成的查找表与一次调用的校验接口，用于为 EPSX 文件头、
  *              数据块载荷与帧段载荷逐层计算校验和。
  *              约定与 iSCSI（RFC 3720 附录 B）一致：初值 0xFFFFFFFF，输入按字节反射处理，
  *              结果再次取反。
@@ -17,17 +17,17 @@
  * @license     GPL v3.0
  *
  * @ingroup     Serialize
- * @defgroup    Eps (Egret Physics Simulation 文件格式)
+ * @defgroup    EPSX (Egret Physics Simulation 文件格式)
  */
 
-#ifndef EGRET_PHYSICS_EPS_CRC32C_H
-#define EGRET_PHYSICS_EPS_CRC32C_H
+#ifndef EGRET_PHYSICS_EPSX_CRC32C_H
+#define EGRET_PHYSICS_EPSX_CRC32C_H
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 
-namespace egret::eps
+namespace egret::epsx
 {
     namespace detail
     {
@@ -86,4 +86,4 @@ namespace egret::eps
     }
 }
 
-#endif // EGRET_PHYSICS_EPS_CRC32C_H
+#endif // EGRET_PHYSICS_EPSX_CRC32C_H

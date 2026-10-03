@@ -1,7 +1,7 @@
 /**
  * @file        parse_command.cpp
  * @brief       --parse 功能的实现。
- * @details     打开 EPS 文件、读取指定帧，并把帧内刚体 / 约束 / 力场数据
+ * @details     打开 EPSX 文件、读取指定帧，并把帧内刚体 / 约束 / 力场数据
  *              整理成单行 JSON 输出，供脚本与人工核对求解结果。
  *
  * @author      jehor
@@ -25,7 +25,7 @@
 
 #include <cstdio>
 
-#include "eps_reader.h"
+#include "epsx_reader.h"
 #include "offline_simulation_runner.h"
 
 namespace egret::command
@@ -52,8 +52,8 @@ namespace egret::command
         QTextStream out(stdout);
         QTextStream err(stderr);
 
-        if (request.parseTarget != QStringLiteral("eps")) {
-            err << "不支持的解析对象：" << request.parseTarget << "（当前仅支持 eps）\n";
+        if (request.parseTarget != QStringLiteral("epsx")) {
+            err << "不支持的解析对象：" << request.parseTarget << "（当前仅支持 epsx）\n";
             err.flush();
             return 2;
         }
@@ -62,7 +62,7 @@ namespace egret::command
                                  ? OfflineSimulationRunner::defaultSimulationFilePath()
                                  : request.parseFile;
 
-        eps::EpsReader reader(path);
+        epsx::EpsxReader reader(path);
         QString error;
         if (!reader.open(&error)) {
             err << error << "\n";
@@ -77,7 +77,7 @@ namespace egret::command
             return 1;
         }
 
-        eps::FrameState frame{};
+        epsx::FrameState frame{};
         if (!reader.readFrame(static_cast<std::uint64_t>(request.parseFrame), &frame, &error)) {
             err << error << "\n";
             err.flush();
@@ -104,7 +104,7 @@ namespace egret::command
         root[QStringLiteral("hasTrailer")] = reader.hasTrailer();
 
         QJsonArray bodies{};
-        for (const eps::BodyState& body : frame.bodies) {
+        for (const epsx::BodyState& body : frame.bodies) {
             QJsonObject entry{};
             entry[QStringLiteral("id")] = static_cast<double>(body.id);
             entry[QStringLiteral("slot")] = static_cast<int>(body.slot);
@@ -122,12 +122,12 @@ namespace egret::command
         root[QStringLiteral("bodies")] = bodies;
 
         QJsonArray constraints{};
-        for (const eps::ConstraintState& constraint : frame.constraints) {
+        for (const epsx::ConstraintState& constraint : frame.constraints) {
             QJsonObject entry{};
             entry[QStringLiteral("id")] = static_cast<double>(constraint.id);
             entry[QStringLiteral("slot")] = static_cast<int>(constraint.slot);
             entry[QStringLiteral("type")] = static_cast<int>(constraint.type);
-            entry[QStringLiteral("enabled")] = (constraint.flags & eps::kConstraintFlagEnabled) != 0u;
+            entry[QStringLiteral("enabled")] = (constraint.flags & epsx::kConstraintFlagEnabled) != 0u;
             entry[QStringLiteral("entityAId")] = static_cast<double>(constraint.entityAId);
             entry[QStringLiteral("entityBId")] = static_cast<double>(constraint.entityBId);
             entry[QStringLiteral("currentLength")] = constraint.currentLength;
@@ -137,7 +137,7 @@ namespace egret::command
         root[QStringLiteral("constraints")] = constraints;
 
         QJsonArray fields{};
-        for (const eps::FieldState& field : frame.fields) {
+        for (const epsx::FieldState& field : frame.fields) {
             QJsonObject entry{};
             entry[QStringLiteral("id")] = static_cast<double>(field.id);
             entry[QStringLiteral("slot")] = static_cast<int>(field.slot);

@@ -27,6 +27,7 @@
     </qresource>
     <qresource prefix="/units">
         <file>units/SimulatorUnit.qml</file>
+        <file>units/OfflineSimulationUnit.qml</file>
         <file>units/PlayerUnit.qml</file>
         <file>units/EditorUnit.qml</file>
     </qresource>

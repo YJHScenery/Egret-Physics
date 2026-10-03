@@ -39,15 +39,6 @@ ColumnLayout {
     property var theme
     property alias coordinateSystem: canvas3d.coordinateSystem
 
-    /** 离线仿真：求解推进步长（毫秒）。 */
-    property real simulationSolverStepMs: 0.5
-
-    /** 离线仿真：采样间隔（毫秒），只能取 1 / 2 / 5 / 10 / 20。 */
-    property int simulationSampleMs: 10
-
-    /** 离线仿真：仿真总时长（秒）。 */
-    property real simulationDurationSeconds: 60
-
     spacing: 4
 
     FileDialog {
@@ -96,27 +87,6 @@ ColumnLayout {
         onRejected: {
             console.log("用户取消保存")
         }
-    }
-
-    FileDialog {
-        id: saveSimulationFileDialog
-        title: "保存离线仿真文件"
-        fileMode: FileDialog.SaveFile
-        currentFolder: documentsFolder
-        defaultSuffix: "egps"
-        nameFilters: [
-            "Egret 仿真文件 (*.egps)",
-            "所有文件 (*)"
-        ]
-
-        onAccepted: {
-            simulationExporter.saveAs(simulatorRoot.localPathFromUrl(selectedFile));
-        }
-    }
-
-    /** 把 file:/// URL 转换为本地路径。 */
-    function localPathFromUrl(fileUrl) {
-        return fileUrl.toString().replace(/^file:\/\/\//, "");
     }
 
     function formatVec(x, y, z) {
@@ -754,6 +724,30 @@ ColumnLayout {
                     EgretPopupMenu {}
                 }
             }
+
+            // ---- 维护状态标记：实时仿真已不再维护，离线求解请用「离线仿真」工作区 ----
+            Rectangle {
+                anchors.top: canvas3d.top
+                anchors.right: canvas3d.right
+                anchors.topMargin: 10
+                anchors.rightMargin: 10
+                width: deprecationLabel.implicitWidth + 16
+                height: 24
+                radius: theme.radiusS
+                color: "#1A2D44"
+                border.width: 1
+                border.color: theme.warning
+                opacity: 0.95
+
+                Text {
+                    id: deprecationLabel
+                    anchors.centerIn: parent
+                    text: "⚠ 实时仿真不再维护，请使用「离线仿真」工作区"
+                    color: theme.warning
+                    font.pixelSize: 11
+                    font.bold: true
+                }
+            }
         }
 
         ColumnLayout {
@@ -1050,219 +1044,6 @@ ColumnLayout {
                             font.pixelSize: 14
                             font.bold: true
                         }
-                    }
-
-                    Item {
-                        Layout.fillHeight: true
-                    }
-                }
-            }
-
-            // ============ 离线仿真（EPS 导出） ============
-            GlassPanel {
-                id: offlineSimulationPanel
-                Layout.preferredWidth: simulatorRoot.infoPanelVisible ? 260 : 0
-                Layout.minimumWidth: simulatorRoot.infoPanelVisible ? 260 : 0
-                Layout.maximumWidth: simulatorRoot.infoPanelVisible ? 260 : 0
-                visible: simulatorRoot.infoPanelVisible
-                opacity: simulatorRoot.infoPanelVisible ? 1 : 0
-                enabled: simulatorRoot.infoPanelVisible
-                Layout.preferredHeight: 340
-                title: "离线仿真"
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 6
-
-                    // ---- 求解步长 ----
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-
-                        Text {
-                            text: "求解步长"
-                            color: "#AAC4D8"
-                            font.pixelSize: 11
-                            font.bold: true
-                        }
-
-                        FloatField {
-                            Layout.fillWidth: true
-                            from: 0.01
-                            to: 10
-                            decimals: 2
-                            suffix: "ms"
-                            enabled: !simulationExporter.running
-                            value: simulatorRoot.simulationSolverStepMs
-
-                            onValueChanged: {
-                                simulatorRoot.simulationSolverStepMs = value;
-                            }
-                        }
-                    }
-
-                    // ---- 采样间隔（五档） ----
-                    Text {
-                        text: "采样间隔 (ms)"
-                        color: "#AAC4D8"
-                        font.pixelSize: 11
-                        font.bold: true
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-
-                        Repeater {
-                            model: [1, 2, 5, 10, 20]
-
-                            Rectangle {
-                                required property var modelData
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 22
-                                radius: theme.radiusS
-
-                                readonly property bool active:
-                                    simulatorRoot.simulationSampleMs === modelData
-
-                                color: active
-                                    ? "#1A5E9E"
-                                    : (sampleBtnMouse.containsMouse ? "#1E3D5C" : "#1A2D44")
-                                border.width: 1
-                                border.color: active ? "#58B8FF" : "#3A5A7A"
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData
-                                    color: "#EAF5FF"
-                                    font.pixelSize: 11
-                                    font.bold: parent.active
-                                }
-
-                                MouseArea {
-                                    id: sampleBtnMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    enabled: !simulationExporter.running
-                                    onClicked: {
-                                        simulatorRoot.simulationSampleMs = modelData;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // ---- 仿真时长 ----
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-
-                        Text {
-                            text: "仿真时长"
-                            color: "#AAC4D8"
-                            font.pixelSize: 11
-                            font.bold: true
-                        }
-
-                        FloatField {
-                            Layout.fillWidth: true
-                            from: 0.1
-                            to: 3600
-                            decimals: 1
-                            suffix: "s"
-                            enabled: !simulationExporter.running
-                            value: simulatorRoot.simulationDurationSeconds
-
-                            onValueChanged: {
-                                simulatorRoot.simulationDurationSeconds = value;
-                            }
-                        }
-                    }
-
-                    EgretPushButton {
-                        text: simulationExporter.running ? "离线求解中…" : "开始离线仿真"
-                        enabled: !simulationExporter.running
-                        onClicked: {
-                            simulationExporter.start(
-                                sceneController.currentSceneJson(),
-                                simulatorRoot.simulationDurationSeconds,
-                                simulatorRoot.simulationSolverStepMs,
-                                simulatorRoot.simulationSampleMs);
-                        }
-                    }
-
-                    // ---- 求解进度 ----
-                    Item {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 16
-
-                        Rectangle {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: parent.width
-                            height: 6
-                            radius: 3
-                            color: "#12365D"
-                            border.width: 1
-                            border.color: "#2E5D89"
-
-                            Rectangle {
-                                width: Math.max(0, Math.min(parent.width * simulationExporter.progress, parent.width))
-                                height: parent.height
-                                radius: parent.radius
-                                color: theme.accent
-                            }
-                        }
-                    }
-
-                    Text {
-                        Layout.fillWidth: true
-                        text: (100 * Math.max(0, Math.min(simulationExporter.progress, 1))).toFixed(0)
-                            + "%   ·   "
-                            + (simulationExporter.statusMessage.length > 0
-                                ? simulationExporter.statusMessage
-                                : "尚未执行")
-                        color: "#9EC4EA"
-                        font.pixelSize: 10
-                        elide: Text.ElideRight
-                    }
-
-                    Text {
-                        Layout.fillWidth: true
-                        text: simulationExporter.errorMessage
-                        color: theme.danger
-                        font.pixelSize: 10
-                        wrapMode: Text.WordWrap
-                        visible: simulationExporter.errorMessage.length > 0
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-
-                        EgretPushButton {
-                            text: "保存…"
-                            enabled: simulationExporter.frameCount > 0 && !simulationExporter.running
-                            onClicked: {
-                                saveSimulationFileDialog.open();
-                            }
-                        }
-
-                        EgretPushButton {
-                            text: "删除缓存"
-                            enabled: !simulationExporter.running
-                            onClicked: {
-                                simulationExporter.removeCacheFile();
-                            }
-                        }
-                    }
-
-                    Text {
-                        Layout.fillWidth: true
-                        text: "缓存：" + simulationExporter.defaultFilePath()
-                        color: "#5F84AD"
-                        font.pixelSize: 9
-                        elide: Text.ElideMiddle
                     }
 
                     Item {

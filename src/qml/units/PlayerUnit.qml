@@ -1,7 +1,7 @@
 /**
  * @file        PlayerUnit.qml
  * @brief       离线仿真播放器单元视图文件
- * @details     定义离线仿真（.egps）播放工作区：左侧复用共享 3D 视口显示播放画面，
+ * @details     定义离线仿真（.epsx）播放工作区：左侧复用共享 3D 视口显示播放画面，
  *              右侧提供文件选择、播放 / 暂停、进度拖动、时间输入与倍速切换。
  *
  *              播放数据全部由 SceneManagerViewModel 的播放后端提供：
@@ -56,7 +56,7 @@ ColumnLayout {
         fileMode: FileDialog.OpenFile
         currentFolder: documentsFolder
         nameFilters: [
-            "Egret 仿真文件 (*.egps)",
+            "Egret 仿真文件 (*.epsx)",
             "所有文件 (*)"
         ]
 

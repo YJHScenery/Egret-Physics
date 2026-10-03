@@ -1,7 +1,7 @@
 /**
- * @file        eps_common.h
- * @brief       EPS 文件格式的公共基础工具：FourCC 与小端序字节读写器。
- * @details     EPS 格式所有多字节量统一按小端序存储，且不直接把结构体内存布局落盘，
+ * @file        epsx_common.h
+ * @brief       EPSX 文件格式的公共基础工具：FourCC 与小端序字节读写器。
+ * @details     EPSX 格式所有多字节量统一按小端序存储，且不直接把结构体内存布局落盘，
  *              而是通过 ByteWriter / ByteReader 逐字段读写。这样既避免了编译器结构体
  *              对齐与填充带来的不确定性，也不必依赖 #pragma pack。
  *
@@ -13,11 +13,11 @@
  * @license     GPL v3.0
  *
  * @ingroup     Serialize
- * @defgroup    Eps (Egret Physics Simulation 文件格式)
+ * @defgroup    EPSX (Egret Physics Simulation 文件格式)
  */
 
-#ifndef EGRET_PHYSICS_EPS_COMMON_H
-#define EGRET_PHYSICS_EPS_COMMON_H
+#ifndef EGRET_PHYSICS_EPSX_COMMON_H
+#define EGRET_PHYSICS_EPSX_COMMON_H
 
 #include <array>
 #include <cstddef>
@@ -26,9 +26,9 @@
 #include <string_view>
 #include <vector>
 
-#include "eps_crc32c.h"
+#include "epsx_crc32c.h"
 
-namespace egret::eps
+namespace egret::epsx
 {
     /** 四个 ASCII 字符组成的块类型标识。 */
     using FourCC = std::array<char, 4>;
@@ -437,4 +437,4 @@ namespace egret::eps
     };
 }
 
-#endif // EGRET_PHYSICS_EPS_COMMON_H
+#endif // EGRET_PHYSICS_EPSX_COMMON_H

@@ -29,7 +29,7 @@
 #include <memory>
 #include <utility>
 
-#include "eps_format.h"
+#include "epsx_format.h"
 #include "offline_simulation_runner.h"
 
 namespace egret
@@ -86,6 +86,11 @@ namespace egret
         return m_wallClockSeconds;
     }
 
+    bool SimulationExportController::isCancelRequested() const
+    {
+        return m_cancelFlag->load();
+    }
+
     void SimulationExportController::setError(const QString& message)
     {
         m_errorMessage = message;
@@ -123,14 +128,14 @@ namespace egret
             return false;
         }
 
-        const std::uint64_t solverStepNs{eps::secondsToNanoseconds(solverStepMs / 1000.0)};
-        const std::uint64_t sampleIntervalNs{eps::secondsToNanoseconds(sampleIntervalMs / 1000.0)};
+        const std::uint64_t solverStepNs{epsx::secondsToNanoseconds(solverStepMs / 1000.0)};
+        const std::uint64_t sampleIntervalNs{epsx::secondsToNanoseconds(sampleIntervalMs / 1000.0)};
 
-        if (!eps::isAllowedSampleInterval(sampleIntervalNs)) {
+        if (!epsx::isAllowedSampleInterval(sampleIntervalNs)) {
             setError(QStringLiteral("采样间隔只能是 1 / 2 / 5 / 10 / 20 ms"));
             return false;
         }
-        if (!eps::decimationFor(solverStepNs, sampleIntervalNs).has_value()) {
+        if (!epsx::decimationFor(solverStepNs, sampleIntervalNs).has_value()) {
             setError(QStringLiteral("采样间隔必须是求解步长的整数倍"));
             return false;
         }
@@ -148,6 +153,10 @@ namespace egret
         request.durationSeconds = durationSeconds;
         request.solverStepNs = solverStepNs;
         request.sampleIntervalNs = sampleIntervalNs;
+        request.shouldCancel = [flag = m_cancelFlag]()
+        {
+            return flag->load();
+        };
 
         // 进度回调在工作线程触发：只在整数百分比变化时投递一次事件，避免事件风暴。
         const QPointer<SimulationExportController> self{this};
@@ -184,11 +193,13 @@ namespace egret
         m_statusMessage = QStringLiteral("正在离线求解…");
         m_outputFilePath = outputPath;
         m_simulatedSeconds = durationSeconds;
+        m_cancelFlag->store(false);
 
         emit progressChanged();
         emit errorMessageChanged();
         emit statusMessageChanged();
         emit outputFilePathChanged();
+        emit cancelRequestedChanged();
 
         setRunning(true);
 
@@ -231,19 +242,37 @@ namespace egret
             return;
         }
 
-        m_progress = 1.0;
         m_frameCount = static_cast<int>(report.frameCount);
         m_fileSizeMb = static_cast<double>(report.fileBytes) / (1024.0 * 1024.0);
         m_wallClockSeconds = report.wallClockSeconds;
-        m_statusMessage = QStringLiteral("求解完成：%1 帧，%2 MB，耗时 %3 s")
-                              .arg(report.frameCount)
-                              .arg(QString::number(m_fileSizeMb, 'f', 2))
-                              .arg(QString::number(m_wallClockSeconds, 'f', 2));
+
+        if (report.canceled) {
+            // 取消也会正常收尾，已写入的帧仍然可播放
+            m_statusMessage = QStringLiteral("已取消：保留 %1 帧，%2 MB（文件已正常收尾）")
+                                  .arg(report.frameCount)
+                                  .arg(QString::number(m_fileSizeMb, 'f', 2));
+        }
+        else {
+            m_progress = 1.0;
+            m_statusMessage = QStringLiteral("求解完成：%1 帧，%2 MB，耗时 %3 s")
+                                  .arg(report.frameCount)
+                                  .arg(QString::number(m_fileSizeMb, 'f', 2))
+                                  .arg(QString::number(m_wallClockSeconds, 'f', 2));
+        }
 
         emit progressChanged();
         emit statusMessageChanged();
         emit resultChanged();
         emit finished(true);
+    }
+
+    void SimulationExportController::cancel()
+    {
+        if (!m_running || m_cancelFlag->load()) {
+            return;
+        }
+        m_cancelFlag->store(true);
+        emit cancelRequestedChanged();
     }
 
     bool SimulationExportController::saveAs(const QString& targetPath)

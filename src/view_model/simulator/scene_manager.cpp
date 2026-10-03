@@ -18,7 +18,7 @@
 #endif
 
 #include "scene_manager.h"
-#include "eps_reader.h"
+#include "epsx_reader.h"
 #include "offline_simulation_runner.h"
 #include <QCryptographicHash>
 #include "basic_render_item.h"
@@ -1026,7 +1026,7 @@ namespace egret
 
     bool SceneManagerViewModel::openSimulationFile(const QString& fileName)
     {
-        auto reader = std::make_unique<eps::EpsReader>(fileName);
+        auto reader = std::make_unique<epsx::EpsxReader>(fileName);
         QString error;
         if (!reader->open(&error)) {
             m_simulationError = error;
@@ -1175,7 +1175,7 @@ namespace egret
             return false;
         }
 
-        eps::FrameState state{};
+        epsx::FrameState state{};
         QString error;
         if (!m_simulationReader->readFrame(static_cast<std::uint64_t>(std::max(0, frame)), &state, &error)) {
             m_simulationError = error;
@@ -1184,7 +1184,7 @@ namespace egret
         }
 
         const std::vector<PhysicalEntity*> entities = m_world->getAllPhysicalEntities();
-        for (const eps::BodyState& body : state.bodies) {
+        for (const epsx::BodyState& body : state.bodies) {
             if (body.slot >= entities.size()) {
                 continue;
             }

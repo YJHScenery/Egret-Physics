@@ -284,13 +284,13 @@ set(CPP_FILES
         src/view_model/editor/parameter_manager.h
         src/view_model/serialize/model_item_data.cpp
         src/view_model/serialize/model_item_data.h
-        src/view_model/simulation_serializer/eps_crc32c.h
-        src/view_model/simulation_serializer/eps_common.h
-        src/view_model/simulation_serializer/eps_format.h
-        src/view_model/simulation_serializer/eps_writer.cpp
-        src/view_model/simulation_serializer/eps_writer.h
-        src/view_model/simulation_serializer/eps_reader.cpp
-        src/view_model/simulation_serializer/eps_reader.h
+        src/view_model/simulation_serializer/epsx_crc32c.h
+        src/view_model/simulation_serializer/epsx_common.h
+        src/view_model/simulation_serializer/epsx_format.h
+        src/view_model/simulation_serializer/epsx_writer.cpp
+        src/view_model/simulation_serializer/epsx_writer.h
+        src/view_model/simulation_serializer/epsx_reader.cpp
+        src/view_model/simulation_serializer/epsx_reader.h
 
         src/view/qt_component_helper.cpp
         src/view/qt_component_helper.h

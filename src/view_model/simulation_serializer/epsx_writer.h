@@ -1,7 +1,7 @@
 /**
- * @file        eps_writer.h
- * @brief       EPS 文件流式写入器。
- * @details     EpsWriter 按 docs/EPS 模拟数据文件格式规范（草案）.md 定义的布局，
+ * @file        epsx_writer.h
+ * @brief       EPSX 文件流式写入器。
+ * @details     EpsxWriter 按 docs/EPSX 模拟数据文件格式规范（草案）.md 定义的布局，
  *              把离线求解结果逐帧写入磁盘：
  *
  *              1. open()  写 64 字节文件头与 SCNE 场景描述块；
@@ -19,11 +19,11 @@
  * @license     GPL v3.0
  *
  * @ingroup     Serialize
- * @defgroup    Eps (Egret Physics Simulation 文件格式)
+ * @defgroup    EPSX (Egret Physics Simulation 文件格式)
  */
 
-#ifndef EGRET_PHYSICS_EPS_WRITER_H
-#define EGRET_PHYSICS_EPS_WRITER_H
+#ifndef EGRET_PHYSICS_EPSX_WRITER_H
+#define EGRET_PHYSICS_EPSX_WRITER_H
 
 #include <QFile>
 #include <QString>
@@ -32,19 +32,19 @@
 #include <string>
 #include <vector>
 
-#include "eps_format.h"
+#include "epsx_format.h"
 
-namespace egret::eps
+namespace egret::epsx
 {
     /**
-     * @brief       流式写出的 EPS 文件写入器。
+     * @brief       流式写出的 EPSX 文件写入器。
      * @details     使用方式固定为 open → writeFrame×N → close。
      *              未调用 close() 就析构时不会补写索引与尾块，文件处于「不完整」状态。
      *
      * @invariant   m_open 为 true 时 m_file 处于已打开状态
      * @invariant   m_index.size() 等于已写入的帧数
      */
-    class EpsWriter final
+    class EpsxWriter final
     {
     public:
         /**
@@ -82,18 +82,18 @@ namespace egret::eps
          * @brief 绑定输出文件路径。
          * @param filePath 目标文件路径（含扩展名）。
          */
-        explicit EpsWriter(QString filePath);
+        explicit EpsxWriter(QString filePath);
 
         /** 析构时若文件仍处于打开状态，直接关闭而不补写索引。 */
-        ~EpsWriter();
+        ~EpsxWriter();
 
-        EpsWriter(const EpsWriter&) = delete;
+        EpsxWriter(const EpsxWriter&) = delete;
 
-        EpsWriter& operator=(const EpsWriter&) = delete;
+        EpsxWriter& operator=(const EpsxWriter&) = delete;
 
-        EpsWriter(EpsWriter&&) = delete;
+        EpsxWriter(EpsxWriter&&) = delete;
 
-        EpsWriter& operator=(EpsWriter&&) = delete;
+        EpsxWriter& operator=(EpsxWriter&&) = delete;
 
         /**
          * @brief  开始写入：创建文件、写文件头与场景描述块。
@@ -231,4 +231,4 @@ namespace egret::eps
     };
 }
 
-#endif // EGRET_PHYSICS_EPS_WRITER_H
+#endif // EGRET_PHYSICS_EPSX_WRITER_H

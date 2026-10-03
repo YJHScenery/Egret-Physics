@@ -28,6 +28,9 @@
 #include <QObject>
 #include <QString>
 
+#include <atomic>
+#include <memory>
+
 #include "offline_simulation_runner.h"
 
 namespace egret
@@ -61,6 +64,8 @@ namespace egret
         Q_PROPERTY(double fileSizeMb READ fileSizeMb NOTIFY resultChanged)
 
         Q_PROPERTY(double wallClockSeconds READ wallClockSeconds NOTIFY resultChanged)
+
+        Q_PROPERTY(bool cancelRequested READ isCancelRequested NOTIFY cancelRequestedChanged)
 
     public:
         /** 默认构造。 */
@@ -96,6 +101,9 @@ namespace egret
         /** 最近一次求解与写盘消耗的真实时间（秒）。 */
         [[nodiscard]] double wallClockSeconds() const;
 
+        /** 是否已经发出取消请求（求解线程会在下一个检查点结束）。 */
+        [[nodiscard]] bool isCancelRequested() const;
+
         /**
          * @brief  启动一次离线求解。
          * @param  sceneJson 场景 JSON 文本（取自 SceneManagerViewModel::currentSceneJson()）。
@@ -122,6 +130,14 @@ namespace egret
          */
         Q_INVOKABLE [[nodiscard]] bool removeCacheFile();
 
+        /**
+         * @brief  请求取消当前离线求解。
+         * @details 求解线程每 100 步检查一次；收到取消后仍会正常收尾（写索引块与尾块），
+         *          因此已求解出的帧可以照常播放，状态栏会显示「已取消」。
+         *          没有任务在跑时调用无副作用。
+         */
+        Q_INVOKABLE void cancel();
+
         /** 返回默认缓存文件路径（不创建文件）。 */
         Q_INVOKABLE [[nodiscard]] QString defaultFilePath() const;
 
@@ -143,6 +159,9 @@ namespace egret
 
         /** 求解结果指标变化。 */
         void resultChanged();
+
+        /** 取消请求状态变化。 */
+        void cancelRequestedChanged();
 
         /**
          * @brief 一次求解结束。
@@ -173,6 +192,13 @@ namespace egret
 
         /** 是否正在求解。 */
         bool m_running{false};
+
+        /**
+         * @brief 取消标志。
+         * @details 由 UI 线程置位、求解线程读取，因此用 shared_ptr<atomic> 持有：
+         *          即便控制器先于任务销毁，工作线程也不会访问悬空对象。
+         */
+        std::shared_ptr<std::atomic<bool>> m_cancelFlag{std::make_shared<std::atomic<bool>>(false)};
 
         /** 求解进度比例。 */
         double m_progress{0.0};

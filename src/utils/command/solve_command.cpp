@@ -72,8 +72,8 @@ namespace egret::command
                                       ? OfflineSimulationRunner::defaultSimulationFilePath()
                                       : request.outputFile;
         solveRequest.durationSeconds = request.durationSeconds;
-        solveRequest.solverStepNs = eps::secondsToNanoseconds(request.solverStepMs / 1000.0);
-        solveRequest.sampleIntervalNs = eps::secondsToNanoseconds(request.sampleMs / 1000.0);
+        solveRequest.solverStepNs = epsx::secondsToNanoseconds(request.solverStepMs / 1000.0);
+        solveRequest.sampleIntervalNs = epsx::secondsToNanoseconds(request.sampleMs / 1000.0);
 
         int lastPercent{-1};
         solveRequest.progressCallback =

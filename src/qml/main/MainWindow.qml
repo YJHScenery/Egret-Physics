@@ -47,22 +47,25 @@ ApplicationWindow {
     ListModel {
         id: workspaceRouteModel
         ListElement {
-            label: "仿真器"; route: "scene"
+            label: "实时仿真"; route: "scene"; badge: "不再维护"
         }
         ListElement {
-            label: "场景编辑器"; route: "solver"
+            label: "离线仿真"; route: "offline"; badge: ""
         }
         ListElement {
-            label: "播放器"; route: "player"
+            label: "场景编辑器"; route: "solver"; badge: ""
         }
         ListElement {
-            label: "参数扫描"; route: "sweep"
+            label: "播放器"; route: "player"; badge: ""
         }
         ListElement {
-            label: "实验教学"; route: "teaching"
+            label: "参数扫描"; route: "sweep"; badge: ""
         }
         ListElement {
-            label: "数据分析"; route: "analysis"
+            label: "实验教学"; route: "teaching"; badge: ""
+        }
+        ListElement {
+            label: "数据分析"; route: "analysis"; badge: ""
         }
     }
 
@@ -490,12 +493,28 @@ ApplicationWindow {
                             mainRowLayout.currentRoute = workspaceRouteModel.get(index).route;
                         }
 
-                        contentItem: Text {
-                            text: workspaceComboBox.displayText
-                            color: theme.textPrimary
-                            font.pixelSize: 13
-                            elide: Text.ElideRight
-                            verticalAlignment: Text.AlignVCenter
+                        contentItem: Row {
+                            spacing: 6
+
+                            Text {
+                                text: workspaceComboBox.displayText
+                                color: theme.textPrimary
+                                font.pixelSize: 13
+                                elide: Text.ElideRight
+                                verticalAlignment: Text.AlignVCenter
+                            }
+
+                            Text {
+                                visible: workspaceComboBox.currentIndex >= 0
+                                    && workspaceRouteModel.get(workspaceComboBox.currentIndex).badge.length > 0
+                                text: workspaceComboBox.currentIndex >= 0
+                                    ? workspaceRouteModel.get(workspaceComboBox.currentIndex).badge
+                                    : ""
+                                color: theme.warning
+                                font.pixelSize: 11
+                                font.bold: true
+                                verticalAlignment: Text.AlignVCenter
+                            }
                         }
 
                         indicator: Canvas {
@@ -559,13 +578,26 @@ ApplicationWindow {
                             height: 34
                             text: model.label
                             highlighted: workspaceComboBox.highlightedIndex === index
-                            contentItem: Text {
-                                text: model.label
-                                color: highlighted ? "#E7F2FF" : "#9ABFE3"
-                                font.pixelSize: 12
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideRight
-                                leftPadding: 10
+                            contentItem: Row {
+                                spacing: 6
+
+                                Text {
+                                    text: model.label
+                                    color: highlighted ? "#E7F2FF" : "#9ABFE3"
+                                    font.pixelSize: 12
+                                    verticalAlignment: Text.AlignVCenter
+                                    elide: Text.ElideRight
+                                    leftPadding: 10
+                                }
+
+                                Text {
+                                    visible: model.badge !== undefined && model.badge.length > 0
+                                    text: model.badge !== undefined ? model.badge : ""
+                                    color: theme.warning
+                                    font.pixelSize: 11
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                }
                             }
                             background: Rectangle {
                                 radius: theme.radiusS
@@ -592,6 +624,14 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 visible: mainRowLayout.currentRoute === "scene"
+                theme: theme
+            }
+
+            OfflineSimulationUnit {
+                id: offlineSimulationUnit
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                visible: mainRowLayout.currentRoute === "offline"
                 theme: theme
             }
 

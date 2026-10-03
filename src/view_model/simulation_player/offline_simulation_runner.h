@@ -1,11 +1,11 @@
 /**
  * @file        offline_simulation_runner.h
- * @brief       离线求解器：按固定推进步长求解场景并写出 EPS 文件。
+ * @brief       离线求解器：按固定推进步长求解场景并写出 EPSX 文件。
  * @details     OfflineSimulationRunner 把「求解」从「实时渲染」中彻底剥离出来：
  *
  *              1. 由编辑器导出的场景 JSON 重建 WorldSceneManager（与实时模拟使用同一套策略组合）；
  *              2. 以固定推进步长 h（默认 0.5 ms）连续求解，累计总时长；
- *              3. 每 k = 采样间隔 / h 步抽出一帧写入 EPS 文件，第 0 帧为初始状态。
+ *              3. 每 k = 采样间隔 / h 步抽出一帧写入 EPSX 文件，第 0 帧为初始状态。
  *
  *              求解过程不创建任何 Qt 模型，也不依赖定时器，因此不受渲染帧率影响，
  *              同一场景与同一配置可以得到完全一致的结果。
@@ -29,7 +29,7 @@
 #include <cstdint>
 #include <functional>
 
-#include "eps_format.h"
+#include "epsx_format.h"
 #include "solver_types.h"
 
 namespace egret
@@ -58,10 +58,10 @@ namespace egret
             double durationSeconds{60.0};
 
             /** 求解推进步长（纳秒），默认 0.5 ms。 */
-            std::uint64_t solverStepNs{eps::kDefaultSolverStepNs};
+            std::uint64_t solverStepNs{epsx::kDefaultSolverStepNs};
 
             /** 采样间隔（纳秒），默认 10 ms。 */
-            std::uint64_t sampleIntervalNs{eps::kDefaultSampleIntervalNs};
+            std::uint64_t sampleIntervalNs{epsx::kDefaultSampleIntervalNs};
 
             /** 求解器运行时配置（迭代次数、穿透容差等）。 */
             SolverConfig solverConfig{};
@@ -73,6 +73,15 @@ namespace egret
              *          置空则不回调，求解过程完全静默。
              */
             std::function<void(std::uint64_t completedSteps, std::uint64_t totalSteps)> progressCallback{};
+
+            /**
+             * @brief 取消判定回调。
+             * @details 每 100 步（与进度回调同频）询问一次：返回 true 表示调用方要求
+             *          提前结束求解。此时的收尾方式与正常结束完全一致——已写入的帧会被
+             *          正常索引并写入尾块，因此「已求解到的部分」仍然可以播放。
+             *          置空表示不响应取消。
+             */
+            std::function<bool()> shouldCancel{};
         };
 
         /**
@@ -85,6 +94,9 @@ namespace egret
 
             /** 实际写入的帧数。 */
             std::uint64_t frameCount{0};
+
+            /** 是否因调用方取消而提前结束（true 时结果仍然有效，只是帧数更少）。 */
+            bool canceled{false};
 
             /** 求解与写盘消耗的真实时间（秒）。 */
             double wallClockSeconds{0.0};
@@ -99,7 +111,7 @@ namespace egret
         };
 
         /**
-         * @brief  执行一次离线求解并写出 EPS 文件。
+         * @brief  执行一次离线求解并写出 EPSX 文件。
          * @param  request 请求参数。
          * @param  report 输出执行结果，可为 nullptr。
          * @param  errorMessage 失败时写入错误描述，可为 nullptr。
@@ -110,7 +122,7 @@ namespace egret
         /**
          * @brief  返回默认的仿真文件缓存路径。
          * @details 位于系统的应用数据目录下（Windows 为
-         *          %APPDATA%/<应用名>/simulations/egret_simulation.egps），
+         *          %APPDATA%/<应用名>/simulations/egret_simulation.epsx），
          *          目录不存在时由调用方负责创建。
          * @return 绝对路径。
          */

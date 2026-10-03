@@ -1,7 +1,7 @@
 /**
- * @file        eps_reader.h
- * @brief       EPS 文件随机访问读取器。
- * @details     EpsReader 打开 EPS 文件后先校验文件头，再读取场景描述块与帧索引块，
+ * @file        epsx_reader.h
+ * @brief       EPSX 文件随机访问读取器。
+ * @details     EpsxReader 打开 EPSX 文件后先校验文件头，再读取场景描述块与帧索引块，
  *              之后可以按帧号 O(1) 定位并解码任意一帧，供播放器拖动进度条或调试时定点取帧。
  *
  *              容错策略：
@@ -17,11 +17,11 @@
  * @license     GPL v3.0
  *
  * @ingroup     Serialize
- * @defgroup    Eps (Egret Physics Simulation 文件格式)
+ * @defgroup    EPSX (Egret Physics Simulation 文件格式)
  */
 
-#ifndef EGRET_PHYSICS_EPS_READER_H
-#define EGRET_PHYSICS_EPS_READER_H
+#ifndef EGRET_PHYSICS_EPSX_READER_H
+#define EGRET_PHYSICS_EPSX_READER_H
 
 #include <QFile>
 #include <QString>
@@ -30,9 +30,9 @@
 #include <string>
 #include <vector>
 
-#include "eps_format.h"
+#include "epsx_format.h"
 
-namespace egret::eps
+namespace egret::epsx
 {
     /**
      * @brief       场景描述块中声明的帧段布局。
@@ -82,25 +82,25 @@ namespace egret::eps
      * @invariant   m_open 为 true 时 m_file 处于已打开状态
      * @invariant   m_index.size() 等于 frameCount()
      */
-    class EpsReader final
+    class EpsxReader final
     {
     public:
         /**
          * @brief 绑定待读取的文件路径。
          * @param filePath 文件路径。
          */
-        explicit EpsReader(QString filePath);
+        explicit EpsxReader(QString filePath);
 
         /** 析构时自动关闭文件。 */
-        ~EpsReader();
+        ~EpsxReader();
 
-        EpsReader(const EpsReader&) = delete;
+        EpsxReader(const EpsxReader&) = delete;
 
-        EpsReader& operator=(const EpsReader&) = delete;
+        EpsxReader& operator=(const EpsxReader&) = delete;
 
-        EpsReader(EpsReader&&) = delete;
+        EpsxReader(EpsxReader&&) = delete;
 
-        EpsReader& operator=(EpsReader&&) = delete;
+        EpsxReader& operator=(EpsxReader&&) = delete;
 
         /**
          * @brief  打开并解析文件头、场景描述块与帧索引。
@@ -286,4 +286,4 @@ namespace egret::eps
     };
 }
 
-#endif // EGRET_PHYSICS_EPS_READER_H
+#endif // EGRET_PHYSICS_EPSX_READER_H

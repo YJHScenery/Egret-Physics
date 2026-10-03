@@ -8,7 +8,7 @@
  *
  *              支持的语法：
  *              - `--solve <scene.json> [--duration <秒>] [--sample <毫秒>] [--step <毫秒>] [-o <文件>]`
- *              - `--parse eps <帧号> [文件]`（缩写 `-p`）
+ *              - `--parse EPSX <帧号> [文件]`（缩写 `-p`）
  *              - `--play <文件>`（缩写 `-r`，尚未实现）
  *              - `--help`（缩写 `-h`）
  *
@@ -91,7 +91,7 @@ namespace egret::command
                            "文件采样间隔，单位毫秒：1 / 2 / 5 / 10 / 20（默认 10）");
             app.add_option("--step", options.solverStepMs, "求解推进步长，单位毫秒（默认 0.5）");
             app.add_option("-o,--output", options.outputFile, "输出文件路径（默认写入应用数据目录）");
-            app.add_option("-p,--parse", options.parseArgs, "解析仿真文件：--parse eps <帧号> [文件]")
+            app.add_option("-p,--parse", options.parseArgs, "解析仿真文件：--parse EPSX <帧号> [文件]")
                 ->expected(2, 3);
             app.add_option("-r,--play", options.playFile, "以播放器模式打开仿真文件（尚未实现）");
         }
