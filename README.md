@@ -3,6 +3,11 @@
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-GPLv3-green.svg)
 
+
+**注意** dependency 文件夹是本项目所需要的所有第三方库文件。由于其体积过大，不再随仓库一同提交。
+请使用 dependency_build 文件夹中的脚本进行自动化下载与构建
+
+
 一个现代化的物理模拟引擎，支持刚体动力学、碰撞检测和约束求解。
 
 ![program_screenshot_v1.0-Simulator](./README.assets/program_screenshot_v1.0-Simulator.png)
