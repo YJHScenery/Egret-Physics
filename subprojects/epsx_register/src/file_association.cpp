@@ -462,7 +462,7 @@ namespace egret::epsx_register
 {
     FileAssociationResult registerEpsxFileAssociation(const QString& executablePath)
     {
-        Q_UNUSED(executablePath)
+        Q_UNUSED(executablePath)el
         return {false, QStringLiteral("文件关联目前只支持 Windows。")};
     }
 
