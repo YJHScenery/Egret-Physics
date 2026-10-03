@@ -50,6 +50,37 @@ Item {
     /** 当前高亮的实体 ID，空串表示无选中。 */
     property string selectedBodyId: ""
 
+    // ============ 显式相机（离屏导出等无交互场景使用） ============
+
+    /**
+     * @brief 是否改用显式相机姿态。
+     * @details 为 true 时忽略 orbit* 轨道参数，直接使用下面 explicit* 指定的位置与注视点；
+     *          为 false 时行为与原先完全一致（默认值）。
+     */
+    property bool useExplicitCamera: false
+
+    /** 显式相机位置（物理坐标系，米）。 */
+    property vector3d explicitCameraPosition: Qt.vector3d(0, 0, 0)
+
+    /** 显式相机注视点（物理坐标系，米）。 */
+    property vector3d explicitCameraTarget: Qt.vector3d(0, 0, 0)
+
+    /** 显式相机垂直视场角（度）。 */
+    property real explicitFieldOfView: 45
+
+    /** 显式相机近裁剪面距离。 */
+    property real explicitClipNear: 1
+
+    /** 显式相机远裁剪面距离。 */
+    property real explicitClipFar: 50000
+
+    /**
+     * @brief 当前视距。
+     * @details 轨道模式下等于轨道半径；显式模式下等于「相机到注视点」的距离。
+     *          网格间距与网格线数量都以它为依据自适应。
+     */
+    readonly property real viewDistance: useExplicitCamera ? explicitCameraDistance() : orbitDistance
+
     // ============ 数据来源 ============
 
     /**
@@ -104,14 +135,17 @@ Item {
      * @return 相机状态字典。
      */
     function cameraState() {
-        const cam = cameraPhysicsPosition();
+        const cam = useExplicitCamera ? explicitCameraPosition : cameraPhysicsPosition();
+        const targetX = useExplicitCamera ? explicitCameraTarget.x : orbitTargetX;
+        const targetY = useExplicitCamera ? explicitCameraTarget.y : orbitTargetY;
+        const targetZ = useExplicitCamera ? explicitCameraTarget.z : orbitTargetZ;
         return {
             positionX: cam.x,
             positionY: cam.y,
             positionZ: cam.z,
-            targetX: orbitTargetX,
-            targetY: orbitTargetY,
-            targetZ: orbitTargetZ,
+            targetX: targetX,
+            targetY: targetY,
+            targetZ: targetZ,
             upX: 0,
             upY: 0,
             upZ: 1,
@@ -142,9 +176,36 @@ Item {
         sceneCamera.lookAt(target);
     }
 
+    /**
+     * @brief 计算显式相机到注视点的距离（物理坐标系）。
+     * @return 距离，最小为 1，避免除零与网格退化。
+     */
+    function explicitCameraDistance() {
+        const dx = explicitCameraPosition.x - explicitCameraTarget.x
+        const dy = explicitCameraPosition.y - explicitCameraTarget.y
+        const dz = explicitCameraPosition.z - explicitCameraTarget.z
+        return Math.max(1, Math.sqrt(dx * dx + dy * dy + dz * dz))
+    }
+
+    /**
+     * @brief 按显式相机参数刷新相机位置、朝向与视锥。
+     * @remark 相机朝向固定为无滚转（与 Camera::lookAt 的约定一致），上方向等价于物理 +Z 轴。
+     */
+    function applyExplicitCamera() {
+        updateGridSpacing();
+        updateGridLineCount();
+        const cam = toRenderVector(explicitCameraPosition.x, explicitCameraPosition.y, explicitCameraPosition.z);
+        const target = toRenderVector(explicitCameraTarget.x, explicitCameraTarget.y, explicitCameraTarget.z);
+        sceneCamera.position = cam;
+        sceneCamera.lookAt(target);
+        sceneCamera.fieldOfView = explicitFieldOfView;
+        sceneCamera.clipNear = explicitClipNear;
+        sceneCamera.clipFar = explicitClipFar;
+    }
+
     /** @brief 随相机距离自适应网格间距。 */
     function updateGridSpacing() {
-        const distance = orbitDistance;
+        const distance = viewDistance;
         const newSpacing = distance < 400 ? 20 : (distance < 1200 ? 50 : 100);
         if (Math.abs(newSpacing - gridSpacing) > 0.1) {
             gridSpacing = newSpacing;
@@ -159,7 +220,7 @@ Item {
             return;
         }
         const fovRad = sceneCamera.fieldOfView * Math.PI / 180.0;
-        const halfHeight = orbitDistance * Math.tan(fovRad / 2.0);
+        const halfHeight = viewDistance * Math.tan(fovRad / 2.0);
         const aspect = w / h;
         const halfWidth = halfHeight * aspect;
         const extent = Math.max(halfWidth, halfHeight) * 1.2;
@@ -199,8 +260,29 @@ Item {
     }
 
     Component.onCompleted: {
-        updateCameraPose();
+        if (useExplicitCamera) {
+            applyExplicitCamera();
+        }
+        else {
+            updateCameraPose();
+        }
     }
+
+    // 相机模式或显式相机参数发生变化时立即刷新（轨道模式下保持不变）。
+    onUseExplicitCameraChanged: {
+        if (useExplicitCamera) {
+            applyExplicitCamera();
+        }
+        else {
+            updateCameraPose();
+        }
+    }
+
+    onExplicitCameraPositionChanged: if (useExplicitCamera) applyExplicitCamera()
+    onExplicitCameraTargetChanged: if (useExplicitCamera) applyExplicitCamera()
+    onExplicitFieldOfViewChanged: if (useExplicitCamera) applyExplicitCamera()
+    onExplicitClipNearChanged: if (useExplicitCamera) applyExplicitCamera()
+    onExplicitClipFarChanged: if (useExplicitCamera) applyExplicitCamera()
 
     View3D {
         id: sceneView
@@ -239,7 +321,7 @@ Item {
 
             Coordinate {
                 id: coordinateSystem
-                orbitDistance: viewportRoot.orbitDistance
+                orbitDistance: viewportRoot.viewDistance
                 gridStep: viewportRoot.gridSpacing
                 maxGridLines: viewportRoot.gridCount
                 gridExtent: (viewportRoot.gridCount - 1) * viewportRoot.gridSpacing * 0.5

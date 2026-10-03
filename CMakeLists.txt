@@ -474,6 +474,11 @@ add_subdirectory(subprojects/epsx_register)
 # 若不带 --target 构建整个解决方案，两者本来就会一起构建。
 add_dependencies(${PROJECT_NAME} epsx_register)
 
+# 视频导出工具：独立的命令行程序（.epsx → MP4），复用主工程源码但**不**加入主程序依赖链，
+# 避免拖慢日常构建；需要时显式构建：
+#     cmake --build <build-dir> --config Release --target video_encoder
+add_subdirectory(subprojects/video_encoder)
+
 
 
 option(BUILD_TESTS "Build unit tests" ON)

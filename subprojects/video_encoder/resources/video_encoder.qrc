@@ -1,0 +1,6 @@
+<RCC>
+    <!-- 视频导出子项目的 QML 资源：离屏导出场景。 -->
+    <qresource prefix="/video_encoder">
+        <file>qml/VideoExportScene.qml</file>
+    </qresource>
+</RCC>
