@@ -22,6 +22,8 @@
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQmlError>
+#include <QAbstractVideoBuffer>
+#include <QElapsedTimer>
 #include <QQuickItem>
 #include <QQuickRenderControl>
 #include <QQuickRenderTarget>
@@ -31,7 +33,9 @@
 
 #include <rhi/qrhi.h>
 
+#include <cstring>
 #include <memory>
+#include <vector>
 
 #include "resource_helper.h"
 #include "scene_manager.h"
@@ -58,6 +62,93 @@ namespace egret::video
                 messages.append(error.toString());
             }
             return messages.join(QLatin1Char('\n'));
+        }
+
+        /**
+         * @brief       直接包住 GPU 回读缓冲的只读视频缓冲。
+         * @details     回读数据由 QByteArray 持有（隐式共享 + 引用计数），QVideoFrame 在
+         *              编码线程读取期间会一直持有一份拷贝，因此整条链路不需要复制整帧像素。
+         *              缓冲只允许只读映射：像素由渲染器产生，编码器只读取。
+         */
+        class ReadbackVideoBuffer final : public QAbstractVideoBuffer
+        {
+        public:
+            /**
+             * @brief  构造只读缓冲。
+             * @param  data 回读得到的像素数据（所有权转移）。
+             * @param  bytesPerLine 每行字节数。
+             * @param  format 像素格式描述。
+             */
+            ReadbackVideoBuffer(QByteArray data, const int bytesPerLine, const QVideoFrameFormat& format) :
+                m_data(std::move(data)),
+                m_bytesPerLine(bytesPerLine),
+                m_format(format)
+            {
+            }
+
+            /**
+             * @brief  映射缓冲供读取。
+             * @param  mode 映射模式。
+             * @return 单平面映射数据；写模式返回空映射。
+             */
+            [[nodiscard]] MapData map(const QVideoFrame::MapMode mode) override
+            {
+                MapData mapData{};
+                if (mode != QVideoFrame::ReadOnly) {
+                    return mapData;
+                }
+
+                mapData.planeCount = 1;
+                mapData.data[0] = reinterpret_cast<uchar*>(m_data.data());
+                mapData.bytesPerLine[0] = m_bytesPerLine;
+                mapData.dataSize[0] = static_cast<int>(m_data.size());
+                return mapData;
+            }
+
+            /** 解除映射（只读缓冲无需额外处理）。 */
+            void unmap() override
+            {
+            }
+
+            /** 返回像素格式。 */
+            [[nodiscard]] QVideoFrameFormat format() const override
+            {
+                return m_format;
+            }
+
+        private:
+            /** 像素数据。 */
+            QByteArray m_data;
+
+            /** 每行字节数。 */
+            int m_bytesPerLine{0};
+
+            /** 像素格式描述。 */
+            QVideoFrameFormat m_format{};
+        };
+
+        /**
+         * @brief  原地上下翻转图像行序。
+         * @param  pixels 像素缓冲（按行存放）。
+         * @param  height 图像高度。
+         * @param  bytesPerLine 每行字节数。
+         * @remark 只交换行，不额外分配整帧内存，可省下约一半内存带宽。
+         */
+        void flipRowsInPlace(QByteArray& pixels, const int height, const int bytesPerLine)
+        {
+            if (height < 2 || bytesPerLine <= 0) {
+                return;
+            }
+
+            uchar* const data{reinterpret_cast<uchar*>(pixels.data())};
+            std::vector<uchar> scratch(static_cast<std::size_t>(bytesPerLine));
+            for (int row = 0; row < height / 2; ++row) {
+                uchar* const topRow{data + static_cast<qsizetype>(row) * bytesPerLine};
+                uchar* const bottomRow{data + static_cast<qsizetype>(height - 1 - row) * bytesPerLine};
+                std::memcpy(scratch.data(), topRow, static_cast<std::size_t>(bytesPerLine));
+                std::memcpy(topRow, bottomRow, static_cast<std::size_t>(bytesPerLine));
+                std::memcpy(bottomRow, scratch.data(), static_cast<std::size_t>(bytesPerLine));
+            }
         }
     }
 
@@ -95,6 +186,11 @@ namespace egret::video
     QVideoFrameFormat OffscreenSceneRenderer::frameFormat() const
     {
         return QVideoFrameFormat{m_resolution, QVideoFrameFormat::Format_RGBA8888};
+    }
+
+    const OffscreenSceneRenderer::Timings& OffscreenSceneRenderer::timings() const
+    {
+        return m_timings;
     }
 
     bool OffscreenSceneRenderer::initialize(const Settings& settings, QString* errorMessage)
@@ -188,8 +284,8 @@ namespace egret::video
         // 预热：让 Repeater3D 完成首次委托创建，并提前验证「渲染 + 回读」整条通路。
         for (int index = 0; index < WARMUP_FRAME_COUNT; ++index) {
             QString warmupError{};
-            const QImage frame{renderFrame(&warmupError)};
-            if (frame.isNull()) {
+            const QVideoFrame frame{renderFrame(&warmupError)};
+            if (!frame.isValid()) {
                 m_initialized = false;
                 if (errorMessage != nullptr) {
                     *errorMessage = QStringLiteral("离屏渲染预热失败：%1").arg(warmupError);
@@ -206,7 +302,7 @@ namespace egret::video
         applyCameraToScene(camera);
     }
 
-    QImage OffscreenSceneRenderer::renderFrame(QString* errorMessage)
+    QVideoFrame OffscreenSceneRenderer::renderFrame(QString* errorMessage)
     {
         if (!m_initialized) {
             if (errorMessage != nullptr) {
@@ -215,17 +311,25 @@ namespace egret::video
             return {};
         }
 
+        QElapsedTimer stageTimer{};
+        stageTimer.start();
         m_renderControl->polishItems();
         m_renderControl->beginFrame();
         m_renderControl->sync();
-        m_renderControl->render();
+        m_timings.polishAndSyncMs += static_cast<double>(stageTimer.nsecsElapsed()) / 1.0e6;
 
+        stageTimer.restart();
+        m_renderControl->render();
+        m_timings.renderMs += static_cast<double>(stageTimer.nsecsElapsed()) / 1.0e6;
+
+        stageTimer.restart();
         QRhi* const rhi{m_renderControl->rhi()};
         QRhiReadbackResult readback{};
         QRhiResourceUpdateBatch* const batch{rhi->nextResourceUpdateBatch()};
         batch->readBackTexture(m_colorTexture.get(), &readback);
         m_renderControl->commandBuffer()->resourceUpdate(batch);
         m_renderControl->endFrame();
+        m_timings.readbackMs += static_cast<double>(stageTimer.nsecsElapsed()) / 1.0e6;
 
         if (readback.data.isEmpty() || readback.pixelSize.height() <= 0) {
             if (errorMessage != nullptr) {
@@ -234,14 +338,23 @@ namespace egret::video
             return {};
         }
 
-        // 离屏帧不做流水线，endFrame() 返回时回读已经完成；这里构造的 QImage 只是包装，
-        // 因此 flipped()/copy() 会生成独立副本，避免引用已释放的回读缓冲。
-        const QImage wrapper{reinterpret_cast<const uchar*>(readback.data.constData()),
-                             readback.pixelSize.width(),
-                             readback.pixelSize.height(),
-                             static_cast<qsizetype>(readback.data.size() / readback.pixelSize.height()),
-                             QImage::Format_RGBA8888_Premultiplied};
-        return rhi->isYUpInFramebuffer() ? wrapper.flipped() : wrapper.copy();
+        // 离屏帧不做流水线，endFrame() 返回时回读已经完成；这里直接接管回读缓冲，
+        // 只按需做一次原地行交换，避免「整帧翻转 + 再拷贝进 QVideoFrame」两次 8 MB 级拷贝。
+        const QSize pixelSize{readback.pixelSize};
+        const int bytesPerLine{static_cast<int>(readback.data.size() / pixelSize.height())};
+        QByteArray pixels{std::move(readback.data)};
+        if (rhi->isYUpInFramebuffer()) {
+            flipRowsInPlace(pixels, pixelSize.height(), bytesPerLine);
+        }
+
+        const QVideoFrameFormat format{pixelSize, QVideoFrameFormat::Format_RGBA8888};
+        std::unique_ptr<QAbstractVideoBuffer> buffer{
+            std::make_unique<ReadbackVideoBuffer>(std::move(pixels), bytesPerLine, format)};
+        QVideoFrame frame{buffer.release(), format};
+
+        m_timings.imageMs += static_cast<double>(stageTimer.nsecsElapsed()) / 1.0e6;
+        ++m_timings.frameCount;
+        return frame;
     }
 
     bool OffscreenSceneRenderer::createGraphicsResources(QString* errorMessage)

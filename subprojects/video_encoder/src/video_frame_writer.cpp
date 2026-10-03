@@ -31,7 +31,16 @@ namespace egret::video
     namespace
     {
         /** 等待录制器自动收尾的最长时间（毫秒）。 */
-        constexpr int FINALIZE_TIMEOUT_MS{15000};
+        constexpr int FINALIZE_TIMEOUT_MS{3000};
+
+        /** 发送流结束标志的重试间隔（毫秒）。 */
+        constexpr int END_OF_STREAM_RETRY_MS{20};
+
+        /** 发送流结束标志的最大重试次数（约 2 秒）。 */
+        constexpr int END_OF_STREAM_MAX_ATTEMPTS{100};
+
+        /** EOS 送出后等待 autoStop 的宽限时间（毫秒）。 */
+        constexpr int AUTO_STOP_GRACE_MS{300};
     }
 
     VideoFrameWriter::VideoFrameWriter(QObject* parent) :
@@ -119,27 +128,68 @@ namespace egret::video
             return;
         }
         m_finishing = true;
+        trySendEndOfStream(0);
+    }
 
-        // 空帧是 Qt 规定的「流结束」标志；配合 autoStop(true)，录制器会自行收尾。
-        if (m_input != nullptr) {
-            m_input->sendVideoFrame(QVideoFrame{});
+    void VideoFrameWriter::trySendEndOfStream(const int attempt)
+    {
+        if (m_reported) {
+            return;
         }
 
-        if (m_recorder->recorderState() == QMediaRecorder::StoppedState) {
-            if (!m_reported) {
-                m_reported = true;
-                emit finished(!m_failed, m_failed ? m_errorMessage : QString{});
+        // 空帧是 Qt 规定的「流结束」标志；配合 autoStop(true)，录制器会自行收尾。
+        if (m_input != nullptr && m_input->sendVideoFrame(QVideoFrame{})) {
+            if (m_recorder != nullptr && m_recorder->recorderState() == QMediaRecorder::StoppedState) {
+                if (!m_reported) {
+                    m_reported = true;
+                    emit finished(!m_failed, m_failed ? m_errorMessage : QString{});
+                }
+                return;
+            }
+            scheduleFinalizeTimeout();
+            return;
+        }
+
+        if (attempt >= END_OF_STREAM_MAX_ATTEMPTS) {
+            LOG_WARN_LITERAL("多次尝试后仍无法送出流结束标志，直接停止录制器");
+            if (m_recorder != nullptr && m_recorder->recorderState() != QMediaRecorder::StoppedState) {
+                m_recorder->stop();
             }
             return;
         }
 
+        QTimer::singleShot(END_OF_STREAM_RETRY_MS, this,
+                           [this, attempt]
+                           {
+                               trySendEndOfStream(attempt + 1);
+                           });
+    }
+
+    void VideoFrameWriter::scheduleFinalizeTimeout()
+    {
+        QTimer::singleShot(AUTO_STOP_GRACE_MS, this,
+                           [this]
+                           {
+                               if (m_reported) {
+                                   return;
+                               }
+                               if (m_recorder != nullptr
+                                   && m_recorder->recorderState() == QMediaRecorder::StoppedState) {
+                                   m_reported = true;
+                                   emit finished(!m_failed, m_failed ? m_errorMessage : QString{});
+                                   return;
+                               }
+                               LOG_WARN_LITERAL("录制器未在宽限时间内自动停止，改为强制停止");
+                               m_recorder->stop();
+                           });
+
+        // 二次兜底：即使 stop() 之后状态也没有变化，也不能让调用方无限等待。
         QTimer::singleShot(FINALIZE_TIMEOUT_MS, this,
                            [this]
                            {
-                               if (m_recorder != nullptr
-                                   && m_recorder->recorderState() != QMediaRecorder::StoppedState) {
-                                   LOG_WARN_LITERAL("录制器未在超时时间内自动收尾，改为强制停止");
-                                   m_recorder->stop();
+                               if (!m_reported) {
+                                   m_reported = true;
+                                   emit finished(!m_failed, m_failed ? m_errorMessage : QString{});
                                }
                            });
     }

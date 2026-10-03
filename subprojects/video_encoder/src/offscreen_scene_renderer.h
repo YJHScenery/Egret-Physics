@@ -31,8 +31,10 @@
 #include <QObject>
 #include <QSize>
 #include <QString>
+#include <QVideoFrame>
 #include <QVideoFrameFormat>
 
+#include <cstdint>
 #include <memory>
 
 #include "video_encoder_options.h"
@@ -78,6 +80,25 @@ namespace egret::video
             bool showGrid{true};
         };
 
+        /** 渲染各阶段累计耗时（毫秒），用于定位性能瓶颈。 */
+        struct Timings
+        {
+            /** polishItems + beginFrame + sync 的累计耗时。 */
+            double polishAndSyncMs{0.0};
+
+            /** 场景渲染（render）的累计耗时。 */
+            double renderMs{0.0};
+
+            /** GPU 回读（含等待 GPU 完成）的累计耗时。 */
+            double readbackMs{0.0};
+
+            /** 回读数据整理成 QImage 的累计耗时。 */
+            double imageMs{0.0};
+
+            /** 已统计的帧数。 */
+            std::uint64_t frameCount{0};
+        };
+
         /**
          * @brief  构造渲染器。
          * @param  scene 场景数据来源（epsx 的加载与逐帧状态套用由它负责）。
@@ -106,6 +127,9 @@ namespace egret::video
         /** 送入帧时应使用的像素格式（与渲染目标一致）。 */
         [[nodiscard]] QVideoFrameFormat frameFormat() const;
 
+        /** 渲染阶段累计耗时。 */
+        [[nodiscard]] const Timings& timings() const;
+
         /**
          * @brief 更新相机姿态（下一帧生效）。
          * @param camera 相机姿态（物理坐标系）。
@@ -113,11 +137,13 @@ namespace egret::video
         void setCamera(const CameraPose& camera);
 
         /**
-         * @brief  渲染一帧并回读为图像。
+         * @brief  渲染一帧并回读为视频帧。
          * @param  errorMessage 失败原因输出，可为 nullptr。
-         * @return 渲染结果；失败时返回空图像。
+         * @return 渲染结果；失败时返回无效帧。
+         * @remark 返回的帧直接引用 GPU 回读缓冲（必要时只做原地行交换），不再产生整帧内存拷贝，
+         *         因此可以安全地跨线程投递给编码器。
          */
-        [[nodiscard]] QImage renderFrame(QString* errorMessage);
+        [[nodiscard]] QVideoFrame renderFrame(QString* errorMessage);
 
     private:
         /**
@@ -174,6 +200,9 @@ namespace egret::video
 
         /** 是否初始化完成。 */
         bool m_initialized{false};
+
+        /** 各阶段累计耗时。 */
+        Timings m_timings{};
     };
 }
 

@@ -139,6 +139,17 @@ namespace egret::video
          */
         void reportFailure(const QString& message);
 
+        /**
+         * @brief 尝试发送流结束标志（空帧）。
+         * @param attempt 已尝试次数。
+         * @remark 编码器内部队列未清空时 sendVideoFrame() 会返回 false 并丢弃该帧，
+         *         因此必须重试；否则 autoStop 永远不会触发，收尾会一直等到看门狗超时。
+         */
+        void trySendEndOfStream(int attempt);
+
+        /** 发送 EOS 成功后的兜底：超时仍未停止则强制停止录制器。 */
+        void scheduleFinalizeTimeout();
+
         /** 录制会话（Qt 父子机制持有）。 */
         QMediaCaptureSession* m_session{nullptr};
 

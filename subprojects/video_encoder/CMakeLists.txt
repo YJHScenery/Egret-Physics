@@ -40,8 +40,12 @@ add_executable(video_encoder
         src/main.cpp
         src/epsx_video_encoder.h
         src/epsx_video_encoder.cpp
+        src/ffmpeg_video_writer.h
+        src/ffmpeg_video_writer.cpp
         src/offscreen_scene_renderer.h
         src/offscreen_scene_renderer.cpp
+        src/render_lane.h
+        src/render_lane.cpp
         src/video_frame_writer.h
         src/video_frame_writer.cpp
         src/video_encoder_options.h
@@ -57,11 +61,48 @@ set_source_files_properties(
         PROPERTIES COMPILE_FLAGS "/bigobj"
 )
 
+# ---- dependency 自带的 FFmpeg 9.0.2（NVENC 硬件编码）----
+set(FFMPEG_DEPENDENCY_ROOT "${CMAKE_SOURCE_DIR}/dependency")
+
+add_library(FFmpeg::avutil SHARED IMPORTED)
+set_target_properties(FFmpeg::avutil PROPERTIES
+        IMPORTED_LOCATION "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/avutil-61.dll"
+        IMPORTED_IMPLIB "${FFMPEG_DEPENDENCY_ROOT}/lib/ffmpeg/avutil.lib"
+        INTERFACE_INCLUDE_DIRECTORIES "${FFMPEG_DEPENDENCY_ROOT}/include/ffmpeg_9_0_2"
+)
+
+add_library(FFmpeg::swscale SHARED IMPORTED)
+set_target_properties(FFmpeg::swscale PROPERTIES
+        IMPORTED_LOCATION "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/swscale-10.dll"
+        IMPORTED_IMPLIB "${FFMPEG_DEPENDENCY_ROOT}/lib/ffmpeg/swscale.lib"
+        INTERFACE_INCLUDE_DIRECTORIES "${FFMPEG_DEPENDENCY_ROOT}/include/ffmpeg_9_0_2"
+)
+
+add_library(FFmpeg::avcodec SHARED IMPORTED)
+set_target_properties(FFmpeg::avcodec PROPERTIES
+        IMPORTED_LOCATION "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/avcodec-63.dll"
+        IMPORTED_IMPLIB "${FFMPEG_DEPENDENCY_ROOT}/lib/ffmpeg/avcodec.lib"
+        INTERFACE_INCLUDE_DIRECTORIES "${FFMPEG_DEPENDENCY_ROOT}/include/ffmpeg_9_0_2"
+        INTERFACE_LINK_LIBRARIES "FFmpeg::avutil"
+)
+
+add_library(FFmpeg::avformat SHARED IMPORTED)
+set_target_properties(FFmpeg::avformat PROPERTIES
+        IMPORTED_LOCATION "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/avformat-63.dll"
+        IMPORTED_IMPLIB "${FFMPEG_DEPENDENCY_ROOT}/lib/ffmpeg/avformat.lib"
+        INTERFACE_INCLUDE_DIRECTORIES "${FFMPEG_DEPENDENCY_ROOT}/include/ffmpeg_9_0_2"
+        INTERFACE_LINK_LIBRARIES "FFmpeg::avcodec;FFmpeg::avutil"
+)
+
 target_link_libraries(video_encoder PRIVATE
         ${QT_MODULES_LIST_WITH_PREFIX}
         Qt6::GuiPrivate          # 离屏渲染回读需要 rhi/qrhi.h
         QXlsx::QXlsx
         Assimp::Assimp
+        FFmpeg::avcodec          # dependency 自带的 FFmpeg 9.0.2（含 h264_nvenc）
+        FFmpeg::avformat
+        FFmpeg::avutil
+        FFmpeg::swscale
 )
 
 target_include_directories(video_encoder PRIVATE
@@ -105,6 +146,16 @@ if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     add_custom_command(TARGET video_encoder POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy
             "${CMAKE_SOURCE_DIR}/dependency/bin/Assimp/assimp-vc143-mt${DEBUG_SUFFIX}.dll"
+            "$<TARGET_FILE_DIR:video_encoder>")
+
+    # FFmpeg 运行时（自带副本，含 NVENC 支持）
+    add_custom_command(TARGET video_encoder POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/avutil-61.dll"
+            "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/swresample-7.dll"
+            "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/swscale-10.dll"
+            "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/avcodec-63.dll"
+            "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/avformat-63.dll"
             "$<TARGET_FILE_DIR:video_encoder>")
 
     find_program(WINDEPLOYQT_EXECUTABLE

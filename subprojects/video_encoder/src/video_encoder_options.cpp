@@ -289,6 +289,52 @@ namespace egret::video
                 options.quiet = true;
                 continue;
             }
+            if (argument == QStringLiteral("--stats")) {
+                options.printStats = true;
+                continue;
+            }
+            if (argument == QStringLiteral("--backend")) {
+                QString text{};
+                if (!takeValue(&text)) {
+                    return fail(result, QStringLiteral("--backend 缺少取值"));
+                }
+                const QString normalized{text.trimmed().toLower()};
+                if (normalized == QStringLiteral("ffmpeg")) {
+                    options.backend = EncoderBackend::Ffmpeg;
+                }
+                else if (normalized == QStringLiteral("qt")) {
+                    options.backend = EncoderBackend::QtMultimedia;
+                }
+                else {
+                    return fail(result, QStringLiteral("--backend 只支持 ffmpeg 或 qt"));
+                }
+                continue;
+            }
+            if (argument == QStringLiteral("--encoder")) {
+                QString text{};
+                if (!takeValue(&text)) {
+                    return fail(result, QStringLiteral("--encoder 缺少取值"));
+                }
+                options.encoderName = text.trimmed();
+                continue;
+            }
+            if (argument == QStringLiteral("--preset")) {
+                QString text{};
+                if (!takeValue(&text)) {
+                    return fail(result, QStringLiteral("--preset 缺少取值"));
+                }
+                options.encoderPreset = text.trimmed();
+                continue;
+            }
+            if (argument == QStringLiteral("--lanes")) {
+                QString text{};
+                double value{0.0};
+                if (!takeValue(&text) || !parseFiniteDouble(text, &value) || value < 1.0 || value > 16.0) {
+                    return fail(result, QStringLiteral("--lanes 需要 1 ~ 16 之间的整数"));
+                }
+                options.laneCount = static_cast<int>(std::llround(value));
+                continue;
+            }
 
             return fail(result, QStringLiteral("未知参数：%1（使用 --help 查看用法）").arg(argument));
         }
@@ -335,6 +381,9 @@ namespace egret::video
             "      --quality <low|normal|high|veryhigh>\n"
             "                                编码质量档，默认 high\n"
             "      --container <mp4|mov>     封装容器，默认 mp4\n"
+            "      --backend <ffmpeg|qt>     编码后端，默认 ffmpeg（自带 FFmpeg 9.0.2，支持 NVENC）\n"
+            "      --encoder <name>          FFmpeg 编码器名，默认 h264_nvenc（失败自动回退）\n"
+            "      --preset <name>           编码器预设（NVENC：p1~p7；x264：veryfast 等）\n"
             "\n"
             "相机参数（物理坐标系，Z 轴向上，单位米）：\n"
             "      --camera-pos <x,y,z>      相机位置（指定后使用「位置 + 注视点」模式）\n"
@@ -347,6 +396,8 @@ namespace egret::video
             "其他：\n"
             "      --no-grid                 不渲染网格与坐标轴\n"
             "      --quiet                   不打印逐帧进度\n"
+            "      --stats                   结束时打印逐阶段耗时统计\n"
+            "      --lanes <n>               并行渲染通道数（默认按 CPU 核数自动决定，1 为单通道）\n"
             "      --preview <path.png>      只渲染首帧并保存为 PNG（用于检查相机取景），不编码视频\n"
             "  -h, --help                    显示本帮助\n"
             "\n"
@@ -427,6 +478,21 @@ namespace egret::video
         case QualityChoice::High:
         default:
             return QMediaRecorder::HighQuality;
+        }
+    }
+
+    double qualityToBitRateScale(const QualityChoice quality)
+    {
+        switch (quality) {
+        case QualityChoice::Low:
+            return 0.4;
+        case QualityChoice::Normal:
+            return 0.7;
+        case QualityChoice::VeryHigh:
+            return 1.7;
+        case QualityChoice::High:
+        default:
+            return 1.0;
         }
     }
 

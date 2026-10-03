@@ -126,7 +126,11 @@ int main(int argc, char* argv[])
                           .arg(options.frameRate > 0.0 ? QStringLiteral("%1 fps").arg(options.frameRate)
                                                        : QStringLiteral("跟随 epsx 采样率（逐帧 1:1）"))
                    << QStringLiteral("  编码格式：%1 / %2\n")
-                          .arg(egret::video::containerName(options.container), egret::video::codecName(options.codec));
+                          .arg(egret::video::containerName(options.container), egret::video::codecName(options.codec))
+                   << QStringLiteral("  编码后端：%1\n")
+                          .arg(options.backend == egret::video::EncoderBackend::Ffmpeg
+                                   ? QStringLiteral("FFmpeg 9.0.2（%1）").arg(options.encoderName)
+                                   : QStringLiteral("Qt Multimedia"));
     standardOutput.flush();
 
     egret::video::EpsxVideoEncoder encoder{};
@@ -146,7 +150,8 @@ int main(int argc, char* argv[])
                      });
 
     QObject::connect(&encoder, &egret::video::EpsxVideoEncoder::finished,
-                     [&app, &encoder, &standardOutput, &standardError, quiet = options.quiet](
+                     [&app, &encoder, &standardOutput, &standardError,
+                      quiet = options.quiet, printStats = options.printStats](
                          const bool success, const QString& message)
                      {
                          if (!quiet) {
@@ -168,6 +173,10 @@ int main(int argc, char* argv[])
                          }
 
                          printReport(standardOutput, encoder.report());
+                         if (printStats) {
+                             standardOutput << encoder.timingSummary();
+                             standardOutput.flush();
+                         }
                          app.exit(0);
                      });
 

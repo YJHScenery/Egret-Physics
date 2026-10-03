@@ -63,6 +63,21 @@ namespace egret::video
     };
 
     /**
+     * @brief 视频编码后端。
+     * @details 两个后端产出的文件格式相同，区别在于编码器来源：
+     *          Ffmpeg 使用 dependency 中的 FFmpeg 9.0.2（可用 NVENC 硬件编码），
+     *          QtMultimedia 使用 Qt 自带的 FFmpeg 后端（只有软件/Media Foundation 编码器）。
+     */
+    enum class EncoderBackend
+    {
+        /** 自带 FFmpeg 9.0.2（默认，支持 NVENC）。 */
+        Ffmpeg,
+
+        /** Qt Multimedia（QMediaRecorder）。 */
+        QtMultimedia,
+    };
+
+    /**
      * @brief 相机输入参数（两套输入方式可以任选其一）。
      * @details 坐标一律为物理坐标系（Z 轴向上，单位米），与播放器视口保持一致；
      *          渲染坐标系转换由 SimulationViewport 完成，本结构不做任何转换。
@@ -168,6 +183,25 @@ namespace egret::video
 
         /** 是否只在标准输出打印最终结果（不打印逐帧进度）。 */
         bool quiet{false};
+
+        /** 是否在结束时打印逐阶段耗时统计（用于定位性能瓶颈）。 */
+        bool printStats{false};
+
+        /** 并行渲染通道数；0 表示按 CPU 核数自动决定，1 表示单通道（不并行）。 */
+        int laneCount{0};
+
+        /** 编码后端。 */
+        EncoderBackend backend{EncoderBackend::Ffmpeg};
+
+        /**
+         * @brief FFmpeg 编码器名。
+         * @details 默认 h264_nvenc；打开失败时会按 h264_amf → h264_qsv → h264_mf →
+         *          libx264 → h264 的顺序自动回退。
+         */
+        QString encoderName{QStringLiteral("h264_nvenc")};
+
+        /** 编码器预设（NVENC 的 p1~p7、x264 的 veryfast 等）；空表示用默认值。 */
+        QString encoderPreset{};
     };
 
     /** 命令行解析结果。 */
@@ -226,6 +260,13 @@ namespace egret::video
      * @return QMediaRecorder 质量枚举。
      */
     [[nodiscard]] QMediaRecorder::Quality toQuality(QualityChoice quality);
+
+    /**
+     * @brief  质量档映射到码率倍数（FFmpeg 后端使用）。
+     * @param  quality 质量档。
+     * @return 相对自动码率的倍数。
+     */
+    [[nodiscard]] double qualityToBitRateScale(QualityChoice quality);
 
     /**
      * @brief  编码格式的中文名称。
