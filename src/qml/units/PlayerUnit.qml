@@ -38,8 +38,8 @@ ColumnLayout {
     }
 
     /** 当前播放进度比例（0 ~ 1）。 */
-    readonly property real playbackRatio: sceneController.simulationDurationSeconds > 0
-        ? Math.max(0, Math.min(sceneController.playbackTimeSeconds / sceneController.simulationDurationSeconds, 1))
+    readonly property real playbackRatio: playerSceneController.simulationDurationSeconds > 0
+        ? Math.max(0, Math.min(playerSceneController.playbackTimeSeconds / playerSceneController.simulationDurationSeconds, 1))
         : 0
 
     /** 把播放进度格式化显示。 */
@@ -61,7 +61,7 @@ ColumnLayout {
         ]
 
         onAccepted: {
-            sceneController.openSimulationFile(playerRoot.localPathFromUrl(selectedFile));
+            playerSceneController.openSimulationFile(playerRoot.localPathFromUrl(selectedFile));
         }
     }
 
@@ -81,6 +81,12 @@ ColumnLayout {
                 id: playbackViewport
                 anchors.fill: parent
 
+                // 使用播放器自己的场景控制器：未打开仿真文件时是空世界，只显示坐标系与网格
+                bodyModelSource: playerSceneController.bodyModel
+                constraintModelSource: playerSceneController.constraintModel
+                curveModelSource: playerSceneController.curveModel
+                convexMeshModelSource: playerSceneController.convexMeshModel
+
                 // ---- 空状态提示：未加载仿真文件时显示 ----
                 Rectangle {
                     anchors.centerIn: parent
@@ -90,7 +96,7 @@ ColumnLayout {
                     color: "#0D2748"
                     border.width: 1
                     border.color: "#2C5D88"
-                    visible: !sceneController.simulationLoaded
+                    visible: !playerSceneController.simulationLoaded
 
                     Text {
                         anchors.centerIn: parent
@@ -114,7 +120,7 @@ ColumnLayout {
                     border.color: "#2B5E89"
                     width: 300
                     height: 48
-                    visible: sceneController.simulationLoaded
+                    visible: playerSceneController.simulationLoaded
 
                     Text {
                         anchors.fill: parent
@@ -186,7 +192,7 @@ ColumnLayout {
                     Layout.preferredHeight: 32
                     Layout.maximumHeight: 32
                     metricName: "帧数"
-                    metricValue: sceneController.simulationFrameCount
+                    metricValue: playerSceneController.simulationFrameCount
                     metricUnit: "f"
                     metricColor: theme.accent
                     nameFontSize: 12
@@ -203,7 +209,7 @@ ColumnLayout {
                     Layout.preferredHeight: 32
                     Layout.maximumHeight: 32
                     metricName: "时长"
-                    metricValue: Number(sceneController.simulationDurationSeconds).toFixed(2)
+                    metricValue: Number(playerSceneController.simulationDurationSeconds).toFixed(2)
                     metricUnit: "s"
                     metricColor: theme.success
                     nameFontSize: 12
@@ -220,7 +226,7 @@ ColumnLayout {
                     Layout.preferredHeight: 32
                     Layout.maximumHeight: 32
                     metricName: "采样"
-                    metricValue: Number(sceneController.simulationSampleIntervalMs).toFixed(0)
+                    metricValue: Number(playerSceneController.simulationSampleIntervalMs).toFixed(0)
                     metricUnit: "ms"
                     metricColor: theme.warning
                     nameFontSize: 12
@@ -237,7 +243,7 @@ ColumnLayout {
                     Layout.preferredHeight: 32
                     Layout.maximumHeight: 32
                     metricName: "当前帧"
-                    metricValue: sceneController.playbackFrame
+                    metricValue: playerSceneController.playbackFrame
                     metricUnit: "f"
                     metricColor: theme.accentSoft
                     nameFontSize: 12
@@ -269,22 +275,22 @@ ColumnLayout {
                     EgretPushButton {
                         text: "打开默认缓存文件"
                         onClicked: {
-                            sceneController.openDefaultSimulationFile();
+                            playerSceneController.openDefaultSimulationFile();
                         }
                     }
 
                     EgretPushButton {
                         text: "关闭当前文件"
-                        enabled: sceneController.simulationLoaded
+                        enabled: playerSceneController.simulationLoaded
                         onClicked: {
-                            sceneController.closeSimulationFile();
+                            playerSceneController.closeSimulationFile();
                         }
                     }
 
                     Text {
                         Layout.fillWidth: true
-                        text: sceneController.simulationLoaded
-                            ? sceneController.simulationFile
+                        text: playerSceneController.simulationLoaded
+                            ? playerSceneController.simulationFile
                             : "未加载文件"
                         color: "#9EC4EA"
                         font.pixelSize: 10
@@ -293,11 +299,11 @@ ColumnLayout {
 
                     Text {
                         Layout.fillWidth: true
-                        text: sceneController.simulationError
+                        text: playerSceneController.simulationError
                         color: theme.danger
                         font.pixelSize: 10
                         wrapMode: Text.WordWrap
-                        visible: sceneController.simulationError.length > 0
+                        visible: playerSceneController.simulationError.length > 0
                     }
 
                     Item {
@@ -322,25 +328,25 @@ ColumnLayout {
 
                         EgretPushButton {
                             text: "⏮ 上一帧"
-                            enabled: sceneController.simulationLoaded
+                            enabled: playerSceneController.simulationLoaded
                             onClicked: {
-                                sceneController.stepPlaybackFrame(-1);
+                                playerSceneController.stepPlaybackFrame(-1);
                             }
                         }
 
                         EgretPushButton {
-                            text: sceneController.playbackPlaying ? "⏸ 暂停" : "▶ 播放"
-                            enabled: sceneController.simulationLoaded
+                            text: playerSceneController.playbackPlaying ? "⏸ 暂停" : "▶ 播放"
+                            enabled: playerSceneController.simulationLoaded
                             onClicked: {
-                                sceneController.toggleSimulationPlayback();
+                                playerSceneController.toggleSimulationPlayback();
                             }
                         }
 
                         EgretPushButton {
                             text: "下一帧 ⏭"
-                            enabled: sceneController.simulationLoaded
+                            enabled: playerSceneController.simulationLoaded
                             onClicked: {
-                                sceneController.stepPlaybackFrame(1);
+                                playerSceneController.stepPlaybackFrame(1);
                             }
                         }
                     }
@@ -384,12 +390,12 @@ ColumnLayout {
 
                         MouseArea {
                             anchors.fill: parent
-                            enabled: sceneController.simulationLoaded
+                            enabled: playerSceneController.simulationLoaded
                             cursorShape: Qt.PointingHandCursor
 
                             function seekTo(x) {
                                 const ratio = Math.max(0, Math.min(x / Math.max(1, progressTrack.width), 1));
-                                sceneController.setPlaybackTime(ratio * sceneController.simulationDurationSeconds);
+                                playerSceneController.setPlaybackTime(ratio * playerSceneController.simulationDurationSeconds);
                             }
 
                             onPressed: function (mouse) {
@@ -421,11 +427,11 @@ ColumnLayout {
                             id: playbackTimeDisplay
                             Layout.fillWidth: true
                             from: 0
-                            to: Math.max(0, sceneController.simulationDurationSeconds)
+                            to: Math.max(0, playerSceneController.simulationDurationSeconds)
                             decimals: 2
                             suffix: "s"
                             readOnly: true
-                            value: sceneController.playbackTimeSeconds
+                            value: playerSceneController.playbackTimeSeconds
                         }
                     }
 
@@ -445,13 +451,13 @@ ColumnLayout {
                             id: playbackJumpField
                             Layout.fillWidth: true
                             from: 0
-                            to: Math.max(0, sceneController.simulationDurationSeconds)
+                            to: Math.max(0, playerSceneController.simulationDurationSeconds)
                             decimals: 2
                             suffix: "s"
-                            enabled: sceneController.simulationLoaded
+                            enabled: playerSceneController.simulationLoaded
                             onValueChanged: {
-                                if (sceneController.simulationLoaded) {
-                                    sceneController.setPlaybackTime(value);
+                                if (playerSceneController.simulationLoaded) {
+                                    playerSceneController.setPlaybackTime(value);
                                 }
                             }
                         }
@@ -459,10 +465,10 @@ ColumnLayout {
 
                     Text {
                         Layout.fillWidth: true
-                        text: playerRoot.formatSeconds(sceneController.playbackTimeSeconds)
-                            + " / " + playerRoot.formatSeconds(sceneController.simulationDurationSeconds)
-                            + "   ·   帧 " + sceneController.playbackFrame
-                            + " / " + Math.max(0, sceneController.simulationFrameCount - 1)
+                        text: playerRoot.formatSeconds(playerSceneController.playbackTimeSeconds)
+                            + " / " + playerRoot.formatSeconds(playerSceneController.simulationDurationSeconds)
+                            + "   ·   帧 " + playerSceneController.playbackFrame
+                            + " / " + Math.max(0, playerSceneController.simulationFrameCount - 1)
                         color: "#BDD8F3"
                         font.pixelSize: 11
                     }
@@ -497,7 +503,7 @@ ColumnLayout {
                                 radius: theme.radiusS
 
                                 readonly property bool active:
-                                    Math.abs(sceneController.playbackRate - modelData.rate) < 0.01
+                                    Math.abs(playerSceneController.playbackRate - modelData.rate) < 0.01
 
                                 color: active
                                     ? "#1A5E9E"
@@ -519,7 +525,7 @@ ColumnLayout {
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
-                                        sceneController.playbackRate = modelData.rate;
+                                        playerSceneController.playbackRate = modelData.rate;
                                     }
                                 }
                             }

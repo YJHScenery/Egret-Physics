@@ -112,6 +112,8 @@ int main(int argc, char* argv[])
     egret::SceneManagerViewModel sceneController;
     // 离线仿真工作区使用独立的空场景控制器：初始不加载任何场景，只显示坐标系与网格
     egret::SceneManagerViewModel offlineSceneController{nullptr, false};
+    // 播放器工作区同样使用独立的空场景控制器：未打开仿真文件时不渲染任何实体
+    egret::SceneManagerViewModel playerSceneController{nullptr, false};
     egret::SimulationExportController simulationExporter;
     egret::QtComponentHelper qtHelper;
     egret::ResourceHelper resourceHelper;
@@ -124,6 +126,7 @@ int main(int argc, char* argv[])
 
     engine.rootContext()->setContextProperty("sceneController", &sceneController);
     engine.rootContext()->setContextProperty("offlineSceneController", &offlineSceneController);
+    engine.rootContext()->setContextProperty("playerSceneController", &playerSceneController);
     engine.rootContext()->setContextProperty("simulationExporter", &simulationExporter);
     engine.rootContext()->setContextProperty("qtHelper", &qtHelper);
     engine.rootContext()->setContextProperty("resourceHelper", &resourceHelper);
