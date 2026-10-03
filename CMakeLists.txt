@@ -170,8 +170,6 @@ set(CPP_FILES
         src/utils/transform.cpp
         src/utils/os/windows/windows_config.h
         src/utils/os/windows/windows_config.cpp
-        src/utils/os/windows/file_association.h
-        src/utils/os/windows/file_association.cpp
         src/utils/io/database_controller.cpp
         src/utils/io/database_controller.h
         src/utils/io/async_logger.cpp
@@ -464,6 +462,19 @@ if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif ()
 
 
+# ========== 子项目 ==========
+# .epsx 文件关联工具：独立的控制台程序，负责写入 HKCU\Software\Classes，
+# 与主程序解耦（安装包或手动部署时单独调用它即可）。
+add_subdirectory(subprojects/epsx_register)
+
+# 构建主程序时一并构建关联工具。
+# 项目约定的构建命令是 `cmake --build <dir> --config Release --target Egret_Physics`，
+# 带 --target 时只会构建该目标及其依赖（默认的 ALL 目标不参与），
+# 因此在主程序上显式声明依赖，避免子项目被跳过；
+# 若不带 --target 构建整个解决方案，两者本来就会一起构建。
+add_dependencies(${PROJECT_NAME} epsx_register)
+
+
 
 option(BUILD_TESTS "Build unit tests" ON)
 
@@ -549,8 +560,8 @@ set(CPACK_CREATE_DESKTOP_LINKS      "Egret_Physics")
 
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 
-# 主可执行文件
-install(TARGETS ${PROJECT_NAME}
+# 主可执行文件 + .epsx 关联工具
+install(TARGETS ${PROJECT_NAME} epsx_register
     RUNTIME DESTINATION .
     )
 

@@ -3,7 +3,7 @@
  * @brief       Windows 文件关联接口：把 .epsx 扩展名注册到当前用户。
  * @details     关联只写 `HKCU\Software\Classes`（当前用户），不需要管理员权限，
  *              也不覆盖系统级（HKLM）关联。注册后资源管理器双击 .epsx 文件会以
- *              `"<可执行文件>" --play "%1"` 启动播放器；文件图标使用随程序分发的
+ *              `"<播放器可执行文件>" --play "%1"` 启动播放器；文件图标使用本工具内嵌的
  *              `simulation-file-blue.ico`。
  *
  *              与格式规范（docs/EPSX 模拟数据文件格式规范（草案）.md §2.2）保持一致：
@@ -17,16 +17,16 @@
  * @copyright   Copyright © 2025 公司名. All rights reserved.
  * @license     GPL v3.0
  *
- * @ingroup     Utils
+ * @ingroup     EpsxRegister
  * @defgroup    FileAssociation (文件关联)
  */
 
-#ifndef EGRET_PHYSICS_FILE_ASSOCIATION_H
-#define EGRET_PHYSICS_FILE_ASSOCIATION_H
+#ifndef EGRET_PHYSICS_EPSX_REGISTER_FILE_ASSOCIATION_H
+#define EGRET_PHYSICS_EPSX_REGISTER_FILE_ASSOCIATION_H
 
 #include <QString>
 
-namespace egret
+namespace egret::epsx_register
 {
     /**
      * @brief 文件关联操作的结果。
@@ -43,12 +43,14 @@ namespace egret
     };
 
     /**
-     * @brief  把 .epsx 关联到当前可执行文件。
+     * @brief  把 .epsx 关联到指定的播放器可执行文件。
      * @details 会先确保图标文件已落到用户数据目录，再写入扩展名、ProgID、
      *          DefaultIcon 与 shell\open\command，最后通知资源管理器刷新图标缓存。
+     * @param  executablePath 播放器可执行文件的路径；传空串时取本工具同目录下的
+     *                        `Egret_Physics.exe`。路径必须真实存在。
      * @return 操作结果；失败时 message 给出具体原因。
      */
-    [[nodiscard]] FileAssociationResult registerEpsxFileAssociation();
+    [[nodiscard]] FileAssociationResult registerEpsxFileAssociation(const QString& executablePath = {});
 
     /**
      * @brief  注销 .epsx 关联。
@@ -59,4 +61,4 @@ namespace egret
     [[nodiscard]] FileAssociationResult unregisterEpsxFileAssociation();
 }
 
-#endif // EGRET_PHYSICS_FILE_ASSOCIATION_H
+#endif // EGRET_PHYSICS_EPSX_REGISTER_FILE_ASSOCIATION_H

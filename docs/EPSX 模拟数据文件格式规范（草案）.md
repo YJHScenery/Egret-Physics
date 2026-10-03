@@ -89,18 +89,23 @@ reg delete "HKCU\Software\Classes\.epsx" /f
 reg delete "HKCU\Software\Classes\EgretPhysics.Simulation" /f
 ```
 
-程序内置了与上面等价、且会自动填写当前可执行文件路径的两条命令（推荐用它，避免手工拼 `%CD%`）：
+仓库提供了与上面等价、且会自动填写播放器路径的独立工具 `epsx_register.exe`
+（子项目 `subprojects/epsx_register`，推荐用它，避免手工拼 `%CD%`）：
 
 ```
-Egret_Physics.exe --register-epsx      # 写入上述键，并把图标释放到用户数据目录
-Egret_Physics.exe --unregister-epsx     # 删除上述两个键，并清理图标副本
+epsx_register.exe                       # 注册：播放器取同目录的 Egret_Physics.exe
+epsx_register.exe -e <播放器路径>        # 注册：显式指定播放器可执行文件
+epsx_register.exe --unregister          # 注销：删除上述两个键，并清理图标副本
 ```
 
 - DefaultIcon 使用随程序分发的 `resources/assets/file_icon/simulation-file-blue.ico`
-  （已加入 `resources/global.qrc` 的 `/file_icon` 前缀）；注册时复制为
+  （已加入 `resources/global.qrc` 的 `/file_icon` 前缀，并以别名内嵌进注册工具）；注册时复制为
   `%LOCALAPPDATA%\EgretPhysicsStudio\simulation-file-blue.epsx.ico`，因此不依赖安装目录是否可写，
   也不使用 `Egret_Physics.exe,0`（那是主程序图标，不是本格式的文件图标）。
-- 关联指向当前运行的可执行文件：更换构建 / 部署位置后重新执行一次 `--register-epsx` 即可刷新。
+- 关联指向工具所在目录（或 `-e` 指定）的播放器：更换构建 / 部署位置后重新执行一次
+  `epsx_register.exe` 即可刷新。
+- 注册是安装期的一次性动作，因此与播放器主程序解耦：主程序只保留 `--play`，
+  不再包含任何注册表代码。
 
 ## 3. 总体结构
 
@@ -532,10 +537,12 @@ AoS + `strideBytes` 让所有段共用同一套「定位 / 跳过」逻辑，无
 | `name --parse epsx <integer>` / `name -p epsx <integer>` | 解析指定帧，把该帧全部实体数据以 JSON 打印到标准输出 |
 | `name --play <file.epsx>` / `name --replay <file.epsx>` / `name -r <file.epsx>` | 以播放器模式打开文件：进入图形界面的「播放器」工作区、载入该文件并自动开始播放（Windows 双击关联使用此入口） |
 | `name --solve <scene.json> --duration <seconds> --sample <1\|2\|5\|10\|20> -o <file.epsx>` | 求解器模式，离线求解并写出模拟文件 |
-| `name --register-epsx` | 把 `.epsx` 关联到当前可执行文件（只写 `HKCU\Software\Classes`，无需管理员） |
-| `name --unregister-epsx` | 删除当前用户的 `.epsx` 关联 |
 
 `--solve` 的 `--sample` 省略时取**默认值 10 ms**；五档取值全部保留，也可在界面侧改为下拉选择。
+
+文件关联不属主程序职责，改由独立工具 `epsx_register.exe`
+（子项目 `subprojects/epsx_register`）完成：不带参数即注册，`--unregister` 即注销，
+`-e <路径>` 可显式指定播放器。它同样只写 `HKCU\Software\Classes`，无需管理员权限。
 
 ### 11.1 `--parse` 的行为约定
 

@@ -1,0 +1,6 @@
+<RCC>
+    <!-- 文件关联使用的 .epsx 图标：复用仓库根目录下的同一份资源，不重复存放二进制文件。 -->
+    <qresource prefix="/epsx_register">
+        <file alias="simulation-file-blue.ico">../../../resources/assets/file_icon/simulation-file-blue.ico</file>
+    </qresource>
+</RCC>

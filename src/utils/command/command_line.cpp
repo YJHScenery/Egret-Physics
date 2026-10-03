@@ -10,8 +10,10 @@
  *              - `--solve <scene.json> [--duration <秒>] [--sample <毫秒>] [--step <毫秒>] [-o <文件>]`
  *              - `--parse EPSX <帧号> [文件]`（缩写 `-p`）
  *              - `--play <文件>`（缩写 `-r`，进入图形界面的播放器工作区并自动播放）
- *              - `--register-epsx` / `--unregister-epsx`（当前用户的 .epsx 文件关联）
  *              - `--help`（缩写 `-h`）
+ *
+ *              文件关联的注册 / 注销不在本程序中，由独立子项目
+ *              `subprojects/epsx_register`（epsx_register.exe）负责。
  *
  * @author      jehor
  * @date        2026-10-02
@@ -37,7 +39,6 @@
 
 #include "basic_utils.h"
 #include "egret_version.h"
-#include "os/windows/file_association.h"
 #include "parse_command.h"
 #include "solve_command.h"
 #include "os/windows/windows_config.h"
@@ -72,12 +73,6 @@ namespace egret::command
 
             /** --play 的输入文件路径。 */
             std::string playFile{};
-
-            /** 是否注册 .epsx 文件关联。 */
-            bool registerEpsx{false};
-
-            /** 是否注销 .epsx 文件关联。 */
-            bool unregisterEpsx{false};
         };
 
         /**
@@ -103,10 +98,6 @@ namespace egret::command
                 ->expected(2, 3);
             app.add_option("-r,--play,--replay", options.playFile,
                            "以播放器模式打开仿真文件并自动播放（图形界面）");
-            app.add_flag("--register-epsx", options.registerEpsx,
-                         "把 .epsx 关联到当前可执行文件（写入 HKCU\\Software\\Classes，无需管理员）");
-            app.add_flag("--unregister-epsx", options.unregisterEpsx,
-                         "删除当前用户的 .epsx 文件关联");
         }
     }
 
@@ -156,17 +147,6 @@ namespace egret::command
             }
             request.mode = Mode::Invalid;
             request.errorMessage = QString::fromStdString(error.what());
-            return request;
-        }
-
-        // 文件关联的注册 / 注销是纯命令行动作，与其余模式互斥，优先处理。
-        if (options.registerEpsx) {
-            request.mode = Mode::RegisterAssociation;
-            return request;
-        }
-
-        if (options.unregisterEpsx) {
-            request.mode = Mode::UnregisterAssociation;
             return request;
         }
 
@@ -239,22 +219,6 @@ namespace egret::command
             return runSolve(request);
         case Mode::Parse:
             return runParse(request);
-        case Mode::RegisterAssociation:
-        {
-            const FileAssociationResult result = registerEpsxFileAssociation();
-            QTextStream stream(result.succeeded ? stdout : stderr);
-            stream << result.message << "\n";
-            stream.flush();
-            return result.succeeded ? 0 : 1;
-        }
-        case Mode::UnregisterAssociation:
-        {
-            const FileAssociationResult result = unregisterEpsxFileAssociation();
-            QTextStream stream(result.succeeded ? stdout : stderr);
-            stream << result.message << "\n";
-            stream.flush();
-            return result.succeeded ? 0 : 1;
-        }
         case Mode::Play:
         {
             // 正常情况下 main.cpp 已在图形界面中处理该模式；此处只是兜底，

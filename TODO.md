@@ -88,15 +88,26 @@
 
 - [ ] **实机运行验证**：全部 QML 只能由用户实机运行确认（语法用 `qmllint` 抽查、资源已进 qrc，
       但渲染与交互效果需要人工确认）。
-- [x] **文件关联**：已实现。新增 `src/utils/os/windows/file_association.{h,cpp}`（只写
-      `HKCU\Software\Classes`，含 `DefaultIcon` / `shell\open\command` / `OpenWithProgids`）与命令行
-      `--register-epsx` / `--unregister-epsx`；`main.cpp` 的 `--play` 不再提前退出，改为进入图形界面、
-      切到「播放器」工作区、打开文件后调用 `playSimulation()` 自动播放（`MainWindow.qml` 的
-      `startupWorkspaceRoute` / `startupSimulationFile`）；文件图标取
-      `resources/assets/file_icon/simulation-file-blue.ico`（已加入 `resources/global.qrc` 的
-      `/file_icon` 前缀，注册时释放到 `%LOCALAPPDATA%\EgretPhysicsStudio\simulation-file-blue.epsx.ico`）。
-      → 结论：本机已按 `cmake-build-release\Egret_Physics.exe` 完成注册（注册表已核对）。更换可执行文件
-      位置后重新执行 `Egret_Physics.exe --register-epsx` 即可刷新指向；实机双击验证仍待用户确认。
+- [x] **文件关联**：已实现，且**已迁移为独立子项目**。注册逻辑位于
+      `subprojects/epsx_register/`（`CMakeLists.txt` + `src/main.cpp` + `src/file_association.{h,cpp}`
+      + `resources/epsx_register_icon.qrc`），产出独立控制台程序 `epsx_register.exe`，只写
+      `HKCU\Software\Classes`（含 `DefaultIcon` / `shell\open\command` / `OpenWithProgids`）；
+      不带参数即注册、`--unregister` 注销、`-e <路径>` 指定播放器，缺省取同目录的 `Egret_Physics.exe`。
+      主程序侧只保留 `--play`（`main.cpp` 不再提前退出，改为进入图形界面、切到「播放器」工作区、
+      打开文件后调用 `playSimulation()` 自动播放，见 `MainWindow.qml` 的 `startupWorkspaceRoute` /
+      `startupSimulationFile`）；`src/utils/os/windows/file_association.*` 与 `--register-epsx` /
+      `--unregister-epsx` 已删除。文件图标取 `resources/assets/file_icon/simulation-file-blue.ico`
+      （主程序经 `resources/global.qrc` 的 `/file_icon` 前缀引用，注册工具以内嵌别名引用，注册时释放到
+      `%LOCALAPPDATA%\EgretPhysicsStudio\simulation-file-blue.epsx.ico`）。
+      → 结论：本机注册表仍指向 `cmake-build-release\Egret_Physics.exe`（关联内容未变化，无需重写）。
+      子项目已加入根 `CMakeLists.txt` 的 `add_subdirectory`、`add_dependencies(${PROJECT_NAME} epsx_register)`
+      与 CPack 的 `install(TARGETS ...)`：带 `--target Egret_Physics` 构建时工具会一起编译并输出到同一目录。
+      更换构建 / 部署位置后运行一次 `epsx_register.exe` 即可刷新指向。新工具的实机验证待用户确认。
+      **2026-10-03 修复**：「注销 → 重新注册」报「无法写出文件图标」，实测该图标带
+      `ReadOnly` 属性：`QFile::remove()` 对只读文件失败，随后 `QFile::copy()` 又因目标已存在
+      而拒绝覆盖。现已改为「以写+截断方式直接覆盖字节、失败先清只读属性重试、内容一致则复用、
+      仍失败则改用带 SHA-256 指纹的备用文件名」，并在写出后主动清除只读属性；注销时按通配清理
+      全部图标副本。此修改尚未编译验证。
 - [ ] **保留能力未实现**：文件头中的 `float32` 几何、zstd 压缩位已定义但读取器会明确拒绝，
       写入端也不会产生此类文件。
 - [ ] **约束与场的帧记录不完整**：`CONS`/`FLDS` 段当前只记录 ID、槽位、类型、启用标志、
