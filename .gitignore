@@ -29,3 +29,5 @@ count.py
 /build-verify/
 
 /demo/*.epsx
+
+/dependency/
