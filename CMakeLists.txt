@@ -113,6 +113,7 @@ include_directories(
         dependency/include/boost_1_90_0
         dependency/include/eigen_5_0_0
         dependency/include/magic_enum_0.9.8/magic_enum
+        dependency/include/qcustomplot_2.1.1
         src
         src/model
         src/model/physics/constraints
@@ -149,7 +150,7 @@ include_directories(
 
 set(QT_MODULES_LIST
         Core Gui Widgets Quick Qml Quick3D Sql Quick3DAssetImport QuickControls2 Multimedia
-        Concurrent Graphs
+        Concurrent Graphs PrintSupport
 )
 
 find_package(Qt6 COMPONENTS
@@ -375,6 +376,15 @@ set(CPP_FILES
         src/view_model/analysis/analysis_exporter.cpp
         src/view_model/analysis/analysis_session.h
         src/view_model/analysis/analysis_session.cpp
+        src/view_model/analysis/curve_fitter.h
+        src/view_model/analysis/curve_fitter.cpp
+        src/view_model/analysis/expression_evaluator.h
+        src/view_model/analysis/expression_evaluator.cpp
+        # 图表：QCustomPlot（GPLv3）及其 QML 桥接项
+        dependency/include/qcustomplot_2.1.1/qcustomplot.h
+        dependency/src/qcustomplot_2.1.1/qcustomplot.cpp
+        src/view_model/analysis/qcustomplot_item.h
+        src/view_model/analysis/qcustomplot_item.cpp
 
 
 )
@@ -425,7 +435,9 @@ add_library(egret_muparser STATIC
         "${MUPARSER_ROOT}/src/muparser_2.3.5/muParserTokenReader.cpp"
 )
 target_include_directories(egret_muparser PUBLIC "${MUPARSER_ROOT}/include/muparser_2.3.5")
-target_compile_definitions(egret_muparser PUBLIC MUPARSER_STATIC NOMINMAX)
+# muparser 的 string_type 由 _UNICODE 决定：主程序经 Qt 传递了 _UNICODE，
+# 这里必须保持一致，否则会出现宽/窄字符串的符号不匹配。
+target_compile_definitions(egret_muparser PUBLIC MUPARSER_STATIC NOMINMAX UNICODE _UNICODE)
 if (MSVC)
     # 第三方源码不参与本项目的告警等级，避免污染编译输出
     target_compile_options(egret_muparser PRIVATE /W0)

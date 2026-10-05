@@ -6,9 +6,11 @@
         <file>components/theme/DeepBlueTheme.qml</file>
         <file>components/basic/EgretPushButton.qml</file>
         <file>components/basic/EgretSeparator.qml</file>
+        <file>components/basic/EgretCheckBox.qml</file>
         <file>components/EgretMenuBar.qml</file>
         <file>components/EgretPopupMenu.qml</file>
         <file>components/GlassPanel.qml</file>
+        <file>components/EgretComboBox.qml</file>
         <file>components/LeftNavPanel.qml</file>
         <file>components/MetricCard.qml</file>
         <file>components/Coordinate.qml</file>

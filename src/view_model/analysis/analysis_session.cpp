@@ -22,8 +22,10 @@
 #include "analysis_session.h"
 
 #include "analysis_exporter.h"
+#include "curve_fitter.h"
 #include "epsx_reader.h"
 #include "epsx_series_extractor.h"
+#include "expression_evaluator.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -84,6 +86,70 @@ namespace egret::analysis
             return QStringLiteral("%1 #%2")
                 .arg(QString::fromUtf8(entityKindDisplayName(ref.kind)))
                 .arg(ref.id);
+        }
+
+        /** 样本下标区间 [begin, end)。 */
+        struct SampleRange
+        {
+            /** 起始下标。 */
+            std::size_t begin{0};
+
+            /** 结束下标（不含）。 */
+            std::size_t end{0};
+        };
+
+        /**
+         * @brief  把横轴区间换算成样本下标区间。
+         * @details 时间轴单调不减，因此用二分查找定位；rangeMax ≤ rangeMin 时返回全范围。
+         * @param  time 横轴数组。
+         * @param  rangeMin 区间左端。
+         * @param  rangeMax 区间右端。
+         * @return 下标区间；区间与数据无交集时返回空区间。
+         */
+        SampleRange sampleRangeFor(const std::vector<double>& time,
+                                   const double rangeMin,
+                                   const double rangeMax)
+        {
+            SampleRange range{};
+            range.end = time.size();
+            if (time.empty())
+            {
+                range.begin = 0;
+                return range;
+            }
+            if (!(rangeMax > rangeMin))
+            {
+                return range;
+            }
+
+            const auto lowerBound = [&time](const double value) -> std::size_t
+            {
+                std::size_t low = 0;
+                std::size_t high = time.size();
+                while (low < high)
+                {
+                    const std::size_t mid = low + (high - low) / 2;
+                    if (time[mid] < value)
+                    {
+                        low = mid + 1;
+                    }
+                    else
+                    {
+                        high = mid;
+                    }
+                }
+                return low;
+            };
+
+            range.begin = lowerBound(rangeMin);
+            const std::size_t after = lowerBound(rangeMax);
+            range.end = std::min(time.size(), after + 1);
+            if (range.begin >= range.end)
+            {
+                range.begin = 0;
+                range.end = 0;
+            }
+            return range;
         }
     }
 
@@ -303,6 +369,7 @@ namespace egret::analysis
         m_result = ExtractionResult{};
         m_lod.clear();
         m_summary.clear();
+        clearAnalysis();
         setError(QString{});
 
         // ---- 实体列表 ----
@@ -391,6 +458,7 @@ namespace egret::analysis
         m_summary.clear();
         m_entities.clear();
         m_channels.clear();
+        clearAnalysis();
         setError(QString{});
         setStatus(QStringLiteral("已关闭文件"));
         emit catalogChanged();
@@ -535,6 +603,7 @@ namespace egret::analysis
 
         m_result = std::move(result);
         rebuildSeriesIndex();
+        clearAnalysis();
         setError(QString{});
         m_progress = 1.0;
         emit progressChanged();
@@ -752,5 +821,286 @@ namespace egret::analysis
         values[QStringLiteral("xs")] = xs;
         values[QStringLiteral("ys")] = ys;
         return values;
+    }
+
+    QVariantMap AnalysisSession::fitInfo() const
+    {
+        return m_fitInfo;
+    }
+
+    QVariantMap AnalysisSession::comparisonInfo() const
+    {
+        return m_comparisonInfo;
+    }
+
+    QVariantList AnalysisSession::overlayPoints() const
+    {
+        QVariantList points{};
+        points.reserve(static_cast<qsizetype>(m_overlayX.size()));
+        for (std::size_t index = 0; index < m_overlayX.size(); ++index)
+        {
+            points.append(QVariant::fromValue(QPointF{m_overlayX[index], m_overlayY[index]}));
+        }
+        return points;
+    }
+
+    void AnalysisSession::setOverlay(const std::vector<double>& x,
+                                     const std::vector<double>& y,
+                                     const QString& label)
+    {
+        m_overlayX.clear();
+        m_overlayY.clear();
+        m_overlayLabel = label;
+
+        const std::size_t count = std::min(x.size(), y.size());
+        if (count >= 2)
+        {
+            constexpr std::size_t kMaxOverlayPoints{2000};
+            const std::size_t stride = std::max<std::size_t>(1, count / kMaxOverlayPoints);
+            m_overlayX.reserve(count / stride + 2);
+            m_overlayY.reserve(count / stride + 2);
+            for (std::size_t index = 0; index < count; index += stride)
+            {
+                m_overlayX.push_back(x[index]);
+                m_overlayY.push_back(y[index]);
+            }
+            if (m_overlayX.back() != x[count - 1])
+            {
+                m_overlayX.push_back(x[count - 1]);
+                m_overlayY.push_back(y[count - 1]);
+            }
+        }
+        emit overlayChanged();
+    }
+
+    void AnalysisSession::clearAnalysis()
+    {
+        m_fitInfo = QVariantMap{};
+        m_comparisonInfo = QVariantMap{};
+        m_overlayX.clear();
+        m_overlayY.clear();
+        m_overlayLabel.clear();
+        emit fitChanged();
+        emit comparisonChanged();
+        emit overlayChanged();
+    }
+
+    QVariantMap AnalysisSession::fitSeries(const QString& seriesKeyText,
+                                           const QString& model,
+                                           const int polynomialDegree,
+                                           const int harmonicCount,
+                                           const double angularFrequency,
+                                           const bool exponentialWithOffset,
+                                           const double rangeMin,
+                                           const double rangeMax)
+    {
+        QVariantMap info{};
+        const auto found = m_lod.constFind(seriesKeyText);
+        if (found == m_lod.constEnd() || found->values == nullptr)
+        {
+            info[QStringLiteral("ok")] = false;
+            info[QStringLiteral("message")] = QStringLiteral("请先在图表上方选择一条有效序列");
+            m_fitInfo = info;
+            emit fitChanged();
+            return info;
+        }
+
+        const SampleRange range = sampleRangeFor(m_result.time, rangeMin, rangeMax);
+        const std::size_t count = range.end - range.begin;
+        if (count < 3)
+        {
+            info[QStringLiteral("ok")] = false;
+            info[QStringLiteral("message")] =
+                QStringLiteral("所选时间区间内的样本不足（至少需要 3 个点），请放宽拟合区间");
+            m_fitInfo = info;
+            emit fitChanged();
+            return info;
+        }
+
+        const std::vector<double> fitX{
+            m_result.time.begin() + static_cast<std::ptrdiff_t>(range.begin),
+            m_result.time.begin() + static_cast<std::ptrdiff_t>(range.end)};
+        const std::vector<double> fitY{found->values + range.begin, found->values + range.end};
+
+        FitRequest request{};
+        if (model == QLatin1String("polynomial"))
+        {
+            request.model = FitModel::Polynomial;
+        }
+        else if (model == QLatin1String("trigonometric"))
+        {
+            request.model = FitModel::Trigonometric;
+        }
+        else if (model == QLatin1String("exponential"))
+        {
+            request.model = FitModel::Exponential;
+        }
+        else if (model == QLatin1String("logarithmic"))
+        {
+            request.model = FitModel::Logarithmic;
+        }
+        else
+        {
+            request.model = FitModel::Linear;
+        }
+        request.polynomialDegree = polynomialDegree;
+        request.harmonicCount = harmonicCount;
+        request.angularFrequency = angularFrequency;
+        request.exponentialWithOffset = exponentialWithOffset;
+
+        const FitResult fitResult = CurveFitter::fit(fitX.data(), fitY.data(), count, request);
+        if (!fitResult.ok)
+        {
+            info[QStringLiteral("ok")] = false;
+            info[QStringLiteral("message")] = fitResult.message;
+            m_fitInfo = info;
+            emit fitChanged();
+            return info;
+        }
+
+        info[QStringLiteral("ok")] = true;
+        info[QStringLiteral("model")] = QString::fromUtf8(CurveFitter::modelKey(fitResult.model));
+        info[QStringLiteral("modelName")] = CurveFitter::modelDisplayName(fitResult.model);
+        info[QStringLiteral("equation")] = fitResult.equation;
+        info[QStringLiteral("rSquared")] = fitResult.rSquared;
+        info[QStringLiteral("adjustedRSquared")] = fitResult.adjustedRSquared;
+        info[QStringLiteral("rmse")] = fitResult.rmse;
+        info[QStringLiteral("mae")] = fitResult.mae;
+        info[QStringLiteral("maxAbsResidual")] = fitResult.maxAbsResidual;
+        info[QStringLiteral("angularFrequency")] = fitResult.angularFrequency;
+        info[QStringLiteral("sampleCount")] = fitResult.sampleCount;
+        info[QStringLiteral("message")] = fitResult.message;
+        info[QStringLiteral("rangeMin")] = fitX.front();
+        info[QStringLiteral("rangeMax")] = fitX.back();
+
+        QVariantList coefficients{};
+        for (qsizetype index = 0; index < fitResult.coefficients.size(); ++index)
+        {
+            QVariantMap item{};
+            item[QStringLiteral("name")] = fitResult.coefficientNames.value(index);
+            item[QStringLiteral("value")] = fitResult.coefficients[index];
+            coefficients.append(item);
+        }
+        info[QStringLiteral("coefficients")] = coefficients;
+
+        // 拟合曲线只画在拟合区间内：多项式等模型外推到区间外没有物理意义
+        const QVector<double> fitted = CurveFitter::evaluate(fitResult, fitX.data(), count);
+        if (fitted.size() == static_cast<qsizetype>(count))
+        {
+            setOverlay(fitX,
+                       std::vector<double>(fitted.begin(), fitted.end()),
+                       QStringLiteral("拟合曲线"));
+        }
+        else
+        {
+            emit overlayChanged();
+        }
+
+        m_fitInfo = info;
+        // 新的拟合让旧的误差对比失效，避免界面上两套曲线混在一起
+        m_comparisonInfo = QVariantMap{};
+        emit fitChanged();
+        emit comparisonChanged();
+        return info;
+    }
+
+    QVariantMap AnalysisSession::compareSeries(const QString& seriesKeyText,
+                                               const QString& expression,
+                                               const QString& variableName,
+                                               const QVariantMap& variables,
+                                               const double rangeMin,
+                                               const double rangeMax)
+    {
+        QVariantMap info{};
+        const auto found = m_lod.constFind(seriesKeyText);
+        if (found == m_lod.constEnd() || found->values == nullptr)
+        {
+            info[QStringLiteral("ok")] = false;
+            info[QStringLiteral("message")] = QStringLiteral("请先在图表上方选择一条有效序列");
+            m_comparisonInfo = info;
+            emit comparisonChanged();
+            return info;
+        }
+
+        QMap<QString, double> constants{};
+        for (auto it = variables.constBegin(); it != variables.constEnd(); ++it)
+        {
+            bool ok = false;
+            const double value = it.value().toDouble(&ok);
+            if (ok)
+            {
+                constants.insert(it.key(), value);
+            }
+        }
+
+        const QString name = variableName.trimmed().isEmpty() ? QStringLiteral("t")
+                                                             : variableName.trimmed();
+        const SampleRange range = sampleRangeFor(m_result.time, rangeMin, rangeMax);
+        const std::size_t count = range.end - range.begin;
+        if (count < 2)
+        {
+            info[QStringLiteral("ok")] = false;
+            info[QStringLiteral("message")] =
+                QStringLiteral("所选时间区间内的样本不足（至少需要 2 个点）");
+            m_comparisonInfo = info;
+            emit comparisonChanged();
+            return info;
+        }
+
+        const ComparisonResult comparison =
+            ExpressionEvaluator::compare(m_result.time.data() + range.begin,
+                                         found->values + range.begin,
+                                         count,
+                                         expression,
+                                         name,
+                                         constants);
+        if (!comparison.ok)
+        {
+            info[QStringLiteral("ok")] = false;
+            info[QStringLiteral("message")] = comparison.message;
+            m_comparisonInfo = info;
+            emit comparisonChanged();
+            return info;
+        }
+
+        info[QStringLiteral("ok")] = true;
+        info[QStringLiteral("sampleCount")] = comparison.sampleCount;
+        info[QStringLiteral("rSquared")] = comparison.rSquared;
+        info[QStringLiteral("rmse")] = comparison.rmse;
+        info[QStringLiteral("mae")] = comparison.mae;
+        info[QStringLiteral("maxAbsError")] = comparison.maxAbsError;
+        info[QStringLiteral("nrmse")] = comparison.nrmse;
+        info[QStringLiteral("meanRelativeError")] = comparison.meanRelativeError;
+        info[QStringLiteral("maxRelativeError")] = comparison.maxRelativeError;
+        info[QStringLiteral("expression")] = expression;
+        info[QStringLiteral("variable")] = name;
+        info[QStringLiteral("message")] = QString{};
+        info[QStringLiteral("rangeMin")] = m_result.time[range.begin];
+        info[QStringLiteral("rangeMax")] = m_result.time[range.end - 1];
+
+        // 理论曲线在全时间轴上都成立，因此画满整条横轴；误差指标只统计所选区间
+        QVector<double> fullPredicted{};
+        QString overlayError{};
+        if (ExpressionEvaluator::evaluateOnGrid(m_result.time.data(),
+                                                m_result.time.size(),
+                                                expression,
+                                                name,
+                                                constants,
+                                                &fullPredicted,
+                                                &overlayError))
+        {
+            setOverlay(m_result.time,
+                       std::vector<double>(fullPredicted.begin(), fullPredicted.end()),
+                       QStringLiteral("理论曲线"));
+        }
+        else
+        {
+            emit overlayChanged();
+        }
+        m_comparisonInfo = info;
+        m_fitInfo = QVariantMap{};
+        emit comparisonChanged();
+        emit fitChanged();
+        return info;
     }
 }

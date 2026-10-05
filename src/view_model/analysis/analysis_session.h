@@ -75,6 +75,12 @@ namespace egret::analysis
 
         Q_PROPERTY(double sampleIntervalMs READ sampleIntervalMs NOTIFY resultChanged)
 
+        Q_PROPERTY(QVariantMap fitInfo READ fitInfo NOTIFY fitChanged)
+
+        Q_PROPERTY(QVariantMap comparisonInfo READ comparisonInfo NOTIFY comparisonChanged)
+
+        Q_PROPERTY(QVariantList overlayPoints READ overlayPoints NOTIFY overlayChanged)
+
     public:
         /** 默认构造。 */
         explicit AnalysisSession(QObject* parent = nullptr);
@@ -114,6 +120,15 @@ namespace egret::analysis
 
         /** 文件的采样间隔（毫秒）。 */
         [[nodiscard]] double sampleIntervalMs() const;
+
+        /** 最近一次曲线拟合的结果摘要。 */
+        [[nodiscard]] QVariantMap fitInfo() const;
+
+        /** 最近一次误差对比的结果摘要。 */
+        [[nodiscard]] QVariantMap comparisonInfo() const;
+
+        /** 叠加曲线（拟合曲线或理论曲线）的绘图点。 */
+        [[nodiscard]] QVariantList overlayPoints() const;
 
         /**
          * @brief  打开 EPSX 文件并解析实体 / 通道目录（同步，只读场景块与索引）。
@@ -168,6 +183,47 @@ namespace egret::analysis
          */
         Q_INVOKABLE [[nodiscard]] QVariantMap seriesValues(const QString& seriesKey) const;
 
+        /**
+         * @brief  对某个序列做曲线拟合。
+         * @param  seriesKey 序列键。
+         * @param  model 模型键（linear / polynomial / trigonometric / exponential / logarithmic）。
+         * @param  polynomialDegree 多项式阶数。
+         * @param  harmonicCount 三角函数谐波数。
+         * @param  angularFrequency 三角函数角频率，≤ 0 表示自动估计。
+         * @param  exponentialWithOffset 指数模型是否带偏移项。
+         * @param  rangeMin 拟合区间左端（横轴值）；rangeMax ≤ rangeMin 表示全范围。
+         * @param  rangeMax 拟合区间右端。
+         * @return 拟合摘要（方程、系数、优度指标）；失败时含 message。
+         */
+        Q_INVOKABLE [[nodiscard]] QVariantMap fitSeries(const QString& seriesKey,
+                                                        const QString& model,
+                                                        int polynomialDegree,
+                                                        int harmonicCount,
+                                                        double angularFrequency,
+                                                        bool exponentialWithOffset,
+                                                        double rangeMin,
+                                                        double rangeMax);
+
+        /**
+         * @brief  把理论方程与某个序列做误差对比。
+         * @param  seriesKey 序列键（提供实测值）。
+         * @param  expression 理论方程表达式。
+         * @param  variableName 自变量名（对应序列的横轴，即时间）。
+         * @param  variables 常量表（名称 → 数值）。
+         * @param  rangeMin 统计区间左端；rangeMax ≤ rangeMin 表示全范围。
+         * @param  rangeMax 统计区间右端。
+         * @return 对比摘要（各误差指标）；失败时含 message。
+         */
+        Q_INVOKABLE [[nodiscard]] QVariantMap compareSeries(const QString& seriesKey,
+                                                            const QString& expression,
+                                                            const QString& variableName,
+                                                            const QVariantMap& variables,
+                                                            double rangeMin,
+                                                            double rangeMax);
+
+        /** 清除叠加曲线与拟合 / 对比结果。 */
+        Q_INVOKABLE void clearAnalysis();
+
     signals:
         /** 忙闲状态变化。 */
         void busyChanged();
@@ -186,6 +242,15 @@ namespace egret::analysis
 
         /** 抽取结果变化。 */
         void resultChanged();
+
+        /** 拟合结果变化。 */
+        void fitChanged();
+
+        /** 误差对比结果变化。 */
+        void comparisonChanged();
+
+        /** 叠加曲线变化。 */
+        void overlayChanged();
 
         /**
          * @brief  一次后台任务结束。
@@ -244,6 +309,16 @@ namespace egret::analysis
         void rebuildSeriesIndex();
 
         /**
+         * @brief  设置叠加曲线（内部做均匀抽稀以控制绘图点数）。
+         * @param  x 横轴数组。
+         * @param  y 纵轴数组。
+         * @param  label 图例文本。
+         */
+        void setOverlay(const std::vector<double>& x,
+                        const std::vector<double>& y,
+                        const QString& label);
+
+        /**
          * @brief  组装实体键。
          * @param  ref 实体引用。
          * @return `<kind>:<id>`。
@@ -297,6 +372,21 @@ namespace egret::analysis
 
         /** 错误描述。 */
         QString m_errorMessage{};
+
+        /** 拟合结果摘要。 */
+        QVariantMap m_fitInfo{};
+
+        /** 误差对比结果摘要。 */
+        QVariantMap m_comparisonInfo{};
+
+        /** 叠加曲线横轴。 */
+        std::vector<double> m_overlayX{};
+
+        /** 叠加曲线纵轴。 */
+        std::vector<double> m_overlayY{};
+
+        /** 叠加曲线图例文本。 */
+        QString m_overlayLabel{};
 
         /** 取消标志（UI 线程置位、工作线程读取）。 */
         std::shared_ptr<std::atomic<bool>> m_cancelFlag{

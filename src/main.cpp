@@ -51,6 +51,7 @@
 #include "command_line.h"
 #include "simulation_export_controller.h"
 #include "analysis_session.h"
+#include "qcustomplot_item.h"
 
 
 int main(int argc, char* argv[])
@@ -120,6 +121,8 @@ int main(int argc, char* argv[])
     qmlRegisterType<egret::SpringGeometry>("EgretPhysics", 1, 0, "SpringGeometry");
     qmlRegisterType<egret::BezierCurveGeometry>("EgretPhysics", 1, 0, "BezierCurveGeometry");
     qmlRegisterType<egret::CurveGeometry>("EgretPhysics", 1, 0, "CurveGeometry");
+    // 数据分析工作区的图表项（QCustomPlot 桥接）
+    qmlRegisterType<egret::analysis::QCustomPlotItem>("EgretCharts", 1, 0, "QCustomPlotItem");
 
     egret::SceneManagerViewModel sceneController;
     // 离线仿真工作区使用独立的空场景控制器：初始不加载任何场景，只显示坐标系与网格

@@ -16,7 +16,6 @@
 
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import QtQuick.Controls.Basic 2.15 as Basic
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
 import QtQuick.Dialogs
@@ -481,138 +480,18 @@ ApplicationWindow {
                     Layout.fillWidth: true
                 }
 
-                Rectangle {
-                    id: workspaceComboShell
+                // 工作区选择框：复用统一样式的 EgretComboBox（components/EgretComboBox.qml）
+                EgretComboBox {
+                    id: workspaceComboBox
                     Layout.preferredWidth: 210
                     Layout.preferredHeight: 36
-                    radius: theme.radiusS
-                    color: workspaceComboBox.pressed ? "#1E3A8A" : (workspaceComboBox.hovered ? "#153564" : "#0A1A3A")
-                    border.width: 1
-                    border.color: workspaceComboBox.hovered ? "#3B82F6" : "#1E3A8A"
+                    model: workspaceRouteModel
+                    textRole: "label"
+                    badgeRole: "badge"
+                    currentIndex: routeIndexFor(mainRowLayout.currentRoute)
 
-                    Basic.ComboBox {
-                        id: workspaceComboBox
-                        anchors.fill: parent
-                        model: workspaceRouteModel
-                        textRole: "label"
-                        leftPadding: 12
-                        rightPadding: 28
-                        currentIndex: routeIndexFor(mainRowLayout.currentRoute)
-
-                        onActivated: function (index) {
-                            mainRowLayout.currentRoute = workspaceRouteModel.get(index).route;
-                        }
-
-                        // contentItem 只用单个 Text：控制项（与基础样式一致）会负责它的
-                        // 尺寸，Text 自己按 horizontalAlignment / verticalAlignment 对齐，
-                        // 这样「左对齐 + 上下居中」最稳；放入位置器（Row / RowLayout）
-                        // 反而会破坏这套对齐，出现文字贴顶、上下边距不等。
-                        // 「不再维护」小标签用富文本着色，从而与标签共用同一个 Text。
-                        readonly property string badgeText: currentIndex >= 0
-                            ? workspaceRouteModel.get(currentIndex).badge
-                            : ""
-
-                        contentItem: Text {
-                            textFormat: Text.RichText
-                            text: workspaceComboBox.displayText
-                                + (workspaceComboBox.badgeText.length > 0
-                                    ? "    <font color=\"" + theme.warning.toString() + "\">"
-                                        + workspaceComboBox.badgeText + "</font>"
-                                    : "")
-                            color: theme.textPrimary
-                            font.pixelSize: 13
-                            horizontalAlignment: Text.AlignLeft
-                            verticalAlignment: Text.AlignVCenter
-                        }
-
-                        indicator: Canvas {
-                            width: 10
-                            height: 6
-                            anchors.right: parent.right
-                            anchors.rightMargin: 10
-                            anchors.verticalCenter: parent.verticalCenter
-                            contextType: "2d"
-
-                            onPaint: {
-                                context.reset();
-                                context.fillStyle = "#8BB5EA";
-                                context.beginPath();
-                                context.moveTo(0, 0);
-                                context.lineTo(width, 0);
-                                context.lineTo(width * 0.5, height);
-                                context.closePath();
-                                context.fill();
-                            }
-                        }
-
-                        background: Item {
-                        }
-
-                        popup: Basic.Popup
-                        {
-                            y: workspaceComboBox.height + 6
-                            width: workspaceComboBox.width
-                            padding: 6
-                            clip: false
-                            background: Rectangle {
-                                radius: theme.radiusS
-                                color: "#10294C"
-                                border.width: 1
-                                border.color: theme.border
-                            }
-
-                            contentItem: Rectangle {
-                                radius: theme.radiusS
-                                color: "transparent"
-                                clip: true
-                                implicitHeight: Math.min(listView.contentHeight + 4, 240)
-
-                                ListView {
-                                    id: listView
-                                    anchors.fill: parent
-                                    anchors.margins: 2
-                                    model: workspaceComboBox.popup.visible ? workspaceComboBox.delegateModel : null
-                                    clip: true
-
-                                    ScrollIndicator.vertical: ScrollIndicator {
-                                    }
-                                }
-                            }
-                        }
-
-                        delegate: Basic.ItemDelegate
-                        {
-                            width: listView ? listView.width : workspaceComboBox.width
-                            height: 34
-                            // 基础样式默认 padding: 12，会把 34 px 的行压到只剩 10 px 内容高度，
-                            // 文字只能溢出显示、上下留白不可控；这里改为上下 0，让内容区占满行高。
-                            topPadding: 0
-                            bottomPadding: 0
-                            text: model.label
-                            highlighted: workspaceComboBox.highlightedIndex === index
-                            // 与 ComboBox 本体保持同一套对齐方式：单个 Text + 左右内边距，
-                            // 左对齐、上下居中；小标签同样走富文本着色。
-                            contentItem: Text {
-                                textFormat: Text.RichText
-                                text: model.label
-                                    + ((model.badge !== undefined && model.badge.length > 0)
-                                        ? "    <font color=\"" + theme.warning.toString() + "\">"
-                                            + model.badge + "</font>"
-                                        : "")
-                                color: highlighted ? "#E7F2FF" : "#9ABFE3"
-                                font.pixelSize: 12
-                                horizontalAlignment: Text.AlignLeft
-                                verticalAlignment: Text.AlignVCenter
-                                leftPadding: 10
-                                rightPadding: 10
-                            }
-                            background: Rectangle {
-                                radius: theme.radiusS
-                                color: highlighted ? "#1D4E87" : "#102A4A"
-                                border.width: 1
-                                border.color: highlighted ? "#56B6FF" : "#2F5F8D"
-                            }
-                        }
+                    onActivated: function (index) {
+                        mainRowLayout.currentRoute = workspaceRouteModel.get(index).route;
                     }
                 }
             }
