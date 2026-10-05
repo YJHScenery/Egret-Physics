@@ -24,6 +24,9 @@
 - **物理场**：支持重力和质心引力场
 - **模拟策略**：可配置的宽阶段策略、接触求解器和积分器策略
 - **Qt 界面**：现代化的 Qt Quick 用户界面，支持 3D 可视化
+- **数据分析工作区**：读取 `.epsx` 仿真文件，按抽帧比抽取指定实体/通道的数据，支持
+  散点图（平移 / 缩放 / 框选）、导出 xlsx 与 CSV、五类曲线拟合（线性、多项式、三角函数、
+  指数、对数）以及与实际理论方程的误差对比
 
 ## 物理模型架构
 
@@ -42,6 +45,21 @@
 | [Magic Enum](https://github.com/Neargye/magic_enum) | 0.9.8  | MIT License                |
 | [Qt](https://www.qt.io/)                            | 6.9.3  | LGPLv3/GPLv3               |
 | [QXlsx](https://github.com/QtExcel/QXlsx)           | 1.5.0  | MIT License                |
+| [muparser](https://github.com/beltoforion/muparser) | 2.3.5  | BSD 2-Clause               |
+| [QCustomPlot](https://www.qcustomplot.com/)         | 2.1.1  | GPLv3                      |
+
+其中 muparser 用于解析理论方程表达式（误差对比），QCustomPlot 用于数据分析工作区的图表
+（平移、滚轮缩放、框选放大、自适应刻度与自适应采样）。两者都以源码形式随主程序一起编译，
+不产出额外的静态库。
+
+上述依赖可以由 `dependency_build` 下的脚本自动重建（下载、解压、整理或编译），例如只重建
+本次新增的两个纯源码依赖：
+
+```powershell
+pwsh -File dependency_build\Build-Dependencies.ps1 -Step muparser,qcustomplot
+```
+
+需要发布到 `dependency` 时在步骤里追加 `assemble`；`-Step all` 会重建全部依赖。
 
 ### 其他组件
 
@@ -54,9 +72,9 @@
 
 ### 前提条件
 
-- CMake 4.2 或更高版本（**本项目使用 C++20 模块** 若不兼容，自行修改 CMakeLists.txt，最低支持版本尚不明确）
-- Qt 6.9.3（需包含 Core、Gui、Widgets、Quick、Qml、Quick3D、Sql 模块）或兼容版本
-- MSVC 2026 64位（Windows）或兼容的 C++ 编译器（C++20 模块相关代码可能无法在较低版本或其他编译器下工作）
+- CMake 4.2 或更高版本（若不兼容，自行修改 CMakeLists.txt，最低支持版本尚不明确）
+- Qt 6.9.3（需包含 Core、Gui、Widgets、Quick、Qml、Quick3D、Sql、Quick3DAssetImport、QuickControls2、Multimedia、Concurrent、PrintSupport 模块）或兼容版本
+- MSVC 2026 64位（Windows）或兼容的 C++ 编译器（C++20 或更高）
 
 ### 构建说明
 
@@ -102,10 +120,15 @@ Egret Physics/
 │   │   ├── scene/          # 场景管理
 │   │   └── strategy/       # 模拟策略
 │   ├── view_model/         # UI 视图模型
+│   │   ├── simulator/      # 实时仿真门面
+│   │   ├── simulation_serializer/ # EPSX 文件读写
+│   │   ├── simulation_player/     # 离线求解与播放
+│   │   └── analysis/       # 数据分析：抽取、LOD、拟合、误差对比、图表桥接
 │   ├── view/               # UI 视图
 │   └── utils/              # 工具函数
 ├── dependency/             # 第三方依赖
 │   └── include/            # 头文件库
+├── dependency_build/       # 第三方依赖重建脚本（可单独重建 muparser / QCustomPlot 等）
 ├── resources/              # 资源（图标、RC 文件）
 ├── tests/                  # 单元测试
 └── CMakeLists.txt          # 构建配置

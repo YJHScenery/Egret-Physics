@@ -71,6 +71,54 @@ ApplicationWindow {
         return 0;
     }
 
+    /** 当前打开的 epsx 文件路径：播放器与数据分析工作区共享同一份文件。 */
+    property string currentSimulationPath: ""
+
+    /** 把 file:/// URL 转换为本地路径。 */
+    function localPathFromUrl(fileUrl) {
+        return fileUrl.toString().replace(/^file:\/\/\//, "");
+    }
+
+    /**
+     * @brief 打开 epsx：数据分析与播放器共用同一份文件。
+     * @details 两个工作区（以及菜单里的「打开…」）都只通过本函数打开文件，
+     *          所以不会出现「一个工作区打开了、另一个没同步」的情况。
+     * @param path epsx 文件路径。
+     * @return 数据分析侧打开成功返回 true。
+     */
+    function openEpsx(path) {
+        if (path === undefined || path === null || path.length === 0) {
+            return false;
+        }
+        if (!analysisSession.openFile(path)) {
+            return false;
+        }
+        window.currentSimulationPath = analysisSession.sourcePath;
+        // 先关掉播放器里可能残留的上一份仿真，再加载新文件
+        playerSceneController.closeSimulationFile();
+        playerSceneController.openSimulationFile(window.currentSimulationPath);
+        return true;
+    }
+
+    /** 关闭 epsx：数据分析与播放器一起清空，状态栏同步。 */
+    function closeEpsx() {
+        analysisSession.closeFile();
+        playerSceneController.closeSimulationFile();
+        window.currentSimulationPath = "";
+    }
+
+    FileDialog {
+        id: openEpsxFileDialog
+        title: "打开 EPSX 仿真数据文件"
+        fileMode: FileDialog.OpenFile
+        currentFolder: documentsFolder
+        nameFilters: [
+            "Egret 仿真文件 (*.epsx)",
+            "所有文件 (*)"
+        ]
+        onAccepted: window.openEpsx(window.localPathFromUrl(selectedFile))
+    }
+
     AboutDialog {
         id: aboutDialog
         parent: Overlay.overlay
@@ -207,6 +255,12 @@ ApplicationWindow {
                                 // 按「路由」而不是 Combo 索引分派：Combo 项一旦增减，
                                 // 索引就会错位（离线仿真曾被误派给编辑器）。
                                 switch (mainRowLayout.currentRoute){
+                                    case "player":
+                                    case "analysis":{
+                                        // 播放器与数据分析用 epsx，而不是场景 JSON
+                                        openEpsxFileDialog.open();
+                                        break;
+                                    }
                                     case "solver":{
                                         openJsonFileDialog.mode = 1;   // 场景编辑器
                                         openJsonFileDialog.open();
@@ -510,7 +564,9 @@ ApplicationWindow {
                     return;
                 }
                 currentRoute = "player";
-                if (playerSceneController.openSimulationFile(startupSimulationFile)) {
+                // 与数据分析工作区共享同一份文件：先写入共享状态，
+                // 播放器由上面的 Connections 自动加载。
+                if (window.openEpsx(startupSimulationFile)) {
                     playerSceneController.playSimulation();
                 }
             }
@@ -546,6 +602,9 @@ ApplicationWindow {
                 Layout.fillHeight: true
                 visible: mainRowLayout.currentRoute === "player"
                 theme: theme
+                onEpsxOpenRequested: function (filePath) {
+                    window.openEpsx(filePath);
+                }
             }
 
             // 数据分析工作区按需加载：即使该工作区自身出错，也不会影响其它工作区。
@@ -559,6 +618,12 @@ ApplicationWindow {
 
                 onLoaded: {
                     item.theme = theme;
+                    item.epsxOpenRequested.connect(function (filePath) {
+                        window.openEpsx(filePath);
+                    });
+                    item.epsxCloseRequested.connect(function () {
+                        window.closeEpsx();
+                    });
                 }
             }
         }
@@ -583,13 +648,13 @@ ApplicationWindow {
                 }
 
                 Label {
-                    text: ""
-                    color: theme.textSecondary
-                    font.pixelSize: 12
-                }
-
-                Item {
                     Layout.fillWidth: true
+                    elide: Text.ElideMiddle
+                    color: theme.textDim
+                    font.pixelSize: 12
+                    text: window.currentSimulationPath.length > 0
+                          ? "EPSX：" + window.currentSimulationPath
+                          : ""
                 }
 
                 Label {

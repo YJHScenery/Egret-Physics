@@ -38,6 +38,12 @@ ColumnLayout {
     /** 主题对象（由 MainWindow 注入）。 */
     property var theme
 
+    /** 请求主窗口打开 epsx（与播放器工作区共享同一份文件）。 */
+    signal epsxOpenRequested(string filePath)
+
+    /** 请求主窗口关闭当前 epsx（播放器与状态栏一起清空）。 */
+    signal epsxCloseRequested()
+
     /** 已勾选的实体键。 */
     property var selectedEntities: []
 
@@ -205,7 +211,7 @@ ColumnLayout {
             analysisRoot.selectedEntities = [];
             analysisRoot.selectedChannels = [];
             analysisRoot.chartSeriesKey = "";
-            analysisSession.openFile(analysisRoot.localPathFromUrl(selectedFile));
+            analysisRoot.epsxOpenRequested(analysisRoot.localPathFromUrl(selectedFile));
         }
     }
 
@@ -292,10 +298,10 @@ ColumnLayout {
                             EgretPushButton {
                                 text: "关闭"
                                 onClicked: {
-                                    analysisSession.closeFile();
                                     analysisRoot.selectedEntities = [];
                                     analysisRoot.selectedChannels = [];
                                     analysisRoot.chartSeriesKey = "";
+                                    analysisRoot.epsxCloseRequested();
                                 }
                             }
                         }
@@ -949,8 +955,15 @@ ColumnLayout {
                         verticalAlignment: Text.AlignTop
                         wrapMode: Text.WrapAnywhere
                         background: null
-                        placeholderText: "x0 + v0*t + 0.5*a*t*t"
                     }
+                }
+
+                Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    color: theme.textSecondary
+                    font.pixelSize: 11
+                    text: "方程示例：x0 + v0*t + 0.5*a*t*t"
                 }
 
                 Rectangle {
@@ -970,8 +983,15 @@ ColumnLayout {
                         rightPadding: 8
                         verticalAlignment: Text.AlignVCenter
                         background: null
-                        placeholderText: "常量：x0=0, v0=1, a=-9.8"
                     }
+                }
+
+                Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    color: theme.textSecondary
+                    font.pixelSize: 11
+                    text: "常量写法：x0=0, v0=1, a=-9.8"
                 }
 
                 EgretPushButton {

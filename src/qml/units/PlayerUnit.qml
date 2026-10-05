@@ -30,6 +30,9 @@ ColumnLayout {
     /** 主题对象（由 MainWindow 注入）。 */
     property var theme
 
+    /** 请求主窗口打开 epsx（与数据分析工作区共享同一份文件）。 */
+    signal epsxOpenRequested(string filePath)
+
     spacing: 4
 
     /** 将 file:/// URL 转换为本地路径。 */
@@ -61,7 +64,8 @@ ColumnLayout {
         ]
 
         onAccepted: {
-            playerSceneController.openSimulationFile(playerRoot.localPathFromUrl(selectedFile));
+            // 交给主窗口统一打开：同一份 epsx 会同时同步给数据分析工作区
+            playerRoot.epsxOpenRequested(playerRoot.localPathFromUrl(selectedFile));
         }
     }
 
