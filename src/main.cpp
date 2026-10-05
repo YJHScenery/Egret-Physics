@@ -50,6 +50,7 @@
 
 #include "command_line.h"
 #include "simulation_export_controller.h"
+#include "analysis_session.h"
 
 
 int main(int argc, char* argv[])
@@ -126,6 +127,8 @@ int main(int argc, char* argv[])
     // 播放器工作区同样使用独立的空场景控制器：未打开仿真文件时不渲染任何实体
     egret::SceneManagerViewModel playerSceneController{nullptr, false};
     egret::SimulationExportController simulationExporter;
+    // 数据分析工作区：EPSX 读取、抽帧、导出与绘图数据都由该门面对象提供
+    egret::analysis::AnalysisSession analysisSession;
     egret::QtComponentHelper qtHelper;
     egret::ResourceHelper resourceHelper;
     egret::FileHandler fileHandler;
@@ -139,6 +142,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty("offlineSceneController", &offlineSceneController);
     engine.rootContext()->setContextProperty("playerSceneController", &playerSceneController);
     engine.rootContext()->setContextProperty("simulationExporter", &simulationExporter);
+    engine.rootContext()->setContextProperty("analysisSession", &analysisSession);
     engine.rootContext()->setContextProperty("qtHelper", &qtHelper);
     engine.rootContext()->setContextProperty("resourceHelper", &resourceHelper);
     engine.rootContext()->setContextProperty("fileHandler", &fileHandler);

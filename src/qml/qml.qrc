@@ -30,6 +30,7 @@
         <file>units/OfflineSimulationUnit.qml</file>
         <file>units/PlayerUnit.qml</file>
         <file>units/EditorUnit.qml</file>
+        <file>units/AnalysisUnit.qml</file>
     </qresource>
     <qresource prefix="/shaders">
         <file>shaders/simple_line.vert</file>

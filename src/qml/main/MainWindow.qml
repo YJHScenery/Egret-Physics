@@ -674,6 +674,20 @@ ApplicationWindow {
                 visible: mainRowLayout.currentRoute === "player"
                 theme: theme
             }
+
+            // 数据分析工作区按需加载：即使该工作区自身出错，也不会影响其它工作区。
+            Loader {
+                id: analysisUnitLoader
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                visible: mainRowLayout.currentRoute === "analysis"
+                active: mainRowLayout.currentRoute === "analysis"
+                source: "qrc:/units/units/AnalysisUnit.qml"
+
+                onLoaded: {
+                    item.theme = theme;
+                }
+            }
         }
 
         Rectangle {

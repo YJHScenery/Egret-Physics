@@ -106,6 +106,21 @@ Components Used:
   - xlsxdocument.h
 
 ---------------------------------------------------------------------------
+7. MUPARSER LIBRARY
+---------------------------------------------------------------------------
+Library Name:      muparser
+Version:           2.3.5
+Copyright:         Copyright (C) 2004-2024 Ingo Berg
+License:           BSD 2-Clause "Simplified" License
+License File:      dependency/include/muparser_2.3.5/LICENSE
+Path:              dependency/include/muparser_2.3.5
+                   dependency/src/muparser_2.3.5
+
+Components Used:
+  - muParser.h（数学表达式解析器）
+  - 用途：数据分析工作区「理论方程误差对比」中解析用户输入的理论公式表达式
+
+---------------------------------------------------------------------------
 LICENSE COMPLIANCE NOTES
 ---------------------------------------------------------------------------
 
@@ -134,6 +149,15 @@ THIRD-PARTY LIBRARY LICENSE COMPATIBILITY:
 5. QXlsx (MIT)
    - MIT License is permissive and compatible with GPLv3
    - Redistribution permitted with proper copyright notices
+
+6. muparser (BSD 2-Clause)
+   - BSD-2-Clause is permissive and compatible with GPLv3
+   - Redistribution permitted with proper copyright notices and the
+     disclaimer reproduced in the license file
+
+7. Qt Graphs (GPLv3 / commercial)
+   - 仅以 GPLv3 条款使用；与本项目 GPLv3 授权一致
+   - 模块：Qt6Graphs（数据分析工作区绘图；Qt Charts 已被 Qt 停用，改用其官方替代 Qt Graphs）
 
 ---------------------------------------------------------------------------
 ADDITIONAL INFORMATION

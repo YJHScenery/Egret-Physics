@@ -47,6 +47,10 @@ EXCLUDE_DIRS = {
     "lib",
     "exprtk",
     "release",
+    "dependency",
+    "dependency_build",
+
+
 }
 
 EXCLUDE_FILES = {

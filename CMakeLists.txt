@@ -138,6 +138,7 @@ include_directories(
         src/view_model/serialize
         src/view_model/simulation_serializer
         src/view_model/simulation_player
+        src/view_model/analysis
         src/view_model/editor
         src/view
         src/view/geometry/
@@ -148,6 +149,7 @@ include_directories(
 
 set(QT_MODULES_LIST
         Core Gui Widgets Quick Qml Quick3D Sql Quick3DAssetImport QuickControls2 Multimedia
+        Concurrent Graphs
 )
 
 find_package(Qt6 COMPONENTS
@@ -360,6 +362,20 @@ set(CPP_FILES
         src/model/physics/collision/expanding_polytope_algorithm.h
         src/model/physics/collision/continuous_collision_detector.h
 
+        # 数据分析工作区：EPSX 序列抽取与列式存储
+        src/view_model/analysis/analysis_types.h
+        src/view_model/analysis/analysis_types.cpp
+        src/view_model/analysis/epsx_channel_catalog.h
+        src/view_model/analysis/epsx_channel_catalog.cpp
+        src/view_model/analysis/epsx_series_extractor.h
+        src/view_model/analysis/epsx_series_extractor.cpp
+        src/view_model/analysis/series_lod.h
+        src/view_model/analysis/series_lod.cpp
+        src/view_model/analysis/analysis_exporter.h
+        src/view_model/analysis/analysis_exporter.cpp
+        src/view_model/analysis/analysis_session.h
+        src/view_model/analysis/analysis_session.cpp
+
 
 )
 
@@ -395,10 +411,31 @@ set_target_properties(Assimp::Assimp PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/dependency/include/assimp_6_0_2"
 )
 
+# muparser 静态库（数学表达式解析，BSD-2-Clause）
+# 用于数据分析工作区的「理论方程误差对比」：解析用户输入的理论公式并逐点求值。
+# 只编译核心源文件，不含 C 接口包装（muParserDLL.cpp）与自测（muParserTest.cpp）。
+set(MUPARSER_ROOT "${CMAKE_SOURCE_DIR}/dependency")
+add_library(egret_muparser STATIC
+        "${MUPARSER_ROOT}/src/muparser_2.3.5/muParser.cpp"
+        "${MUPARSER_ROOT}/src/muparser_2.3.5/muParserBase.cpp"
+        "${MUPARSER_ROOT}/src/muparser_2.3.5/muParserBytecode.cpp"
+        "${MUPARSER_ROOT}/src/muparser_2.3.5/muParserCallback.cpp"
+        "${MUPARSER_ROOT}/src/muparser_2.3.5/muParserError.cpp"
+        "${MUPARSER_ROOT}/src/muparser_2.3.5/muParserInt.cpp"
+        "${MUPARSER_ROOT}/src/muparser_2.3.5/muParserTokenReader.cpp"
+)
+target_include_directories(egret_muparser PUBLIC "${MUPARSER_ROOT}/include/muparser_2.3.5")
+target_compile_definitions(egret_muparser PUBLIC MUPARSER_STATIC NOMINMAX)
+if (MSVC)
+    # 第三方源码不参与本项目的告警等级，避免污染编译输出
+    target_compile_options(egret_muparser PRIVATE /W0)
+endif ()
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
         ${QT_MODULES_LIST_WITH_PREFIX}
         QXlsx::QXlsx
         Assimp::Assimp
+        egret_muparser
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
