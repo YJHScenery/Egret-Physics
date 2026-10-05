@@ -37,14 +37,6 @@ Rectangle {
             route: "solver"
         }
         ListElement {
-            label: "参数扫描"
-            route: "sweep"
-        }
-        ListElement {
-            label: "实验教学"
-            route: "teaching"
-        }
-        ListElement {
             label: "数据分析"
             route: "analysis"
         }

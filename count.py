@@ -49,6 +49,7 @@ EXCLUDE_DIRS = {
     "release",
     "dependency",
     "dependency_build",
+    ".deps_download"
 }
 
 EXCLUDE_FILES = {

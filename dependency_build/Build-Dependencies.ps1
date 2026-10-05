@@ -12,6 +12,8 @@
         ffmpeg    解压 gyan.dev 官方 shared 构建（9.0.2-full_build），整理 bin/lib/include/preset
         assimp    使用 MSVC x64 编译 Assimp 6.0.2（Release + Debug），产出 assimp-vc143-mt(d).dll/.lib
         qxlsx     使用 Qt 6.9.3 + MSVC 编译 QXlsx(Qt6) 1.5.0 静态库（Release + Debug）
+        muparser  下载并整理 muparser 2.3.5 的头文件与核心源文件（随主程序编译）
+        qcustomplot 下载并整理 QCustomPlot 2.1.1 的单头单源与 GPL 许可证（随主程序编译）
         assemble  把 work\stage 中整理好的文件发布为项目根目录下的 dependency
         verify    与 baseline\dependency_manifest.csv 比对，输出差异报告
 
@@ -20,7 +22,7 @@
 
 .PARAMETER Step
     要执行的步骤，可多选，取值：
-    init | check | fetch | headers | ffmpeg | assimp | qxlsx | build | assemble | verify | all | clean
+    init | check | fetch | headers | ffmpeg | assimp | qxlsx | muparser | qcustomplot | build | assemble | verify | all | clean
 
 .PARAMETER Force
     忽略已有缓存：重新下载、重新解压、重新编译。
@@ -60,7 +62,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # -Step 支持逗号分隔的多值写法（兼容使用 -File 调用时的参数传递方式）
-$script:KnownSteps = @('init', 'baseline', 'check', 'fetch', 'headers', 'ffmpeg', 'assimp', 'qxlsx', 'build', 'assemble', 'verify', 'all', 'clean')
+$script:KnownSteps = @('init', 'baseline', 'check', 'fetch', 'headers', 'ffmpeg', 'assimp', 'qxlsx',
+    'muparser', 'qcustomplot', 'build', 'assemble', 'verify', 'all', 'clean')
 $Step = @(
     $Step | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ }
 )
@@ -124,7 +127,8 @@ if (Test-Path -LiteralPath $commonFile) { . $commonFile }
 
 $stepFiles = @(
     'Steps.Fetch.ps1', 'Steps.Headers.ps1', 'Steps.FFmpeg.ps1', 'Steps.Assimp.ps1',
-    'Steps.QXlsx.ps1', 'Steps.Assemble.ps1', 'Steps.Verify.ps1', 'Steps.Baseline.ps1'
+    'Steps.QXlsx.ps1', 'Steps.MuParser.ps1', 'Steps.QCustomPlot.ps1',
+    'Steps.Assemble.ps1', 'Steps.Verify.ps1', 'Steps.Baseline.ps1'
 )
 foreach ($f in $stepFiles) {
     $p = Join-Path $script:ScriptsDir $f
@@ -137,12 +141,12 @@ function Resolve-StepList {
         把用户传入的步骤集合展开为按序执行的步骤列表。
     #>
     param([string[]]$Requested)
-    $order = @('check', 'fetch', 'headers', 'ffmpeg', 'assimp', 'qxlsx', 'assemble', 'verify')
+    $order = @('check', 'fetch', 'headers', 'ffmpeg', 'assimp', 'qxlsx', 'muparser', 'qcustomplot', 'assemble', 'verify')
     $result = New-Object System.Collections.Generic.List[string]
     foreach ($s in $Requested) {
         switch ($s) {
             'all'   { foreach ($x in $order) { if (-not $result.Contains($x)) { $result.Add($x) } } }
-            'build' { foreach ($x in @('check', 'fetch', 'headers', 'ffmpeg', 'assimp', 'qxlsx')) { if (-not $result.Contains($x)) { $result.Add($x) } } }
+            'build' { foreach ($x in @('check', 'fetch', 'headers', 'ffmpeg', 'assimp', 'qxlsx', 'muparser', 'qcustomplot')) { if (-not $result.Contains($x)) { $result.Add($x) } } }
             default { foreach ($x in @($s)) { if (-not $result.Contains($x)) { $result.Add($x) } } }
         }
     }
@@ -164,6 +168,8 @@ function Invoke-DependencyStep {
         'ffmpeg'   { Invoke-StepFFmpeg }
         'assimp'   { Invoke-StepAssimp }
         'qxlsx'    { Invoke-StepQXlsx }
+        'muparser' { Invoke-StepMuParser }
+        'qcustomplot' { Invoke-StepQCustomPlot }
         'assemble' { Invoke-StepAssemble }
         'verify'   { Invoke-StepVerify }
         'clean'    { Remove-WorkDirectory }

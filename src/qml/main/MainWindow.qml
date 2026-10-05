@@ -58,12 +58,6 @@ ApplicationWindow {
             label: "播放器"; route: "player"; badge: ""
         }
         ListElement {
-            label: "参数扫描"; route: "sweep"; badge: ""
-        }
-        ListElement {
-            label: "实验教学"; route: "teaching"; badge: ""
-        }
-        ListElement {
             label: "数据分析"; route: "analysis"; badge: ""
         }
     }

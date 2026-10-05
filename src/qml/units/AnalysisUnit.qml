@@ -27,7 +27,6 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Dialogs
-import QtGraphs
 import EgretCharts 1.0
 
 import "qrc:/components/components"
@@ -150,166 +149,9 @@ ColumnLayout {
         chart.setOverlaySeries(analysisSession.overlayPoints, "拟合 / 理论曲线");
     }
 
-    /** 依据序列摘要设置默认坐标轴范围（完整数据范围 + 5% 余量）。 */
-    function applyDefaultAxisRange(summary) {
-        const spanX = Math.max(1.0e-9, summary.xMax - summary.xMin);
-        const paddingX = spanX * 0.02;
-        const spanY = Math.max(1.0e-9, summary.yMax - summary.yMin);
-        const paddingY = spanY * 0.05;
-
-        axisX.min = summary.xMin - paddingX;
-        axisX.max = summary.xMax + paddingX;
-
-        axisY.min = summary.yMin - paddingY;
-        axisY.max = summary.yMax + paddingY;
-    }
-
-    /**
-     * @brief 取「好看」的刻度间隔：把粗略步长归整到 1 / 2 / 5 × 10^k。
-     * @param span 坐标轴跨度。
-     * @param targetTicks 期望的刻度段数。
-     * @return 刻度间隔；跨度非法时返回一个安全值。
-     */
-    function niceTickInterval(span, targetTicks) {
-        if (!(span > 0) || !(targetTicks > 0) || !isFinite(span)) {
-            return 1;
-        }
-        const rough = span / targetTicks;
-        const magnitude = Math.pow(10, Math.floor(Math.log(rough) / Math.LN10));
-        const normalized = rough / magnitude;
-        let step = 10;
-        if (normalized <= 1) {
-            step = 1;
-        } else if (normalized <= 2) {
-            step = 2;
-        } else if (normalized <= 5) {
-            step = 5;
-        }
-        const interval = step * magnitude;
-        return interval > 0 && isFinite(interval) ? interval : span / targetTicks;
-    }
-
-    /**
-     * @brief 由刻度间隔推出需要显示的小数位数。
-     * @param step 刻度间隔。
-     * @return 小数位数，范围 0 ~ 8。
-     */
-    function decimalsForStep(step) {
-        if (!(step > 0) || !isFinite(step)) {
-            return 2;
-        }
-        const decimals = Math.ceil(-Math.log(step) / Math.LN10);
-        return Math.max(0, Math.min(8, decimals));
-    }
-
     /** 以视图中心为基准缩放坐标轴：factor < 1 放大，> 1 缩小。 */
     function zoomChart(factor) {
         chart.zoomBy(factor);
-    }
-
-    /**
-     * @brief 取绘图区矩形。
-     * @details 优先用 GraphsView.plotArea；布局尚未完成或它给出的矩形异常时，
-     *          退化为整块图表区域，保证交互在任何时候都还能用。
-     * @return 绘图区矩形。
-     */
-    function plotRect() {
-        const area = chart.plotArea;
-        if (area.width > 1 && area.height > 1
-                && area.x > -1 && area.y > -1
-                && area.x + area.width <= chart.width + 1
-                && area.y + area.height <= chart.height + 1) {
-            return area;
-        }
-        return Qt.rect(0, 0, Math.max(1, chart.width), Math.max(1, chart.height));
-    }
-
-    /** 交互期间延迟重采样曲线：拖动中每帧重建会让 GraphsView 丢掉鼠标抓取。 */
-    function scheduleChartRefresh() {
-        refreshTimer.restart();
-    }
-
-    /**
-     * @brief 把绘图区内的像素横坐标换算成数据横坐标。
-     * @param px 相对 GraphsView 的像素 x。
-     * @return 对应的横轴数值。
-     */
-    function dataXAt(px) {
-        const area = plotRect();
-        if (!(area.width > 0)) {
-            return axisX.min;
-        }
-        return axisX.min + (px - area.x) / area.width * (axisX.max - axisX.min);
-    }
-
-    /**
-     * @brief 把绘图区内的像素纵坐标换算成数据纵坐标（屏幕 y 向下，数据 y 向上）。
-     * @param py 相对 GraphsView 的像素 y。
-     * @return 对应的纵轴数值。
-     */
-    function dataYAt(py) {
-        const area = plotRect();
-        if (!(area.height > 0)) {
-            return axisY.min;
-        }
-        return axisY.max - (py - area.y) / area.height * (axisY.max - axisY.min);
-    }
-
-    /**
-     * @brief 按像素位移平移视图（内容跟随鼠标移动）。
-     * @param dx 鼠标横向位移（像素）。
-     * @param dy 鼠标纵向位移（像素）。
-     */
-    function panByPixels(dx, dy) {
-        const area = plotRect();
-        if (!(area.width > 0) || !(area.height > 0)) {
-            return;
-        }
-        const shiftX = dx / area.width * (axisX.max - axisX.min);
-        const shiftY = dy / area.height * (axisY.max - axisY.min);
-        axisX.min -= shiftX;
-        axisX.max -= shiftX;
-        axisY.min += shiftY;
-        axisY.max += shiftY;
-        // 注意：拖动过程中绝不能重建序列。GraphsView 每次重建内部几何都会丢鼠标抓取，
-        // 表现为「只能拖很短一段就被强制结束」。刷新统一放在松手时做。
-    }
-
-    /**
-     * @brief 以鼠标位置为锚点缩放：光标下的数据点保持不动。
-     * @param px 锚点像素 x。
-     * @param py 锚点像素 y。
-     * @param factor 缩放系数，< 1 放大，> 1 缩小。
-     */
-    function zoomAt(px, py, factor) {
-        const anchorX = dataXAt(px);
-        const anchorY = dataYAt(py);
-
-        axisX.min = anchorX + (axisX.min - anchorX) * factor;
-        axisX.max = anchorX + (axisX.max - anchorX) * factor;
-        axisY.min = anchorY + (axisY.min - anchorY) * factor;
-        axisY.max = anchorY + (axisY.max - anchorY) * factor;
-        analysisRoot.scheduleChartRefresh();
-    }
-
-    /**
-     * @brief 把框选出来的像素矩形放大成新的视图范围。
-     * @param px 矩形左上角像素 x。
-     * @param py 矩形左上角像素 y。
-     * @param w 矩形宽（像素）。
-     * @param h 矩形高（像素）。
-     */
-    function zoomToRect(px, py, w, h) {
-        const left = dataXAt(px);
-        const right = dataXAt(px + w);
-        const bottom = dataYAt(py + h);
-        const top = dataYAt(py);
-
-        axisX.min = Math.min(left, right);
-        axisX.max = Math.max(left, right);
-        axisY.min = Math.min(bottom, top);
-        axisY.max = Math.max(bottom, top);
-        analysisRoot.scheduleChartRefresh();
     }
 
     /** 把视图恢复到整条序列的完整范围。 */
@@ -408,22 +250,6 @@ ColumnLayout {
         }
     }
 
-    /**
-     * @brief 交互（拖动 / 滚轮）停止后延迟重采样曲线。
-     * @details 拖动过程中若每帧都重建序列，GraphsView 会重建内部场景并丢掉鼠标抓取，
-     *          表现为「拖一下就断」。因此拖动期间只改坐标轴，停手后再统一重采样。
-     */
-    Timer {
-        id: refreshTimer
-        interval: 90
-        repeat: false
-        onTriggered: {
-            // 仍在拖动中就不要重建，交给松手后的那次刷新
-            if (!plotMouse.pressed) {
-                analysisRoot.refreshChart(false);
-            }
-        }
-    }
 
     RowLayout {
         Layout.fillWidth: true
@@ -774,88 +600,6 @@ ColumnLayout {
                     anchors.fill: parent
                 }
 
-                // 覆盖在 GraphsView 之上的交互层。
-                // 用指针处理器而不是 MouseArea：DragHandler 在按下后会一直持有独占抓取，
-                // 即便 GraphsView 因坐标轴变化重建了内部几何也不会把手势抢走。
-                Item {
-                    id: plotSurface
-                    anchors.fill: parent
-                    // 交互已交给 QCustomPlot，本层停用，避免拦截鼠标事件
-                    enabled: false
-
-                    /** 框选起点（plotSurface 坐标）。 */
-                    property real pressX: 0
-
-                    /** 框选起点（plotSurface 坐标）。 */
-                    property real pressY: 0
-
-                    DragHandler {
-                        id: panHandler
-                        target: null
-                        acceptedButtons: Qt.LeftButton
-                        cursorShape: Qt.CrossCursor
-
-                        property real lastX: 0
-                        property real lastY: 0
-
-                        onActiveChanged: {
-                            if (active) {
-                                lastX = translation.x;
-                                lastY = translation.y;
-                                plotSurface.pressX = point.position.x;
-                                plotSurface.pressY = point.position.y;
-                                rubber.visible = false;
-                                return;
-                            }
-
-                            if (areaZoomCheck.checked && rubber.visible
-                                    && rubber.width > 8 && rubber.height > 8) {
-                                analysisRoot.zoomToRect(rubber.x, rubber.y,
-                                                        rubber.width, rubber.height);
-                            }
-                            rubber.visible = false;
-                            analysisRoot.refreshChart(false);
-                        }
-
-                        onTranslationChanged: {
-                            if (!active) {
-                                return;
-                            }
-                            const dx = translation.x - lastX;
-                            const dy = translation.y - lastY;
-                            lastX = translation.x;
-                            lastY = translation.y;
-
-                            if (areaZoomCheck.checked) {
-                                const cx = point.position.x;
-                                const cy = point.position.y;
-                                rubber.visible = true;
-                                rubber.x = Math.min(plotSurface.pressX, cx);
-                                rubber.y = Math.min(plotSurface.pressY, cy);
-                                rubber.width = Math.abs(cx - plotSurface.pressX);
-                                rubber.height = Math.abs(cy - plotSurface.pressY);
-                            } else if (dx !== 0 || dy !== 0) {
-                                analysisRoot.panByPixels(dx, dy);
-                            }
-                        }
-                    }
-
-                    WheelHandler {
-                        onWheel: function (event) {
-                            // 滚轮向上 = 放大（与常见绘图工具一致）
-                            const factor = event.angleDelta.y > 0 ? 1.0 / 1.15 : 1.15;
-                            analysisRoot.zoomAt(event.position.x, event.position.y, factor);
-                        }
-                    }
-
-                    Rectangle {
-                        id: rubber
-                        visible: false
-                        color: "#3356B6FF"
-                        border.width: 1
-                        border.color: theme.accent
-                    }
-                }
                 }
             }
         }

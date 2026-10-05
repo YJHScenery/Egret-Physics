@@ -72,6 +72,22 @@
         )
     }
 
+    # ------------------------------------- 纯源码依赖（随主程序一起编译） --
+    MuParser = @{
+        Version  = '2.3.5'
+        Archives = @(
+            @{ Url = 'https://github.com/beltoforion/muparser/archive/refs/tags/v2.3.5.tar.gz';      File = 'muparser-2.3.5.tar.gz' }
+            @{ Url = 'https://codeload.github.com/beltoforion/muparser/tar.gz/refs/tags/v2.3.5';    File = 'muparser-2.3.5-codeload.tar.gz' }
+        )
+    }
+
+    QCustomPlot = @{
+        Version  = '2.1.1'
+        Archives = @(
+            @{ Url = 'https://www.qcustomplot.com/release/2.1.1/QCustomPlot-source.tar.gz';          File = 'QCustomPlot-2.1.1-source.tar.gz' }
+        )
+    }
+
     # ------------------------------------------------------ 本机工具链信息 --
     Qt = @{
         Version   = '6.9.3'
