@@ -64,5 +64,6 @@
     </qresource>
     <qresource prefix="/file_icon">
         <file>assets/file_icon/simulation-file-blue.ico</file>
+        <file>assets/file_icon/serialization-scene-json-file.ico</file>
     </qresource>
 </RCC>

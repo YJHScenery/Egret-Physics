@@ -116,7 +116,7 @@ namespace egret
             return false;
         }
         if (sceneJson.trimmed().isEmpty()) {
-            setError(QStringLiteral("当前没有可求解的场景，请先用「文件 → 打开」加载场景（.json）"));
+            setError(QStringLiteral("当前没有可求解的场景，请先用「文件 → 打开」加载场景（.epscene）"));
             return false;
         }
         if (durationSeconds <= 0.0) {

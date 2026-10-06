@@ -1,0 +1,6 @@
+<RCC>
+    <!-- 文件关联使用的 .epscene 图标：复用仓库根目录下的同一份资源，不重复存放二进制文件。 -->
+    <qresource prefix="/epscene_register">
+        <file alias="serialization-scene-json-file.ico">../../../resources/assets/file_icon/serialization-scene-json-file.ico</file>
+    </qresource>
+</RCC>

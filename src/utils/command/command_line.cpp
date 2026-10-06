@@ -7,13 +7,15 @@
  *              3. 按模式分发到 solve_command 与 parse_command。
  *
  *              支持的语法：
- *              - `--solve <scene.json> [--duration <秒>] [--sample <毫秒>] [--step <毫秒>] [-o <文件>]`
+ *              - `--solve <scene.epscene> [--duration <秒>] [--sample <毫秒>] [--step <毫秒>] [-o <文件>]`
  *              - `--parse EPSX <帧号> [文件]`（缩写 `-p`）
  *              - `--play <文件>`（缩写 `-r`，进入图形界面的播放器工作区并自动播放）
+ *              - `--edit <文件>`（进入图形界面的场景编辑器工作区并载入场景）
  *              - `--help`（缩写 `-h`）
  *
- *              文件关联的注册 / 注销不在本程序中，由独立子项目
- *              `subprojects/epsx_register`（epsx_register.exe）负责。
+ *              文件关联的注册 / 注销不在本程序中，由独立子项目负责：
+ *              `subprojects/epsx_register`（.epsx，播放器）与
+ *              `subprojects/epscene_register`（.epscene，场景编辑器）。
  *
  * @author      jehor
  * @date        2026-10-02
@@ -73,6 +75,9 @@ namespace egret::command
 
             /** --play 的输入文件路径。 */
             std::string playFile{};
+
+            /** --edit 的输入场景文件路径。 */
+            std::string editFile{};
         };
 
         /**
@@ -88,7 +93,7 @@ namespace egret::command
             app.set_version_flag("--version", std::string{EGRET_VERSION_STRING});
 
             app.add_flag("--solve", options.solve, "离线求解场景并写出仿真文件");
-            app.add_option("scene", options.sceneFile, "场景 JSON 文件路径（与 --solve 搭配）");
+            app.add_option("scene", options.sceneFile, "场景文件路径（.epscene，与 --solve 搭配）");
             app.add_option("--duration", options.durationSeconds, "仿真时长，单位秒（默认 60）");
             app.add_option("--sample", options.sampleMs,
                            "文件采样间隔，单位毫秒：1 / 2 / 5 / 10 / 20（默认 10）");
@@ -98,6 +103,8 @@ namespace egret::command
                 ->expected(2, 3);
             app.add_option("-r,--play,--replay", options.playFile,
                            "以播放器模式打开仿真文件并自动播放（图形界面）");
+            app.add_option("-e,--edit", options.editFile,
+                           "以场景编辑器打开场景文件并载入（图形界面）");
         }
     }
 
@@ -150,7 +157,7 @@ namespace egret::command
             return request;
         }
 
-        // --parse / --play 优先于 --solve：三者互斥，谁先在语义上更具体就归谁。
+        // --parse / --play / --edit 优先于 --solve：它们互斥，谁先在语义上更具体就归谁。
         if (!options.parseArgs.empty()) {
             request.mode = Mode::Parse;
             request.parseTarget = QString::fromStdString(options.parseArgs[0]);
@@ -172,6 +179,12 @@ namespace egret::command
         if (!options.playFile.empty()) {
             request.mode = Mode::Play;
             request.playFile = QString::fromStdString(options.playFile);
+            return request;
+        }
+
+        if (!options.editFile.empty()) {
+            request.mode = Mode::Edit;
+            request.editFile = QString::fromStdString(options.editFile);
             return request;
         }
 
@@ -225,6 +238,14 @@ namespace egret::command
             // 避免任何调用路径静默返回成功。
             QTextStream err(stderr);
             err << "播放器模式需要在图形界面中启动（请由 main.cpp 处理 --play）。\n";
+            err.flush();
+            return 2;
+        }
+        case Mode::Edit:
+        {
+            // 同上：--edit 由 main.cpp 在图形界面里处理。
+            QTextStream err(stderr);
+            err << "场景编辑器模式需要在图形界面中启动（请由 main.cpp 处理 --edit）。\n";
             err.flush();
             return 2;
         }

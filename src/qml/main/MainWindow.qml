@@ -153,7 +153,7 @@ ApplicationWindow {
             fileMode: FileDialog.OpenFile
             currentFolder: documentsFolder
             nameFilters: [
-                "序列化场景 (*.json)",
+                "序列化场景 (*.epscene)",
                 "所有文件 (*)"
             ]
 
@@ -187,13 +187,13 @@ ApplicationWindow {
             title: "保存场景"
             fileMode: FileDialog.SaveFile
             currentFolder: documentsFolder
-            defaultSuffix: "json"
+            defaultSuffix: "epscene"
             nameFilters: [
-                "序列化场景 (*.json)",
+                "序列化场景 (*.epscene)",
                 "所有文件 (*)"
             ]
 
-            // currentFile: "Untitled.json"
+            // currentFile: "Untitled.epscene"
 
             onAccepted: {
                 // 注意：selectedFile 返回的是 file:// 开头的 URL，需转换为本地路径
@@ -550,15 +550,23 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            // 默认进入实时仿真工作区；由命令行 --play 启动时直接落在播放器工作区。
+            // 默认进入实时仿真工作区；由命令行 --play / --edit 启动时直接落在
+            // 播放器 / 场景编辑器工作区。
             property string currentRoute: (typeof startupWorkspaceRoute !== "undefined"
                                            && startupWorkspaceRoute.length > 0)
                 ? startupWorkspaceRoute
                 : "scene"
 
-            // 双击 .epsx 启动（--play <文件>）：切到播放器工作区，
-            // 打开传入的文件并立即开始播放。
+            // 双击文件启动时按类型分派：
+            //   .epsx  → --play <文件>：切到播放器工作区，打开并立即播放；
+            //   .epscene → --edit <文件>：切到场景编辑器并载入场景。
             Component.onCompleted: {
+                if (typeof startupSceneFile !== "undefined"
+                        && startupSceneFile.length > 0) {
+                    currentRoute = "solver";
+                    EditorManager.loadFromJson(startupSceneFile);
+                    return;
+                }
                 if (typeof startupSimulationFile === "undefined"
                         || startupSimulationFile.length === 0) {
                     return;

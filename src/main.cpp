@@ -59,17 +59,20 @@ int main(int argc, char* argv[])
     QApplication app(argc, argv);
 
     // 命令行分支：无参数时进入图形界面；纯命令行模式在创建 QML 引擎之前处理完毕。
-    // --play 是例外：它要在图形界面里打开「播放器」工作区并自动播放，
-    // 因此不在这里提前退出，而是把文件路径带进下面的界面流程。
+    // --play / --edit 是例外：前者要在图形界面里打开「播放器」工作区并自动播放，
+    // 后者要在「场景编辑器」工作区载入场景，因此都不在这里提前退出，
+    // 而是把文件路径带进下面的界面流程。
     const egret::command::Request command = egret::command::parse(app.arguments());
-    if (command.mode != egret::command::Mode::Gui && command.mode != egret::command::Mode::Play) {
+    if (command.mode != egret::command::Mode::Gui
+        && command.mode != egret::command::Mode::Play
+        && command.mode != egret::command::Mode::Edit) {
         return egret::command::execute(command);
     }
 
-    // 双击 .epsx 时资源管理器给出的工作目录不受控（可能是 %SystemRoot%\System32），
+    // 双击 .epsx / .epscene 时资源管理器给出的工作目录不受控（可能是 %SystemRoot%\System32），
     // 而日志、示例网格等资源都按相对路径解析；把工作目录钉在可执行文件所在目录，
     // 让双击启动与「在部署目录运行」表现一致。
-    if (command.mode == egret::command::Mode::Play) {
+    if (command.mode == egret::command::Mode::Play || command.mode == egret::command::Mode::Edit) {
         QDir::setCurrent(QCoreApplication::applicationDirPath());
     }
 
@@ -157,14 +160,20 @@ int main(int argc, char* argv[])
         QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)));
     engine.rootContext()->setContextProperty("mediaHelper", &qtMediaHelper);
 
-    // 播放器启动信息：--play <file> 时让主窗口直接切到播放器工作区并自动播放。
+    // 启动信息：--play <file> 让主窗口切到播放器工作区并自动播放；
+    // --edit <file> 让主窗口切到场景编辑器工作区并载入场景。
     const bool startInPlayer = command.mode == egret::command::Mode::Play;
+    const bool startInEditor = command.mode == egret::command::Mode::Edit;
     engine.rootContext()->setContextProperty(
         "startupWorkspaceRoute",
-        startInPlayer ? QStringLiteral("player") : QString{});
+        startInPlayer ? QStringLiteral("player")
+                      : (startInEditor ? QStringLiteral("solver") : QString{}));
     engine.rootContext()->setContextProperty(
         "startupSimulationFile",
         startInPlayer ? QDir::toNativeSeparators(command.playFile) : QString{});
+    engine.rootContext()->setContextProperty(
+        "startupSceneFile",
+        startInEditor ? QDir::toNativeSeparators(command.editFile) : QString{});
 
 
     const QUrl url(QStringLiteral("qrc:/main/main/MainWindow.qml"));

@@ -53,7 +53,7 @@ namespace egret::command
         QTextStream err(stderr);
 
         if (request.sceneFile.isEmpty()) {
-            err << "请通过 --solve <scene.json> 指定场景文件。\n";
+            err << "请通过 --solve <scene.epscene> 指定场景文件。\n";
             err.flush();
             return 2;
         }

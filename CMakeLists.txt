@@ -516,17 +516,20 @@ endif ()
 # 与主程序解耦（安装包或手动部署时单独调用它即可）。
 add_subdirectory(subprojects/epsx_register)
 
-# 构建主程序时一并构建关联工具。
+# .epscene 场景文件关联工具：与 .epsx 工具同构（同样只写 HKCU\Software\Classes），
+# 区别在于扩展名换成 .epscene、图标换成场景图标，双击时以 `--edit` 让主程序在
+# 场景编辑器工作区载入该场景。
+add_subdirectory(subprojects/epscene_register)
+
+# 视频导出工具：独立的命令行程序（.epsx → MP4），复用主工程源码。
+add_subdirectory(subprojects/video_encoder)
+
+# 构建主程序时一并构建全部三个子项目。
 # 项目约定的构建命令是 `cmake --build <dir> --config Release --target Egret_Physics`，
 # 带 --target 时只会构建该目标及其依赖（默认的 ALL 目标不参与），
 # 因此在主程序上显式声明依赖，避免子项目被跳过；
-# 若不带 --target 构建整个解决方案，两者本来就会一起构建。
-add_dependencies(${PROJECT_NAME} epsx_register)
-
-# 视频导出工具：独立的命令行程序（.epsx → MP4），复用主工程源码但**不**加入主程序依赖链，
-# 避免拖慢日常构建；需要时显式构建：
-#     cmake --build <build-dir> --config Release --target video_encoder
-add_subdirectory(subprojects/video_encoder)
+# 若不带 --target 构建整个解决方案，三者本来就会一起构建。
+# add_dependencies(${PROJECT_NAME} epsx_register epscene_register) # video_encoder
 
 
 
@@ -614,8 +617,8 @@ set(CPACK_CREATE_DESKTOP_LINKS      "Egret_Physics")
 
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 
-# 主可执行文件 + .epsx 关联工具
-install(TARGETS ${PROJECT_NAME} epsx_register
+# 主可执行文件 + .epsx / .epscene 关联工具
+install(TARGETS ${PROJECT_NAME} epsx_register epscene_register
     RUNTIME DESTINATION .
     )
 

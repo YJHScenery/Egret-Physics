@@ -99,6 +99,9 @@ target_link_libraries(video_encoder PRIVATE
         Qt6::GuiPrivate          # 离屏渲染回读需要 rhi/qrhi.h
         QXlsx::QXlsx
         Assimp::Assimp
+        # 复用主工程源码时连带编译数据分析模块，其中 expression_evaluator.cpp
+        # 依赖 muParser；链接该静态库同时获得其 include 目录与编译定义。
+        egret_muparser
         FFmpeg::avcodec          # dependency 自带的 FFmpeg 9.0.2（含 h264_nvenc）
         FFmpeg::avformat
         FFmpeg::avutil

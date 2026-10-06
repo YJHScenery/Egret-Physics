@@ -53,6 +53,16 @@ namespace egret::command
          */
         Play,
 
+        /**
+         * --edit：以场景编辑器模式打开场景文件。
+         * 该模式不在此处执行：main.cpp 会继续进入图形界面，并在场景编辑器工作区
+         * 载入指定场景（Windows 双击 .epscene 即走这条路径）。
+         *
+         * 注：文件关联的注册 / 注销由独立子项目 `subprojects/epscene_register`
+         * （epscene_register.exe）负责，主程序不再提供相关命令行选项。
+         */
+        Edit,
+
         /** --help / -h：打印帮助。 */
         Help,
 
@@ -96,6 +106,9 @@ namespace egret::command
 
         /** --play 的输入文件路径。 */
         QString playFile{};
+
+        /** --edit 的输入场景文件路径。 */
+        QString editFile{};
 
         /** 参数错误时的描述信息。 */
         QString errorMessage{};

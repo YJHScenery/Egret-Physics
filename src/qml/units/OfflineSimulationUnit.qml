@@ -53,7 +53,7 @@ ColumnLayout {
         fileMode: FileDialog.OpenFile
         currentFolder: documentsFolder
         nameFilters: [
-            "序列化场景 (*.json)",
+            "序列化场景 (*.epscene)",
             "所有文件 (*)"
         ]
 
@@ -255,7 +255,7 @@ ColumnLayout {
                     spacing: 8
 
                     EgretPushButton {
-                        text: "打开场景文件（.json）…"
+                        text: "打开场景文件（.epscene）…"
                         onClicked: {
                             openSceneFileDialog.open();
                         }
