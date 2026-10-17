@@ -49,7 +49,7 @@ namespace egret
 
         const double i_zz{0.5 * quickSquare(m_radius) * mass};
 
-        Eigen::Matrix3d inertiaTensor;
+        Eigen::Matrix3d inertiaTensor = Eigen::Matrix3d::Zero();
         inertiaTensor(0, 0) = i_xx;
         inertiaTensor(1, 1) = i_yy;
         inertiaTensor(2, 2) = i_zz;

@@ -103,6 +103,16 @@ namespace egret
         [[nodiscard]] std::string_view name() const override;
 
     private:
+        /** @brief 按支撑接触岛累计仿真时间，避免离线求解依赖渲染回调。 */
+        void evaluateSupported(SolverSceneSnapshotBase& scene, double dt,
+                               std::span<const SolverContactConstraint> contacts) override;
+
+        /** 接触模式下不再由渲染回调重复推进计时。 */
+        bool m_contactTiming{false};
+        /** 实体持续稳定的仿真时长。 */
+        std::unordered_map<std::uint64_t,double> m_stableSeconds;
+        /** 上次支撑图的拓扑签名，用于撤去支撑时解冻。 */
+        std::unordered_map<std::uint64_t,std::uint64_t> m_supportSignatures;
         /**
          * @brief       冻结时刻的实体状态快照。
          * @details     记录位置、速度、加速度与合力基线，用于解冻时的受力比对。

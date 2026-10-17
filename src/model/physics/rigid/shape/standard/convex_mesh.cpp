@@ -152,7 +152,7 @@ namespace egret
 
     Eigen::Matrix3d ConvexMesh::calculateInertiaTensor() const
     {
-        Eigen::Matrix3d inertiaTensor;
+        Eigen::Matrix3d inertiaTensor = Eigen::Matrix3d::Zero();
 
         for (const auto& triangle : m_dataMesh.indices) {
             Eigen::Matrix3d moment{Eigen::Matrix3d::Identity()};
@@ -212,7 +212,7 @@ namespace egret
 
     void ConvexMesh::offsetToCenter()
     {
-        Eigen::Vector3d offset{};
+        Eigen::Vector3d offset = Eigen::Vector3d::Zero();
         for (const auto& triangle : m_dataMesh.indices) {
             offset += calculateSingleVolume(triangle) * (
                 m_dataMesh.vertices.at(triangle.x()) +

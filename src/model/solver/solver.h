@@ -162,7 +162,7 @@ namespace egret
          * @param stats 可变步骤统计。
          */
         void runBroadPhase(const SolverSceneSnapshotBase& scene, std::vector<SolverBodyPair>& pairs,
-                           SolverStats& stats) const;
+                           SolverStats& stats, double horizon = 0.0) const;
 
         // /**
         //  * @brief 第 3 阶段：生成窄相位接触约束。
@@ -214,7 +214,7 @@ namespace egret
         void stepWithToiQueue(SolverSceneSnapshotBase& scene,
                               double dt,
                               std::vector<CcdCollisionEvent>& events,
-                              SolverStats& stats) const;
+                              SolverStats& stats, std::vector<SolverBodyPair>& resolvedPairs) const;
 
         /**
          * @brief 第 4 阶段：接触解算（法向冲量 + 位置修正）。

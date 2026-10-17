@@ -24,15 +24,15 @@ namespace egret
     /**
      * @brief       含摩擦接触冲量解算器类。
      * @details     FrictionalContactResolverStrategy 继承自 ContactResolverStrategy，
-     *              实现完整的序列冲量（Sequential Impulses）算法：
-     *              - 跨帧热启动（Warm Start）：复用上一帧的累积冲量
+     *              组合整图法向冲量与摩擦迭代：
+     *              - 支持调用方提供初始冲量；内部不持有跨帧缓存
      *              - Coulomb 摩擦模型：两个正交切向，摩擦锥裁剪
      *              - 增量冲量求解：每轮仅施加冲量差值，避免过冲
-     *              - 位置求解中的切向漂移抑制
+     *              - 位置求解使用整岛同步的质量加权投影
      *
      *              与 FrictionlessContactResolverStrategy 相比：
      *              - 额外处理切向摩擦冲量
-     *              - 在 SolverContactConstraint 中维护跨帧累积冲量状态
+     *              - 在本次求解拥有的约束副本中维护累积冲量
      *              - 收敛更快、堆叠更稳定
      *
      * @invariant   resolveContacts() 方法更新实体速度/角速度/位置
@@ -53,10 +53,10 @@ namespace egret
         /**
          * @brief 对接触约束执行含摩擦法向/切向冲量与位置修正。
          * @details 接口接收 const span 以保证与 ContactResolverStrategy 的签名兼容，
-         *          但内部会通过 const_cast 修改约束对象中的累积冲量字段
+         *          内部复制约束并维护本次求解拥有的累积冲量字段
          *          （accumulatedNormalImpulse 等），这是物理引擎中的常见模式。
          * @param scene 可变场景快照。
-         * @param constraints 只读接触约束集合（内部会修改累积冲量状态）。
+         * @param constraints 只读接触约束集合（不修改调用方内存）。
          * @param dt 固定步长。
          * @param config 求解器配置。
          * @param stats 每步统计信息。
@@ -76,12 +76,12 @@ namespace egret
          * @param stats 每步统计信息。
          */
         void velocitySolve(std::span<SolverBodyHandle> bodies,
-                           std::span<const SolverContactConstraint> constraints,
+                           std::span<SolverContactConstraint> constraints,
                            const SolverConfig &config,
                            SolverStats &stats) const;
 
         /**
-         * @brief 位置求解阶段：穿透修正与切向漂移抑制。
+         * @brief 位置求解阶段：同步穿透与转角修正。
          * @param bodies 可变实体句柄视图。
          * @param constraints 可变的接触约束集合。
          * @param config 求解器配置。

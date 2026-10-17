@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <set>
 #include <fstream>
 #include <QDebug>
 #include <qgenericmatrix.h>
@@ -122,16 +123,23 @@ namespace egret
             return result;
         }
 
-        updateBodyInertiaCache(scene);
         updateExternalForces(scene);
         applyConstraintForces(scene, dt, result.stats);
+        if (m_sleepStrategy) {
+            m_sleepStrategy->evaluate(scene,dt);
+            for (auto& body:scene.getBodies())
+                if (body.entity && !body.entity->isAsleep() && !body.entity->isFixed() && body.inverseMass<=0)
+                    body.inverseMass=1.0/body.entity->getMass();
+        }
+        updateBodyInertiaCache(scene);
 
         std::vector<SolverBodyPair> pairs;
         std::vector<SolverContactConstraint> constraints;
         std::vector<CcdCollisionEvent> ccdEvents;
+        std::vector<SolverBodyPair> resolvedPairs;
 
         if (m_config.enableBroadPhase) {
-            runBroadPhase(scene, pairs, result.stats);
+            runBroadPhase(scene, pairs, result.stats, dt);
         }
 
         if (m_config.enableNarrowPhase) {
@@ -145,26 +153,37 @@ namespace egret
         }
 
         if (m_config.enableToiQueue && !ccdEvents.empty()) {
-            stepWithToiQueue(scene, dt, ccdEvents, result.stats);
+            stepWithToiQueue(scene, dt, ccdEvents, result.stats, resolvedPairs);
         }
         else {
             if (m_config.enableContactResolution) {
                 resolveContacts(scene, dt, constraints, result.stats);
+                for (const auto& c : constraints) resolvedPairs.push_back({c.bodyAIndex,c.bodyBIndex});
             }
 
             // 速度/角速度约束必须在积分前执行，确保积分使用修正后的速度
             applyVelocityAndAngularConstraints(scene, dt, result.stats);
 
-            // 休眠判定：接触解算与速度约束修正之后、积分之前执行。
-            // 此时速度是接触冲量修正后的值，静置实体的速度才真正接近零，
-            // 否则评估到的是"积分后又被重力加速"的速度（≈ g·dt），永远无法冻结。
-            if (m_sleepStrategy != nullptr) {
-                m_sleepStrategy->evaluate(scene, dt);
-            }
-
             if (m_config.enableIntegration) {
                 integrate(scene, dt, result.stats);
             }
+        }
+
+        if (m_config.enableContactResolution && m_config.enableNarrowPhase) {
+            updateBodyInertiaCache(scene);
+            std::vector<SolverBodyPair> finalPairs;
+            if (m_config.enableBroadPhase) runBroadPhase(scene, finalPairs, result.stats);
+            std::vector<SolverContactConstraint> finalContacts;
+            runNarrowPhaseCcd(scene, finalPairs, 1e-8, finalContacts, result.stats);
+            std::erase_if(finalContacts, [](const auto& c) { return c.toi > 1e-10; });
+            // 冲击恢复已在 TOI 阶段完成，步末仅补齐受力后的支撑速度。
+            for (auto& contact : finalContacts) {
+                if (std::any_of(resolvedPairs.begin(),resolvedPairs.end(),[&](const auto& pair) {
+                    return pair.bodyAIndex==contact.bodyAIndex && pair.bodyBIndex==contact.bodyBIndex;
+                })) contact.restitution = 0.0;
+            }
+            resolveContacts(scene, dt, finalContacts, result.stats);
+            if (m_sleepStrategy) m_sleepStrategy->evaluateSupported(scene,dt,finalContacts);
         }
 
         // 位置约束在积分后执行，用于消除积分引入的微小穿透
@@ -252,7 +271,16 @@ namespace egret
             const Eigen::Matrix3d I_local = shape->getInertiaTensor(mass);
             const Eigen::Matrix3d R = body.entity->getTransformCR().getRotationMatrix();
             const Eigen::Matrix3d I_world = R * I_local * R.transpose();
-            body.inverseInertiaTensor = I_world.inverse();
+            // 细棒等形状存在零主惯量，使用对称伪逆，不能直接逆矩阵。
+            body.inverseInertiaTensor.setZero();
+            if (!I_world.allFinite()) continue;
+            Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> decomposition(0.5*(I_world+I_world.transpose()));
+            if (decomposition.info()!=Eigen::Success) continue;
+            const auto values=decomposition.eigenvalues();
+            const double cutoff=std::max(1e-15,values.cwiseAbs().maxCoeff()*1e-12);
+            Eigen::Vector3d inverse=Eigen::Vector3d::Zero();
+            for (int k=0;k<3;++k) if (values[k]>cutoff) inverse[k]=1.0/values[k];
+            body.inverseInertiaTensor=decomposition.eigenvectors()*inverse.asDiagonal()*decomposition.eigenvectors().transpose();
         }
     }
 
@@ -312,12 +340,42 @@ namespace egret
 
     void Solver::runBroadPhase(const SolverSceneSnapshotBase& scene,
                                std::vector<SolverBodyPair>& pairs,
-                               SolverStats& stats) const
+                               SolverStats& stats, double horizon) const
     {
         if (m_broadPhase != nullptr) {
             m_broadPhase->buildCandidatePairs(scene, m_config, pairs, stats);
             stats.broadPhasePairCount = pairs.size();
         }
+        if (horizon <= 0.0) return;
+        // 现有空间索引只查询当前包围盒，补充扫掠候选以免快速碰撞在步末才被发现。
+        const auto bodies=scene.getBodies();
+        std::vector<AABB> swept(bodies.size());
+        std::vector<bool> valid(bodies.size(),false);
+        for (std::size_t i=0;i<bodies.size();++i) {
+            const auto& body=bodies[i];
+            if (!body.entity || !body.enableCollision || !body.entity->getShape()) continue;
+            auto bounds=body.entity->getShape()->getAABB(body.entity->getTransformCR());
+            if (!bounds.min.allFinite() || !bounds.max.allFinite()) continue;
+            const Eigen::Vector3d displacement=horizon*body.entity->getVelocity();
+            const Eigen::Vector3d acceleration=body.inverseMass*body.entity->getJoinForce();
+            const double radius=0.5*(bounds.max-bounds.min).norm();
+            const double angularSweep=std::min(2.0,horizon*body.entity->getAngularVelocity().norm())*radius;
+            const Eigen::Vector3d padding=0.5*horizon*horizon*acceleration.cwiseAbs()
+                +Eigen::Vector3d::Constant(angularSweep+2e-4);
+            swept[i].min=bounds.min+displacement.cwiseMin(0.0)-padding;
+            swept[i].max=bounds.max+displacement.cwiseMax(0.0)+padding;
+            valid[i]=true;
+        }
+        std::set<std::pair<std::size_t,std::size_t>> unique;
+        for (const auto& pair:pairs) unique.emplace(std::min(pair.bodyAIndex,pair.bodyBIndex),std::max(pair.bodyAIndex,pair.bodyBIndex));
+        for (std::size_t i=0;i<bodies.size();++i) for (std::size_t j=i+1;j<bodies.size();++j) {
+            if (!valid[i] || !valid[j] || (bodies[i].entity->isFixed() && bodies[j].entity->isFixed())) continue;
+            if ((swept[i].max.array()>=swept[j].min.array()).all() &&
+                (swept[j].max.array()>=swept[i].min.array()).all()) unique.emplace(i,j);
+        }
+        pairs.clear();
+        for (const auto& [a,b]:unique) pairs.push_back({a,b});
+        stats.broadPhasePairCount=pairs.size();
     }
 
     // void Solver::runNarrowPhase(const SolverSceneSnapshotBase& scene,
@@ -432,15 +490,20 @@ namespace egret
                                                std::min(bodyA.entity->getRestitution(),
                                                         bodyB.entity->getRestitution()), 0.0, 1.0)
                                            : 0.0;
-            constraints.push_back(SolverContactConstraint{
-                .bodyAIndex = pair.bodyAIndex,
-                .bodyBIndex = pair.bodyBIndex,
-                .contactPosition = result.contactPoint,
-                .contactNormal = result.normal,
-                .penetration = penetrationDepth,
-                .restitution = restitution,
-                .toi = result.timeOfImpact
-            });
+            const auto manifold = result.manifold.empty()
+                ? std::vector<CcdContactData>{{result.contactPoint,result.normal,penetrationDepth}}
+                : result.manifold;
+            for (const auto& contact : manifold) {
+                constraints.push_back(SolverContactConstraint{
+                    .bodyAIndex = pair.bodyAIndex,
+                    .bodyBIndex = pair.bodyBIndex,
+                    .contactPosition = contact.position,
+                    .contactNormal = contact.normal,
+                    .penetration = std::clamp(contact.penetration,0.0,kMaxCcdPenetration),
+                    .restitution = restitution,
+                    .toi = result.timeOfImpact
+                });
+            }
         }
 
         stats.contactConstraintCount = constraints.size();
@@ -509,7 +572,7 @@ namespace egret
                 .toi = result.timeOfImpact,
                 .bodyAIndex = pair.bodyAIndex,
                 .bodyBIndex = pair.bodyBIndex,
-                .manifold = {std::move(contactData)},
+                .manifold = result.manifold.empty() ? std::vector<CcdContactData>{contactData} : result.manifold,
                 .restitution = restitution
             });
         }
@@ -521,7 +584,7 @@ namespace egret
     void Solver::stepWithToiQueue(SolverSceneSnapshotBase& scene,
                                   double dt,
                                   std::vector<CcdCollisionEvent>& events,
-                                  SolverStats& stats) const
+                                  SolverStats& stats, std::vector<SolverBodyPair>& resolvedPairs) const
     {
         constexpr double kTimeEpsilon = 1e-10;
         constexpr double kBatchTimeEpsilon = 1e-6;
@@ -567,18 +630,38 @@ namespace egret
             }
 
             if (!currentConstraints.empty()) {
+                // 同一时刻把已有支撑边一并加入，冲击不能只看到事件队列中的新边。
+                std::vector<SolverBodyPair> supportPairs;
+                runBroadPhase(scene,supportPairs,stats,1e-8);
+                std::vector<SolverContactConstraint> supportContacts;
+                runNarrowPhaseCcd(scene,supportPairs,1e-8,supportContacts,stats);
+                const auto eventContactCount=currentConstraints.size();
+                for (auto& contact:supportContacts) {
+                    if (contact.toi>kTimeEpsilon) continue;
+                    const bool alreadyPresent=std::any_of(currentConstraints.begin(),currentConstraints.begin()+eventContactCount,[&](const auto& row) {
+                        return row.bodyAIndex==contact.bodyAIndex && row.bodyBIndex==contact.bodyBIndex;
+                    });
+                    if (!alreadyPresent) {
+                        contact.restitution=0.0;
+                        currentConstraints.push_back(contact);
+                    }
+                }
                 if (m_contactResolver != nullptr) {
-                    m_contactResolver->resolveContacts(scene, currentConstraints, dt, m_config, stats);
+                    resolveContacts(scene,dt,currentConstraints,stats);
+                    for (const auto& c : currentConstraints) resolvedPairs.push_back({c.bodyAIndex,c.bodyBIndex});
                 }
             }
 
             ++substepCount;
-        }
-
-        // 休眠判定：TOI 子步全部处理完毕、最终积分之前执行，
-        // 与非 TOI 路径保持一致——此时速度已被最后一次接触冲量修正。
-        if (m_sleepStrategy != nullptr) {
-            m_sleepStrategy->evaluate(scene, dt);
+            if (remainingTime > kTimeEpsilon) {
+                updateBodyInertiaCache(scene);
+                std::vector<SolverBodyPair> refreshedPairs;
+                runBroadPhase(scene, refreshedPairs, stats, remainingTime);
+                runNarrowPhaseCcdEvents(scene, refreshedPairs, remainingTime, events, stats);
+                // 零时刻接触已经解算，作为持续支撑交给步末阶段；继续处理其它未来冲击。
+                std::erase_if(events, [](const auto& event) { return event.toi <= kTimeEpsilon; });
+                for (auto& event : events) event.toi += currentTime;
+            }
         }
 
         if (remainingTime > kTimeEpsilon) {
@@ -592,6 +675,32 @@ namespace egret
                                  SolverStats& stats) const
     {
         if (m_contactResolver != nullptr) {
+            auto bodies=scene.getBodies();
+            std::vector<bool> wake(bodies.size(),false);
+            for (const auto& c:constraints) {
+                if (c.bodyAIndex>=bodies.size() || c.bodyBIndex>=bodies.size()) continue;
+                auto* a=bodies[c.bodyAIndex].entity; auto* b=bodies[c.bodyBIndex].entity;
+                if (!a || !b || a->isFixed() || b->isFixed() || a->isAsleep()==b->isAsleep()) continue;
+                if ((b->getVelocity()-a->getVelocity()).dot(c.contactNormal)<-m_config.restitutionVelocityThreshold)
+                    wake[c.bodyAIndex]=wake[c.bodyBIndex]=true;
+            }
+            bool changed=true;
+            while (changed) {
+                changed=false;
+                for (const auto& c:constraints) {
+                    if (c.bodyAIndex>=bodies.size() || c.bodyBIndex>=bodies.size()) continue;
+                    auto* a=bodies[c.bodyAIndex].entity; auto* b=bodies[c.bodyBIndex].entity;
+                    if (!a || !b || a->isFixed() || b->isFixed()) continue;
+                    if (wake[c.bodyAIndex]!=wake[c.bodyBIndex]) {
+                        wake[c.bodyAIndex]=wake[c.bodyBIndex]=true; changed=true;
+                    }
+                }
+            }
+            for (std::size_t i=0;i<bodies.size();++i) if (wake[i] && bodies[i].entity->isAsleep()) {
+                bodies[i].entity->setAsleep(false);
+                bodies[i].inverseMass=1.0/bodies[i].entity->getMass();
+            }
+            updateBodyInertiaCache(scene);
             m_contactResolver->resolveContacts(scene, constraints, dt, m_config, stats);
         }
     }
@@ -631,6 +740,8 @@ namespace egret
                 continue;
             }
 
+            if (m_config.enableContactResolution && m_contactResolver &&
+                (constraint->getType()==ConstraintType::ConnectingRod || constraint->getType()==ConstraintType::ConnectingLine)) continue;
             constraint->applyPositionConstraint(dt);
         }
     }

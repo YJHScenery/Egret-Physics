@@ -21,12 +21,14 @@
 
 #include <cstdint>
 #include <string_view>
+#include <span>
 
 #include "sleep_config.h"
 
 namespace egret
 {
     class SolverSceneSnapshotBase;
+    struct SolverContactConstraint;
 
     /**
      * @brief       休眠判定阶段的策略接口。
@@ -53,6 +55,13 @@ namespace egret
          * @param dt 固定步长，单位为秒。
          */
         virtual void evaluate(SolverSceneSnapshotBase &scene, double dt) = 0;
+
+        /** @brief 按仿真时间评估接触支撑；缺省兼容原有策略。 */
+        virtual void evaluateSupported(SolverSceneSnapshotBase& scene, double dt,
+                                       std::span<const SolverContactConstraint> contacts)
+        {
+            evaluate(scene,dt);
+        }
 
         /**
          * @brief 渲染帧结束回调。

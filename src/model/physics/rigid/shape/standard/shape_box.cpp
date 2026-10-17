@@ -95,7 +95,7 @@ namespace egret
         const double i_xx{coefficient * mass * (quickSquare(m_size.y()) + quickSquare(m_size.z()))};
         const double i_yy{coefficient * mass * (quickSquare(m_size.x()) + quickSquare(m_size.z()))};
         const double i_zz{coefficient * mass * (quickSquare(m_size.x()) + quickSquare(m_size.y()))};
-        Eigen::Matrix3d inertiaTensor;
+        Eigen::Matrix3d inertiaTensor = Eigen::Matrix3d::Zero();
         inertiaTensor(0, 0) = i_xx;
         inertiaTensor(1, 1) = i_yy;
         inertiaTensor(2, 2) = i_zz;

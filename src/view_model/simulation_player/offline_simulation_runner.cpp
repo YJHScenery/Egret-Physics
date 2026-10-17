@@ -262,6 +262,11 @@ namespace egret
             solver[QStringLiteral("velocityIterations")] = static_cast<int>(solverConfig.velocityIterations);
             solver[QStringLiteral("positionIterations")] = static_cast<int>(solverConfig.positionIterations);
             solver[QStringLiteral("penetrationSlop")] = solverConfig.penetrationSlop;
+            solver[QStringLiteral("contactAlgorithm")] = QStringLiteral("contact_graph_v1");
+            solver[QStringLiteral("graphIterations")] = static_cast<int>(solverConfig.graphIterations);
+            solver[QStringLiteral("positionTolerance")] = solverConfig.positionTolerance;
+            solver[QStringLiteral("maxAngularCorrectionPerStep")] = solverConfig.maxAngularCorrectionPerStep;
+            solver[QStringLiteral("restitutionVelocityThreshold")] = solverConfig.restitutionVelocityThreshold;
             solver[QStringLiteral("positionCorrectionBeta")] = solverConfig.positionCorrectionBeta;
             root[QStringLiteral("solver")] = solver;
 

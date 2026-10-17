@@ -128,7 +128,7 @@ namespace egret
 
     Eigen::Vector3d PhysicalEntity::getJoinForce()
     {
-        Eigen::Vector3d joinForce{};
+        Eigen::Vector3d joinForce = Eigen::Vector3d::Zero();
         for (const Force &force : m_forces)
         {
             joinForce += force.force;

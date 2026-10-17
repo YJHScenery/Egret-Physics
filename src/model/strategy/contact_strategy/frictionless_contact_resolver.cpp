@@ -15,6 +15,7 @@
  */
 #include "frictionless_contact_resolver.h"
 #include "physical_entity.h"
+#include "frictional_contact_resolver.h"
 #include <algorithm>
 #include <cmath>
 //
@@ -30,162 +31,9 @@ namespace egret
                                                               const SolverConfig& config,
                                                               SolverStats& stats) const
     {
-        auto bodies = scene.getBodies();
-
-        for (std::uint32_t velIter = 0; velIter < config.velocityIterations; ++velIter) {
-            for (const SolverContactConstraint& constraint : constraints) {
-                if (constraint.bodyAIndex >= bodies.size() || constraint.bodyBIndex >= bodies.size()) {
-                    continue;
-                }
-
-                SolverBodyHandle& bodyA = bodies[constraint.bodyAIndex];
-                SolverBodyHandle& bodyB = bodies[constraint.bodyBIndex];
-
-                if (bodyA.entity == nullptr || bodyB.entity == nullptr) {
-                    continue;
-                }
-
-                Eigen::Vector3d rawNormal = constraint.contactNormal;
-                if (!rawNormal.allFinite() || rawNormal.squaredNorm() < 1e-12) {
-                    continue;
-                }
-                const Eigen::Vector3d normal = rawNormal.normalized();
-
-                const Eigen::Vector3d velocityA = bodyA.entity->getVelocity();
-                const Eigen::Vector3d angularA = bodyA.entity->getAngularVelocity();
-                const Eigen::Vector3d velocityB = bodyB.entity->getVelocity();
-                const Eigen::Vector3d angularB = bodyB.entity->getAngularVelocity();
-
-                if (!velocityA.allFinite() || !velocityB.allFinite() || !angularA.allFinite() || !angularB.
-                    allFinite()) {
-                    continue;
-                }
-
-                const Eigen::Vector3d positionA = bodyA.entity->getPosition();
-                const Eigen::Vector3d positionB = bodyB.entity->getPosition();
-                const Eigen::Vector3d contactPosition = constraint.contactPosition;
-
-                const Eigen::Vector3d rA = contactPosition - positionA;
-                const Eigen::Vector3d rB = contactPosition - positionB;
-
-                const Eigen::Vector3d contactVelA = velocityA + angularA.cross(rA);
-                const Eigen::Vector3d contactVelB = velocityB + angularB.cross(rB);
-
-                const double relativeNormalVelocity = (contactVelB - contactVelA).dot(normal);
-
-                const Eigen::Vector3d rA_cross_n = rA.cross(normal);
-                const Eigen::Vector3d rB_cross_n = rB.cross(normal);
-
-                double effectiveMass = bodyA.inverseMass + bodyB.inverseMass;
-                effectiveMass += rA_cross_n.dot(bodyA.inverseInertiaTensor * rA_cross_n);
-                effectiveMass += rB_cross_n.dot(bodyB.inverseInertiaTensor * rB_cross_n);
-
-                if (!std::isfinite(effectiveMass) || effectiveMass <= 0.0) {
-                    continue;
-                }
-
-                if (relativeNormalVelocity < 0.0) {
-                    const double impulseMagnitude = -(1.0 + constraint.restitution) * relativeNormalVelocity /
-                        effectiveMass;
-                    if (!std::isfinite(impulseMagnitude)) {
-                        continue;
-                    }
-                    const Eigen::Vector3d impulse = impulseMagnitude * normal;
-
-                    if (bodyA.inverseMass > 0.0) {
-                        Eigen::Vector3d nextSpeed = velocityA - impulse * bodyA.inverseMass;
-                        if (nextSpeed.allFinite()) {
-                            bodyA.entity->setSpeed(nextSpeed);
-                        }
-
-                        const Eigen::Vector3d angularImpulse = rA.cross(-impulse);
-                        Eigen::Vector3d nextAngular = angularA + bodyA.inverseInertiaTensor * angularImpulse;
-                        if (nextAngular.allFinite()) {
-                            bodyA.entity->setAngular(nextAngular);
-                        }
-                    }
-
-                    if (bodyB.inverseMass > 0.0) {
-                        Eigen::Vector3d nextSpeed = velocityB + impulse * bodyB.inverseMass;
-                        if (nextSpeed.allFinite()) {
-                            bodyB.entity->setSpeed(nextSpeed);
-                        }
-
-                        const Eigen::Vector3d angularImpulse = rB.cross(impulse);
-                        Eigen::Vector3d nextAngular = angularB + bodyB.inverseInertiaTensor * angularImpulse;
-                        if (nextAngular.allFinite()) {
-                            bodyB.entity->setAngular(nextAngular);
-                        }
-                    }
-                }
-            }
-        }
-
-        for (std::uint32_t posIter = 0; posIter < config.positionIterations; ++posIter) {
-            for (const SolverContactConstraint& constraint : constraints) {
-                if (constraint.bodyAIndex >= bodies.size() || constraint.bodyBIndex >= bodies.size()) {
-                    continue;
-                }
-
-                SolverBodyHandle& bodyA = bodies[constraint.bodyAIndex];
-                SolverBodyHandle& bodyB = bodies[constraint.bodyBIndex];
-
-                if (bodyA.entity == nullptr || bodyB.entity == nullptr) {
-                    continue;
-                }
-
-                Eigen::Vector3d rawNormal = constraint.contactNormal;
-                if (!rawNormal.allFinite() || rawNormal.squaredNorm() < 1e-12) {
-                    continue;
-                }
-                const Eigen::Vector3d normal = rawNormal.normalized();
-                const double invMassSum = bodyA.inverseMass + bodyB.inverseMass;
-
-                if (!std::isfinite(invMassSum) || invMassSum <= 0.0) {
-                    continue;
-                }
-
-                const double penetration = std::max(constraint.penetration - config.penetrationSlop, 0.0);
-                if (!std::isfinite(penetration)) {
-                    continue;
-                }
-                if (penetration > 0.0) {
-                    const double correctionMagnitude = penetration * config.positionCorrectionBeta / invMassSum;
-                    if (!std::isfinite(correctionMagnitude)) {
-                        continue;
-                    }
-                    const Eigen::Vector3d correction = correctionMagnitude * normal;
-
-                    if (bodyA.inverseMass > 0.0) {
-                        // 每个实体实际位移单独钳制，防止退化接触造成位置突变
-                        Eigen::Vector3d correctionA = correction * bodyA.inverseMass;
-                        const double correctionANorm = correctionA.norm();
-                        if (correctionANorm > config.maxPositionCorrectionPerStep && correctionANorm > 1e-12) {
-                            correctionA *= config.maxPositionCorrectionPerStep / correctionANorm;
-                        }
-                        Eigen::Vector3d correctedPosition = bodyA.entity->getPosition() - correctionA;
-
-                        if (correctedPosition.allFinite()) {
-                            bodyA.entity->setPosition(correctedPosition);
-                        }
-                    }
-
-                    if (bodyB.inverseMass > 0.0) {
-                        Eigen::Vector3d correctionB = correction * bodyB.inverseMass;
-                        const double correctionBNorm = correctionB.norm();
-                        if (correctionBNorm > config.maxPositionCorrectionPerStep && correctionBNorm > 1e-12) {
-                            correctionB *= config.maxPositionCorrectionPerStep / correctionBNorm;
-                        }
-                        Eigen::Vector3d correctedPosition = bodyB.entity->getPosition() + correctionB;
-
-                        if (correctedPosition.allFinite()) {
-                            bodyB.entity->setPosition(correctedPosition);
-                        }
-                    }
-                }
-
-                ++stats.resolvedContactCount;
-            }
-        }
+        std::vector<SolverContactConstraint> frictionless(constraints.begin(), constraints.end());
+        for (auto& c : frictionless) c.frictionCoefficient = 0.0;
+        FrictionalContactResolverStrategy resolver;
+        resolver.resolveContacts(scene, frictionless, dt, config, stats);
     }
 }

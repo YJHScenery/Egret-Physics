@@ -15,6 +15,7 @@
  */
 
 #include "ccd_solver_adapter.h"
+#include "contact_manifold_builder.h"
 
 // ── 重型模板头文件 —— 仅在 .cpp 中引入 ──
 
@@ -207,6 +208,19 @@ namespace egret
             return std::nullopt;
         }
 
+        // 面接触优先使用真实特征；允许静止且恒速 CCD 无法推进的支撑接触。
+        const auto stable = buildContactManifold(*entityA, *entityB, 0.0,
+            Eigen::Vector3d::Zero(), 0.0, Eigen::Vector3d::Zero());
+        if (!stable.empty() && stable.front().normal.norm() > 0.5) {
+            AdapterCcdResult result{};
+            result.isCollided = true;
+            result.timeOfImpact = 0.0;
+            result.normal = stable.front().normal;
+            result.penetrationDepth = stable.front().penetration;
+            result.contactPoint = stable.front().position;
+            result.manifold = stable;
+            return result;
+        }
         // 转换为维度泛化运动状态
         GeneralizationRigidMotion<3> motionA = physicalEntityToMotion(*entityA);
         GeneralizationRigidMotion<3> motionB = physicalEntityToMotion(*entityB);
@@ -236,6 +250,13 @@ namespace egret
         result.normal = ccdResult.normal;
         result.penetrationDepth = ccdResult.penetrationDepth;
         result.contactPoint = ccdResult.contactPoint;
+        result.manifold = buildContactManifold(*entityA, *entityB, result.timeOfImpact,
+            result.normal, result.penetrationDepth, result.contactPoint);
+        if (!result.manifold.empty()) {
+            result.normal = result.manifold.front().normal;
+            result.contactPoint = result.manifold.front().position;
+            result.penetrationDepth = result.manifold.front().penetration;
+        }
 
         return result;
     }

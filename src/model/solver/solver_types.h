@@ -107,7 +107,7 @@ namespace egret
         /** 世界坐标系下的接触点位置。 */
         Eigen::Vector3d contactPosition{Eigen::Vector3d::Zero()};
 
-        /** 碰撞法线（单位向量，从物体 B 指向物体 A 的分离方向）。 */
+        /** 碰撞法线（单位向量，从物体 A 指向物体 B）。 */
         Eigen::Vector3d contactNormal{Eigen::Vector3d::Zero()};
 
         /** 穿透深度（非负值）。 */
@@ -132,6 +132,9 @@ namespace egret
 
         /** Coulomb 摩擦系数（通常取两个物体摩擦系数的组合值）。 */
         double frictionCoefficient{0.5};
+
+        /** 在求解开始前固定的恢复目标，迭代时不重新计算。 */
+        double targetNormalVelocity{0.0};
     };
 
     /**
@@ -144,7 +147,7 @@ namespace egret
         /** 世界坐标系下的接触点位置。 */
         Eigen::Vector3d position{Eigen::Vector3d::Zero()};
 
-        /** 碰撞法线（单位向量，从物体 B 指向物体 A 的分离方向）。 */
+        /** 碰撞法线（单位向量，从物体 A 指向物体 B）。 */
         Eigen::Vector3d normal{Eigen::Vector3d::Zero()};
 
         /** 穿透深度（非负值）。 */
@@ -226,6 +229,15 @@ namespace egret
         /** 单步积分允许的最大平移幅度上限。 */
         double maxTranslationPerStep{10.0};
 
+        /** 整岛对偶投影梯度最大迭代数，冗余行和闭环均保留。 */
+        std::uint32_t graphIterations{256};
+        /** 位置约束求解的绝对残差容差。 */
+        double positionTolerance{1e-7};
+        /** 单步整岛同步修正的最大转角（弧度）。 */
+        double maxAngularCorrectionPerStep{0.1};
+        /** 低于此接近速度时关闭恢复，避免重力驱动的微小弹跳。 */
+        double restitutionVelocityThreshold{0.5};
+
         /** 若为真，则在场作用前清空实体外力累加器。 */
         bool clearForcesBeforeFieldApply{true};
 
@@ -291,6 +303,17 @@ namespace egret
 
         /** 积分后动态实体的平动动能总和。 */
         double totalKineticEnergy{0.0};
+
+        /** 本步求解的接触岛数量（含子步累计）。 */
+        std::size_t contactIslandCount{0};
+        /** 位置图内迭代总数。 */
+        std::size_t positionGraphIterations{0};
+        /** 预算内未达到位置图残差容差的次数。 */
+        std::size_t positionUnconvergedCount{0};
+        /** 投影梯度映射的最大终止残差。 */
+        double positionGraphResidual{0.0};
+        /** 同步位置补偿后的最大剩余穿透。 */
+        double maxResidualPenetration{0.0};
     };
 
     /**

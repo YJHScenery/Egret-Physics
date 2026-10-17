@@ -22,6 +22,9 @@
 #include <tuple>
 #include <unordered_set>
 #include <vector>
+#include <numeric>
+#include <map>
+#include <limits>
 
 #include "async_logger.h"
 #include "physical_entity.h"
@@ -92,8 +95,67 @@ namespace egret
         });
     }
 
+    void KineticSleepStrategy::evaluateSupported(SolverSceneSnapshotBase& scene, double dt,
+        std::span<const SolverContactConstraint> contacts)
+    {
+        m_contactTiming=true;
+        if (!m_config.enabled || dt<=0.0) return;
+        auto bodies=scene.getBodies();
+        std::vector<std::size_t> parent(bodies.size());
+        std::iota(parent.begin(),parent.end(),0);
+        /** @brief 查找动态实体所在支撑岛。 */
+        auto root=[&](std::size_t i) { while (parent[i]!=i) { parent[i]=parent[parent[i]]; i=parent[i]; } return i; };
+        for (const auto& c:contacts) {
+            if (c.bodyAIndex>=bodies.size() || c.bodyBIndex>=bodies.size()) continue;
+            auto* a=bodies[c.bodyAIndex].entity; auto* b=bodies[c.bodyBIndex].entity;
+            if (a && b && !a->isFixed() && !b->isFixed()) parent[root(c.bodyBIndex)]=root(c.bodyAIndex);
+        }
+        std::map<std::size_t,std::vector<std::size_t>> islands;
+        for (std::size_t i=0;i<bodies.size();++i) if (bodies[i].entity && !bodies[i].entity->isFixed()) islands[root(i)].push_back(i);
+        std::unordered_set<std::uint64_t> live;
+        for (const auto& [island,nodes]:islands) {
+            bool supported=false, low=true;
+            std::uint64_t signature=1469598103934665603ull;
+            for (const auto& c:contacts) {
+                if (c.bodyAIndex>=bodies.size() || c.bodyBIndex>=bodies.size()) continue;
+                auto* a=bodies[c.bodyAIndex].entity; auto* b=bodies[c.bodyBIndex].entity;
+                if (!a || !b) continue;
+                if ((!a->isFixed() && root(c.bodyAIndex)==island) || (!b->isFixed() && root(c.bodyBIndex)==island)) {
+                    supported=supported || a->isFixed() || b->isFixed();
+                    signature^=a->getId()+31*b->getId(); signature*=1099511628211ull;
+                }
+            }
+            for (auto index:nodes) {
+                auto* entity=bodies[index].entity; const auto id=entity->getId(); live.insert(id);
+                const bool wasAsleep=entity->isAsleep();
+                if (wasAsleep) checkWakeUp(entity);
+                if (wasAsleep && !entity->isAsleep()) low=false;
+                if (!isMetricBelowThreshold(*entity)) low=false;
+                // 自由空间允许零外力休眠；重力下最高点没有支撑，不能冻结。
+                if (!supported && entity->getJoinForce().norm()>m_config.wakeUpAbsoluteForceThreshold) low=false;
+                if (m_supportSignatures.contains(id) && m_supportSignatures[id]!=signature) low=false;
+                m_supportSignatures[id]=signature;
+            }
+            double duration=std::numeric_limits<double>::infinity();
+            for (auto index:nodes) {
+                auto* entity=bodies[index].entity; const auto id=entity->getId();
+                if (!low) {
+                    m_stableSeconds[id]=0.0;
+                    if (entity->isAsleep()) { entity->setAsleep(false); m_frozenSnapshots.erase(id); }
+                } else m_stableSeconds[id]+=dt;
+                duration=std::min(duration,m_stableSeconds[id]);
+            }
+            if (low && duration>=m_config.frozenFrameCount/60.0)
+                for (auto index:nodes) if (!bodies[index].entity->isAsleep()) freezeEntity(bodies[index].entity);
+        }
+        std::erase_if(m_stableSeconds,[&](const auto& item) { return !live.contains(item.first); });
+        std::erase_if(m_supportSignatures,[&](const auto& item) { return !live.contains(item.first); });
+        std::erase_if(m_frozenSnapshots,[&](const auto& item) { return !live.contains(item.first); });
+    }
+
     void KineticSleepStrategy::onRenderFrameEnd()
     {
+        if (m_contactTiming) return;
         if (!m_config.enabled) {
             return;
         }
@@ -153,6 +215,9 @@ namespace egret
     {
         m_states.clear();
         m_frozenSnapshots.clear();
+        m_stableSeconds.clear();
+        m_supportSignatures.clear();
+        m_contactTiming=false;
     }
 
     std::string_view KineticSleepStrategy::name() const
@@ -220,7 +285,7 @@ namespace egret
             return;
         }
 
-        const FrozenSnapshot &snapshot = it->second;
+        const FrozenSnapshot snapshot = it->second;
         const Eigen::Vector3d currentForce = entity->getJoinForce();
         const double baselineNorm = snapshot.force.norm();
         const double diffNorm = (currentForce - snapshot.force).norm();

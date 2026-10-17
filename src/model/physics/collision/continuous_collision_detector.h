@@ -60,7 +60,7 @@ namespace egret
         /// @brief 碰撞时间（Time of Impact），未碰撞时为 +∞
         double timeOfImpact{std::numeric_limits<double>::infinity()};
 
-        /// @brief 碰撞法线（单位向量，方向为 B 指向 A，即分离方向）
+        /// @brief 碰撞法线（单位向量，方向为 A 指向 B）
         vector_type normal{vector_type::Zero()};
 
         /// @brief 穿透深度 δ = ‖p*‖
@@ -708,7 +708,7 @@ namespace egret
 
         if (d > centerDist * 1e-4 && d > kEpsilonGJK) {
             // d 足够大：GJK 最近点法线可靠
-            contactResult.normal = pStar / d;
+            contactResult.normal = -pStar / d;
         }
         else if (centerDist > kEpsilonGJK) {
             // 回退到物体中心连线方向

@@ -239,6 +239,8 @@ set(CPP_FILES
         src/model/physics/constraints/spring.h
 
         src/model/solver/solver.h
+        src/model/solver/contact_graph_projector.cpp
+        src/model/solver/contact_manifold_builder.cpp
         src/model/solver/solver.cpp
         src/model/solver/solver_scene_snapshot.h
         src/model/solver/solver_types.h
@@ -534,6 +536,38 @@ add_subdirectory(subprojects/video_encoder)
 
 
 option(BUILD_TESTS "Build unit tests" ON)
+
+# 接触回归与旧 CCD 测试解耦，可独立构建和运行。
+if (BUILD_TESTS)
+add_executable(Egret_Contact_Tests
+        tests/test_contact_graph.cpp
+        src/model/solver/solver.cpp
+        src/model/solver/ccd_solver_adapter.cpp
+        src/model/strategy/broad_phase_strategy/brute_force_broad_strategy.cpp
+        src/model/strategy/integrator_strategy/velocity_verlet_integrator.cpp
+        src/model/physics/field/field_base.cpp
+        src/model/physics/field/gravity_field.cpp
+        src/model/physics/constraints/air_resistance.cpp
+        src/model/physics/physics_abstract.cpp
+        src/model/physics/constraints/constraints_base.cpp
+        src/model/physics/constraints/connecting_rod.cpp
+        src/model/strategy/sleep_strategy/kinetic_sleep_strategy.cpp
+        src/utils/io/async_logger.cpp
+        src/model/solver/contact_graph_projector.cpp
+        src/model/solver/contact_manifold_builder.cpp
+        src/model/strategy/contact_strategy/frictional_contact_resolver.cpp
+        src/model/physics/rigid/physical_entity.cpp
+        src/model/physics/rigid/rigid_body.cpp
+        src/model/physics/rigid/particle.cpp
+        src/model/physics/rigid/shape/standard/shape_base.cpp
+        src/model/physics/rigid/shape/standard/shape_sphere.cpp
+        src/model/physics/rigid/shape/standard/shape_box.cpp
+        src/model/physics/rigid/shape/standard/shape_cylinder.cpp
+        src/utils/transform.cpp)
+target_link_libraries(Egret_Contact_Tests PRIVATE ${QT_MODULES_LIST_WITH_PREFIX})
+enable_testing()
+add_test(NAME EgretContactTests COMMAND Egret_Contact_Tests)
+endif ()
 
 if (BUILD_TESTS)
     set(TEST_SOURCES

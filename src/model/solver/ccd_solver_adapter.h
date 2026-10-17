@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "physics_utils.h"
+#include "solver_types.h"
 #include "expanding_polytope_algorithm.h"
 
 namespace egret
@@ -50,7 +51,7 @@ namespace egret
         /// @brief 碰撞时间（TOI），未碰撞时为 +∞
         double timeOfImpact{std::numeric_limits<double>::infinity()};
 
-        /// @brief 碰撞法线（单位向量，B 指向 A 的分离方向）
+        /// @brief 碰撞法线（单位向量，A 指向 B 的方向）
         Eigen::Vector3d normal{Eigen::Vector3d::Zero()};
 
         /// @brief 穿透深度 δ = ‖p*‖
@@ -58,6 +59,9 @@ namespace egret
 
         /// @brief 接触点 c = (a* + b*) / 2
         Eigen::Vector3d contactPoint{Eigen::Vector3d::Zero()};
+
+        /** 双方真实面特征生成的多点流形，法线统一为 A→B。 */
+        std::vector<CcdContactData> manifold;
     };
 
     // ============================================================================

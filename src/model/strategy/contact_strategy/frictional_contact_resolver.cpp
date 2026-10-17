@@ -2,7 +2,7 @@
  * @file        frictional_contact_resolver.cpp
  * @brief       含摩擦接触求解器实现文件
  * @details     实现 FrictionalContactResolverStrategy 的各项成员函数：
- *              热启动、速度求解（法向冲量 + Coulomb 摩擦）、位置求解（穿透修正 + 切向漂移抑制）。
+ *              整体法向速度求解、Coulomb 摩擦与整岛同步位姿投影。
  *
  * @author      作者姓名 <作者邮箱>
  * @date        2026-07-07
@@ -16,8 +16,10 @@
  */
 #include "frictional_contact_resolver.h"
 #include "physical_entity.h"
+#include "contact_graph_projector.h"
 #include <algorithm>
 #include <cmath>
+#include <Eigen/Sparse>
 
 namespace egret
 {
@@ -52,6 +54,70 @@ namespace egret
         }
 
         /**
+         * @brief 同时求解所有法向速度约束，避免面流形各点的恢复产生交替力矩。
+         * @details 使用稀疏雅可比的矩阵自由对偶迭代，保留共享刚体的全部耦合。
+         */
+        void solveNormalGraph(std::span<SolverBodyHandle> bodies,
+                              std::span<SolverContactConstraint> constraints,
+                              const SolverConfig& config)
+        {
+            const Eigen::Index count = static_cast<Eigen::Index>(constraints.size());
+            const Eigen::Index dofs = static_cast<Eigen::Index>(6*bodies.size());
+            if (count==0) return;
+            std::vector<Eigen::Triplet<double>> jEntries, wEntries;
+            Eigen::VectorXd velocity=Eigen::VectorXd::Zero(dofs), target=Eigen::VectorXd::Zero(count);
+            for (std::size_t i=0;i<bodies.size();++i) {
+                const auto& body=bodies[i]; if (!body.entity) continue;
+                velocity.segment<3>(6*i)=body.entity->getVelocity();
+                velocity.segment<3>(6*i+3)=body.entity->getAngularVelocity();
+                for (int k=0;k<3;++k) {
+                    wEntries.emplace_back(6*i+k,6*i+k,body.inverseMass);
+                    if (body.entity->hasRotation() && body.inverseMass>0)
+                        for (int j=0;j<3;++j) wEntries.emplace_back(6*i+3+k,6*i+3+j,body.inverseInertiaTensor(k,j));
+                }
+            }
+            for (Eigen::Index i=0;i<count;++i) {
+                const auto& c=constraints[i];
+                if (c.bodyAIndex>=bodies.size() || c.bodyBIndex>=bodies.size() ||
+                    !c.contactNormal.allFinite() || c.contactNormal.norm()<1e-12) continue;
+                const Eigen::Vector3d n=c.contactNormal.normalized();
+                target[i]=c.targetNormalVelocity;
+                for (auto index : {c.bodyAIndex,c.bodyBIndex}) {
+                    if (!bodies[index].entity) continue;
+                    const double sign=index==c.bodyAIndex ? -1.0:1.0;
+                    const Eigen::Vector3d arm=c.contactPosition-bodies[index].entity->getPosition();
+                    const Eigen::Vector3d angular=sign*arm.cross(n);
+                    for (int k=0;k<3;++k) {
+                        jEntries.emplace_back(i,6*index+k,sign*n[k]);
+                        jEntries.emplace_back(i,6*index+3+k,angular[k]);
+                    }
+                }
+            }
+            Eigen::SparseMatrix<double> J(count,dofs), W(dofs,dofs);
+            J.setFromTriplets(jEntries.begin(),jEntries.end()); W.setFromTriplets(wEntries.begin(),wEntries.end());
+            const Eigen::SparseMatrix<double> absJ=J.cwiseAbs(), absW=W.cwiseAbs();
+            const double bound=(absJ*(absW*(absJ.transpose()*Eigen::VectorXd::Ones(count)))).maxCoeff();
+            if (!std::isfinite(bound) || bound<=1e-15) return;
+            const Eigen::VectorXd rhs=target-J*velocity;
+            Eigen::VectorXd lambda=Eigen::VectorXd::Zero(count);
+            for (std::uint32_t iteration=0;iteration<config.graphIterations;++iteration) {
+                const Eigen::VectorXd residual=rhs-J*(W*(J.transpose()*lambda));
+                const Eigen::VectorXd next=(lambda+residual/bound).cwiseMax(0.0);
+                const double error=bound*(next-lambda).lpNorm<Eigen::Infinity>();
+                lambda=next;
+                if (error<1e-9) break;
+            }
+            const Eigen::VectorXd delta=W*(J.transpose()*lambda);
+            if (!delta.allFinite()) return;
+            for (std::size_t i=0;i<bodies.size();++i) {
+                if (!bodies[i].entity || bodies[i].inverseMass<=0) continue;
+                bodies[i].entity->setSpeed(velocity.segment<3>(6*i)+delta.segment<3>(6*i));
+                bodies[i].entity->setAngular(velocity.segment<3>(6*i+3)+delta.segment<3>(6*i+3));
+            }
+            for (Eigen::Index i=0;i<count;++i) constraints[i].accumulatedNormalImpulse+=lambda[i];
+        }
+
+        /**
          * @brief 对单个约束执行一次速度求解（法向恢复 + Coulomb 摩擦）。
          * @param bodyA 实体 A 的句柄。
          * @param bodyB 实体 B 的句柄。
@@ -59,10 +125,10 @@ namespace egret
          * @return 如果实际施加了冲量（法向或切向）则返回 true。
          *
          * @details 对单个约束执行一次完整的法向 + 切向冲量求解：
-         *          - 法向：增量求解，累积裁剪至 ≥ 0，仅恢复系数项
+         *          - 法向：固定恢复目标下的有符号增量，累积裁剪至 ≥ 0
          *          - 切向：增量求解，累积裁剪至 Coulomb 摩擦锥内
          *          - 仅施加增量冲量（避免重复计数）
-         *          - 穿透修正由独立的 positionSolve() 阶段处理
+         *          - 穿透修正由独立的整岛位置阶段处理
          */
         bool solveSingleConstraint(SolverBodyHandle &bodyA,
                                    SolverBodyHandle &bodyB,
@@ -131,20 +197,10 @@ namespace egret
 
             // ---- 4. 法向冲量求解（增量 + 累积 + 裁剪 ≥ 0） ----
             //
-            // 使用标准 Sequential Impulses 公式：
-            //   λ_inc = -(1+e)·v_rel_n / M_eff    （仅在 v_rel_n < 0 时）
-            //   λ_new = max(0, λ_old + λ_inc)
-            //
-            // 注意：此处只处理速度层面的恢复系数。
-            // 穿透修正由独立的 positionSolve() 阶段通过 Baumgarte 位置修正处理，
-            // 不在速度求解中引入速度偏置，避免多轮迭代中重复累加导致回弹发散。
-
+            // 恢复目标在迭代前固定；允许负增量撤回过量冲量。
+            // 穿透由整岛位置投影处理，不以速度偏置重复注入能量。
             const double relativeNormalVelocity = (contactVelB - contactVelA).dot(normal);
-            double normalDelta = 0.0;
-
-            if (relativeNormalVelocity < 0.0) {
-                normalDelta = -(1.0 + constraint.restitution) * relativeNormalVelocity / effectiveMassNormal;
-            }
+            double normalDelta = (constraint.targetNormalVelocity - relativeNormalVelocity) / effectiveMassNormal;
 
             const double oldNormalAccum = constraint.accumulatedNormalImpulse;
             double newNormalAccum = oldNormalAccum + normalDelta;
@@ -160,38 +216,31 @@ namespace egret
 
             const double frictionCoeff = constraint.frictionCoefficient;
 
-            // 切向 1
-            double tangentDelta1 = 0.0;
-            if (std::isfinite(effectiveMassTangent1) && effectiveMassTangent1 > 0.0) {
-                tangentDelta1 = -relativeTangentVelocity1 / effectiveMassTangent1;
-            }
+            // 法向增量先计入接触点相对速度，切向使用完整二维有效质量。
+            const Eigen::Vector3d normalImpulse = normalDelta * normal;
+            const Eigen::Vector3d normalVelocityChange =
+                normalImpulse * (bodyA.inverseMass + bodyB.inverseMass)
+                + (bodyA.inverseInertiaTensor * rA.cross(normalImpulse)).cross(rA)
+                + (bodyB.inverseInertiaTensor * rB.cross(normalImpulse)).cross(rB);
+            Eigen::Vector2d tangentVelocity(
+                relativeTangentVelocity1 + normalVelocityChange.dot(tangent1),
+                relativeTangentVelocity2 + normalVelocityChange.dot(tangent2));
+            Eigen::Matrix2d tangentMass;
+            const double offDiagonal = rA_cross_t1.dot(bodyA.inverseInertiaTensor*rA_cross_t2)
+                                     + rB_cross_t1.dot(bodyB.inverseInertiaTensor*rB_cross_t2);
+            tangentMass << effectiveMassTangent1, offDiagonal, offDiagonal, effectiveMassTangent2;
             const double oldTangentAccum1 = constraint.accumulatedTangentImpulse1;
-            double newTangentAccum1 = oldTangentAccum1 + tangentDelta1;
-            const double maxFriction1 = frictionCoeff * newNormalAccum;
-            newTangentAccum1 = std::clamp(newTangentAccum1, -maxFriction1, maxFriction1);
-            tangentDelta1 = newTangentAccum1 - oldTangentAccum1;
-
-            // 切向 2
-            double tangentDelta2 = 0.0;
-            if (std::isfinite(effectiveMassTangent2) && effectiveMassTangent2 > 0.0) {
-                tangentDelta2 = -relativeTangentVelocity2 / effectiveMassTangent2;
-            }
             const double oldTangentAccum2 = constraint.accumulatedTangentImpulse2;
-            double newTangentAccum2 = oldTangentAccum2 + tangentDelta2;
-            const double maxFriction2 = frictionCoeff * newNormalAccum;
-            newTangentAccum2 = std::clamp(newTangentAccum2, -maxFriction2, maxFriction2);
-            tangentDelta2 = newTangentAccum2 - oldTangentAccum2;
-
-            // 若法向冲量因裁剪减小，需重新裁剪切向冲量
-            if (newNormalAccum < oldNormalAccum + 1e-12) {
-                const double clampedMax1 = frictionCoeff * newNormalAccum;
-                newTangentAccum1 = std::clamp(newTangentAccum1, -clampedMax1, clampedMax1);
-                tangentDelta1 = newTangentAccum1 - oldTangentAccum1;
-
-                const double clampedMax2 = frictionCoeff * newNormalAccum;
-                newTangentAccum2 = std::clamp(newTangentAccum2, -clampedMax2, clampedMax2);
-                tangentDelta2 = newTangentAccum2 - oldTangentAccum2;
-            }
+            Eigen::Vector2d tangentAccum(oldTangentAccum1, oldTangentAccum2);
+            if (tangentMass.determinant() > 1e-20)
+                tangentAccum -= tangentMass.ldlt().solve(tangentVelocity);
+            const double frictionLimit = std::max(0.0, frictionCoeff) * newNormalAccum;
+            if (tangentAccum.norm() > frictionLimit && tangentAccum.norm() > 0.0)
+                tangentAccum *= frictionLimit / tangentAccum.norm();
+            const double newTangentAccum1 = tangentAccum.x();
+            const double newTangentAccum2 = tangentAccum.y();
+            const double tangentDelta1 = newTangentAccum1 - oldTangentAccum1;
+            const double tangentDelta2 = newTangentAccum2 - oldTangentAccum2;
 
             // ---- 6. 写入累积冲量 ----
 
@@ -254,23 +303,29 @@ namespace egret
     {
         auto bodies = scene.getBodies();
 
-        // 使用 const_cast 获取可变引用，以便在迭代间更新累积冲量字段。
-        // 这是物理引擎中的常见模式（参见 Box2D b2ContactSolver），
-        // 因为接口层面约束是"只读输入"，但求解器需要在迭代间维护中间状态。
-        auto mutableConstraints = std::span<SolverContactConstraint>(
-            const_cast<SolverContactConstraint *>(constraints.data()),
-            constraints.size());
+        // 中间状态放在本次求解拥有的缓冲区，不修改只读输入。
+        std::vector<SolverContactConstraint> working(constraints.begin(), constraints.end());
+        auto mutableConstraints = std::span<SolverContactConstraint>(working);
+        for (auto& c : working) {
+            if (c.bodyAIndex >= bodies.size() || c.bodyBIndex >= bodies.size()) continue;
+            const auto& a = bodies[c.bodyAIndex]; const auto& b = bodies[c.bodyBIndex];
+            if (!a.entity || !b.entity || !c.contactNormal.allFinite() || c.contactNormal.norm() < 1e-12) continue;
+            const Eigen::Vector3d va = a.entity->getVelocity() + a.entity->getAngularVelocity().cross(c.contactPosition-a.entity->getPosition());
+            const Eigen::Vector3d vb = b.entity->getVelocity() + b.entity->getAngularVelocity().cross(c.contactPosition-b.entity->getPosition());
+            const double vn = (vb-va).dot(c.contactNormal.normalized());
+            c.targetNormalVelocity = vn < -config.restitutionVelocityThreshold ? -c.restitution * vn : 0.0;
+        }
 
         // ---- 阶段 1：热启动 ----
-        // 在速度求解之前，用上一帧保存的累积冲量预施加。
-        // 这显著加快收敛速度，尤其是在物体处于静止堆叠状态时。
-        warmStart(bodies, constraints);
+        // 若调用方提供初始冲量，则先应用；本实现不维护跨帧接触缓存。
+        warmStart(bodies, mutableConstraints);
 
-        // ---- 阶段 2：速度求解 ----
+        // ---- 阶段 2：先整体求解法向冲击，再迭代耦合法向与摩擦 ----
+        solveNormalGraph(bodies, mutableConstraints, config);
         velocitySolve(bodies, mutableConstraints, config, stats);
 
         // ---- 阶段 3：位置求解 ----
-        positionSolve(bodies, mutableConstraints, config, stats);
+        ContactGraphProjector::project(bodies, mutableConstraints, config, stats, scene.getConstraints());
     }
 
     //  热启动
@@ -358,14 +413,11 @@ namespace egret
 
     void FrictionalContactResolverStrategy::velocitySolve(
         std::span<SolverBodyHandle> bodies,
-        const std::span<const SolverContactConstraint> constraints,
+        const std::span<SolverContactConstraint> constraints,
         const SolverConfig &config,
         SolverStats &stats) const
     {
-        // const_cast：需要在迭代间更新约束对象的累积冲量字段
-        auto mutableConstraints = std::span<SolverContactConstraint>(
-            const_cast<SolverContactConstraint *>(constraints.data()),
-            constraints.size());
+        auto mutableConstraints = constraints;
 
         for (std::uint32_t velIter = 0; velIter < config.velocityIterations; ++velIter) {
             for (SolverContactConstraint &constraint : mutableConstraints) {
@@ -397,78 +449,7 @@ namespace egret
         const SolverConfig &config,
         SolverStats &stats) const
     {
-        for (std::uint32_t posIter = 0; posIter < config.positionIterations; ++posIter) {
-            for (const SolverContactConstraint &constraint : constraints) {
-                if (constraint.bodyAIndex >= bodies.size() || constraint.bodyBIndex >= bodies.size()) {
-                    continue;
-                }
-
-                SolverBodyHandle &bodyA = bodies[constraint.bodyAIndex];
-                SolverBodyHandle &bodyB = bodies[constraint.bodyBIndex];
-
-                if (bodyA.entity == nullptr || bodyB.entity == nullptr) {
-                    continue;
-                }
-
-                // ---- 法向穿透修正（Baumgarte 稳定化） ----
-                // 注意：位置求解仅处理穿透修正。
-                // 摩擦效果在速度求解阶段已通过 Coulomb 摩擦锥完整处理，
-                // 位置层面的切向漂移抑制需依赖接触点持久化数据（后续版本补充）。
-
-                Eigen::Vector3d rawNormal = constraint.contactNormal;
-                if (!rawNormal.allFinite() || rawNormal.squaredNorm() < 1e-12) {
-                    continue;
-                }
-                const Eigen::Vector3d normal = rawNormal.normalized();
-
-                const double invMassSum = bodyA.inverseMass + bodyB.inverseMass;
-                if (!std::isfinite(invMassSum) || invMassSum <= 0.0) {
-                    continue;
-                }
-
-                const double penetration = std::max(constraint.penetration - config.penetrationSlop, 0.0);
-                if (!std::isfinite(penetration)) {
-                    continue;
-                }
-
-                if (penetration > 0.0) {
-                    const double correctionMagnitude = penetration * config.positionCorrectionBeta / invMassSum;
-                    if (!std::isfinite(correctionMagnitude)) {
-                        continue;
-                    }
-                    const Eigen::Vector3d correction = correctionMagnitude * normal;
-
-                    if (bodyA.inverseMass > 0.0) {
-                        // 每个实体实际位移单独钳制，防止退化接触造成位置突变
-                        Eigen::Vector3d correctionA = correction * bodyA.inverseMass;
-                        const double correctionANorm = correctionA.norm();
-                        if (correctionANorm > config.maxPositionCorrectionPerStep && correctionANorm > 1e-12) {
-                            correctionA *= config.maxPositionCorrectionPerStep / correctionANorm;
-                        }
-                        const Eigen::Vector3d correctedPos = bodyA.entity->getPosition()
-                            - correctionA;
-                        if (correctedPos.allFinite()) {
-                            bodyA.entity->setPosition(correctedPos);
-                        }
-                    }
-
-                    if (bodyB.inverseMass > 0.0) {
-                        Eigen::Vector3d correctionB = correction * bodyB.inverseMass;
-                        const double correctionBNorm = correctionB.norm();
-                        if (correctionBNorm > config.maxPositionCorrectionPerStep && correctionBNorm > 1e-12) {
-                            correctionB *= config.maxPositionCorrectionPerStep / correctionBNorm;
-                        }
-                        const Eigen::Vector3d correctedPos = bodyB.entity->getPosition()
-                            + correctionB;
-                        if (correctedPos.allFinite()) {
-                            bodyB.entity->setPosition(correctedPos);
-                        }
-                    }
-                }
-
-                ++stats.resolvedContactCount;
-            }
-        }
+        ContactGraphProjector::project(bodies, constraints, config, stats);
     }
 
 } // namespace egret
