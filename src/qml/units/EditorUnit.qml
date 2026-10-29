@@ -20,6 +20,7 @@ import QtQuick 2.15
 import QtQuick.Controls 6.9
 import QtQuick.Controls.Basic 6.9 as Basic
 import QtQuick.Layouts 1.15
+import QtQuick.Effects
 import QtQuick3D 6.9
 import QtQuick.Dialogs 6.9
 import EditorManager 1.0
@@ -39,6 +40,9 @@ ColumnLayout {
     id: editorRoot
 
     spacing: 6
+
+    /** 当前右侧工具面板。 */
+    property string rightTool: "properties"
 
     /** 请求主窗口关闭指定场景标签。 */
     signal closeDocumentRequested(int index)
@@ -479,11 +483,17 @@ ColumnLayout {
     }
 
     // 场景标签：每个标签保留独立场景和撤销历史。
-    ScrollView {
+    Rectangle {
         Layout.fillWidth: true
-        Layout.preferredHeight: 38
+        Layout.preferredHeight: 46
+        color: theme.panelStrong
+        radius: 7
+        border.color: theme.border
+        ScrollView {
+        anchors.fill: parent
+        anchors.margins: 7
         contentWidth: documentTabs.implicitWidth
-        contentHeight: 34
+        contentHeight: 32
         clip: true
         ScrollBar.vertical.policy: ScrollBar.AlwaysOff
         Row {
@@ -525,16 +535,102 @@ ColumnLayout {
         }
     }
 
+    }
+
     RowLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
         spacing: 6
 
+        ColumnLayout {
+            Layout.preferredWidth: 250
+            Layout.minimumWidth: 250
+            Layout.maximumWidth: 250
+            Layout.fillHeight: true
+            spacing: 6
+
+            GlassPanel {
+                id: gizmoSettingsPanel
+                Layout.fillWidth: true
+                Layout.preferredHeight: 130
+                title: "Gizmo 设置"
+
+                GridLayout {
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    columns: 2
+                    columnSpacing: 4
+                    rowSpacing: 4
+
+                    // ── 平移步长 ──
+                    Label {
+                        text: "平移步长"
+                        color: "#BFD8F4"
+                        font.pixelSize: 12
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        FloatField {
+                            id: linearSpeedField
+                            Layout.preferredWidth: 66
+                            suffix: "m"
+                            value: editorGizmo.linearSpeed
+                            from: 0.001
+                            to: 100.0
+                            stepSize: 0.01
+                            decimals: 3
+                            onValueChanged: editorGizmo.linearSpeed = value
+                        }
+                        Repeater {
+                            model: [0.1, 1.0, 10.0]
+                            delegate: EgretPushButton {
+                                text: modelData
+                                pixelSize: 10
+                                implicitHeight: 22
+                                implicitWidth: 25
+                                onClicked: linearSpeedField.setValue(modelData)
+                            }
+                        }
+                    }
+
+                    // ── 旋转步长 ──
+                    Label {
+                        text: "旋转步长"
+                        color: "#BFD8F4"
+                        font.pixelSize: 12
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        FloatField {
+                            id: angularSpeedField
+                            Layout.preferredWidth: 66
+                            suffix: "°"
+                            value: editorGizmo.angularSpeed
+                            from: 0.1
+                            to: 180.0
+                            stepSize: 0.5
+                            decimals: 1
+                            onValueChanged: editorGizmo.angularSpeed = value
+                        }
+                        Repeater {
+                            model: [2.0, 10.0, 20.0]
+                            delegate: EgretPushButton {
+                                text: modelData
+                                pixelSize: 10
+                                implicitHeight: 22
+                                implicitWidth: 25
+                                onClicked: angularSpeedField.setValue(modelData)
+                            }
+                        }
+                    }
+                }
+            }
+
         SceneEntityListPanel {
             id: sceneEntityListPanel
-            Layout.preferredWidth: 200
-            Layout.minimumWidth: 200
-            Layout.maximumWidth: 240
+            Layout.fillWidth: true
             Layout.fillHeight: true
 
             // ── 单击 → 3D 视口高亮拾取（仅非约束选择模式） ──
@@ -551,12 +647,14 @@ ColumnLayout {
             }
         }
 
+        }
+
         GlassPanel {
             id: editorViewportPanel
             Layout.fillWidth: true
             Layout.minimumWidth: 520
             Layout.fillHeight: true
-            title: "场景编辑器 / Infinite Stage"
+            title: "编辑与求解 / Infinite Stage"
 
             Item {
                 id: editorCanvas
@@ -1038,90 +1136,19 @@ ColumnLayout {
             Layout.fillHeight: true
             spacing: 8
 
-            GlassPanel {
-                id: gizmoSettingsPanel
+            SolverPanel {
+                visible: editorRoot.rightTool === "solver"
                 Layout.fillWidth: true
-                Layout.preferredHeight: 130
-                title: "Gizmo 设置"
-
-                GridLayout {
-                    anchors.fill: parent
-                    anchors.margins: 4
-                    columns: 2
-                    columnSpacing: 4
-                    rowSpacing: 4
-
-                    // ── 平移步长 ──
-                    Label {
-                        text: "平移步长"
-                        color: "#BFD8F4"
-                        font.pixelSize: 12
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-                        FloatField {
-                            id: linearSpeedField
-                            Layout.preferredWidth: 65
-                            suffix: "m"
-                            value: editorGizmo.linearSpeed
-                            from: 0.001
-                            to: 100.0
-                            stepSize: 0.01
-                            decimals: 3
-                            onValueChanged: editorGizmo.linearSpeed = value
-                        }
-                        Repeater {
-                            model: [0.1, 1.0, 5.0, 10.0]
-                            delegate: EgretPushButton {
-                                text: modelData
-                                pixelSize: 10
-                                implicitHeight: 22
-                                implicitWidth: 38
-                                onClicked: linearSpeedField.setValue(modelData)
-                            }
-                        }
-                    }
-
-                    // ── 旋转步长 ──
-                    Label {
-                        text: "旋转步长"
-                        color: "#BFD8F4"
-                        font.pixelSize: 12
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-                        FloatField {
-                            id: angularSpeedField
-                            Layout.preferredWidth: 65
-                            suffix: "°"
-                            value: editorGizmo.angularSpeed
-                            from: 0.1
-                            to: 180.0
-                            stepSize: 0.5
-                            decimals: 1
-                            onValueChanged: editorGizmo.angularSpeed = value
-                        }
-                        Repeater {
-                            model: [2.0, 5.0, 10.0, 20.0]
-                            delegate: EgretPushButton {
-                                text: modelData
-                                pixelSize: 10
-                                implicitHeight: 22
-                                implicitWidth: 32
-                                onClicked: angularSpeedField.setValue(modelData)
-                            }
-                        }
-                    }
-                }
+                Layout.fillHeight: true
+                theme: theme
             }
 
             GlassPanel {
                 id: inspectorPanel
+                visible: editorRoot.rightTool === "properties"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                title: "属性 / Inspector"
+                title: "编辑 / Inspector"
 
                 // 几何参数由 EditorParameterManager 统一管理，不再平铺在此处
 
@@ -2662,6 +2689,53 @@ ColumnLayout {
                     }
                 }
             }
+        }
+
+        ColumnLayout {
+            Layout.preferredWidth: 54
+            Layout.minimumWidth: 54
+            Layout.maximumWidth: 54
+            Layout.fillHeight: true
+            spacing: 6
+            Repeater {
+                model: [
+                    {key: "properties", label: "编辑", icon: "qrc:/main_icons/assets/icons/edit.svg"},
+                    {key: "solver", label: "求解", icon: "qrc:/main_icons/assets/icons/simulator.svg"}
+                ]
+                delegate: Rectangle {
+                    required property var modelData
+                    Layout.fillWidth: true; Layout.preferredHeight: 54; Layout.minimumHeight: 54; Layout.maximumHeight: 54; radius: 6
+                    color: editorRoot.rightTool === modelData.key ? "#1A4D78" : (toolMouse.containsMouse ? "#17395D" : theme.bg1)
+                    border.color: editorRoot.rightTool === modelData.key ? theme.accent : theme.border
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: 5
+                        Image {
+                            id: toolIcon
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: 22; height: 22
+                            source: modelData.icon
+                            sourceSize.width: 44; sourceSize.height: 44
+                            fillMode: Image.PreserveAspectFit
+                            visible: false
+                        }
+                        MultiEffect {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: 22; height: 22
+                            source: toolIcon
+                            colorization: 1.0
+                            colorizationColor: editorRoot.rightTool === modelData.key ? theme.accent : theme.textSecondary
+                            brightness: 1.0
+                        }
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: modelData.label; color: theme.textPrimary; font.pixelSize: 11
+                        }
+                    }
+                    MouseArea { id: toolMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: editorRoot.rightTool = modelData.key }
+                }
+            }
+            Item { Layout.fillHeight: true }
         }
     }
 

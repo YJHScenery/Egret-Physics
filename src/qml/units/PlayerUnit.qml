@@ -751,6 +751,9 @@ ColumnLayout {
                     }
                 }
             }
+
+            // 剩余空间放在底部，使控制面板始终靠上排列。
+            Item { Layout.fillHeight: true }
         }
     }
 }

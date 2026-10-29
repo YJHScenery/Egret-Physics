@@ -29,7 +29,7 @@
     </qresource>
     <qresource prefix="/units">
         <file>units/SimulatorUnit.qml</file>
-        <file>units/OfflineSimulationUnit.qml</file>
+        <file>units/SolverPanel.qml</file>
         <file>units/PlayerUnit.qml</file>
         <file>units/EditorUnit.qml</file>
         <file>units/AnalysisUnit.qml</file>

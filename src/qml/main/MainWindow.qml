@@ -46,19 +46,16 @@ ApplicationWindow {
     ListModel {
         id: workspaceRouteModel
         ListElement {
-            label: "实时仿真"; route: "scene"; badge: "不再维护"
-        }
-        ListElement {
-            label: "离线仿真"; route: "offline"; badge: ""
-        }
-        ListElement {
-            label: "场景编辑器"; route: "solver"; badge: ""
+            label: "编辑与求解"; route: "solver"; badge: ""
         }
         ListElement {
             label: "播放器"; route: "player"; badge: ""
         }
         ListElement {
             label: "数据分析"; route: "analysis"; badge: ""
+        }
+        ListElement {
+            label: "实时仿真"; route: "scene"; badge: "不再维护"
         }
     }
 
@@ -229,10 +226,6 @@ ApplicationWindow {
                         if (EditorManager.openDocument(fileUrl.toString())) editorUnit.resetInspector();
                         else { mainMsgDialog.title = "打开失败"; mainMsgDialog.text = "无法读取场景文件。"; mainMsgDialog.open(); }
                         break;
-                    }case 2: {
-                        // 离线仿真工作区：场景加载到它自己的世界里（即求解初始状态）
-                        offlineSceneController.loadSceneFronJsonFile(localPath);
-                        break;
                     }
                 }
             }
@@ -332,10 +325,6 @@ ApplicationWindow {
                                     }
                                     case "solver":{
                                         openJsonFileDialog.mode = 1;   // 场景编辑器
-                                        openJsonFileDialog.open();
-                                        break;
-                                    }case "offline":{
-                                        openJsonFileDialog.mode = 2;   // 离线仿真
                                         openJsonFileDialog.open();
                                         break;
                                     }default:{
@@ -629,18 +618,18 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            // 默认进入实时仿真工作区；由命令行 --play / --edit 启动时直接落在
+            // 默认进入编辑与求解工作区；由命令行 --play / --edit 启动时直接落在
             // 播放器 / 场景编辑器工作区。
             property string currentRoute: (typeof startupWorkspaceRoute !== "undefined"
                                            && startupWorkspaceRoute.length > 0)
                 ? startupWorkspaceRoute
-                : "scene"
+                : "solver"
 
             /** 上一次工作区，用于在切换时停止其任务。 */
             property string previousRoute: currentRoute
             onCurrentRouteChanged: {
                 if (previousRoute === "scene") { sceneController.pause(); sceneController.pauseSimulation(); }
-                else if (previousRoute === "offline") { offlineSceneController.pause(); offlineSceneController.pauseSimulation(); simulationExporter.cancel(); }
+                else if (previousRoute === "solver") simulationExporter.cancel();
                 else if (previousRoute === "player") { playerSceneController.pauseSimulation(); videoExporter.cancel(); }
                 else if (previousRoute === "analysis") analysisSession.cancel();
                 previousRoute = currentRoute;
@@ -652,7 +641,6 @@ ApplicationWindow {
             Component.onCompleted: {
                 // 启动时也暂停未显示工作区的默认计算，避免后台持续运行。
                 if (currentRoute !== "scene") sceneController.pause();
-                if (currentRoute !== "offline") offlineSceneController.pause();
                 if (currentRoute !== "player") playerSceneController.pauseSimulation();
                 if (typeof startupSceneFile !== "undefined"
                         && startupSceneFile.length > 0) {
@@ -680,14 +668,6 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 visible: mainRowLayout.currentRoute === "scene"
-                theme: theme
-            }
-
-            OfflineSimulationUnit {
-                id: offlineSimulationUnit
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                visible: mainRowLayout.currentRoute === "offline"
                 theme: theme
             }
 
