@@ -35,9 +35,12 @@ $$
 ### 流程
 #### 1. 初始化
 1. **选定初始方向**。原则上允许任何非零向量。习惯上使用两个物体的中心连线方向：
+
 	 $$
-	 \mathbf{d} = \operatorname{center}(B) - \operatorname{center}(A)
+	 \mathbf{d} = \text{center}(B) - \text{center}(A)
+
 	 $$
+
    若中心重合，任意指定，例如 $\mathbf{d} = (0, 0, \cdots, 1)$
 2. **获取第一个支撑点**：$\mathbf{p}_0 = \mathbf{x}^*_{m}(A, B, \mathbf{d})$
 3. **初始化单纯形**：$\sigma = \{ \mathbf{p}_0 \}$
