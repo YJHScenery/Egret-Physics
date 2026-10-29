@@ -170,6 +170,7 @@ namespace egret
         Q_PROPERTY(double length READ length WRITE setLength NOTIFY lengthChanged)
         Q_PROPERTY(int category READ category NOTIFY categoryChanged)
         Q_PROPERTY(bool visible READ visible WRITE setVisible NOTIFY visibleChanged)
+        Q_PROPERTY(QVariantMap payloadMap READ payloadMap NOTIFY payloadChanged)
 
     public:
         explicit ModelItemData(QObject *parent = nullptr);
@@ -230,8 +231,10 @@ namespace egret
         static ModelItemData *createCopy(const ModelItemData &source, QObject *parent = nullptr);
 
         /** 直接读写 m_data 的 payload 字段，供 EditorManager 透传 field/constraint 数据 */
-        void setPayload(const QJsonObject &payload) { m_data.m_payload = payload; }
+        void setPayload(const QJsonObject &payload) { if (m_data.m_payload != payload) { m_data.m_payload = payload; emit payloadChanged(); } }
         [[nodiscard]] const QJsonObject &payload() const { return m_data.m_payload; }
+        /** @brief 返回可供 QML 绑定的负载数据。 */
+        [[nodiscard]] QVariantMap payloadMap() const { return m_data.m_payload.toVariantMap(); }
 
         /** 设置实体类别（0=Shape, 1=Field, 2=Constraint），供 EditorManager 使用 */
         void setCategory(int category)
@@ -253,6 +256,8 @@ namespace egret
         void typeChanged();
         void sourceChanged();
         void posChanged();
+        /** @brief 约束或力场负载发生变化。 */
+        void payloadChanged();
         void scaleChanged();
         void rotationChanged();
         void initialVeloChanged();

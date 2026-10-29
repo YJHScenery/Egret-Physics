@@ -1,0 +1,235 @@
+{
+    "modelCount": 7,
+    "models": [
+        {
+            "category": 0,
+            "dynamic_friction": 0.5,
+            "id": "1",
+            "initial_angular_velocity": [
+                0,
+                0,
+                0
+            ],
+            "initial_velocity": [
+                0,
+                0,
+                0
+            ],
+            "load_time": 0,
+            "mass": 10,
+            "materials": {
+                "alphaMode": "",
+                "baseColor": "#ff3b82f6",
+                "metalness": 0.19999999999999998,
+                "roughness": 0.3833333333333333
+            },
+            "name": "第一摆球",
+            "pos": [
+                200,
+                0,
+                400
+            ],
+            "radius": 18,
+            "restitution": 1,
+            "rotation": [
+                1,
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "source": "#Sphere",
+            "static_friction": 0.5,
+            "type": 8,
+            "visible": true
+        },
+        {
+            "category": 0,
+            "dynamic_friction": 0.5,
+            "id": "2",
+            "initial_angular_velocity": [
+                0,
+                0,
+                0
+            ],
+            "initial_velocity": [
+                0,
+                0,
+                0
+            ],
+            "load_time": 0,
+            "mass": 10,
+            "materials": {
+                "alphaMode": "",
+                "baseColor": "#ffef4444",
+                "metalness": 0.19999999999999998,
+                "roughness": 0.3833333333333333
+            },
+            "name": "第二摆球",
+            "pos": [
+                200,
+                0,
+                200
+            ],
+            "radius": 18,
+            "restitution": 1,
+            "rotation": [
+                1,
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "source": "#Sphere",
+            "static_friction": 0.5,
+            "type": 8,
+            "visible": true
+        },
+        {
+            "category": 1,
+            "field_data": {
+                "gravity": [
+                    0,
+                    0,
+                    -180
+                ],
+                "reference_point": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            "id": "100",
+            "load_time": 0,
+            "name": "重力场",
+            "pos": [
+                0,
+                0,
+                0
+            ],
+            "type": 1,
+            "visible": true
+        },
+        {
+            "anchor_pos": {
+                "x": 0,
+                "y": 0,
+                "z": 400
+            },
+            "category": 2,
+            "constraint_data": {
+                "length": 200
+            },
+            "entity_ids": [
+                "1"
+            ],
+            "id": "101",
+            "load_time": 0,
+            "name": "上摆杆",
+            "pos": [
+                0,
+                0,
+                0
+            ],
+            "type": 2,
+            "visible": true
+        },
+        {
+            "category": 2,
+            "constraint_data": {
+                "length": 200
+            },
+            "entity_ids": [
+                "1",
+                "2"
+            ],
+            "id": "102",
+            "load_time": 0,
+            "name": "下摆杆",
+            "pos": [
+                0,
+                0,
+                0
+            ],
+            "type": 3,
+            "visible": true
+        },
+        {
+            "category": 0,
+            "dynamic_friction": 0.5,
+            "id": "3",
+            "initial_angular_velocity": [
+                0,
+                0,
+                0
+            ],
+            "initial_velocity": [
+                0,
+                0,
+                0
+            ],
+            "load_time": 0,
+            "mass": 10,
+            "materials": {
+                "alphaMode": "",
+                "baseColor": "#fff59e0b",
+                "metalness": 0.19999999999999998,
+                "roughness": 0.3833333333333333
+            },
+            "name": "第三摆球",
+            "pos": [
+                400,
+                0,
+                200
+            ],
+            "radius": 18,
+            "restitution": 1,
+            "rotation": [
+                1,
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "source": "#Sphere",
+            "static_friction": 0.5,
+            "type": 8,
+            "visible": true
+        },
+        {
+            "category": 2,
+            "constraint_data": {
+                "length": 1
+            },
+            "entity_ids": [
+                "103",
+                "3",
+                "2"
+            ],
+            "id": "103",
+            "load_time": 0,
+            "name": "第三摆杆",
+            "pos": [
+                0,
+                0,
+                0
+            ],
+            "type": 1,
+            "visible": true
+        }
+    ],
+    "timestamp": "2026-10-29T20:37:08",
+    "version": "1.0"
+}

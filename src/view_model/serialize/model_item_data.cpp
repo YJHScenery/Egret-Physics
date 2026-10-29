@@ -660,10 +660,11 @@ namespace egret
         copy->setRotation(source.rotation());
         copy->setInitialVelo(source.initialVelo());
         copy->setInitialAnguVelo(source.initialAnguVelo());
-        copy->setBoxSize(source.boxSize());
-        copy->setRadius(source.radius());
-        copy->setHeight(source.height());
-        copy->setLength(source.length());
+        // 保留可选参数的缺省状态，确保撤销后的序列化内容与原场景一致。
+        copy->m_data.m_boxSize = source.m_data.m_boxSize;
+        copy->m_data.m_radius = source.m_data.m_radius;
+        copy->m_data.m_height = source.m_data.m_height;
+        copy->m_data.m_length = source.m_data.m_length;
 
         MaterialData* sourceMaterials = source.materials();
         if (sourceMaterials) {

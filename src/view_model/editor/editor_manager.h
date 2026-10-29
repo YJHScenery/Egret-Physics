@@ -51,6 +51,8 @@ namespace egret
     class EditorManager : public QObject
     {
         Q_OBJECT
+        Q_PROPERTY(QVariantList documents READ documents NOTIFY documentsChanged)
+        Q_PROPERTY(int currentDocument READ currentDocument NOTIFY documentsChanged)
         Q_PROPERTY(int count READ count NOTIFY countChanged)
         Q_PROPERTY(QStringList modelIds READ modelIds NOTIFY modelListChanged)
 
@@ -59,6 +61,23 @@ namespace egret
 
         // 单例访问
         static EditorManager *instance();
+
+        /** @brief 返回编辑器标签列表。 */
+        [[nodiscard]] QVariantList documents() const;
+        /** @brief 返回当前标签索引。 */
+        [[nodiscard]] int currentDocument() const { return m_currentDocument; }
+        /** @brief 新建并切换到空场景。 */
+        Q_INVOKABLE void newDocument();
+        /** @brief 打开文件为新标签。 */
+        Q_INVOKABLE bool openDocument(const QString &path);
+        /** @brief 切换当前标签。 */
+        Q_INVOKABLE bool switchDocument(int index);
+        /** @brief 关闭指定标签，调用方负责处理未保存修改。 */
+        Q_INVOKABLE bool closeDocument(int index);
+        /** @brief 保存当前标签到指定路径；空路径使用原路径。 */
+        Q_INVOKABLE bool saveDocument(const QString &path = {});
+        /** @brief 判断当前文件是否需要通过对话框选择路径。 */
+        Q_INVOKABLE bool documentNeedsSaveAs() const;
 
         // 基本操作
         Q_INVOKABLE bool addModel(ModelItemData *model);
@@ -139,6 +158,8 @@ namespace egret
         Q_INVOKABLE bool redo();
 
     signals:
+        /** @brief 标签状态发生变化。 */
+        void documentsChanged();
         void countChanged();
 
         void modelListChanged();
@@ -158,6 +179,24 @@ namespace egret
         void error(const QString& title, const QString &message);
 
     private:
+        /** @brief 单个标签的场景及独立撤销历史。 */
+        struct Document {
+            QString path;
+            QByteArray savedContent;
+            QList<QSharedPointer<ModelItemData>> models;
+            QList<QList<QSharedPointer<ModelItemData>>> undo;
+            QList<QList<QSharedPointer<ModelItemData>>> redo;
+        };
+        QList<Document> m_documents;
+        int m_currentDocument{0};
+        bool m_switchingDocument{false};
+        /** @brief 获取稳定的场景内容，用于判断是否有未保存修改。 */
+        QByteArray documentContent() const;
+        /** @brief 保存当前标签的内存状态。 */
+        void storeDocument();
+        /** @brief 恢复指定标签的内存状态。 */
+        void restoreDocument(int index);
+
         QHash<QString, QSharedPointer<ModelItemData>> m_models;
 
         QList<QSharedPointer<ModelItemData>> m_modelList;
@@ -165,6 +204,12 @@ namespace egret
         QList<QList<QSharedPointer<ModelItemData>>> m_undoStack;
 
         QList<QList<QSharedPointer<ModelItemData>>> m_redoStack;
+
+        /** @brief 监听实体位置并同步其相关约束的几何长度。 */
+        void watchModelPosition(ModelItemData *model);
+
+        /** @brief 根据实体当前位置更新连接线、连接杆和单摆长度。 */
+        void updateConstraintLengths(const QString &entityId);
 
         void emitModelListChanged();
 

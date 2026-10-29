@@ -107,6 +107,64 @@ ApplicationWindow {
         window.currentSimulationPath = "";
     }
 
+    /** 即将保存后关闭的标签索引，-1 表示普通保存。 */
+    property int closeAfterSave: -1
+
+    /** @brief 保存当前场景，必要时请求新的文件路径。 */
+    function saveEditorDocument(forceDialog) {
+        if (forceDialog || EditorManager.documentNeedsSaveAs()) {
+            saveJsonFileDialog.open();
+            return;
+        }
+        if (EditorManager.saveDocument()) {
+            if (closeAfterSave >= 0) EditorManager.closeDocument(closeAfterSave);
+            closeAfterSave = -1;
+        } else {
+            closeAfterSave = -1;
+            mainMsgDialog.title = "保存失败";
+            mainMsgDialog.text = "无法保存场景，请检查文件路径和权限。";
+            mainMsgDialog.open();
+        }
+    }
+
+    /** @brief 关闭标签前处理未保存的修改。 */
+    function requestCloseDocument(index) {
+        var doc = EditorManager.documents[index];
+        if (!doc) return;
+        if (!doc.dirty) {
+            var wasCurrent = index === EditorManager.currentDocument;
+            EditorManager.closeDocument(index);
+            if (wasCurrent) editorUnit.resetInspector();
+            return;
+        }
+        closeDocumentDialog.documentIndex = index;
+        closeDocumentDialog.documentName = doc.name;
+        closeDocumentDialog.open();
+    }
+
+    Dialog {
+        id: closeDocumentDialog
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        modal: true
+        title: "未保存的场景"
+        property int documentIndex: -1
+        property string documentName: ""
+        standardButtons: Dialog.Save | Dialog.Discard | Dialog.Cancel
+        Label { text: "是否保存对“" + closeDocumentDialog.documentName + "”的修改？" }
+        onAccepted: {
+            EditorManager.switchDocument(documentIndex);
+            editorUnit.resetInspector();
+            window.closeAfterSave = documentIndex;
+            window.saveEditorDocument(false);
+        }
+        onDiscarded: {
+            var wasCurrent = documentIndex === EditorManager.currentDocument;
+            EditorManager.closeDocument(documentIndex);
+            if (wasCurrent) editorUnit.resetInspector();
+        }
+    }
+
     FileDialog {
         id: openEpsxFileDialog
         title: "打开 EPSX 仿真数据文件"
@@ -168,7 +226,8 @@ ApplicationWindow {
                         sceneController.loadSceneFronJsonFile(localPath);
                         break;
                     }case 1: {
-                        EditorManager.loadFromJson(localPath);
+                        if (EditorManager.openDocument(fileUrl.toString())) editorUnit.resetInspector();
+                        else { mainMsgDialog.title = "打开失败"; mainMsgDialog.text = "无法读取场景文件。"; mainMsgDialog.open(); }
                         break;
                     }case 2: {
                         // 离线仿真工作区：场景加载到它自己的世界里（即求解初始状态）
@@ -199,12 +258,21 @@ ApplicationWindow {
                 // 注意：selectedFile 返回的是 file:// 开头的 URL，需转换为本地路径
                 var fileUrl = selectedFile
                 var localPath = fileUrl.toString().replace(/^file:\/\/\//, "")  // 简单转换
-                EditorManager.saveToJson(localPath)
+                if (EditorManager.saveDocument(fileUrl.toString())) {
+                    if (window.closeAfterSave >= 0) {
+                        EditorManager.closeDocument(window.closeAfterSave);
+                        editorUnit.resetInspector();
+                    }
+                    window.closeAfterSave = -1;
+                } else {
+                    window.closeAfterSave = -1;
+                    mainMsgDialog.title = "保存失败";
+                    mainMsgDialog.text = "无法保存场景，请检查文件路径和权限。";
+                    mainMsgDialog.open();
+                }
             }
 
-            onRejected: {
-                console.log("用户取消保存")
-            }
+            onRejected: { window.closeAfterSave = -1; }
         }
 
         EgretMessageDialog {
@@ -241,8 +309,9 @@ ApplicationWindow {
                             text: "新建(&N)",
                             shortcut: "Ctrl+N",
                             onTriggered: function () {
-                                mainRowLayout.currentRoute = "solver"
-                                sceneController.reset();
+                                mainRowLayout.currentRoute = "solver";
+                                EditorManager.newDocument();
+                                editorUnit.resetInspector();
                             },
                             icon: "qrc:/main_icons/assets/icons/new_scene.svg"
                         },
@@ -289,8 +358,7 @@ ApplicationWindow {
                                     return;
                                 }
 
-                                saveJsonFileDialog.open()
-                                console.log("Save");
+                                window.saveEditorDocument(false);
                             },
                             icon: "qrc:/main_icons/assets/icons/save.svg"
                         },
@@ -305,8 +373,7 @@ ApplicationWindow {
                                     return;
                                 }
 
-                                saveJsonFileDialog.open()
-                                console.log("Save");
+                                window.saveEditorDocument(true);
                             },
                             icon: "qrc:/main_icons/assets/icons/save_as.svg"
                         },
@@ -569,14 +636,29 @@ ApplicationWindow {
                 ? startupWorkspaceRoute
                 : "scene"
 
+            /** 上一次工作区，用于在切换时停止其任务。 */
+            property string previousRoute: currentRoute
+            onCurrentRouteChanged: {
+                if (previousRoute === "scene") { sceneController.pause(); sceneController.pauseSimulation(); }
+                else if (previousRoute === "offline") { offlineSceneController.pause(); offlineSceneController.pauseSimulation(); simulationExporter.cancel(); }
+                else if (previousRoute === "player") { playerSceneController.pauseSimulation(); videoExporter.cancel(); }
+                else if (previousRoute === "analysis") analysisSession.cancel();
+                previousRoute = currentRoute;
+            }
+
             // 双击文件启动时按类型分派：
             //   .epsx  → --play <文件>：切到播放器工作区，打开并立即播放；
             //   .epscene → --edit <文件>：切到场景编辑器并载入场景。
             Component.onCompleted: {
+                // 启动时也暂停未显示工作区的默认计算，避免后台持续运行。
+                if (currentRoute !== "scene") sceneController.pause();
+                if (currentRoute !== "offline") offlineSceneController.pause();
+                if (currentRoute !== "player") playerSceneController.pauseSimulation();
                 if (typeof startupSceneFile !== "undefined"
                         && startupSceneFile.length > 0) {
                     currentRoute = "solver";
-                    EditorManager.loadFromJson(startupSceneFile);
+                    EditorManager.openDocument(startupSceneFile);
+                    editorUnit.resetInspector();
                     return;
                 }
                 if (typeof startupSimulationFile === "undefined"
@@ -614,6 +696,7 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 visible: mainRowLayout.currentRoute === "solver"
+                onCloseDocumentRequested: function(index) { window.requestCloseDocument(index); }
             }
 
             PlayerUnit {

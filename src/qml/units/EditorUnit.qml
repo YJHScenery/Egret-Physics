@@ -40,6 +40,52 @@ ColumnLayout {
 
     spacing: 6
 
+    /** 请求主窗口关闭指定场景标签。 */
+    signal closeDocumentRequested(int index)
+
+    /** @brief 重置属性面板并进入指定类别的添加模式。 @param category 新对象类别。 */
+    function resetInspector(category) {
+        var targetCategory = category === undefined ? 0 : category;
+        inspectorColumn.isLoadingFromPick = true;
+        operatingButton.isCreateMode = true;
+        sceneEntityListPanel.selectionMode = false;
+        sceneEntityListPanel.clearSelection();
+        editorGizmo.detach();
+        editorCanvas.gizmoActive = false;
+        editorCanvas.selectedObjectName = "";
+        editedConstraintEntityIds = [];
+        anchorPosX = 0; anchorPosY = 0; anchorPosZ = 0;
+        inspectorPanel.m_name = ""; inspectorPanel.m_id = "";
+        inspectorPanel.m_mass = 0; inspectorPanel.m_loadTime = 0;
+        inspectorPanel.m_restitution = 1; inspectorPanel.m_staticFriction = 0.5; inspectorPanel.m_dynamicFriction = 0.5;
+        inspectorPanel.m_pos = Qt.vector3d(0, 0, 0); inspectorPanel.m_scale = Qt.vector3d(1, 1, 1);
+        inspectorPanel.m_rotation = Qt.quaternion(1, 0, 0, 0);
+        inspectorPanel.m_initialVelo = Qt.vector3d(0, 0, 0); inspectorPanel.m_initialAnguVelo = Qt.vector3d(0, 0, 0);
+        inspectorPanel.m_fieldType = 0; inspectorPanel.m_gravityAcceleration = Qt.vector3d(0, 0, 0);
+        inspectorPanel.m_gravitationalFieldSource = Qt.vector3d(0, 0, 0);
+        inspectorPanel.m_gravitationalFieldFixed = true; inspectorPanel.m_gravitationalFieldVelo = Qt.vector3d(0, 0, 0);
+        inspectorPanel.m_baseColor = "#8FBCE8"; inspectorPanel.m_metalness = 0.2; inspectorPanel.m_roughness = 0.6;
+        EditorParameterManager.currentCategory = targetCategory;
+        var types = EditorParameterManager.availableTypes;
+        if (types.length > 0) { EditorParameterManager.currentTypeId = types[0].typeId; sourceComboBox.currentIndex = 0; }
+        var subTypes = EditorParameterManager.subTypes;
+        if (subTypes.length > 0) { EditorParameterManager.subTypeId = subTypes[0].typeId; subTypeComboBox.currentIndex = 0; }
+        var subSubTypes = EditorParameterManager.subSubTypes;
+        if (subSubTypes.length > 0) { EditorParameterManager.subSubTypeId = subSubTypes[0].typeId; subSubTypeComboBox.currentIndex = 0; }
+        EditorParameterManager.resetToDefaults();
+        inspectorPanel.m_type = EditorParameterManager.currentTypeId;
+        inspectorColumn.isLoadingFromPick = false;
+        inspectorColumn.geometryParams = EditorParameterManager.currentParameters;
+        inspectorColumn.subGeometryParams = EditorParameterManager.subParameters;
+        inspectorColumn.subSubGeometryParams = EditorParameterManager.subSubParameters;
+        if (targetCategory === 2) {
+            sceneEntityListPanel.selectionMode = true;
+            var tid = EditorParameterManager.currentTypeId;
+            sceneEntityListPanel.minSelection = (tid === 1 || tid === 3 || tid === 5) ? 2 : 1;
+            sceneEntityListPanel.maxSelection = (tid === 1 || tid === 3 || tid === 5) ? 2 : (tid === 2 ? 1 : 999);
+        }
+    }
+
     DeepBlueTheme {
         id: theme
     }
@@ -55,6 +101,13 @@ ColumnLayout {
 
     Connections {
         target: EditorManager
+
+        function onModelUpdated(id) {
+            if (operatingButton.isCreateMode || inspectorPanel.m_id !== id || !inspectorColumn.isConstraintCategory) return;
+            var payload = EditorManager.getModelPayload(id);
+            if (payload.constraint_data && payload.constraint_data.length !== undefined)
+                EditorParameterManager.setParameterValue("length", payload.constraint_data.length);
+        }
 
         function onWarning(title, message) {
             msgDialog.title = title;
@@ -105,6 +158,9 @@ ColumnLayout {
 
         return ids;
     }
+
+    /** 当前修改的约束器所绑定的实体，与侧栏普通选择相互独立。 */
+    property var editedConstraintEntityIds: []
 
     // ── 锚点位置（单摆约束使用） ──
     property real anchorPosX: 0.0
@@ -371,9 +427,7 @@ ColumnLayout {
             // 恢复约束器的目标实体 ID（否则 serializeToJson 采集不到 entity_ids）
             if (category === 2) {
                 var entityIds = payload["entity_ids"];
-                if (entityIds && entityIds.length > 0) {
-                    sceneEntityListPanel.selectedEntityIds = entityIds;
-                }
+                editorRoot.editedConstraintEntityIds = entityIds ? Array.from(entityIds) : [];
 
                 // 恢复单摆锚点位置
                 var anchor = payload["anchor_pos"];
@@ -405,6 +459,7 @@ ColumnLayout {
 
         // 4. 进入修改模式
         operatingButton.isCreateMode = false;
+        sceneEntityListPanel.selectionMode = false;
 
         // 解除加载锁，允许 ComboBox 和 geometryParams 正常响应变更
         inspectorColumn.isLoadingFromPick = false;
@@ -417,13 +472,57 @@ ColumnLayout {
         // 6. 3D 视口高亮
         editorCanvas.selectedObjectName = model.id;
 
-        // 7. 同步侧边栏选中状态（仅非选择模式时）
-        // 约束器已在 payload 恢复时设定了目标实体 ID，跳过以避免覆盖
-        if (category !== 2) {
-            sceneEntityListPanel.setSingleSelection(entityId);
-        }
+        // 7. 普通列表选择与约束绑定分别保存。
+        sceneEntityListPanel.setSingleSelection(entityId);
 
         return true;
+    }
+
+    // 场景标签：每个标签保留独立场景和撤销历史。
+    ScrollView {
+        Layout.fillWidth: true
+        Layout.preferredHeight: 38
+        contentWidth: documentTabs.implicitWidth
+        contentHeight: 34
+        clip: true
+        ScrollBar.vertical.policy: ScrollBar.AlwaysOff
+        Row {
+            id: documentTabs
+            spacing: 4
+            Repeater {
+                model: EditorManager.documents
+                delegate: Rectangle {
+                    required property var modelData
+                    required property int index
+                    width: Math.max(145, Math.min(230, documentTitle.implicitWidth + 58))
+                    height: 32; radius: 6
+                    color: index === EditorManager.currentDocument ? theme.bg2 : theme.bg1
+                    border.color: index === EditorManager.currentDocument ? theme.accent : theme.border
+                    Text {
+                        id: documentTitle
+                        anchors.left: parent.left; anchors.right: closeTab.left; anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: 10; anchors.rightMargin: 4
+                        text: modelData.name + (modelData.dirty ? " *" : "")
+                        color: theme.textPrimary; elide: Text.ElideMiddle; font.pixelSize: 12
+                    }
+                    MouseArea {
+                        anchors.fill: parent; anchors.rightMargin: 30
+                        onClicked: { if (index !== EditorManager.currentDocument && EditorManager.switchDocument(index)) editorRoot.resetInspector(); }
+                    }
+                    Text {
+                        id: closeTab
+                        anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter
+                        text: "×"; font.pixelSize: 18; color: closeMouse.containsMouse ? theme.accent : theme.textSecondary
+                        MouseArea { id: closeMouse; anchors.fill: parent; anchors.margins: -5; hoverEnabled: true; onClicked: editorRoot.closeDocumentRequested(index) }
+                    }
+                }
+            }
+            Rectangle {
+                width: 34; height: 32; radius: 6; color: addTabMouse.containsMouse ? theme.bg2 : theme.bg1; border.color: theme.border
+                Text { anchors.centerIn: parent; text: "+"; color: theme.textPrimary; font.pixelSize: 20 }
+                MouseArea { id: addTabMouse; anchors.fill: parent; hoverEnabled: true; onClicked: { EditorManager.newDocument(); editorRoot.resetInspector(); } }
+            }
+        }
     }
 
     RowLayout {
@@ -657,7 +756,7 @@ ColumnLayout {
                         Repeater3D {
                             model: basicNode.modelList
                             delegate: ConstraintDelegate {
-                                property var payload: modelData.category === 2 ? EditorManager.getModelPayload(modelData.id) : ({})
+                                property var payload: modelData.category === 2 ? modelData.payloadMap : ({})
                                 property var targets: payload.entity_ids || []
                                 property var firstBody: targets.length > 0 ? EditorManager.getModel(targets[0]) : null
                                 property var secondBody: targets.length > 1 ? EditorManager.getModel(targets[1]) : null
@@ -681,7 +780,7 @@ ColumnLayout {
                         Repeater3D {
                             model: basicNode.modelList
                             delegate: Model {
-                                property var payload: modelData.category === 2 ? EditorManager.getModelPayload(modelData.id) : ({})
+                                property var payload: modelData.category === 2 ? modelData.payloadMap : ({})
                                 property var rail: payload.constraint_data || ({})
                                 property var startPoint: rail.start || [-100, 0, 0]
                                 property var endPoint: rail.end || [100, 0, 0]
@@ -1129,7 +1228,9 @@ ColumnLayout {
                         data.constraint_type = inspectorPanel.m_type;
 
                         // 约束对象实体 ID
-                        data.entity_ids = sceneEntityListPanel.selectedEntityIds;
+                        data.entity_ids = operatingButton.isCreateMode
+                            ? sceneEntityListPanel.selectedEntityIds.slice()
+                            : editorRoot.editedConstraintEntityIds.slice();
 
                         // 锚点位置（单摆使用）
                         if (inspectorPanel.m_type === 2) {
@@ -1141,6 +1242,11 @@ ColumnLayout {
                         }
 
                         var constraintParams = flattenParams(geoParams);
+                        if (!operatingButton.isCreateMode && (EditorParameterManager.currentTypeId === 1 || EditorParameterManager.currentTypeId === 3)) {
+                            var currentPayload = EditorManager.getModelPayload(inspectorPanel.m_id);
+                            if (currentPayload.constraint_data && currentPayload.constraint_data.length !== undefined)
+                                constraintParams.length = currentPayload.constraint_data.length;
+                        }
 
                         // 嵌入子类型 ID 元数据，供修改时恢复子类型选择
                         if (EditorParameterManager.hasSubTypes) {
@@ -1246,17 +1352,26 @@ ColumnLayout {
 
                             function onCurrentParametersChanged() {
                                 if (inspectorColumn.isLoadingFromPick) return;
-                                inspectorColumn.geometryParams = EditorParameterManager.currentParameters;
+                                Qt.callLater(function() {
+                                    if (!inspectorColumn.isLoadingFromPick)
+                                        inspectorColumn.geometryParams = EditorParameterManager.currentParameters;
+                                });
                             }
 
                             function onSubParametersChanged() {
                                 if (inspectorColumn.isLoadingFromPick) return;
-                                inspectorColumn.subGeometryParams = EditorParameterManager.subParameters;
+                                Qt.callLater(function() {
+                                    if (!inspectorColumn.isLoadingFromPick)
+                                        inspectorColumn.subGeometryParams = EditorParameterManager.subParameters;
+                                });
                             }
 
                             function onSubSubParametersChanged() {
                                 if (inspectorColumn.isLoadingFromPick) return;
-                                inspectorColumn.subSubGeometryParams = EditorParameterManager.subSubParameters;
+                                Qt.callLater(function() {
+                                    if (!inspectorColumn.isLoadingFromPick)
+                                        inspectorColumn.subSubGeometryParams = EditorParameterManager.subSubParameters;
+                                });
                             }
                         }
 
@@ -1264,8 +1379,7 @@ ColumnLayout {
                         readonly property bool constraintLengthReadOnly: {
                             if (!isConstraintCategory) return false;
                             var tid = EditorParameterManager.currentTypeId;
-                            if (tid !== 1 && tid !== 3) return false;  // 仅连接线和连接杆
-                            return sceneEntityListPanel.selectedEntityIds.length === 2;
+                            return tid === 1 || tid === 3;
                         }
 
                         // 根据 model 的 typeId 更新所有 UI 状态（由 pick 调用）
@@ -1306,35 +1420,34 @@ ColumnLayout {
                                 id: createNewEntityButton
                                 text: "添加实体"
                                 pixelSize: 12
-                                onClicked: {
-                                    operatingButton.isCreateMode = true;
-                                    EditorParameterManager.currentCategory = 0;
-                                }
+                                onClicked: editorRoot.resetInspector(0)
                             }
 
                             EgretPushButton {
                                 id: createNewFieldButton
                                 text: "添加场"
                                 pixelSize: 12
-                                onClicked: {
-                                    operatingButton.isCreateMode = true;
-                                    EditorParameterManager.currentCategory = 1;
-                                }
+                                onClicked: editorRoot.resetInspector(1)
                             }
 
                             EgretPushButton {
                                 id: createNewConstraintButton
                                 text: "添加约束器"
                                 pixelSize: 12
-                                onClicked: {
-                                    operatingButton.isCreateMode = true;
-                                    EditorParameterManager.currentCategory = 2;
-                                }
+                                onClicked: editorRoot.resetInspector(2)
                             }
                         }
 
                         EgretSeparator {
                             Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true; Layout.preferredHeight: 30; radius: 6
+                            color: operatingButton.isCreateMode ? "#113D59" : "#4C3C21"
+                            Text { anchors.centerIn: parent; color: operatingButton.isCreateMode ? theme.success : theme.warning
+                                font.pixelSize: 12; font.bold: true
+                                text: operatingButton.isCreateMode ? "添加模式 · 新建对象" : "修改模式 · " + inspectorPanel.m_name }
                         }
 
                         Rectangle {
@@ -1632,6 +1745,7 @@ ColumnLayout {
                                 id: selectionHint
                                 text: {
                                     var tid = EditorParameterManager.currentTypeId;
+                                    if (!operatingButton.isCreateMode) return "修改参数时保留已绑定的实体。";
                                     if (tid === 1) return "连接线需选择 2 个实体 — 长度自动计算";
                                     if (tid === 2) return "单摆需选择 1 个实体 + 设置锚点位置";
                                     if (tid === 3) return "连接杆需选择 2 个实体 — 长度自动计算";
@@ -1648,7 +1762,8 @@ ColumnLayout {
 
                             // ── 已选实体名称列表 ──
                             Repeater {
-                                model: sceneEntityListPanel.selectedEntityIds
+                                model: operatingButton.isCreateMode
+                                    ? sceneEntityListPanel.selectedEntityIds : editorRoot.editedConstraintEntityIds
                                 delegate: Label {
                                     text: {
                                         var m = EditorManager.getModel(modelData);
@@ -1756,6 +1871,18 @@ ColumnLayout {
                                             onValueChanged: EditorParameterManager.setParameterValue(modelData.key, value)
                                         }
                                     }
+                                }
+
+                                Label {
+                                    width: parent.width
+                                    visible: inspectorColumn.isConstraintCategory
+                                             && (EditorParameterManager.currentTypeId === 1
+                                                 || EditorParameterManager.currentTypeId === 3)
+                                             && modelData.key === "length"
+                                    text: "长度由绑定实体的位置自动确定；移动实体即可调整。"
+                                    color: "#8FB8E0"
+                                    font.pixelSize: 11
+                                    wrapMode: Text.WordWrap
                                 }
 
                                 // vector3d 类型参数编辑器
@@ -2508,6 +2635,8 @@ ColumnLayout {
                             text: isCreateMode ? "创建" : "确定修改"
                             enabled: !isCreateMode || editorRoot.constraintSelectionValid
                             onClicked: {
+                                // 先结束当前输入框编辑，确保最新数值已写入参数管理器。
+                                operatingButton.forceActiveFocus();
                                 if (isCreateMode) {
                                     if (!editorRoot.constraintSelectionValid) {
                                         console.warn("Constraint creation blocked: entity selection invalid");

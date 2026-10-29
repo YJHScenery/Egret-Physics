@@ -7,6 +7,9 @@
 #include <QCoreApplication>
 #include <QJsonDocument>
 #include <QJsonArray>
+#include <QTemporaryDir>
+#include <QFile>
+#include <QDir>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -45,6 +48,36 @@ int main(int argc, char** argv)
         QString changeType = edit;
         changeType.replace(QStringLiteral("\"entity_type\":1"), QStringLiteral("\"entity_type\":8"));
         require(editor.modifyModelByJsonString(changeType) && editor.getModel("2")->type()==8, "修改模式没有更新对象类型");
+        EditorManager constraintsEditor;
+        const QString constraintScene = QStringLiteral(R"({"models":[{"id":"1","category":0,"type":8,"mass":1,"pos":[0,0,0]},{"id":"2","category":0,"type":8,"mass":1,"pos":[3,4,0]},{"id":"3","category":2,"type":1,"entity_ids":["1","2"],"constraint_data":{"length":5}},{"id":"4","category":2,"type":3,"entity_ids":["1","2"],"constraint_data":{"length":5}},{"id":"5","category":2,"type":2,"entity_ids":["2"],"anchor_pos":{"x":0,"y":0,"z":0},"constraint_data":{"length":5}},{"id":"6","category":2,"type":5,"entity_ids":["1","2"],"constraint_data":{"restLength":5}}]})");
+        require(constraintsEditor.fromJsonString(constraintScene), "约束测试场景加载失败");
+        require(constraintsEditor.setModelTransform("2", QVector3D(6, 8, 0), QQuaternion()), "移动实体失败");
+        for (const auto* id : {"3", "4", "5"})
+            require(std::abs(constraintsEditor.getModel(id)->payload()["constraint_data"].toObject()["length"].toDouble() - 10) < 1e-6, "关联约束长度未同步");
+        require(constraintsEditor.getModel("6")->payload()["constraint_data"].toObject()["restLength"].toDouble() == 5, "弹簧自然长度被改变");
+        require(constraintsEditor.undo(), "约束变换撤销失败");
+        require(constraintsEditor.getModel("4")->payload()["constraint_data"].toObject()["length"].toDouble() == 5, "撤销未恢复约束长度");
+        require(constraintsEditor.redo(), "约束变换重做失败");
+        require(constraintsEditor.getModel("4")->payload()["constraint_data"].toObject()["length"].toDouble() == 10, "重做未恢复约束长度");
+        constraintsEditor.getModel("1")->setPos(QVector3D(6, 0, 0));
+        require(std::abs(constraintsEditor.getModel("3")->payload()["constraint_data"].toObject()["length"].toDouble() - 8) < 1e-6, "直接移动未同步约束长度");
+        QTemporaryDir documentDir(QDir::currentPath() + QStringLiteral("/editor-test-XXXXXX"));
+        require(documentDir.isValid(), "临时目录创建失败");
+        EditorManager documentsEditor;
+        require(documentsEditor.documentNeedsSaveAs(), "新场景应要求另存为");
+        require(documentsEditor.fromJsonString(source), "文档场景初始化失败");
+        const QString documentPath = documentDir.filePath("scene.epscene");
+        require(documentsEditor.saveDocument(documentPath), "文档首次保存失败");
+        require(!documentsEditor.documents()[0].toMap()["dirty"].toBool(), "保存后文档仍标记为修改");
+        require(documentsEditor.setModelTransform("2", QVector3D(3, 4, 5), QQuaternion()), "文档修改失败");
+        require(documentsEditor.documents()[0].toMap()["dirty"].toBool(), "修改后文档未标记为修改");
+        documentsEditor.newDocument();
+        require(documentsEditor.count() == 0 && documentsEditor.documents().size() == 2, "新建标签没有隔离场景");
+        require(documentsEditor.switchDocument(0) && documentsEditor.getModel("2")->pos() == QVector3D(3, 4, 5), "切换标签丢失场景");
+        require(documentsEditor.undo() && documentsEditor.getModel("2")->pos() == QVector3D(), "切换标签丢失撤销历史");
+        require(!documentsEditor.documents()[0].toMap()["dirty"].toBool(), "撤销到保存状态后仍标记为修改");
+        require(QFile::remove(documentPath), "测试文件删除失败");
+        require(documentsEditor.documentNeedsSaveAs() && !documentsEditor.saveDocument(), "源文件消失后未要求选择路径");
         auto* sharedEditor = EditorManager::instance();
         const QString copyScene = QStringLiteral(R"({"models":[{"id":"101","name":"甲","category":0,"type":1,"mass":1},{"id":"102","name":"乙","category":0,"type":1,"mass":1},{"id":"103","name":"绳","category":2,"type":1,"entity_ids":["101","102"],"constraint_data":{"length":1}}]})");
         require(sharedEditor->fromJsonString(copyScene), "复制测试场景加载失败");

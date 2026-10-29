@@ -389,7 +389,7 @@ namespace egret
 
         void _initSubSubDefaults();
         
-        void resetToDefaults();
+        Q_INVOKABLE void resetToDefaults();
         
         void emitHasSubTypes();
         

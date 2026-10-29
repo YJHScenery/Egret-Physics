@@ -16,6 +16,9 @@
 #include "editor_manager.h"
 // EditorManager.cpp
 #include <QFile>
+#include <QFileInfo>
+#include <QSaveFile>
+#include <QUrl>
 #include <QJsonDocument>
 #include <QDebug>
 #include <QQmlEngine>
@@ -28,13 +31,171 @@ namespace egret
 {
     EditorManager::EditorManager(QObject* parent) : QObject(parent)
     {
-        // loadFromJson("C:/Users/jehor/Desktop/114514.json");
+        m_documents.append(Document{});
+        m_documents[0].savedContent = documentContent();
+        connect(this, &EditorManager::modelListChanged, this, [this] { if (!m_switchingDocument) emit documentsChanged(); });
+        connect(this, &EditorManager::modelUpdated, this, [this](const QString&) { if (!m_switchingDocument) emit documentsChanged(); });
+    }
+
+    QByteArray EditorManager::documentContent() const
+    {
+        QJsonArray models;
+        for (const auto& model : m_modelList) models.append(model->toJson());
+        return QJsonDocument(models).toJson(QJsonDocument::Compact);
+    }
+
+    QVariantList EditorManager::documents() const
+    {
+        QVariantList result;
+        for (int i = 0; i < m_documents.size(); ++i) {
+            const auto& document = m_documents[i];
+            QJsonArray models;
+            if (i != m_currentDocument) for (const auto& model : document.models) models.append(model->toJson());
+            const QByteArray content = i == m_currentDocument ? documentContent() : QJsonDocument(models).toJson(QJsonDocument::Compact);
+            result.append(QVariantMap{{"name", document.path.isEmpty() ? QStringLiteral("untitled.epscene") : QFileInfo(document.path).fileName()},
+                                      {"path", document.path}, {"dirty", content != document.savedContent}});
+        }
+        return result;
+    }
+
+    void EditorManager::storeDocument()
+    {
+        auto& document = m_documents[m_currentDocument];
+        document.models = m_modelList;
+        document.undo = m_undoStack;
+        document.redo = m_redoStack;
+    }
+
+    void EditorManager::restoreDocument(int index)
+    {
+        m_switchingDocument = true;
+        m_currentDocument = index;
+        const auto& document = m_documents[index];
+        m_modelList = document.models;
+        m_undoStack = document.undo;
+        m_redoStack = document.redo;
+        m_models.clear();
+        for (const auto& model : m_modelList) m_models.insert(model->id(), model);
+        emitModelListChanged();
+        m_switchingDocument = false;
+        emit documentsChanged();
+    }
+
+    void EditorManager::newDocument()
+    {
+        storeDocument();
+        Document document;
+        document.savedContent = QJsonDocument(QJsonArray{}).toJson(QJsonDocument::Compact);
+        m_documents.append(document);
+        restoreDocument(m_documents.size() - 1);
+    }
+
+    bool EditorManager::switchDocument(int index)
+    {
+        if (index < 0 || index >= m_documents.size()) return false;
+        if (index == m_currentDocument) return true;
+        storeDocument();
+        restoreDocument(index);
+        return true;
+    }
+
+    bool EditorManager::openDocument(const QString& path)
+    {
+        const QString localPath = path.startsWith(QStringLiteral("file:")) ? QUrl(path).toLocalFile() : path;
+        QFile file(localPath);
+        if (!file.open(QIODevice::ReadOnly)) return false;
+        const QByteArray data = file.readAll();
+        const QJsonDocument parsed = QJsonDocument::fromJson(data);
+        if (!parsed.isObject() || !parsed.object().value("models").isArray()) return false;
+        newDocument();
+        m_switchingDocument = true;
+        const bool ok = fromJsonString(QString::fromUtf8(data));
+        m_undoStack.clear();
+        m_redoStack.clear();
+        m_switchingDocument = false;
+        if (!ok) { closeDocument(m_currentDocument); return false; }
+        m_documents[m_currentDocument].path = QFileInfo(localPath).absoluteFilePath();
+        m_documents[m_currentDocument].savedContent = documentContent();
+        emit documentsChanged();
+        return true;
+    }
+
+    bool EditorManager::documentNeedsSaveAs() const
+    {
+        const QString path = m_documents[m_currentDocument].path;
+        return path.isEmpty() || !QFileInfo::exists(path);
+    }
+
+    bool EditorManager::saveDocument(const QString& path)
+    {
+        const QString target = path.isEmpty() ? m_documents[m_currentDocument].path :
+            (path.startsWith(QStringLiteral("file:")) ? QUrl(path).toLocalFile() : path);
+        if (target.isEmpty() || (path.isEmpty() && !QFileInfo::exists(target))) return false;
+        if (!saveToJson(target)) return false;
+        m_documents[m_currentDocument].path = QFileInfo(target).absoluteFilePath();
+        m_documents[m_currentDocument].savedContent = documentContent();
+        emit documentsChanged();
+        return true;
+    }
+
+    bool EditorManager::closeDocument(int index)
+    {
+        if (index < 0 || index >= m_documents.size()) return false;
+        storeDocument();
+        const bool wasCurrent = index == m_currentDocument;
+        m_documents.removeAt(index);
+        if (m_documents.isEmpty()) {
+            Document document;
+            document.savedContent = QJsonDocument(QJsonArray{}).toJson(QJsonDocument::Compact);
+            m_documents.append(document);
+        }
+        if (wasCurrent) restoreDocument(qMin(index, int(m_documents.size()) - 1));
+        else { if (index < m_currentDocument) --m_currentDocument; emit documentsChanged(); }
+        return true;
     }
 
     EditorManager* EditorManager::instance()
     {
         static EditorManager manager;
         return &manager;
+    }
+
+    void EditorManager::watchModelPosition(ModelItemData* model)
+    {
+        connect(model, &ModelItemData::posChanged, this, [this, model] {
+            if (model->category() == 0 || model->category() == 1)
+                updateConstraintLengths(model->id());
+        });
+    }
+
+    void EditorManager::updateConstraintLengths(const QString& entityId)
+    {
+        for (const auto& constraint : m_modelList) {
+            if (constraint->category() != 2 || (constraint->type() != 1 && constraint->type() != 2 && constraint->type() != 3)) continue;
+            QJsonObject payload = constraint->payload();
+            const QJsonArray ids = payload.value("entity_ids").toArray();
+            bool involved = false;
+            for (const auto& id : ids) if (id.toString() == entityId) involved = true;
+            if (!involved || ids.isEmpty()) continue;
+            const auto* first = getModel(ids[0].toString());
+            if (!first) continue;
+            QVector3D other;
+            if (constraint->type() == 2) {
+                const QJsonObject anchor = payload.value("anchor_pos").toObject();
+                if (anchor.isEmpty()) continue;
+                other = QVector3D(anchor.value("x").toDouble(), anchor.value("y").toDouble(), anchor.value("z").toDouble());
+            } else {
+                if (ids.size() != 2) continue;
+                const auto* second = getModel(ids[1].toString());
+                if (!second) continue;
+                other = second->pos();
+            }
+            QJsonObject data = payload.value("constraint_data").toObject();
+            data["length"] = static_cast<double>((first->pos() - other).length());
+            payload["constraint_data"] = data;
+            constraint->setPayload(payload);
+            emit modelUpdated(constraint->id());
+        }
     }
 
     bool EditorManager::addModel(ModelItemData* model)
@@ -64,6 +225,7 @@ namespace egret
         QSharedPointer<ModelItemData> modelPtr(model);
         m_models[id] = modelPtr;
         m_modelList.append(modelPtr);
+        watchModelPosition(model);
         emitModelListChanged();
         emit modelAdded(id);
         emit operationCompleted(true, "Model added successfully");
@@ -92,6 +254,7 @@ namespace egret
         QSharedPointer<ModelItemData> modelPtr(model);
         m_models[id] = modelPtr;
         m_modelList.append(modelPtr);
+        watchModelPosition(model);
         return true;
     }
 
@@ -349,15 +512,17 @@ namespace egret
         root["modelCount"] = m_modelList.size();
         root["models"] = modelsArray;
 
-        QFile file(filePath);
+        QSaveFile file(filePath);
         if (!file.open(QIODevice::WriteOnly)) {
             emit operationCompleted(false, "Cannot open file for writing");
             return false;
         }
 
-        QJsonDocument doc(root);
-        file.write(doc.toJson());
-        file.close();
+        const QByteArray data = QJsonDocument(root).toJson();
+        if (file.write(data) != data.size() || !file.commit()) {
+            emit operationCompleted(false, "Cannot write scene file");
+            return false;
+        }
 
         emit operationCompleted(true, "Models saved to JSON");
         return true;

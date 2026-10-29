@@ -384,6 +384,7 @@ ColumnLayout {
 
             // ── 单击 / 双击 选择区域 ──
             MouseArea {
+                id: itemMouse
                 anchors.fill: parent
                 enabled: true
                 cursorShape: Qt.PointingHandCursor
@@ -396,11 +397,11 @@ ColumnLayout {
                     interval: 300
                     repeat: false
                     onTriggered: {
-                        if (!doubleClickFired) {
+                        if (!itemMouse.doubleClickFired) {
                             // 非约束模式时通知 EditorUnit 进行 3D 视口高亮拾取
                             root.entitySingleClicked(modelData.id);
                         }
-                        doubleClickFired = false;
+                        itemMouse.doubleClickFired = false;
                     }
                 }
 
