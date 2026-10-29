@@ -20,12 +20,12 @@
 namespace egret
 {
     PhysicalEntity::PhysicalEntity(const double mass, const std::uint64_t id)
-        : PhysicsAbstract(id), m_mass(mass), m_id(id)
+        : PhysicsAbstract(id), m_mass(mass)
     {
     }
 
     PhysicalEntity::PhysicalEntity(const Eigen::Vector3d& position, Eigen::Vector3d speed, const double mass, std::uint64_t id)
-        : PhysicsAbstract(id), m_velocity(std::move(speed)), m_mass(mass), m_id(id)
+        : PhysicsAbstract(id), m_velocity(std::move(speed)), m_mass(mass)
     {
         m_transform.setTranslation(position);
     }
@@ -48,6 +48,16 @@ namespace egret
     void PhysicalEntity::setRestitution(const double restitution)
     {
         m_restitution = restitution;
+    }
+
+    void PhysicalEntity::setStaticFriction(const double value)
+    {
+        if (std::isfinite(value) && value >= 0.0) m_staticFriction = value;
+    }
+
+    void PhysicalEntity::setDynamicFriction(const double value)
+    {
+        if (std::isfinite(value) && value >= 0.0) m_dynamicFriction = value;
     }
 
     bool PhysicalEntity::removeForceById(const std::uint64_t id)

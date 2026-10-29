@@ -26,12 +26,12 @@ namespace egret
     }
 
     GravityField::GravityField(Eigen::Vector3d  gravity, Eigen::Vector3d  referencePoint, const std::uint64_t id) :
-        FieldBase(id), m_gravity(std::move(gravity)), m_zeroReferencePoint(std::move(referencePoint))
+        PhysicsAbstract(id), FieldBase(id), m_gravity(std::move(gravity)), m_zeroReferencePoint(std::move(referencePoint))
     {
     }
 
     GravityField::GravityField(const double gravity, const double referenceZ, const std::uint64_t id) :
-        FieldBase(id), m_gravity({0, 0, -gravity}), m_zeroReferencePoint({0, 0, referenceZ})
+        PhysicsAbstract(id), FieldBase(id), m_gravity({0, 0, -gravity}), m_zeroReferencePoint({0, 0, referenceZ})
     {
     }
 

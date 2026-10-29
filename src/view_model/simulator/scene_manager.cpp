@@ -378,11 +378,16 @@ namespace egret
             rb->setRotation(readQuat(obj["rotation"]));
             rb->setScale(readVec3(obj["scale"], {1, 1, 1}));
             rb->setRestitution(obj.contains("restitution") ? obj["restitution"].toDouble() : 1.0);
+            rb->setStaticFriction(obj.value("static_friction").toDouble(0.5));
+            rb->setDynamicFriction(obj.value("dynamic_friction").toDouble(0.5));
             rb->setAngular(readVec3(obj["initial_angular_velocity"]));
             rb->setShape(std::shared_ptr<ShapeBase>(std::move(shape)));
 
             BodyRecord body;
             body.name = obj["name"].toString().toStdString();
+            body.color = obj.value("materials").toObject().value("baseColor").toString().toStdString();
+            body.visible = obj.value("visible").toBool(true);
+            body.loadTime = std::max(0.0, obj.value("load_time").toDouble(0.0));
             body.entity = std::move(rb);
             const QString sid = obj["id"].toString();
             if (!sid.isEmpty()) {
@@ -408,26 +413,31 @@ namespace egret
                     readVec3(fd["reference_point"]), 0);
                 field->setId(fid);
                 record.fields.push_back({obj["name"].toString().toStdString(), std::move(field)});
+                record.fields.back().loadTime = std::max(0.0, obj.value("load_time").toDouble(0.0));
             }
             else if (ftype == 2) {
                 // Gravitation
                 const std::uint64_t fid = obj["id"].toString().toULongLong();
+                const QJsonValue fixedValue = fd.value("fixed");
+                const bool fixed = fixedValue.isBool() ? fixedValue.toBool() : fixedValue.toInt() != 0;
                 auto gf = std::make_shared<GravitationalField>(
-                    readVec3(obj["pos"]),
-                    readVec3(fd["speed"]),
+                    readVec3(fd.value("sourcePos"), readVec3(obj["pos"])),
+                    readVec3(fd.value("sourceVelo"), readVec3(fd["speed"])),
                     fd["mass"].toDouble(0),
                     fd.contains("coupling") ? fd["coupling"].toDouble() : G,
-                    fd["fixed"].toBool(false), 0);
+                    fixed, 0);
                 gf->setId(fid);
 
                 BodyRecord body;
                 body.name = obj["name"].toString().toStdString();
+                body.loadTime = std::max(0.0, obj.value("load_time").toDouble(0.0));
                 body.entity = std::static_pointer_cast<PhysicalEntity>(gf);
                 body.entity->setShape(std::make_unique<ShapeSphere>(10.0));
                 record.bodies.push_back(std::move(body));
 
                 FieldRecord fr;
                 fr.name = obj["name"].toString().toStdString();
+                fr.loadTime = std::max(0.0, obj.value("load_time").toDouble(0.0));
                 fr.field = std::static_pointer_cast<FieldBase>(gf);
                 record.fields.push_back(std::move(fr));
 
@@ -445,6 +455,7 @@ namespace egret
             const std::uint32_t ctype = static_cast<std::uint32_t>(obj["type"].toInteger());
             const QJsonObject cd = obj.value("constraint_data").toObject();
             const QJsonArray eids = obj.value("entity_ids").toArray();
+            const auto previousConstraintCount = record.constraints.size();
 
             // qDebug() << eids;
             // qDebug() << ctype;
@@ -472,7 +483,7 @@ namespace egret
                 if (body) {
                     auto c = std::make_shared<SimplePendulum>(
                         cd["length"].toDouble(),
-                        readVec3(cd["anchor_pos"]), body, cid);
+                        readVec3(obj.value("anchor_pos"), readVec3(cd["anchor_pos"])), body, cid);
                     record.constraints.push_back({obj["name"].toString().toStdString(), std::move(c)});
                 }
             }
@@ -485,13 +496,30 @@ namespace egret
                     record.constraints.push_back({obj["name"].toString().toStdString(), std::move(c)});
                 }
             }
+            else if (ctype == magic_enum::enum_integer(ConstraintType::SlidingRail)) {
+                const Eigen::Vector3d start = readVec3(cd.value("start"), {-100, 0, 0});
+                const Eigen::Vector3d end = readVec3(cd.value("end"), {100, 0, 0});
+                if ((end - start).squaredNorm() > 1e-16 && !eids.empty()) {
+                    const Eigen::Vector3d control1 = readVec3(cd.value("control1"), start + (end - start) / 3.0);
+                    const Eigen::Vector3d control2 = readVec3(cd.value("control2"), start + 2.0 * (end - start) / 3.0);
+                    auto curve = std::make_unique<CurveBezier>(std::vector<Eigen::Vector3d>{start, control1, control2, end});
+                    auto rail = std::make_shared<SlidingRail>(cid, std::move(curve));
+                    rail->setStaticFriction(cd.value("static_friction").toDouble(0.0));
+                    rail->setDynamicFriction(cd.value("dynamic_friction").toDouble(0.0));
+                    for (const auto& id : eids) {
+                        if (auto* entity = strIdToEntity[id.toString().toULongLong()]) rail->registerEntity(entity);
+                    }
+                    record.constraints.push_back({obj["name"].toString().toStdString(), std::move(rail)});
+                }
+            }
             else if (ctype == magic_enum::enum_integer(ConstraintType::Spring) && eids.size() >= 2) {
                 // Spring
                 auto* a = strIdToEntity[eids[0].toString().toULongLong()];
                 auto* b = strIdToEntity[eids[1].toString().toULongLong()];
                 if (a && b) {
                     auto c = std::make_shared<Spring>(
-                        cd["stiffness"].toDouble(), cd["rest_length"].toDouble(), a, b, cid);
+                        cd["stiffness"].toDouble(), cd.value("restLength").toDouble(cd.value("rest_length").toDouble()), a, b, cid);
+                    c->setDamping(cd.value("damping").toDouble(0.0));
                     record.constraints.push_back({obj["name"].toString().toStdString(), std::move(c)});
                 }
             }
@@ -528,17 +556,22 @@ namespace egret
                     constraint->setDefaultDragConfig(cfg);
                 }
 
+                for (const auto& id : eids) {
+                    if (auto* entity = strIdToEntity[id.toString().toULongLong()])
+                        constraint->registerEntity(entity);
+                }
                 if (cd.contains("entity_overrides") && cd["entity_overrides"].isArray()) {
                     for (const QJsonValueConstRef& ov : cd["entity_overrides"].toArray()) {
                         if (!ov.isObject()) continue;
                         const QJsonObject eo = ov.toObject();
                         auto* pe = strIdToEntity[eo["entity_id"].toString().toULongLong()];
-                        if (auto* rb = dynamic_cast<RigidBody*>(pe))
-                            constraint->addEntity(rb, parseDragConfig(eo));
+                        if (pe) constraint->addEntity(pe, parseDragConfig(eo));
                     }
                 }
                 record.constraints.push_back({obj["name"].toString().toStdString(), std::move(constraint)});
             }
+            if (record.constraints.size() > previousConstraintCount)
+                record.constraints.back().loadTime = std::max(0.0, obj.value("load_time").toDouble(0.0));
         }
 
         return record;
@@ -1206,6 +1239,7 @@ namespace egret
         }
 
         m_simTime = static_cast<double>(state.simTimeNs) / 1.0e9;
+        m_world->setSimulationTime(m_simTime);
         m_stepCount = state.stepIndex;
 
         refreshBodyModel();
@@ -1468,6 +1502,8 @@ namespace egret
             item.rotation[3] = static_cast<float>(renderItem.rotation.z());
 
             item.color = QString::fromStdString(renderItem.basic.color);
+            item.staticFriction = renderItem.staticFriction;
+            item.dynamicFriction = renderItem.dynamicFriction;
             item.label = QString::fromStdString(renderItem.basic.label);
 
             // ---- 追踪数据采集 ----

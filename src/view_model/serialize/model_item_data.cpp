@@ -17,6 +17,7 @@
 #include "model_item_data.h"
 #include <QJsonDocument>
 #include <QQmlEngine>
+#include <cmath>
 
 #include "async_logger.h"
 #include "resource_helper.h"
@@ -83,6 +84,7 @@ namespace egret
 
         // 3. 读取所有字段到临时变量
         data.m_name = getString("entity_name");
+        data.m_id = getString("entity_id");
 
         data.m_type = obj["entity_type"].toInteger();
 
@@ -95,6 +97,8 @@ namespace egret
         data.m_loadTime = getDouble("load_time");
 
         data.m_restitution = getDouble("restitution");
+        data.m_staticFriction = obj.value("static_friction").toDouble(0.5);
+        data.m_dynamicFriction = obj.value("dynamic_friction").toDouble(0.5);
 
         switch (data.m_type) {
         case static_cast<std::uint32_t>(ShapeType::Box): {
@@ -248,6 +252,7 @@ namespace egret
 
         m_data.m_scale = QVector3D(1.0f, 1.0f, 1.0f);
         m_data.m_rotation = QQuaternion();
+        updateFrictionAppearance();
     }
 
     double ModelItemData::mass() const { return m_data.m_mass; }
@@ -261,6 +266,32 @@ namespace egret
     std::uint32_t ModelItemData::type() const { return m_data.m_type; }
 
     double ModelItemData::restitution() const { return m_data.m_restitution; }
+    double ModelItemData::staticFriction() const { return m_data.m_staticFriction; }
+    double ModelItemData::dynamicFriction() const { return m_data.m_dynamicFriction; }
+
+    void ModelItemData::updateFrictionAppearance()
+    {
+        // 这是视觉映射而非材料物理性质的推断。
+        const double roughness = 0.15 + 0.7 * m_data.m_dynamicFriction / (1.0 + m_data.m_dynamicFriction);
+        m_data.m_materials->setRoughness(roughness);
+        m_data.m_materials->setMetalness(0.3 / (1.0 + m_data.m_staticFriction));
+    }
+
+    void ModelItemData::setStaticFriction(double value)
+    {
+        if (!std::isfinite(value) || value < 0.0 || value == m_data.m_staticFriction) return;
+        m_data.m_staticFriction = value;
+        updateFrictionAppearance();
+        emit staticFrictionChanged();
+    }
+
+    void ModelItemData::setDynamicFriction(double value)
+    {
+        if (!std::isfinite(value) || value < 0.0 || value == m_data.m_dynamicFriction) return;
+        m_data.m_dynamicFriction = value;
+        updateFrictionAppearance();
+        emit dynamicFrictionChanged();
+    }
 
     QVector3D ModelItemData::pos() const { return m_data.m_pos; }
     QVector3D ModelItemData::scale() const { return m_data.m_scale; }
@@ -354,7 +385,7 @@ namespace egret
     {
         if (m_data.m_initialVelo != initialVelo) {
             m_data.m_initialVelo = initialVelo;
-            emit initialAnguVeloChanged();
+            emit initialVeloChanged();
         }
     }
 
@@ -469,6 +500,8 @@ namespace egret
             // ============ Shape ============
             obj["mass"] = m_data.m_mass;
             obj["restitution"] = m_data.m_restitution;
+            obj["static_friction"] = m_data.m_staticFriction;
+            obj["dynamic_friction"] = m_data.m_dynamicFriction;
             obj["source"] = m_data.m_source;
             obj["scale"] = QJsonArray{m_data.m_scale.x(), m_data.m_scale.y(), m_data.m_scale.z()};
             obj["rotation"] = QJsonArray{
@@ -534,6 +567,8 @@ namespace egret
                 setMass(json["mass"].toDouble());
             if (json.contains("restitution"))
                 setRestitution(json["restitution"].toDouble());
+            setStaticFriction(json.value("static_friction").toDouble(0.5));
+            setDynamicFriction(json.value("dynamic_friction").toDouble(0.5));
             if (json.contains("source"))
                 setSource(json["source"].toString());
             if (json.contains("scale") && json["scale"].isArray()) {
@@ -558,6 +593,7 @@ namespace egret
             }
             if (json.contains("materials") && json["materials"].isObject())
                 m_data.m_materials->fromJson(json["materials"].toObject());
+            updateFrictionAppearance();
             if (json.contains("box_size") && json["box_size"].isArray()) {
                 QJsonArray arr = json["box_size"].toArray();
                 if (arr.size() >= 3) {
@@ -587,6 +623,7 @@ namespace egret
         for (auto it = json.begin(); it != json.end(); ++it) {
             const QString &k = it.key();
             if (k == "mass" || k == "load_time" || k == "restitution"
+                || k == "static_friction" || k == "dynamic_friction"
                 || k == "id" || k == "name" || k == "source"
                 || k == "type" || k == "category" || k == "box_size" || k == "circle_radius"
                 || k == "radius" || k == "height" || k == "length"
@@ -612,6 +649,8 @@ namespace egret
         copy->setMass(source.mass());
         copy->setLoadTime(source.loadTime());
         copy->setRestitution(source.restitution());
+        copy->setStaticFriction(source.staticFriction());
+        copy->setDynamicFriction(source.dynamicFriction());
         copy->setId(source.id());
         copy->setName(source.name());
         copy->setType(source.type());

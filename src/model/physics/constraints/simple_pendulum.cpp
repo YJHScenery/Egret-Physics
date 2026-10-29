@@ -2,7 +2,7 @@
  * @file        simple_pendulum.cpp
  * @brief       单摆约束器实现文件
  * @details     实现SimplePendulum类的各项成员函数，
- *              包含自适应能量补偿逻辑。
+ *              使用单侧位置和速度投影限制绳长。
  *
  * @author      作者姓名 <作者邮箱>
  * @date        2026-04-26
@@ -28,13 +28,13 @@ namespace egret
     SimplePendulum::SimplePendulum() = default;
 
     SimplePendulum::SimplePendulum(const SimplePendulum& other)
-        : ConstraintsBase(other)
+        : PhysicsAbstract(other), ConstraintsBase(other)
           , m_anchor(other.m_anchor)
           , m_entity(other.m_entity)
           , m_length(other.m_length)
     {
-        m_hasForceHistory = false;
-        m_lastForceDir = Eigen::Vector3d::Zero();
+        ConstraintsBase::unregisterEntity(other.m_anchor.getId());
+        ConstraintsBase::registerEntity(&m_anchor);
     }
 
     SimplePendulum& SimplePendulum::operator=(const SimplePendulum& other)
@@ -44,15 +44,15 @@ namespace egret
             m_anchor = other.m_anchor;
             m_entity = other.m_entity;
             m_length = other.m_length;
-            m_hasForceHistory = false;
-            m_lastForceDir = Eigen::Vector3d::Zero();
+            ConstraintsBase::unregisterEntity(other.m_anchor.getId());
+            ConstraintsBase::registerEntity(&m_anchor);
         }
         return *this;
     }
 
     SimplePendulum::SimplePendulum(double length, const Eigen::Vector3d& anchorPos, PhysicalEntity* entity,
                                    std::uint64_t id)
-        : ConstraintsBase(id)
+        : PhysicsAbstract(id), ConstraintsBase(id)
           , m_anchor(anchorPos, Eigen::Vector3d{0, 0, 0}, 0.0, id)
           , m_entity(entity)
           , m_length(length)
@@ -83,11 +83,11 @@ namespace egret
     }
 
     // ========================================================================
-    // 速度约束（能量守恒重定向）
+    // 速度约束
     // ========================================================================
     void SimplePendulum::applyVelocityConstraint([[maybe_unused]] double dt)
     {
-        if (m_entity == nullptr) {
+        if (m_entity == nullptr || m_entity->isFixed()) {
             return;
         }
 
@@ -96,7 +96,7 @@ namespace egret
         Eigen::Vector3d dp = entityPos - anchorPos;
         double dist = dp.norm();
 
-        if (dist <= m_length || dist < 1e-10) {
+        if (dist < m_length - 1e-9 || dist < 1e-10) {
             return;
         }
 
@@ -115,22 +115,18 @@ namespace egret
             return;
         }
 
-        // 能量守恒速度重定向：去除向外径向分量，保持速率不变
-        Eigen::Vector3d vTangent = vEntity - dv * n;
-        double tangentNorm = vTangent.norm();
-        if (tangentNorm > 1e-10) {
-            m_entity->setSpeed(vTangent * (vEntity.norm() / tangentNorm));
-        }
+        // 绷紧时去掉向外的径向速度，不凭空增加切向能量。
+        m_entity->setSpeed(vEntity - dv * n);
     }
 
     // ========================================================================
-    // 位置约束（含自适应能量补偿）
+    // 位置约束
     // ========================================================================
 
     void SimplePendulum::applyPositionConstraint([[maybe_unused]] double dt)
     {
 
-        if (m_entity == nullptr) {
+        if (m_entity == nullptr || m_entity->isFixed()) {
             return;
         }
 
@@ -149,71 +145,7 @@ namespace egret
         // 修正位置
         m_entity->setPosition(entityPos - n * error);
 
-        // 自适应能量补偿
-        Eigen::Vector3d vEntity = m_entity->getVelocity();
-        m_entity->setSpeed(compensateEnergy(vEntity, n, error));
-    }
-
-    // ========================================================================
-    // 自适应能量补偿（内联实现）
-    // ========================================================================
-
-    Eigen::Vector3d SimplePendulum::compensateEnergy(
-        const Eigen::Vector3d& currentV,
-        const Eigen::Vector3d& correctionN,
-        double error) const
-    {
-        const double mEntity = m_entity->getMass();
-        if (mEntity <= 0.0) {
-            return currentV;
-        }
-
-        // ---- 检测合力方向稳定性 ----
-        const Eigen::Vector3d currentForce = m_entity->getJoinForce();
-        const double forceNorm = currentForce.norm();
-
-        bool useConservative = false;
-
-        if (forceNorm > 1e-10) {
-            const Eigen::Vector3d forceDir = currentForce / forceNorm;
-
-            if (!m_hasForceHistory) {
-                m_hasForceHistory = true;
-                m_lastForceDir = forceDir;
-                useConservative = true;
-            } else {
-                const double similarity = m_lastForceDir.dot(forceDir);
-                m_lastForceDir = forceDir;
-                useConservative = (similarity >= kForceStabilityThreshold);
-            }
-        }
-        // 无力作用：不补偿势能，仅做动能守恒重定向
-
-        // ---- 计算目标速率 ----
-        double targetSpeedSq = currentV.squaredNorm();
-
-        if (useConservative) {
-            // 势能补偿：v'² = v² - 2·error·(a·n)
-            const Eigen::Vector3d acceleration = currentForce / mEntity;
-            targetSpeedSq += -2.0 * error * acceleration.dot(correctionN);
-            if (targetSpeedSq < 0.0) {
-                targetSpeedSq = 0.0;
-            }
-        }
-        // 否则保持 |v| 不变（targetSpeedSq 不变）
-
-        const double targetSpeed = std::sqrt(targetSpeedSq);
-
-        // ---- 重定向到切向 ----
-        const double radialV = correctionN.dot(currentV);
-        const Eigen::Vector3d vTangent = currentV - radialV * correctionN;
-        const double tangentNorm = vTangent.norm();
-
-        if (tangentNorm < 1e-10) {
-            return Eigen::Vector3d::Zero();
-        }
-
-        return vTangent * (targetSpeed / tangentNorm);
+        applyVelocityConstraint(dt);
     }
 
     // ========================================================================

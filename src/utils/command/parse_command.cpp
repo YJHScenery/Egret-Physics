@@ -86,12 +86,19 @@ namespace egret::command
 
         // 从场景描述块取出槽位到名称的映射，便于阅读输出。
         QHash<int, QString> slotNames{};
+        QHash<int, QJsonObject> slotMaterials{};
+        QHash<QString, QJsonObject> modelMaterials{};
         const QJsonObject sceneRoot =
             QJsonDocument::fromJson(QByteArray::fromStdString(reader.sceneJson())).object();
+        for (const QJsonValueConstRef& value : sceneRoot.value(QStringLiteral("models")).toArray()) {
+            const QJsonObject model = value.toObject();
+            modelMaterials.insert(model.value(QStringLiteral("id")).toString(), model);
+        }
         for (const QJsonValueConstRef& value : sceneRoot.value(QStringLiteral("entities")).toArray()) {
             const QJsonObject entity = value.toObject();
             slotNames.insert(entity.value(QStringLiteral("slot")).toInt(),
                              entity.value(QStringLiteral("name")).toString());
+            slotMaterials.insert(entity.value(QStringLiteral("slot")).toInt(), entity);
         }
 
         QJsonObject root{};
@@ -117,6 +124,12 @@ namespace egret::command
             entry[QStringLiteral("angularVelocity")] = toJsonArray(body.angularVelocity);
             entry[QStringLiteral("mass")] = body.mass;
             entry[QStringLiteral("restitution")] = body.restitution;
+            const QJsonObject material = slotMaterials.value(static_cast<int>(body.slot));
+            const QJsonObject model = modelMaterials.value(QString::number(body.id));
+            entry[QStringLiteral("staticFriction")] = material.value(QStringLiteral("staticFriction"))
+                .toDouble(model.value(QStringLiteral("static_friction")).toDouble(0.5));
+            entry[QStringLiteral("dynamicFriction")] = material.value(QStringLiteral("dynamicFriction"))
+                .toDouble(model.value(QStringLiteral("dynamic_friction")).toDouble(0.5));
             bodies.append(entry);
         }
         root[QStringLiteral("bodies")] = bodies;
@@ -142,6 +155,7 @@ namespace egret::command
             entry[QStringLiteral("id")] = static_cast<double>(field.id);
             entry[QStringLiteral("slot")] = static_cast<int>(field.slot);
             entry[QStringLiteral("type")] = static_cast<int>(field.type);
+            entry[QStringLiteral("enabled")] = (field.flags & epsx::kFieldFlagEnabled) != 0u;
             entry[QStringLiteral("vector")] = toJsonArray(field.vector);
             entry[QStringLiteral("strength")] = field.strength;
             fields.append(entry);

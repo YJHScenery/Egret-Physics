@@ -71,6 +71,10 @@ namespace egret
         /** 颜色。 */
         QString color{};
 
+        /** 用于展示材质的摩擦系数。 */
+        double staticFriction{0.5};
+        double dynamicFriction{0.5};
+
         /** 标签。 */
         QString label{};
     };
@@ -106,6 +110,8 @@ namespace egret
             AngularVelocityRole,
             KineticEnergyRole,
             ColorRole,
+            StaticFrictionRole,
+            DynamicFrictionRole,
             LabelRole,
         };
 

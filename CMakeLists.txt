@@ -541,6 +541,13 @@ option(BUILD_TESTS "Build unit tests" ON)
 if (BUILD_TESTS)
 add_executable(Egret_Contact_Tests
         tests/test_contact_graph.cpp
+        src/model/physics/field/gravitational_field.cpp
+        src/model/physics/constraints/connecting_line.cpp
+        src/model/physics/constraints/sliding_rail.cpp
+        src/model/physics/constraints/spring.cpp
+        src/model/physics/constraints/simple_pendulum.cpp
+        src/model/geometry/curve/curve_base.cpp
+        src/model/geometry/curve/curve_bezier.cpp
         src/model/solver/solver.cpp
         src/model/solver/ccd_solver_adapter.cpp
         src/model/strategy/broad_phase_strategy/brute_force_broad_strategy.cpp
@@ -567,6 +574,27 @@ add_executable(Egret_Contact_Tests
 target_link_libraries(Egret_Contact_Tests PRIVATE ${QT_MODULES_LIST_WITH_PREFIX})
 enable_testing()
 add_test(NAME EgretContactTests COMMAND Egret_Contact_Tests)
+
+add_executable(Egret_Editor_Tests
+        tests/test_editor_state.cpp
+        src/view_model/editor/editor_manager.cpp
+        src/view_model/editor/editor_manager.h
+        src/view_model/editor/clipboard_helper.cpp
+        src/view_model/editor/clipboard_helper.h
+        src/view_model/serialize/model_item_data.cpp
+        src/view_model/serialize/model_item_data.h
+        src/view_model/serialize/transform_transformer.cpp
+        src/view/resource_helper.cpp
+        src/view/resource_helper.h
+        src/utils/unique_id_generator.cpp
+        src/utils/os/windows/windows_config.cpp
+        src/utils/io/async_logger.cpp)
+target_link_libraries(Egret_Editor_Tests PRIVATE ${QT_MODULES_LIST_WITH_PREFIX})
+target_include_directories(Egret_Editor_Tests PRIVATE ${CMAKE_BINARY_DIR}/generated)
+add_test(NAME EgretEditorTests COMMAND Egret_Editor_Tests)
+add_test(NAME EgretLoadTimeTests COMMAND powershell -NoProfile -File
+        ${CMAKE_SOURCE_DIR}/tests/test_load_time.ps1
+        -Executable $<TARGET_FILE:Egret_Physics> -WorkDir ${CMAKE_BINARY_DIR})
 endif ()
 
 if (BUILD_TESTS)

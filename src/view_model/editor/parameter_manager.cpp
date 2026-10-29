@@ -171,7 +171,7 @@ namespace egret
             {
                 {
                     QStringLiteral("gravity"), QStringLiteral("重力加速度"),
-                    QStringLiteral("vector3d"), QVector3D(0.0f, -9.8f, 0.0f),
+                    QStringLiteral("vector3d"), QVector3D(0.0f, 0.0f, -9.81f),
                     -100000.0, 100000.0, 0.1, 3
                 },
             },
@@ -236,11 +236,6 @@ namespace egret
                     QStringLiteral("float"), 1.0,
                     0.001, 100000.0, 0.1, 3
                 },
-                {
-                    QStringLiteral("anchor_pos"), QStringLiteral("锚点位置"),
-                    QStringLiteral("vector3d"), QVector3D(0.0f, 0.0f, 0.0f),
-                    -100000.0, 100000.0, 0.1, 3
-                },
             },
             0
         });
@@ -254,6 +249,26 @@ namespace egret
                     QStringLiteral("float"), 1.0,
                     0.001, 100000.0, 0.1, 3
                 },
+            },
+            0
+        });
+
+        m_constraintSchemas.append({
+            static_cast<int>(ConstraintType::SlidingRail),
+            QStringLiteral("滑动导轨"),
+            {
+                {QStringLiteral("start"), QStringLiteral("轨道起点"), QStringLiteral("vector3d"),
+                 QVector3D(-100.0f, 0.0f, 0.0f), -100000.0, 100000.0, 0.1, 3},
+                {QStringLiteral("control1"), QStringLiteral("控制点 1"), QStringLiteral("vector3d"),
+                 QVector3D(-33.3333f, 0.0f, 0.0f), -100000.0, 100000.0, 0.1, 3},
+                {QStringLiteral("control2"), QStringLiteral("控制点 2"), QStringLiteral("vector3d"),
+                 QVector3D(33.3333f, 0.0f, 0.0f), -100000.0, 100000.0, 0.1, 3},
+                {QStringLiteral("end"), QStringLiteral("轨道终点"), QStringLiteral("vector3d"),
+                 QVector3D(100.0f, 0.0f, 0.0f), -100000.0, 100000.0, 0.1, 3},
+                {QStringLiteral("static_friction"), QStringLiteral("静摩擦系数"), QStringLiteral("float"),
+                 0.5, 0.0, 10.0, 0.05, 3},
+                {QStringLiteral("dynamic_friction"), QStringLiteral("动摩擦系数"), QStringLiteral("float"),
+                 0.5, 0.0, 10.0, 0.05, 3},
             },
             0
         });

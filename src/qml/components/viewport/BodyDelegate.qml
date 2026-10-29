@@ -43,7 +43,8 @@ Model {
 
     materials: PrincipledMaterial {
         baseColor: bodyRoot.isSelected ? "#5078a0" : bodyColor
-        roughness: 0.18
+        roughness: 0.15 + 0.7 * bodyDynamicFriction / (1.0 + bodyDynamicFriction)
+        metalness: 0.3 / (1.0 + bodyStaticFriction)
         specularAmount: 0.7
         emissiveFactor: bodyRoot.isSelected ? "#1A6AA6" : "#000000"
     }

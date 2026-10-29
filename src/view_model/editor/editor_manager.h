@@ -65,11 +65,18 @@ namespace egret
 
         Q_INVOKABLE bool removeModel(const QString &id);
 
+        /** @brief 批量删除对象，并作为一次操作记录到撤销历史。 */
+        Q_INVOKABLE int removeModels(const QStringList &ids);
+
         Q_INVOKABLE ModelItemData *getModel(const QString &id);
 
         Q_INVOKABLE ModelItemData *getModelAtIndex(int index);
 
         Q_INVOKABLE bool updateModel(const QString &id, ModelItemData *model);
+
+        /** @brief 更新物体变换并记录一次可撤销操作。 */
+        Q_INVOKABLE bool setModelTransform(const QString &id, const QVector3D &position,
+                                           const QQuaternion &rotation);
 
         /**
          * @brief 获取指定模型的透传负载数据（field_data / constraint_data）。
@@ -155,9 +162,9 @@ namespace egret
 
         QList<QSharedPointer<ModelItemData>> m_modelList;
 
-        QList<QHash<QString, QSharedPointer<ModelItemData>>> m_undoStack;
+        QList<QList<QSharedPointer<ModelItemData>>> m_undoStack;
 
-        QList<QHash<QString, QSharedPointer<ModelItemData>>> m_redoStack;
+        QList<QList<QSharedPointer<ModelItemData>>> m_redoStack;
 
         void emitModelListChanged();
 

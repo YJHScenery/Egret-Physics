@@ -26,13 +26,13 @@ namespace egret
     }
 
     ConnectingRod::ConnectingRod(const std::uint64_t id)
-        : ConstraintsBase(id)
+        : PhysicsAbstract(id), ConstraintsBase(id)
     {
     }
 
     ConnectingRod::ConnectingRod(const double length, PhysicalEntity* entityA, PhysicalEntity* entityB,
                                  const std::uint64_t id)
-        : ConstraintsBase(id)
+        : PhysicsAbstract(id), ConstraintsBase(id)
         , m_length(length)
         , m_entityA(entityA)
         , m_entityB(entityB)

@@ -214,8 +214,6 @@ namespace egret
             const double relativeTangentVelocity1 = (contactVelB - contactVelA).dot(tangent1);
             const double relativeTangentVelocity2 = (contactVelB - contactVelA).dot(tangent2);
 
-            const double frictionCoeff = constraint.frictionCoefficient;
-
             // 法向增量先计入接触点相对速度，切向使用完整二维有效质量。
             const Eigen::Vector3d normalImpulse = normalDelta * normal;
             const Eigen::Vector3d normalVelocityChange =
@@ -234,9 +232,12 @@ namespace egret
             Eigen::Vector2d tangentAccum(oldTangentAccum1, oldTangentAccum2);
             if (tangentMass.determinant() > 1e-20)
                 tangentAccum -= tangentMass.ldlt().solve(tangentVelocity);
-            const double frictionLimit = std::max(0.0, frictionCoeff) * newNormalAccum;
-            if (tangentAccum.norm() > frictionLimit && tangentAccum.norm() > 0.0)
-                tangentAccum *= frictionLimit / tangentAccum.norm();
+            const double staticLimit = std::max(0.0, constraint.frictionCoefficient) * newNormalAccum;
+            const double tangentMagnitude = tangentAccum.norm();
+            if (tangentMagnitude > staticLimit && tangentMagnitude > 0.0) {
+                const double dynamicLimit = std::max(0.0, constraint.dynamicFrictionCoefficient) * newNormalAccum;
+                tangentAccum *= std::min(dynamicLimit, tangentMagnitude) / tangentMagnitude;
+            }
             const double newTangentAccum1 = tangentAccum.x();
             const double newTangentAccum2 = tangentAccum.y();
             const double tangentDelta1 = newTangentAccum1 - oldTangentAccum1;

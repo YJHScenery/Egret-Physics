@@ -119,6 +119,21 @@ namespace egret
         return m_models.value(id, QSharedPointer<ModelItemData>()).data();
     }
 
+    int EditorManager::removeModels(const QStringList& ids)
+    {
+        QStringList existing;
+        for (const auto& id : ids) if (m_models.contains(id) && !existing.contains(id)) existing.append(id);
+        if (existing.isEmpty()) return 0;
+        saveState();
+        for (const auto& id : existing) {
+            const auto model = m_models.take(id);
+            m_modelList.removeOne(model);
+            emit modelRemoved(id);
+        }
+        emitModelListChanged();
+        return existing.size();
+    }
+
     ModelItemData* EditorManager::getModelAtIndex(int index)
     {
         if (index < 0 || index >= m_modelList.size())
@@ -146,6 +161,18 @@ namespace egret
 
         emit modelUpdated(id);
         emit operationCompleted(true, "Model updated successfully");
+        return true;
+    }
+
+    bool EditorManager::setModelTransform(const QString& id, const QVector3D& position, const QQuaternion& rotation)
+    {
+        auto* model = getModel(id);
+        if (!model) return false;
+        if (model->pos() == position && model->rotation() == rotation) return true;
+        saveState();
+        model->setPos(position);
+        model->setRotation(rotation);
+        emit modelUpdated(id);
         return true;
     }
 
@@ -221,6 +248,8 @@ namespace egret
         newModel->setMass(data.m_mass);
         newModel->setLoadTime(data.m_loadTime);
         newModel->setRestitution(data.m_restitution);
+        newModel->setStaticFriction(data.m_staticFriction);
+        newModel->setDynamicFriction(data.m_dynamicFriction);
         newModel->setRotation(data.m_rotation);
         newModel->setInitialVelo(data.m_initialVelo);
         newModel->setInitialAnguVelo(data.m_initialAnguVelo);
@@ -239,8 +268,6 @@ namespace egret
         }
 
         newModel->materials()->setBaseColor(data.m_materials->baseColor());
-        newModel->materials()->setMetalness(data.m_materials->metalness());
-        newModel->materials()->setRoughness(data.m_materials->roughness());
         newModel->materials()->setAlphaMode(data.m_materials->alphaMode());
 
         // 透传 field_data / constraint_data payload
@@ -258,13 +285,11 @@ namespace egret
             return false;
         }
 
-        const QList<ModelItemData*> models{findModelsByName(data.m_name)};
-        if (models.isEmpty()) {
-            qDebug() << "cannot find models";
+        ModelItemData* model = getModel(data.m_id);
+        if (!model) {
+            qDebug() << "cannot find model by id";
             return false;
         }
-
-        ModelItemData* model = models[0];
         qDebug() << "name: " << model->name();
 
         qDebug() << "type: " << model->type();
@@ -272,9 +297,13 @@ namespace egret
         saveState();
 
         model->setCategory(data.m_category);
+        model->setName(data.m_name);
+        model->setType(data.m_type);
         model->setMass(data.m_mass);
         model->setLoadTime(data.m_loadTime);
         model->setRestitution(data.m_restitution);
+        model->setStaticFriction(data.m_staticFriction);
+        model->setDynamicFriction(data.m_dynamicFriction);
         model->setPos(data.m_pos);
         qDebug() << "new position" << model->pos();
         qDebug() << "new size:" << data.m_boxSize;
@@ -299,8 +328,6 @@ namespace egret
             model->setLength(data.m_length.value());
         }
         model->materials()->setBaseColor(data.m_materials->baseColor());
-        model->materials()->setMetalness(data.m_materials->metalness());
-        model->materials()->setRoughness(data.m_materials->roughness());
 
         // 更新透传负载（field_data / constraint_data / entity_ids / anchor_pos）
         model->setPayload(data.m_payload);
@@ -382,7 +409,7 @@ namespace egret
         }
 
         saveState();
-        clearAll();
+        clearAllNoSave();
 
         QJsonArray modelsArray = root["models"].toArray();
         for (const QJsonValueRef& value : modelsArray) {
@@ -516,9 +543,9 @@ namespace egret
 
     void EditorManager::saveState()
     {
-        QHash<QString, QSharedPointer<ModelItemData>> currentState;
+        QList<QSharedPointer<ModelItemData>> currentState;
         for (const QSharedPointer<ModelItemData>& model : m_modelList) {
-            currentState[model->id()] = QSharedPointer<ModelItemData>(model->clone());
+            currentState.append(model->clone());
         }
         m_undoStack.append(currentState);
         m_redoStack.clear();
@@ -532,19 +559,19 @@ namespace egret
         }
 
         // 保存当前状态到 redo（手动克隆，不用 saveState 因为 saveState 会清空 m_redoStack）
-        QHash<QString, QSharedPointer<ModelItemData>> currentState;
+        QList<QSharedPointer<ModelItemData>> currentState;
         for (const QSharedPointer<ModelItemData>& model : m_modelList) {
-            currentState[model->id()] = QSharedPointer<ModelItemData>(model->clone());
+            currentState.append(model->clone());
         }
         m_redoStack.append(currentState);
 
         // 恢复上一个状态
-        QHash<QString, QSharedPointer<ModelItemData>> prevState = m_undoStack.takeLast();
+        const auto prevState = m_undoStack.takeLast();
 
         // 用内部清空方法（不触发 saveState），避免破坏 redo 栈
         clearAllNoSave();
 
-        for (const QSharedPointer<ModelItemData>& model : prevState.values()) {
+        for (const QSharedPointer<ModelItemData>& model : prevState) {
             ModelItemData* copy = ModelItemData::createCopy(*model);
             if (!addModelNoSave(copy)) {
                 delete copy;
@@ -564,18 +591,18 @@ namespace egret
         }
 
         // 保存当前状态到 undo（手动克隆）
-        QHash<QString, QSharedPointer<ModelItemData>> currentState;
+        QList<QSharedPointer<ModelItemData>> currentState;
         for (const QSharedPointer<ModelItemData>& model : m_modelList) {
-            currentState[model->id()] = QSharedPointer<ModelItemData>(model->clone());
+            currentState.append(model->clone());
         }
         m_undoStack.append(currentState);
 
-        QHash<QString, QSharedPointer<ModelItemData>> nextState = m_redoStack.takeLast();
+        const auto nextState = m_redoStack.takeLast();
 
         // 用内部清空方法（不触发 saveState）
         clearAllNoSave();
 
-        for (const QSharedPointer<ModelItemData>& model : nextState.values()) {
+        for (const QSharedPointer<ModelItemData>& model : nextState) {
             ModelItemData* copy = ModelItemData::createCopy(*model);
             if (!addModelNoSave(copy)) {
                 delete copy;

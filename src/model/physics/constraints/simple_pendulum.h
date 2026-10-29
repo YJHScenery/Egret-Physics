@@ -33,8 +33,7 @@ namespace egret
      *              锚点是质量为0的固定粒子，摆动物体是质量大于0的运动物体。
      *              支持路径点用于处理绳子遇到阻碍物的情况。
      *
-     *              能量补偿采用自适应内联方式：运行时检测合力方向稳定性，
-     *              自动在势能补偿（保守场）和纯动能守恒（非保守场）之间切换。
+     *              绳长达到上限时使用单侧速度和位置投影。
      *
      * @invariant   m_anchor 是质量为0的固定粒子（锚点）
      * @invariant   m_entity 是质量大于0的摆动物体
@@ -86,26 +85,10 @@ namespace egret
 
         SimplePendulum& operator=(const SimplePendulum& other);
     private:
-        /**
-         * @brief 自适应能量补偿：检测合力方向稳定性，选择补偿策略。
-         * @param currentV    当前速度向量
-         * @param correctionN 修正方向单位向量
-         * @param error       位置修正距离
-         * @return            补偿后的速度向量
-         */
-        [[nodiscard]] Eigen::Vector3d compensateEnergy(
-            const Eigen::Vector3d& currentV,
-            const Eigen::Vector3d& correctionN,
-            double error) const;
-
         Particle m_anchor{{}, {}, 0, 0};               // 锚点（固定粒子）
         PhysicalEntity* m_entity{nullptr};              // 摆动物体
         double m_length{};                  // 摆长（约束长度）
 
-        // 自适应能量补偿状态（mutable：检测状态是实现细节）
-        static constexpr double kForceStabilityThreshold = 0.99;
-        mutable Eigen::Vector3d m_lastForceDir = Eigen::Vector3d::Zero();
-        mutable bool m_hasForceHistory = false;
     };
 } // egret
 

@@ -56,6 +56,12 @@ namespace egret
         /** 物理实体的所有权。 */
         std::shared_ptr<PhysicalEntity> entity;
 
+        /** 场景中保存的渲染颜色；为空时使用默认颜色。 */
+        std::string color;
+
+        /** 是否在视口和离屏渲染中显示。 */
+        bool visible{true};
+
         // /** 碰撞形状的所有权。 */
         // std::unique_ptr<ShapeBase> shape;
 
@@ -64,6 +70,9 @@ namespace egret
 
         /** 是否参与积分。 */
         bool enableIntegration{true};
+
+        /** 开始参与仿真和渲染的时间，单位为秒。 */
+        double loadTime{0.0};
     };
 
     /**
@@ -83,6 +92,9 @@ namespace egret
 
         /** 场的所有权。 */
         std::shared_ptr<FieldBase> field;
+
+        /** 开始作用的时间，单位为秒。 */
+        double loadTime{0.0};
     };
 
     /**
@@ -105,6 +117,9 @@ namespace egret
 
         /** 是否启用。 */
         bool enabled{true};
+
+        /** 开始作用的时间，单位为秒。 */
+        double loadTime{0.0};
     };
 
     /**
@@ -146,6 +161,9 @@ namespace egret
      */
     struct SceneRenderItem
     {
+        /** 用于生成展示材质的摩擦系数。 */
+        double staticFriction{0.5};
+        double dynamicFriction{0.5};
         BasicRenderItem<std::string> basic{};
 
         /** 渲染中心位置（x, y, z）。 */
@@ -483,6 +501,16 @@ namespace egret
          * @return 仿真时间，单位为秒。
          */
         [[nodiscard]] double getSimulationTime() const override;
+
+        /** @brief 设置播放时钟，用于按记录时刻恢复对象可见性。 */
+        void setSimulationTime(double time);
+
+        /** @brief 查询对象在当前仿真时刻是否已加载。 */
+        [[nodiscard]] bool isBodyActive(std::uint64_t id) const;
+        /** @brief 查询力场在当前仿真时刻是否已加载。 */
+        [[nodiscard]] bool isFieldActive(std::uint64_t id) const;
+        /** @brief 查询约束在当前时刻和目标对象状态下是否生效。 */
+        [[nodiscard]] bool isConstraintActive(std::uint64_t id) const;
 
         /**
          * @brief 推进仿真时钟。

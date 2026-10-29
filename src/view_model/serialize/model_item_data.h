@@ -100,6 +100,8 @@ namespace egret
         double m_mass{};
         double m_loadTime{};
         double m_restitution{1.0};
+        double m_staticFriction{0.5};
+        double m_dynamicFriction{0.5};
 
         std::optional<QVector3D> m_boxSize;
         std::optional<double> m_radius;
@@ -160,6 +162,8 @@ namespace egret
         Q_PROPERTY(MaterialData *materials READ materials CONSTANT)
         Q_PROPERTY(quint32 type READ type WRITE setType NOTIFY typeChanged)
         Q_PROPERTY(double restitution READ restitution WRITE setRestitution NOTIFY restitutionChanged)
+        Q_PROPERTY(double staticFriction READ staticFriction WRITE setStaticFriction NOTIFY staticFrictionChanged)
+        Q_PROPERTY(double dynamicFriction READ dynamicFriction WRITE setDynamicFriction NOTIFY dynamicFrictionChanged)
         Q_PROPERTY(QVector3D boxSize READ boxSize WRITE setBoxSize NOTIFY boxSizeChanged)
         Q_PROPERTY(double radius READ radius WRITE setRadius NOTIFY radiusChanged)
         Q_PROPERTY(double height READ height WRITE setHeight NOTIFY heightChanged)
@@ -178,6 +182,10 @@ namespace egret
         [[nodiscard]] QString source() const;
         [[nodiscard]] std::uint32_t type() const;
         [[nodiscard]] double restitution() const;
+        /** @brief 获取静摩擦系数。 */
+        [[nodiscard]] double staticFriction() const;
+        /** @brief 获取动摩擦系数。 */
+        [[nodiscard]] double dynamicFriction() const;
         [[nodiscard]] QVector3D pos() const;
         [[nodiscard]] QVector3D scale() const;
         [[nodiscard]] QQuaternion rotation() const;
@@ -203,6 +211,10 @@ namespace egret
         void setInitialVelo(const QVector3D &initialVelo);
         void setInitialAnguVelo(const QVector3D &initialAnguVelo);
         void setRestitution(double restitution);
+        /** @brief 设置静摩擦系数并更新外观。 */
+        void setStaticFriction(double value);
+        /** @brief 设置动摩擦系数并更新外观。 */
+        void setDynamicFriction(double value);
         void setBoxSize(const QVector3D &boxSize);
         void setRadius(double radius);
         void setHeight(double height);
@@ -246,6 +258,8 @@ namespace egret
         void initialVeloChanged();
         void initialAnguVeloChanged();
         void restitutionChanged();
+        void staticFrictionChanged();
+        void dynamicFrictionChanged();
         void boxSizeChanged();
         void radiusChanged();
         void heightChanged();
@@ -260,6 +274,8 @@ namespace egret
         // MaterialData *m_materials{};
 
         void matchSource();
+        /** @brief 按摩擦系数生成用于展示的材质参数。 */
+        void updateFrictionAppearance();
     };
 
     [[nodiscard]] ModelItemDataField parseModelItemDataFromQMLJson(const QString &qmlJson);

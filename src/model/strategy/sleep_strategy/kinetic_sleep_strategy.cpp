@@ -25,6 +25,7 @@
 #include <numeric>
 #include <map>
 #include <limits>
+#include <cmath>
 
 #include "async_logger.h"
 #include "physical_entity.h"
@@ -65,7 +66,7 @@ namespace egret
             liveIds.insert(id);
 
             // 固定实体（质量 <= 0）不参与休眠判定
-            if (entity->isFixed()) {
+            if (entity->isFixed() || !entity->isActive()) {
                 continue;
             }
 
@@ -111,7 +112,7 @@ namespace egret
             if (a && b && !a->isFixed() && !b->isFixed()) parent[root(c.bodyBIndex)]=root(c.bodyAIndex);
         }
         std::map<std::size_t,std::vector<std::size_t>> islands;
-        for (std::size_t i=0;i<bodies.size();++i) if (bodies[i].entity && !bodies[i].entity->isFixed()) islands[root(i)].push_back(i);
+        for (std::size_t i=0;i<bodies.size();++i) if (bodies[i].entity && bodies[i].entity->isActive() && !bodies[i].entity->isFixed()) islands[root(i)].push_back(i);
         std::unordered_set<std::uint64_t> live;
         for (const auto& [island,nodes]:islands) {
             bool supported=false, low=true;
@@ -135,6 +136,33 @@ namespace egret
                 if (!supported && entity->getJoinForce().norm()>m_config.wakeUpAbsoluteForceThreshold) low=false;
                 if (m_supportSignatures.contains(id) && m_supportSignatures[id]!=signature) low=false;
                 m_supportSignatures[id]=signature;
+            }
+            // 低速不足以证明静止：支撑面的静摩擦还必须能平衡切向合力。
+            // 对同一平面的多个接触点只计一次法向载荷，避免重复估算摩擦。
+            if (supported) {
+                Eigen::Vector3d netForce = Eigen::Vector3d::Zero();
+                for (auto index : nodes) netForce += bodies[index].entity->getJoinForce();
+                Eigen::Vector3d supportNormal = Eigen::Vector3d::Zero();
+                double coefficient = std::numeric_limits<double>::infinity();
+                bool ambiguous = false;
+                for (const auto& c : contacts) {
+                    if (c.bodyAIndex >= bodies.size() || c.bodyBIndex >= bodies.size()) continue;
+                    const auto* a = bodies[c.bodyAIndex].entity;
+                    const auto* b = bodies[c.bodyBIndex].entity;
+                    if (!a || !b || a->isFixed() == b->isFixed()) continue;
+                    const std::size_t dynamicIndex = a->isFixed() ? c.bodyBIndex : c.bodyAIndex;
+                    if (root(dynamicIndex) != island || !c.contactNormal.allFinite() || c.contactNormal.norm() < 1e-12) continue;
+                    const Eigen::Vector3d normal = (a->isFixed() ? 1.0 : -1.0) * c.contactNormal.normalized();
+                    if (supportNormal.squaredNorm() == 0.0) supportNormal = normal;
+                    else if (supportNormal.dot(normal) < 0.999) ambiguous = true;
+                    coefficient = std::min(coefficient, std::sqrt(a->getStaticFriction()) * std::sqrt(b->getStaticFriction()));
+                }
+                if (supportNormal.squaredNorm() > 0.0) {
+                    const double normalLoad = std::max(0.0, -netForce.dot(supportNormal));
+                    const double tangentialLoad = (netForce - netForce.dot(supportNormal) * supportNormal).norm();
+                    if (ambiguous || netForce.dot(supportNormal) > m_config.wakeUpAbsoluteForceThreshold ||
+                        tangentialLoad > coefficient * normalLoad + m_config.wakeUpAbsoluteForceThreshold) low = false;
+                }
             }
             double duration=std::numeric_limits<double>::infinity();
             for (auto index:nodes) {

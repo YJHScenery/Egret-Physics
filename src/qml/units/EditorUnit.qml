@@ -26,11 +26,14 @@ import EditorManager 1.0
 import EnumHandler 1.0
 import EditorManager 1.0
 import ClipboardManager 1.0
+import EgretPhysics 1.0
 
 import "qrc:/components/components"
 import "qrc:/components/components/message_box"
 import "qrc:/components/components/theme"
 import "qrc:/components/components/basic"
+import "qrc:/components/components/viewport"
+import "qrc:/materials/materials"
 
 ColumnLayout {
     id: editorRoot
@@ -97,13 +100,8 @@ ColumnLayout {
         }
 
         // 其次 3D 视口单选
-        var pickedName = editorCanvas.selectedObjectName;
-        if (pickedName && pickedName !== "") {
-            var models = EditorManager.findModelsByName(pickedName);
-            if (models.length > 0) {
-                ids.push(models[0].id);
-            }
-        }
+        var pickedId = editorCanvas.selectedObjectName;
+        if (pickedId && EditorManager.getModel(pickedId)) ids.push(pickedId);
 
         return ids;
     }
@@ -120,7 +118,8 @@ ColumnLayout {
         var count = sceneEntityListPanel.selectedEntityIds.length;
         if (tid === 1 || tid === 3 || tid === 5) return count === 2;  // 连接线/连接杆/弹簧
         if (tid === 2) return count === 1;                              // 单摆
-        if (tid === 7) return count >= 1;                              // 空气阻力
+        if (tid === 4) return count >= 1;                              // 滑动导轨
+        if (tid === 6) return count >= 1;                              // 空气阻力
         return true;
     }
 
@@ -259,10 +258,8 @@ ColumnLayout {
     }
 
     // ── 辅助：将选中实体的数据加载到 inspectorPanel（按名称查找，视口 pick 使用） ──
-    function loadModelToInspector(modelName) {
-        var models = EditorManager.findModelsByName(modelName);
-        if (models.length === 0) return false;
-        return loadModelById(models[0].id);
+    function loadModelToInspector(modelId) {
+        return loadModelById(modelId);
     }
 
     /**
@@ -350,6 +347,16 @@ ColumnLayout {
                 }
             }
 
+            // 旧版直线轨道没有控制点，编辑时保留原来的几何形状。
+            if (category === 2 && model.type === 4 && paramValues.start && paramValues.end) {
+                var start = paramValues.start;
+                var end = paramValues.end;
+                if (!paramValues.control1)
+                    paramValues.control1 = Qt.vector3d((2 * start.x + end.x) / 3, (2 * start.y + end.y) / 3, (2 * start.z + end.z) / 3);
+                if (!paramValues.control2)
+                    paramValues.control2 = Qt.vector3d((start.x + 2 * end.x) / 3, (start.y + 2 * end.y) / 3, (start.z + 2 * end.z) / 3);
+            }
+
             EditorParameterManager.loadFromValues(paramValues);
 
             // 同步 Field 专属的 inspectorPanel 属性（供 serializeToJson 双向读写）
@@ -380,9 +387,12 @@ ColumnLayout {
 
         // 3. 填充 inspectorPanel 通用属性
         inspectorPanel.m_name = model.name;
+        inspectorPanel.m_id = model.id;
         inspectorPanel.m_mass = model.mass;
         inspectorPanel.m_loadTime = model.loadTime;
         inspectorPanel.m_restitution = model.restitution;
+        inspectorPanel.m_staticFriction = model.staticFriction;
+        inspectorPanel.m_dynamicFriction = model.dynamicFriction;
         inspectorPanel.m_pos = Qt.vector3d(model.pos.x, model.pos.y, model.pos.z);
         inspectorPanel.m_scale = Qt.vector3d(model.scale.x, model.scale.y, model.scale.z);
         inspectorPanel.m_rotation = model.rotation;
@@ -405,7 +415,7 @@ ColumnLayout {
         inspectorColumn.subSubGeometryParams = EditorParameterManager.subSubParameters;
 
         // 6. 3D 视口高亮
-        editorCanvas.selectedObjectName = model.name;
+        editorCanvas.selectedObjectName = model.id;
 
         // 7. 同步侧边栏选中状态（仅非选择模式时）
         // 约束器已在 payload 恢复时设定了目标实体 ID，跳过以避免覆盖
@@ -433,7 +443,7 @@ ColumnLayout {
                 if (sceneEntityListPanel.selectionMode) return;
                 var model = EditorManager.getModel(entityId);
                 if (!model) return;
-                editorCanvas.selectedObjectName = model.name;
+                editorCanvas.selectedObjectName = model.id;
             }
 
             // ── 双击 → 自动检测类型，加载到属性面板，进入修改模式 ──
@@ -493,7 +503,7 @@ ColumnLayout {
                 }
 
                 function toRenderVector(x, y, z) {
-                    return Qt.vector3d(x, z, y);
+                    return Qt.vector3d(y, z, x);
                 }
 
                 // ── Quick3D (y-up) → 数学坐标系 (z-up) 逆向转换 ──
@@ -617,7 +627,8 @@ ColumnLayout {
                                 property var transform: EditorManager.setQuick3DRenderTransform(index)
 
 
-                                objectName: modelData.name ? modelData.name : ("model-" + index)
+                                objectName: modelData.id
+                                visible: modelData.category === 0 && modelData.visible
 
                                 source: modelData.source
 
@@ -639,6 +650,52 @@ ColumnLayout {
                                     cullMode: Material.NoCulling
                                 }
 
+                            }
+                        }
+
+                        // 与播放器使用相同的约束委托，端点由当前编辑器模型提供。
+                        Repeater3D {
+                            model: basicNode.modelList
+                            delegate: ConstraintDelegate {
+                                property var payload: modelData.category === 2 ? EditorManager.getModelPayload(modelData.id) : ({})
+                                property var targets: payload.entity_ids || []
+                                property var firstBody: targets.length > 0 ? EditorManager.getModel(targets[0]) : null
+                                property var secondBody: targets.length > 1 ? EditorManager.getModel(targets[1]) : null
+                                property var anchor: payload.anchor_pos || {x: 0, y: 0, z: 0}
+                                property var firstPoint: modelData.type === 2 ? Qt.vector3d(anchor.x || 0, anchor.y || 0, anchor.z || 0)
+                                                                                 : (firstBody ? firstBody.pos : Qt.vector3d(0, 0, 0))
+                                property var secondPoint: modelData.type === 2 ? (firstBody ? firstBody.pos : Qt.vector3d(0, 0, 0))
+                                                                                  : (secondBody ? secondBody.pos : Qt.vector3d(0, 0, 0))
+                                property var constraintPositionA: [firstPoint.y, firstPoint.z, firstPoint.x]
+                                property var constraintPositionB: [secondPoint.y, secondPoint.z, secondPoint.x]
+                                property int constraintKind: modelData.type
+                                property real constraintConstraintLength: (payload.constraint_data || {}).length || (payload.constraint_data || {}).restLength || 0
+                                property real constraintCurrentDistance: secondPoint.minus(firstPoint).length()
+                                property color constraintColor: "#4FC3F7"
+                                visible: modelData.category === 2 && modelData.visible
+                                         && ((modelData.type === 2 && firstBody) || (modelData.type !== 2 && firstBody && secondBody))
+                            }
+                        }
+
+                        // 导轨显示其实际贝塞尔几何，不使用占位刚体。
+                        Repeater3D {
+                            model: basicNode.modelList
+                            delegate: Model {
+                                property var payload: modelData.category === 2 ? EditorManager.getModelPayload(modelData.id) : ({})
+                                property var rail: payload.constraint_data || ({})
+                                property var startPoint: rail.start || [-100, 0, 0]
+                                property var endPoint: rail.end || [100, 0, 0]
+                                property var control1: rail.control1 || [(2 * startPoint[0] + endPoint[0]) / 3, (2 * startPoint[1] + endPoint[1]) / 3, (2 * startPoint[2] + endPoint[2]) / 3]
+                                property var control2: rail.control2 || [(startPoint[0] + 2 * endPoint[0]) / 3, (startPoint[1] + 2 * endPoint[1]) / 3, (startPoint[2] + 2 * endPoint[2]) / 3]
+                                visible: modelData.category === 2 && modelData.type === 4 && modelData.visible
+                                geometry: BezierCurveGeometry {
+                                    controlPoints: [editorCanvas.toRenderVector(startPoint[0], startPoint[1], startPoint[2]),
+                                                    editorCanvas.toRenderVector(control1[0], control1[1], control1[2]),
+                                                    editorCanvas.toRenderVector(control2[0], control2[1], control2[2]),
+                                                    editorCanvas.toRenderVector(endPoint[0], endPoint[1], endPoint[2])]
+                                    segments: 128
+                                }
+                                materials: EgretLineMaterial { lineColor: "#E67E22" }
                             }
                         }
 
@@ -857,10 +914,7 @@ ColumnLayout {
                             inspectorPanel.m_rotation = mathRot;
 
                             // 直接写入 C++ 数据模型 — 不触发 modelListChanged，Repeater3D 不重建
-                            var models = EditorManager.findModelsByName(editorCanvas.selectedObjectName);
-                            if (models.length > 0) {
-                                models[0].pos = mathPos;
-                                models[0].rotation = mathRot;
+                            if (EditorManager.setModelTransform(editorCanvas.selectedObjectName, mathPos, mathRot)) {
                                 console.log("Gizmo auto-saved — direct model update,"
                                     + " delegate & gizmo preserved");
                             }
@@ -975,7 +1029,10 @@ ColumnLayout {
                 property real m_mass: 0.0
                 property real m_loadTime: 0.0
                 property real m_restitution: 1.0
+                property real m_staticFriction: 0.5
+                property real m_dynamicFriction: 0.5
                 property string m_name: ""
+                property string m_id: ""
 
                 property int m_type: 0
 
@@ -1016,6 +1073,7 @@ ColumnLayout {
 
                     var data = {
                         entity_name: inspectorPanel.m_name,
+                        entity_id: operatingButton.isCreateMode ? "" : inspectorPanel.m_id,
                         entity_type: inspectorPanel.m_type,
                         category: category,
                         load_time: inspectorPanel.m_loadTime,
@@ -1026,6 +1084,8 @@ ColumnLayout {
                         // ============ Shape ============
                         data.entity_mass = inspectorPanel.m_mass;
                         data.restitution = inspectorPanel.m_restitution;
+                        data.static_friction = inspectorPanel.m_staticFriction;
+                        data.dynamic_friction = inspectorPanel.m_dynamicFriction;
                         data.scale = [inspectorPanel.m_scale.x, inspectorPanel.m_scale.y, inspectorPanel.m_scale.z];
                         data.rotation = [inspectorPanel.m_rotation.scalar, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z];
                         data.initial_velocity = [inspectorPanel.m_initialVelo.x, inspectorPanel.m_initialVelo.y, inspectorPanel.m_initialVelo.z];
@@ -1316,7 +1376,6 @@ ColumnLayout {
                                 TextField {
                                     id: nameTextField
                                     // property bool isReadOnly: false
-                                    readOnly: !(operatingButton.isCreateMode)
                                     anchors.fill: parent
                                     text: inspectorPanel.m_name
                                     onTextChanged: inspectorPanel.m_name = text
@@ -1467,7 +1526,7 @@ ColumnLayout {
                             FloatField {
                                 Layout.fillWidth: true
                                 from: 0
-                                to: 2
+                                to: 1
                                 stepSize: 0.05
                                 value: inspectorPanel.m_restitution
                                 onValueChanged: inspectorPanel.m_restitution = value
@@ -1533,7 +1592,7 @@ ColumnLayout {
                                     } else if (tid === 2) {
                                         sceneEntityListPanel.minSelection = 1;
                                         sceneEntityListPanel.maxSelection = 1;
-                                    } else if (tid === 7) {
+                                    } else if (tid === 4 || tid === 6) {
                                         sceneEntityListPanel.minSelection = 1;
                                         sceneEntityListPanel.maxSelection = 999;
                                     } else {
@@ -1576,8 +1635,9 @@ ColumnLayout {
                                     if (tid === 1) return "连接线需选择 2 个实体 — 长度自动计算";
                                     if (tid === 2) return "单摆需选择 1 个实体 + 设置锚点位置";
                                     if (tid === 3) return "连接杆需选择 2 个实体 — 长度自动计算";
+                                    if (tid === 4) return "导轨需选择至少 1 个实体并设置起点和终点";
                                     if (tid === 5) return "弹簧需选择 2 个实体（在左侧实体列表中点击选择）";
-                                    if (tid === 7) return "空气阻力需选择至少 1 个实体";
+                                    if (tid === 6) return "空气阻力需选择至少 1 个实体";
                                     return "";
                                 }
                                 color: "#8FB8E0"
@@ -2412,29 +2472,29 @@ ColumnLayout {
                             }
 
                             Label {
-                                text: "金属度"
+                                text: "静摩擦系数"
                                 color: "#BFD8F4"
                             }
                             FloatField {
                                 Layout.fillWidth: true
                                 from: 0
-                                to: 1
+                                to: 10
                                 stepSize: 0.05
-                                value: inspectorPanel.m_metalness
-                                onValueChanged: inspectorPanel.m_metalness = value
+                                value: inspectorPanel.m_staticFriction
+                                onValueChanged: inspectorPanel.m_staticFriction = value
                             }
 
                             Label {
-                                text: "粗糙度"
+                                text: "动摩擦系数"
                                 color: "#BFD8F4"
                             }
                             FloatField {
                                 Layout.fillWidth: true
                                 from: 0
-                                to: 1
+                                to: 10
                                 stepSize: 0.05
-                                value: inspectorPanel.m_roughness
-                                onValueChanged: inspectorPanel.m_roughness = value
+                                value: inspectorPanel.m_dynamicFriction
+                                onValueChanged: inspectorPanel.m_dynamicFriction = value
                             }
                         }
 

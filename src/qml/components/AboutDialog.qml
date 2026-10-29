@@ -259,6 +259,7 @@ Dialog {
 
         Rectangle {
             anchors.centerIn: parent
+            anchors.verticalCenterOffset: -10
             width: 100
             height: 36
             radius: 8

@@ -104,13 +104,13 @@ namespace egret
                 if (entity->isAsleep()) {
                     flags |= epsx::kBodyStateAsleep;
                 }
-                if (!entity->isFixed()) {
-                    flags |= epsx::kBodyStateIntegration;
-                }
-                else {
+                if (entity->isFixed()) {
                     flags |= epsx::kBodyStateStatic;
                 }
-                flags |= epsx::kBodyStateCollision;
+                else if (world.isBodyActive(entity->getId())) {
+                    flags |= epsx::kBodyStateIntegration;
+                }
+                if (world.isBodyActive(entity->getId())) flags |= epsx::kBodyStateCollision;
                 body.stateFlags = flags;
 
                 frame.bodies.push_back(body);
@@ -128,7 +128,7 @@ namespace egret
                 state.id = constraint->getId();
                 state.slot = static_cast<std::uint32_t>(slot);
                 state.type = static_cast<std::uint32_t>(constraint->getType());
-                state.flags = constraint->isEnabled() ? epsx::kConstraintFlagEnabled : 0u;
+                state.flags = world.isConstraintActive(constraint->getId()) ? epsx::kConstraintFlagEnabled : 0u;
                 state.restLength = constraint->getReferenceLength();
                 state.error = constraint->computeConstraintError();
                 state.currentLength = state.restLength + state.error;
@@ -165,7 +165,7 @@ namespace egret
                 state.id = field->getId();
                 state.slot = static_cast<std::uint32_t>(slot);
                 state.type = static_cast<std::uint32_t>(field->getType());
-                state.flags = epsx::kFieldFlagEnabled;
+                state.flags = world.isFieldActive(field->getId()) ? epsx::kFieldFlagEnabled : 0u;
                 frame.fields.push_back(state);
             }
 
@@ -250,6 +250,8 @@ namespace egret
                 }
                 entry[QStringLiteral("mass")] = entity->getMass();
                 entry[QStringLiteral("restitution")] = entity->getRestitution();
+                entry[QStringLiteral("staticFriction")] = entity->getStaticFriction();
+                entry[QStringLiteral("dynamicFriction")] = entity->getDynamicFriction();
                 entry[QStringLiteral("fixed")] = entity->isFixed();
                 entityTable.append(entry);
             }

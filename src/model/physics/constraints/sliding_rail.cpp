@@ -3,9 +3,9 @@
  * @brief       滑轨约束器实现文件。
  * @details     实现 SlidingRail 类的各项约束求解方法：
  *              - applyConstraintForces（主要）：分解力 → 注入法向反作用力
- *              - applyPositionConstraint（微调）：偏离轨道时轻柔回拉
- *              - applyVelocityConstraint（微调）：法向速度超限时衰减
- *              - applyAngularVelocityConstraint（微调）：朝向偏差超限时修正
+ *              - applyPositionConstraint：将质心投影到轨道
+ *              - applyVelocityConstraint：移除法向速度并限制端点
+ *              - applyFrictionForces：依据反力计算切向摩擦
  *              - findClosestPointOnCurve：采样 + 三分搜索精化
  *
  * @author      作者姓名 <作者邮箱>
@@ -117,7 +117,10 @@ namespace egret
             }
         }
 
-        const double tFinal = (tLow + tHigh) / 2.0;
+        double tFinal = (tLow + tHigh) / 2.0;
+        const double refinedDist = (m_curve->evaluate(tFinal) - point).squaredNorm();
+        if ((m_curve->evaluate(tStart) - point).squaredNorm() <= refinedDist) tFinal = tStart;
+        if ((m_curve->evaluate(tEnd) - point).squaredNorm() < (m_curve->evaluate(tFinal) - point).squaredNorm()) tFinal = tEnd;
         return {tFinal, m_curve->evaluate(tFinal)};
     }
 
@@ -125,7 +128,7 @@ namespace egret
 
     void SlidingRail::applyReactionForce(PhysicalEntity* entity,
                                          const double t,
-                                         const Eigen::Vector3d& closest) const
+        [[maybe_unused]] const Eigen::Vector3d& closest) const
     {
         if (entity == nullptr || entity->isFixed()) {
             return;
@@ -134,12 +137,7 @@ namespace egret
         // 1. 计算合力
         Eigen::Vector3d totalForce = Eigen::Vector3d::Zero();
         for (const auto& f : entity->getForcesCR()) {
-            totalForce += f.force;
-        }
-
-        // 若无外力，无需施加反力
-        if (totalForce.squaredNorm() < 1e-20) {
-            return;
+            if (f.id != m_id) totalForce += f.force;
         }
 
         // 2. 分解为切向和法向分量
@@ -153,22 +151,23 @@ namespace egret
         const Eigen::Vector3d fParallel = fParallelMag * tangent;
         const Eigen::Vector3d fNormal = totalForce - fParallel;
 
-        // 3. 若法向力可忽略，无需施加反力
-        if (fNormal.squaredNorm() < 1e-20) {
-            return;
+        // 曲率产生向心加速度，采用切向量的有限差分计算 dT/ds。
+        const double tStart = m_curve->getStartT();
+        const double tEnd = m_curve->getEndT();
+        const double step = std::max((tEnd - tStart) * 1e-5, 1e-9);
+        const double left = std::max(tStart, t - step);
+        const double right = std::min(tEnd, t + step);
+        const double derivativeNorm = m_curve->derivative(t).norm();
+        Eigen::Vector3d curvature = Eigen::Vector3d::Zero();
+        if (right > left && derivativeNorm > 1e-12) {
+            curvature = (getUnitTangent(right) - getUnitTangent(left)) / ((right - left) * derivativeNorm);
+            curvature -= tangent * curvature.dot(tangent);
         }
-
-        // 4. 注入法向反作用力（核心约束）
-        const Eigen::Vector3d reactionForce = -fNormal;
+        const double speed = entity->getVelocity().dot(tangent);
+        const Eigen::Vector3d reactionForce = entity->getMass() * speed * speed * curvature - fNormal;
         entity->upsertForce(Force{reactionForce, m_id});
 
-        // 5. 若作用点（曲线最近点）偏离质心，注入等效力矩
-        const Eigen::Vector3d com = entity->getPosition();
-        const Eigen::Vector3d r = closest - com;
-        if (r.squaredNorm() > 1e-12) {
-            const Eigen::Vector3d reactionTorque = r.cross(reactionForce);
-            entity->upsertTorque(Torque{reactionTorque, m_id});
-        }
+        // 此约束限定质心轨迹，不为数值位置误差引入虚假的力矩。
     }
 
     void SlidingRail::applyConstraintForces()
@@ -178,7 +177,7 @@ namespace egret
         }
 
         for (auto* entity : m_registeredEntities) {
-            if (entity == nullptr || entity->isFixed()) {
+            if (entity == nullptr || !entity->isActive() || entity->isFixed()) {
                 continue;
             }
 
@@ -210,6 +209,33 @@ namespace egret
         }
     }
 
+    void SlidingRail::applyFrictionForces(const double dt)
+    {
+        if (!m_enabled || !m_curve || !std::isfinite(dt) || dt <= 0.0) return;
+        for (auto* entity : m_registeredEntities) {
+            if (!entity || !entity->isActive() || entity->isFixed() || entity->getMass() <= 0.0) continue;
+            const auto it = m_entityParamMap.find(entity->getId());
+            if (it == m_entityParamMap.end()) continue;
+            const Eigen::Vector3d tangent = getUnitTangent(it->second);
+            if (tangent.squaredNorm() < 1e-12) continue;
+            Eigen::Vector3d external = Eigen::Vector3d::Zero();
+            Eigen::Vector3d reaction = Eigen::Vector3d::Zero();
+            for (const auto& force : entity->getForcesCR()) {
+                if (force.id != m_id) external += force.force;
+                else reaction += force.force;
+            }
+            reaction -= reaction.dot(tangent) * tangent;
+            const double normalLoad = reaction.norm();
+            const double predictedVelocity = entity->getVelocity().dot(tangent) + external.dot(tangent) * dt / entity->getMass();
+            const double desiredForce = -predictedVelocity * entity->getMass() / dt;
+            const double staticLimit = std::sqrt(m_frictionCoeff) * std::sqrt(entity->getStaticFriction()) * normalLoad;
+            const double dynamicLimit = std::sqrt(m_dynamicFrictionCoeff) * std::sqrt(entity->getDynamicFriction()) * normalLoad;
+            const double friction = std::abs(desiredForce) <= staticLimit ? desiredForce
+                : std::copysign(std::min(dynamicLimit, std::abs(desiredForce)), desiredForce);
+            entity->upsertForce(Force{reaction + friction * tangent, m_id});
+        }
+    }
+
     //  位置微调 
 
     void SlidingRail::applyPositionConstraint([[maybe_unused]] const double dt)
@@ -219,7 +245,7 @@ namespace egret
         }
 
         for (auto* entity : m_registeredEntities) {
-            if (entity == nullptr || entity->isFixed()) {
+            if (entity == nullptr || !entity->isActive() || entity->isFixed()) {
                 continue;
             }
 
@@ -228,6 +254,7 @@ namespace egret
 
             // 查找最近曲线点
             auto it = m_entityParamMap.find(entityId);
+            const bool firstProjection = it == m_entityParamMap.end();
             std::optional<double> guess = (it != m_entityParamMap.end())
                                               ? std::optional(it->second)
                                               : std::nullopt;
@@ -246,7 +273,7 @@ namespace egret
             }
 
             // 确定拉回系数
-            const double factor = (it == m_entityParamMap.end())
+            const double factor = firstProjection
                                       ? m_firstSnapFactor // 首次出现，快速拉入
                                       : m_pullBackFactor; // 常规微调
 
@@ -256,8 +283,6 @@ namespace egret
             if (moveDist > k_minMove) {
                 const Eigen::Vector3d offsetWithFactor {offset * factor};
                 const Eigen::Vector3d newPos = pos + offsetWithFactor;
-
-                LOG_DEBUG(std::format("offset: {}, {}, {}", offsetWithFactor.x(), offsetWithFactor.y(), offsetWithFactor.z()));
 
                 entity->setPosition(newPos);
             }
@@ -273,7 +298,7 @@ namespace egret
         }
 
         for (auto* entity : m_registeredEntities) {
-            if (entity == nullptr || entity->isFixed()) {
+            if (entity == nullptr || !entity->isActive() || entity->isFixed()) {
                 continue;
             }
 
@@ -291,19 +316,20 @@ namespace egret
             const Eigen::Vector3d v = entity->getVelocity();
 
             // 分解速度
-            const double vParallelMag = v.dot(tangent);
+            double vParallelMag = v.dot(tangent);
+            const double epsilon = 1e-8 * std::max(1.0, m_curve->getEndT() - m_curve->getStartT());
+            if ((t <= m_curve->getStartT() + epsilon && vParallelMag < 0.0) ||
+                (t >= m_curve->getEndT() - epsilon && vParallelMag > 0.0)) vParallelMag = 0.0;
             const Eigen::Vector3d vParallel = vParallelMag * tangent;
             const Eigen::Vector3d vNormal = v - vParallel;
 
             const double vNormalMag = vNormal.norm();
-            if (vNormalMag < m_velocityTolerance) {
+            if (vNormalMag < m_velocityTolerance && (v - vParallel).norm() < m_velocityTolerance) {
                 continue;
             }
 
             // 衰减法向速度分量
             const Eigen::Vector3d vNew = vParallel + vNormal * (1.0 - m_normalDampingFactor);
-
-            LOG_DEBUG(std::format("New Speed - Old Speed = {}" , (vNew - entity->getSpeedCR()).norm()));
 
             entity->setSpeed(vNew);
         }
@@ -312,46 +338,7 @@ namespace egret
     //  角速度微调
     void SlidingRail::applyAngularVelocityConstraint([[maybe_unused]] const double dt)
     {
-        if (!m_enabled || m_curve == nullptr || dt <= 0.0) {
-            return;
-        }
-
-        for (auto* entity : m_registeredEntities) {
-            if (entity == nullptr || entity->isFixed()) {
-                continue;
-            }
-
-            auto it = m_entityParamMap.find(entity->getId());
-            if (it == m_entityParamMap.end()) {
-                continue;
-            }
-
-            const double t = it->second;
-            const Eigen::Vector3d tangent = getUnitTangent(t);
-            if (tangent.squaredNorm() < 1e-12) {
-                continue;
-            }
-
-            // 获取实体当前旋转矩阵的第一列作为"前方"参考方向
-            const Eigen::Matrix3d rotMat = entity->getTransformCR().getRotationMatrix();
-            const Eigen::Vector3d forward = rotMat.col(0);
-
-            // 计算前方方向与曲线切向的偏差
-            const Eigen::Vector3d cross = forward.cross(tangent);
-            const double sinAngle = cross.norm();
-
-            if (sinAngle <= m_angularTolerance) {
-                continue;
-            }
-
-            // 轻柔角速度修正
-            constexpr double k_angularCorrectionFactor = 0.1;
-            const Eigen::Vector3d axis = cross.normalized();
-            const double angle = std::asin(std::clamp(sinAngle, -1.0, 1.0));
-            const Eigen::Vector3d deltaOmega = axis * angle * k_angularCorrectionFactor / dt;
-
-            entity->setAngular(entity->getAngularCR() + deltaOmega);
-        }
+        // 轨道只约束质心位置，物体仍保有旋转自由度。
     }
 
     //  约束误差 
@@ -374,32 +361,9 @@ namespace egret
                                               ? std::optional(it->second)
                                               : std::nullopt;
 
-            // 注意：findClosestPointOnCurve 不是 const 方法因为它调用了 m_curve，
-            // 但 m_curve 的 evaluate/derivative 是 const 方法，所以这里实际上是 const 安全的。
-            const double tStart = m_curve->getStartT();
-            const double tEnd = m_curve->getEndT();
-
-            // 简化版距离计算（不修改映射，仅计算距离）
             const Eigen::Vector3d pos = entity->getPosition();
-
-            // 采样查找最近距离
-            const double tRange = tEnd - tStart;
-            double bestDistSq = std::numeric_limits<double>::max();
-
-            if (guess.has_value()) {
-                const double tg = std::clamp(guess.value(), tStart, tEnd);
-                bestDistSq = (m_curve->evaluate(tg) - pos).squaredNorm();
-            }
-
-            for (std::size_t i = 0; i <= k_sampleCount; ++i) {
-                const double ts = tStart + (static_cast<double>(i) / static_cast<double>(k_sampleCount)) * tRange;
-                const double dSq = (m_curve->evaluate(ts) - pos).squaredNorm();
-                if (dSq < bestDistSq) {
-                    bestDistSq = dSq;
-                }
-            }
-
-            const double dist = std::sqrt(bestDistSq);
+            const Eigen::Vector3d closest = findClosestPointOnCurve(pos, guess).second;
+            const double dist = (closest - pos).norm();
             if (dist > maxDist) {
                 maxDist = dist;
             }
@@ -422,6 +386,7 @@ namespace egret
           , m_firstSnapFactor(other.m_firstSnapFactor)
           , m_normalDampingFactor(other.m_normalDampingFactor)
           , m_frictionCoeff(other.m_frictionCoeff)
+          , m_dynamicFrictionCoeff(other.m_dynamicFrictionCoeff)
     {
     }
 
@@ -442,6 +407,7 @@ namespace egret
         m_firstSnapFactor = other.m_firstSnapFactor;
         m_normalDampingFactor = other.m_normalDampingFactor;
         m_frictionCoeff = other.m_frictionCoeff;
+        m_dynamicFrictionCoeff = other.m_dynamicFrictionCoeff;
 
         return *this;
     }

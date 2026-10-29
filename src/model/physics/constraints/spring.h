@@ -87,6 +87,11 @@ namespace egret
         /** 设置原长。 */
         void setRestLength(double restLength) { m_restLength = restLength; }
 
+        /** @brief 设置沿弹簧方向的非负阻尼系数。 */
+        void setDamping(double damping) { m_damping = std::max(0.0, damping); }
+        /** @brief 获取沿弹簧方向的阻尼系数。 */
+        [[nodiscard]] double getDamping() const { return m_damping; }
+
         Spring() = delete;
     protected:
         /** 起点实体指针。 */
@@ -103,6 +108,8 @@ namespace egret
 
         /** 弹簧原长（m）。 */
         double m_restLength{};
+        /** 沿弹簧方向的阻尼系数。 */
+        double m_damping{0.0};
     };
 } // egret
 

@@ -87,6 +87,11 @@ namespace egret
 
         [[nodiscard]] virtual bool isFixed() const { return m_mass <= 0; }
 
+        /** @brief 查询实体是否已到加载时间。 */
+        [[nodiscard]] bool isActive() const { return m_active; }
+        /** @brief 设置当前步的加载状态。 */
+        void setActive(bool active) { m_active = active; }
+
         /**
          * @brief 查询实体是否处于休眠（冻结）状态。
          * @return true 表示实体已冻结，false 表示清醒。
@@ -108,6 +113,18 @@ namespace egret
         void wakeUp() { setAsleep(false); }
 
         [[nodiscard]] double getRestitution() const { return m_restitution; }
+
+        /** @brief 获取静摩擦系数。 */
+        [[nodiscard]] double getStaticFriction() const { return m_staticFriction; }
+
+        /** @brief 获取动摩擦系数。 */
+        [[nodiscard]] double getDynamicFriction() const { return m_dynamicFriction; }
+
+        /** @brief 设置非负且有限的静摩擦系数。 */
+        void setStaticFriction(double value);
+
+        /** @brief 设置非负且有限的动摩擦系数。 */
+        void setDynamicFriction(double value);
 
         void setPosition(const Eigen::Vector3d &position) { m_transform.setTranslation(position); }
 
@@ -213,9 +230,16 @@ namespace egret
 
         double m_restitution{1.0}; // 碰撞恢复系数
 
+        /** 未指定材料的旧场景保留原有摩擦行为。 */
+        double m_staticFriction{0.5};
+        /** 滑动时使用的摩擦系数。 */
+        double m_dynamicFriction{0.5};
+
         bool m_asleep{false}; // 休眠（冻结）标志，冻结后跳过积分
 
-        std::uint64_t m_id{};
+        /** 场景按仿真时间维护的加载状态。 */
+        bool m_active{true};
+
     };
 }
 

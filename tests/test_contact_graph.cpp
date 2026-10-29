@@ -10,10 +10,16 @@
 #include "shape_cylinder.h"
 #include "particle.h"
 #include "connecting_rod.h"
+#include "connecting_line.h"
+#include "sliding_rail.h"
+#include "spring.h"
+#include "simple_pendulum.h"
+#include "curve_bezier.h"
 #include "kinetic_sleep_strategy.h"
 #include "async_logger.h"
 #include "solver.h"
 #include "gravity_field.h"
+#include "gravitational_field.h"
 #include "air_resistance.h"
 #include "brute_force_broad_strategy.h"
 #include "velocity_verlet_integrator.h"
@@ -163,6 +169,20 @@ void testInitializedPhysicsState()
     }
     Particle particle(Eigen::Vector3d::Zero(),Eigen::Vector3d::Zero(),1,1);
     require(particle.getJoinForce().norm()==0,"空合力累加器没有清零");
+    GravityField gravity({0,0,-10}, Eigen::Vector3d::Zero(), 100);
+    gravity.applyToEntity(&particle);
+    require(gravity.getId()==100 && particle.hasForce(100), "重力场未使用指定 ID");
+    particle.removeForceById(100);
+    GravitationalField fieldA({10,0,0}, {0,0,0}, 1, 1, true, 101);
+    GravitationalField fieldB({0,10,0}, {0,0,0}, 1, 1, true, 102);
+    fieldA.applyToEntity(&particle); fieldB.applyToEntity(&particle);
+    require(particle.hasForce(101) && particle.hasForce(102) && particle.getForcesCR().size()==2,
+            "不同引力场使用相同的力标识");
+    fieldA.setId(103); fieldA.applyToEntity(&particle);
+    require(particle.hasForce(103), "修改场源 ID 后力标识未同步");
+    require(fieldA.getType()==FieldType::Gravitation, "引力场类型未正确覆盖基类接口");
+    GravitationalField fixedField({0,0,0}, {5,0,0}, 1, 1, true, 104);
+    require(fixedField.getVelocity().norm()==0, "固定场源保留了非零速度");
 }
 
 /** @brief 验证低速无回弹、恢复目标固定、摩擦圆锥和多点支撑合力矩。 */
@@ -194,6 +214,108 @@ void testVelocity()
     const Eigen::Vector3d old=particle.getVelocity();
     resolver.resolveContacts(scene,std::span<const SolverContactConstraint>(&row,1),0.001,config,stats);
     require((particle.getVelocity()-old).head<2>().norm()<=0.50000001,"摩擦超出圆锥");
+
+    row.frictionCoefficient=0.6; row.dynamicFrictionCoefficient=0.2;
+    particle.setSpeed({0.3,0,-1});
+    resolver.resolveContacts(scene,std::span<const SolverContactConstraint>(&row,1),0.001,config,stats);
+    require(std::abs(particle.getVelocity().x())<1e-9,"静摩擦未阻止小切向速度");
+    particle.setSpeed({2,0,-1});
+    resolver.resolveContacts(scene,std::span<const SolverContactConstraint>(&row,1),0.001,config,stats);
+    require(std::abs(particle.getVelocity().x()-1.8)<1e-9,"滑动时未按动摩擦系数施加冲量");
+    row.frictionCoefficient=0; row.dynamicFrictionCoefficient=0;
+    particle.setSpeed({2,0,-1});
+    resolver.resolveContacts(scene,std::span<const SolverContactConstraint>(&row,1),0.001,config,stats);
+    require(std::abs(particle.getVelocity().x()-2)<1e-9,"零摩擦改变了切向速度");
+}
+
+/** @brief 导轨限制质心和端点，弹簧阻尼与空气阻力绑定均正确作用。 */
+void testConstraintBehavior()
+{
+    Particle body({0, 2, 0}, {1, 3, 0}, 1, 10);
+    auto curve = std::make_unique<CurveBezier>(std::vector<Eigen::Vector3d>{{-1,0,0},{1,0,0}});
+    SlidingRail rail(11, std::move(curve));
+    rail.registerEntity(&body);
+    rail.applyPositionConstraint(0.01);
+    rail.applyVelocityConstraint(0.01);
+    require(std::abs(body.getPosition().y())<1e-8 && std::abs(body.getVelocity().y())<1e-8, "导轨没有投影质心和速度");
+    body.setPosition({2,0,0}); body.setSpeed({1,0,0});
+    rail.applyPositionConstraint(0.01); rail.applyVelocityConstraint(0.01);
+    require(std::abs(body.getPosition().x()-1)<1e-8 && std::abs(body.getVelocity().x())<1e-8, "导轨端点没有限制向外速度");
+    body.setPosition({0,0,0}); body.setSpeed({0,0,0});
+    body.setStaticFriction(0.5); body.setDynamicFriction(0.2);
+    rail.setStaticFriction(0.5); rail.setDynamicFriction(0.2);
+    body.upsertForce({{2,-10,0}, 99});
+    rail.applyConstraintForces(); rail.applyFrictionForces(0.1);
+    require(body.getJoinForce().norm()<1e-7, "导轨静摩擦没有平衡切向外力");
+    body.setSpeed({1,0,0});
+    rail.applyConstraintForces(); rail.applyFrictionForces(0.1);
+    require(std::abs(body.getJoinForce().x())<1e-7, "导轨动摩擦未按法向载荷计算");
+    Particle anchor({0,0,0}, {0,0,0}, 0, 12), other({1,0,0}, {2,0,0}, 1, 13);
+    Spring spring(10, 1, &anchor, &other, 14); spring.setDamping(3);
+    spring.applyConstraintForces();
+    require(spring.getId()==14 && other.hasForce(14), "弹簧未使用指定 ID");
+    require(std::abs(other.getJoinForce().x()+6)<1e-9, "弹簧阻尼没有抵抗相对运动");
+    AirResistance drag(15); DragConfig cfg; cfg.model=DragModel::Linear; cfg.linearCoeff=2;
+    drag.setDefaultDragConfig(cfg); drag.registerEntity(&other); drag.registerEntity(&other);
+    require(drag.getId()==15, "空气阻力未使用指定 ID");
+    require(drag.getRegisteredEntityCount()==1, "空气阻力重复注册实体");
+    other.removeForceById(14); drag.applyConstraintForces();
+    require(std::abs(other.getJoinForce().x()+4)<1e-9, "空气阻力未作用于注册实体");
+    other.removeForceById(15); other.setActive(false); drag.applyConstraintForces();
+    require(other.getJoinForce().norm()<1e-12, "空气阻力作用于尚未加载的实体");
+    other.setActive(true);
+    std::unique_ptr<PhysicsAbstract> cloned;
+    const PhysicalEntity* originalAnchor = nullptr;
+    {
+        SimplePendulum pendulum(1, {0,0,0}, &other, 16);
+        for (const auto* entity : pendulum.getConstrainedEntities()) if (entity != &other) originalAnchor = entity;
+        cloned = pendulum.clone(17);
+        auto* copied = dynamic_cast<SimplePendulum*>(cloned.get());
+        require(copied && copied->getConstrainedEntities().size()==2, "单摆克隆丢失约束实体");
+        require(!copied->getConstrainedEntities().contains(const_cast<PhysicalEntity*>(originalAnchor)), "单摆克隆引用了原锚点");
+    }
+    auto* copied = dynamic_cast<SimplePendulum*>(cloned.get());
+    require(copied && std::isfinite(copied->computeConstraintError()), "原单摆销毁后克隆失效");
+}
+
+/** @brief 验证导轨摩擦在完整积分流程中的静止和滑动行为。 */
+void testRailFrictionIntegration()
+{
+    for (bool sliding : {false, true}) {
+        Particle body({0,0,0}, {sliding ? 3.0 : 0.0,0,0}, 1, 20);
+        body.setStaticFriction(0.5); body.setDynamicFriction(0.2);
+        SlidingRail rail(21, std::make_unique<CurveBezier>(std::vector<Eigen::Vector3d>{{-100,0,0},{100,0,0}}));
+        rail.setStaticFriction(0.5); rail.setDynamicFriction(0.2); rail.registerEntity(&body);
+        GravityField gravity({1,-10,0}, Eigen::Vector3d::Zero(), 22);
+        ContactTestScene scene; scene.bodies={handle(body)}; scene.fields={&gravity}; scene.joints={&rail};
+        SolverConfig config; config.enableBroadPhase=false; config.enableNarrowPhase=false;
+        Solver solver(config, std::make_unique<VelocityVerletIntegratorStrategy>(),
+                      std::make_unique<BruteForceBroadStrategy>(), std::make_unique<FrictionalContactResolverStrategy>());
+        for (int i=0; i<100; ++i) static_cast<void>(solver.step(scene, 0.01));
+        require(std::abs(body.getPosition().y())<1e-7 && std::abs(body.getVelocity().y())<1e-7, "导轨积分后偏离轨道");
+        if (sliding) require(std::abs(body.getVelocity().x()-2.0)<1e-5, "导轨滑动摩擦加速度错误");
+        else require(std::abs(body.getVelocity().x())<1e-7 && std::abs(body.getPosition().x())<1e-7, "导轨静摩擦不能抵抗切向外力");
+    }
+}
+
+/** @brief 验证绳约束只阻止拉伸，固定端不移动且不产生切向能量。 */
+void testRopeConstraints()
+{
+    Particle fixed({0,0,0}, {0,0,0}, 0, 31), moving({2,0,0}, {2,1,0}, 2, 32);
+    ConnectingLine rope(1, &fixed, &moving, 33);
+    rope.applyPositionConstraint(0.01);
+    require((fixed.getPosition()-Eigen::Vector3d::Zero()).norm()<1e-12, "绳子移动了固定端");
+    require((moving.getPosition()-Eigen::Vector3d(1,0,0)).norm()<1e-12, "绳子没有将动端拉回");
+    require((moving.getVelocity()-Eigen::Vector3d(0,1,0)).norm()<1e-12, "绳子速度投影错误或注入了能量");
+    moving.setSpeed({-1,1,0}); rope.applyVelocityConstraint(0.01);
+    require((moving.getVelocity()-Eigen::Vector3d(-1,1,0)).norm()<1e-12, "绳子错误阻止向内运动");
+    moving.setPosition({1,0,0}); moving.setSpeed({2,0,0});
+    SimplePendulum pendulum(1, {0,0,0}, &moving, 34);
+    pendulum.applyVelocityConstraint(0.01);
+    require(moving.getVelocity().norm()<1e-12, "单摆未阻止纯径向拉伸");
+    auto ropeCopy = rope.clone(35);
+    auto* cloned = dynamic_cast<ConnectingLine*>(ropeCopy.get());
+    require(cloned && cloned->getConstrainedEntities().size()==2, "连接线克隆丢失实体");
 }
 
 /** @brief 杆约束与接触一起投影，固定端不会被错误移动。 */
@@ -233,6 +355,13 @@ void testContactSleep()
     body.upsertForce({{1,0,-10},42});
     base.evaluateSupported(scene,0.001,contacts);
     require(!body.isAsleep(),"外力变化后未唤醒");
+    body.setStaticFriction(0.1); ground.setStaticFriction(0.1);
+    body.upsertForce({{2,0,-10},42});
+    for (int i=0;i<600;++i) base.evaluateSupported(scene,0.001,contacts);
+    require(!body.isAsleep(),"静摩擦不足时低速实体被错误冻结");
+    body.setStaticFriction(0.5); ground.setStaticFriction(0.5);
+    for (int i=0;i<600;++i) base.evaluateSupported(scene,0.001,contacts);
+    require(body.isAsleep(),"静摩擦足以平衡切向力时无法休眠");
 }
 
 /** @brief 无休眠条件下区分完全弹性弹跳和带阻力停稳，防止修复靠耗散掩盖问题。 */
@@ -255,7 +384,9 @@ void testGravitySimulation()
         SolverConfig config;
         Solver solver(config,std::make_unique<VelocityVerletIntegratorStrategy>(),
             std::make_unique<BruteForceBroadStrategy>(),std::make_unique<FrictionalContactResolverStrategy>());
-        const int steps=damped ? 80000 : 20000;
+        // 阻尼系数 5、质量 10 对应约 4 秒的振幅衰减时间常数；
+        // 必须运行足够长时间，才能检验微米级静止阈值。
+        const int steps=damped ? 240000 : 20000;
         double minEnergy=1e30, maxEnergy=0, tailMin=1e30, tailMax=-1e30;
         for (int step=0;step<steps;++step) {
             try { static_cast<void>(solver.step(scene,0.0005)); }
@@ -283,6 +414,6 @@ void testGravitySimulation()
 /** @brief 执行全部独立回归并返回可用于 CTest 的退出码。 */
 int main()
 {
-    try { testInitializedPhysicsState(); testManifolds(); testGraph(); testHighDegreeAndBoundary(); testVelocity(); testJointProjection(); testContactSleep(); testGravitySimulation(); std::cout<<"接触回归全部通过\n"; return 0; }
+    try { testInitializedPhysicsState(); testManifolds(); testGraph(); testHighDegreeAndBoundary(); testVelocity(); testConstraintBehavior(); testRailFrictionIntegration(); testRopeConstraints(); testJointProjection(); testContactSleep(); testGravitySimulation(); std::cout<<"接触回归全部通过\n"; return 0; }
     catch (const std::exception& error) { std::cerr<<error.what()<<'\n'; return 1; }
 }

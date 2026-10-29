@@ -69,6 +69,9 @@ namespace egret
 
         FieldType getTypeId() const;
 
+        /** @brief 返回万有引力场类型。 */
+        [[nodiscard]] FieldType getType() const override;
+
         std::unique_ptr<PhysicsAbstract> clone(std::uint64_t id) const override;
 
         std::unique_ptr<FieldBase> cloneAsField(std::uint64_t id);

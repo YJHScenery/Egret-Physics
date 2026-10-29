@@ -128,7 +128,7 @@ namespace egret
         if (m_sleepStrategy) {
             m_sleepStrategy->evaluate(scene,dt);
             for (auto& body:scene.getBodies())
-                if (body.entity && !body.entity->isAsleep() && !body.entity->isFixed() && body.inverseMass<=0)
+                if (body.entity && body.entity->isActive() && !body.entity->isAsleep() && !body.entity->isFixed() && body.inverseMass<=0)
                     body.inverseMass=1.0/body.entity->getMass();
         }
         updateBodyInertiaCache(scene);
@@ -152,6 +152,8 @@ namespace egret
             }
         }
 
+        // 所有时间推进路径都必须执行关节速度约束，包括 CCD 子步。
+        applyVelocityAndAngularConstraints(scene, dt, result.stats);
         if (m_config.enableToiQueue && !ccdEvents.empty()) {
             stepWithToiQueue(scene, dt, ccdEvents, result.stats, resolvedPairs);
         }
@@ -160,9 +162,6 @@ namespace egret
                 resolveContacts(scene, dt, constraints, result.stats);
                 for (const auto& c : constraints) resolvedPairs.push_back({c.bodyAIndex,c.bodyBIndex});
             }
-
-            // 速度/角速度约束必须在积分前执行，确保积分使用修正后的速度
-            applyVelocityAndAngularConstraints(scene, dt, result.stats);
 
             if (m_config.enableIntegration) {
                 integrate(scene, dt, result.stats);
@@ -188,6 +187,10 @@ namespace egret
 
         // 位置约束在积分后执行，用于消除积分引入的微小穿透
         applyPositionConstraints(scene, dt, result.stats);
+        // 接触和积分可能再次引入法向速度，位置投影后重新施加平动约束。
+        for (auto* constraint : scene.getConstraints()) {
+            if (constraint && constraint->isEnabled()) constraint->applyVelocityConstraint(dt);
+        }
         updateEnergyStats(scene, result.stats);
         scene.advanceSimulationTime(dt);
         return result;
@@ -305,6 +308,8 @@ namespace egret
                 body.entity->clearTorques();
             }
 
+            if (!body.entity->isActive()) continue;
+
             if (!m_config.applyFieldsEachStep) {
                 continue;
             }
@@ -323,7 +328,7 @@ namespace egret
     }
 
     void Solver::applyConstraintForces(SolverSceneSnapshotBase& scene,
-                                       [[maybe_unused]] const double dt, [[maybe_unused]] SolverStats& stats) const
+                                       const double dt, [[maybe_unused]] SolverStats& stats) const
     {
         const auto constraints = scene.getConstraints();
 
@@ -335,6 +340,9 @@ namespace egret
             }
 
             constraint->applyConstraintForces();
+        }
+        for (auto* constraint : constraints) {
+            if (constraint && constraint->isEnabled()) constraint->applyFrictionForces(dt);
         }
     }
 
@@ -701,7 +709,19 @@ namespace egret
                 bodies[i].inverseMass=1.0/bodies[i].entity->getMass();
             }
             updateBodyInertiaCache(scene);
-            m_contactResolver->resolveContacts(scene, constraints, dt, m_config, stats);
+            // 场景可能在刷新惯量时重建实体缓存，之前的 span 已失效。
+            bodies = scene.getBodies();
+            // 在统一入口组合材料，覆盖 CCD 事件和持续接触两条路径。
+            auto materialContacts = constraints;
+            for (auto& contact : materialContacts) {
+                if (contact.bodyAIndex >= bodies.size() || contact.bodyBIndex >= bodies.size()) continue;
+                const auto* a = bodies[contact.bodyAIndex].entity;
+                const auto* b = bodies[contact.bodyBIndex].entity;
+                if (!a || !b) continue;
+                contact.frictionCoefficient = std::sqrt(a->getStaticFriction()) * std::sqrt(b->getStaticFriction());
+                contact.dynamicFrictionCoefficient = std::sqrt(a->getDynamicFriction()) * std::sqrt(b->getDynamicFriction());
+            }
+            m_contactResolver->resolveContacts(scene, materialContacts, dt, m_config, stats);
         }
     }
 

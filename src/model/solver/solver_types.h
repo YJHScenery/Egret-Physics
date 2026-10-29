@@ -130,8 +130,11 @@ namespace egret
         /** 累积切向摩擦冲量（第二切向）。 */
         double accumulatedTangentImpulse2{0.0};
 
-        /** Coulomb 摩擦系数（通常取两个物体摩擦系数的组合值）。 */
+        /** 静摩擦系数。 */
         double frictionCoefficient{0.5};
+
+        /** 动摩擦系数。 */
+        double dynamicFrictionCoefficient{0.5};
 
         /** 在求解开始前固定的恢复目标，迭代时不重新计算。 */
         double targetNormalVelocity{0.0};

@@ -6,13 +6,8 @@
  *              与 SupportSurface（支撑曲面）类似，支持多个独立实体注册，
  *              每个实体独立受约束，互不影响。
  *
- *              约束机制以力性约束为主（applyConstraintForces），
- *              通过读取实体力列表，计算力的法线方向（垂直于曲线切向）分量，
- *              并通过 upsertForce 注入反作用力将其抵消，
- *              使实体只能沿曲线切向运动。
- *
- *              位置、速度、角速度约束仅作为微调手段，在实体因数值误差
- *              明显偏离轨道时做轻柔修正，不做强制快照。
+ *              对质心的位置和速度进行投影，并由反力与摩擦力约束沿轨道的运动。
+ *              默认不约束实体自身的旋转。
  *
  *              实体管理通过基类 ConstraintsBase 的 registerEntity /
  *              unregisterEntity 接口统一实现，所有受约束实体存储在
@@ -50,15 +45,14 @@ namespace egret
      *              - 以力性约束为主（applyConstraintForces），
      *                每帧读取实体合力，分解为切向（沿轨道）和法向（垂直轨道），
      *                注入法向反作用力抵消偏离轨道的力分量。
-     *              - 位置、速度、角速度约束仅做微调：
+     *              - 位置与速度约束：
      *                - applyPositionConstraint：仅在实体偏离轨道超过阈值时，
      *                  轻柔回拉部分偏移量。
      *                - applyVelocityConstraint：仅在法向速度超过阈值时，
      *                  衰减法向分量。
      *                - applyAngularVelocityConstraint：仅在朝向偏差
      *                  超过阈值时，轻修角速度。
-     *              - 摩擦力为预留接口，当前仅存储参数、注释占位，
-     *                不参与实际约束计算。
+     *              - 摩擦力根据轨道和实体的系数、法向反力和步长计算。
      *
      *              初始化处理（需求 3.1）：
      *              - 实体注册后首次出现在约束求解中时，若其位置不在轨道上，
@@ -67,7 +61,7 @@ namespace egret
      *
      * @invariant   m_curve 是有效的 CurveBase 实例
      * @invariant   m_entityParamMap 为每个注册实体维护参数 t 映射
-     * @invariant   m_frictionCoeff ≥ 0，当前不参与约束计算
+     * @invariant   m_frictionCoeff ≥ 0
      * @invariant   m_positionTolerance > 0，位置微调激活阈值
      * @invariant   m_velocityTolerance > 0，速度微调激活阈值
      * @see         ConstraintsBase, CurveBase, PhysicalEntity
@@ -129,6 +123,9 @@ namespace egret
          *          若作用点（曲线最近点）偏离质心，同时注入等效力矩。
          */
         void applyConstraintForces() override;
+
+        /** @brief 按导轨反力和物体材料计算静摩擦或动摩擦。 */
+        void applyFrictionForces(double dt) override;
 
         /**
          * @brief 计算约束误差。
@@ -260,15 +257,18 @@ namespace egret
          */
         [[nodiscard]] double getNormalDampingFactor() const { return m_normalDampingFactor; }
 
-        // ==================== 摩擦力预留接口 ====================
+        // ==================== 摩擦力接口 ====================
 
         /**
-         * @brief 设置摩擦系数（预留接口）。
-         * @details 当前版本摩擦力尚未实现，此接口保留供后续版本使用。
-         *          设置后对约束行为无影响，仅存储参数。
+         * @brief 同时设置静摩擦系数和动摩擦系数。
          * @param frictionCoeff 摩擦系数，≥ 0。
          */
-        void setFrictionCoeff(double frictionCoeff) { m_frictionCoeff = std::max(0.0, frictionCoeff); }
+        void setFrictionCoeff(double frictionCoeff) { m_frictionCoeff = std::max(0.0, frictionCoeff); m_dynamicFrictionCoeff = m_frictionCoeff; }
+
+        /** @brief 设置非负静摩擦系数。 */
+        void setStaticFriction(double value) { m_frictionCoeff = std::max(0.0, value); }
+        /** @brief 设置非负动摩擦系数。 */
+        void setDynamicFriction(double value) { m_dynamicFrictionCoeff = std::max(0.0, value); }
 
         /**
          * @brief 获取摩擦系数。
@@ -326,7 +326,7 @@ namespace egret
         static constexpr std::size_t k_sampleCount = 100;
 
         /** 三分搜索精化迭代次数。 */
-        static constexpr int k_refineIterations = 5;
+        static constexpr int k_refineIterations = 48;
 
         /** 三分搜索精化搜索半径（占参数范围的比率）。 */
         static constexpr double k_refineRadius = 0.02;
@@ -349,14 +349,14 @@ namespace egret
          * 实体偏离轨道距离超过此值时触发位置回拉。
          * 默认 0.01 m。
          */
-        double m_positionTolerance{0.01};
+        double m_positionTolerance{1e-8};
 
         /**
          * 速度微调阈值（m/s）。
          * 法向速度超过此值时触发法向速度衰减。
          * 默认 0.1 m/s。
          */
-        double m_velocityTolerance{0.1};
+        double m_velocityTolerance{1e-8};
 
         /**
          * 角速度微调阈值（弧度）。
@@ -370,42 +370,26 @@ namespace egret
          * 实际回拉量 = 偏差 × 回拉系数。
          * 默认 0.3，即每次修正拉回 30% 的偏移距离。
          */
-        double m_pullBackFactor{0.3};
+        double m_pullBackFactor{1.0};
 
         /**
          * 首次拉回系数。
          * 实体的首次约束求解时使用此系数。
          * 默认 0.8，快速将实体拉入轨道。
          */
-        double m_firstSnapFactor{0.8};
+        double m_firstSnapFactor{1.0};
 
         /**
          * 法向速度衰减系数。
          * 法向速度衰减量 = 法向速度 × 衰减系数。
          * 默认 0.5，即削减 50% 的法向速度分量。
          */
-        double m_normalDampingFactor{0.5};
+        double m_normalDampingFactor{1.0};
 
-        // ==================== 摩擦力预留 ====================
-
-        /**
-         * @brief 摩擦系数（预留，当前未使用）。
-         * @details 预留用于后续版本的动/静摩擦力实现。
-         *
-         * TODO: [Friction] 摩擦力实现路径：
-         * 1. 在 applyConstraintForces 中，获取切向力分量 F_parallel
-         * 2. 计算最大静摩擦力 F_friction_max = m_frictionCoeff * ‖F_normal‖
-         * 3. 若 ‖F_parallel‖ ≤ F_friction_max，用静摩擦力完全抵消切向力
-         * 4. 否则，施加动摩擦力 F_dynamic = -m_frictionCoeff * ‖F_normal‖ * T̂
-         * 5. 注意修正力矩 τ_friction = r × F_friction（若作用点偏离质心）
-         *
-         * TODO: [Friction] applyVelocityConstraint 中的摩擦：
-         * 在法向速度衰减后，若切向速度接近零，可施加静摩擦使实体停在轨道上。
-         *
-         * TODO: [Friction] 区分静/动摩擦系数（m_staticFriction / m_dynamicFriction）
-         * 当前仅使用单一 m_frictionCoeff。
-         */
+        /** 导轨静摩擦系数；旧导轨默认无摩擦。 */
         double m_frictionCoeff{0.0};
+        /** 导轨动摩擦系数。 */
+        double m_dynamicFrictionCoeff{0.0};
     };
 } // egret
 

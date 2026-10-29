@@ -99,6 +99,8 @@ namespace egret
         case ColorRole: {
             return QVariant{item.color};
         }
+        case StaticFrictionRole: return item.staticFriction;
+        case DynamicFrictionRole: return item.dynamicFriction;
         case LabelRole: {
             return QVariant{item.label};
         }

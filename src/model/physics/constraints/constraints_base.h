@@ -134,6 +134,9 @@ namespace egret
         // 将约束力注入到受约束实体的力累加器中（积分前调用）
         virtual void applyConstraintForces();
 
+        /** @brief 在其他约束力计算完成后，依据步长施加摩擦力。 */
+        virtual void applyFrictionForces([[maybe_unused]] double dt) {}
+
         virtual void applyConstraintTorques();
 
         // 获取参考长度（用于渲染和调试）

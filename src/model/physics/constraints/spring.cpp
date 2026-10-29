@@ -22,7 +22,7 @@ namespace egret
     Spring::Spring(const double stiffness, double restLength,
                    PhysicalEntity* entityA, PhysicalEntity* entityB,
                    const std::uint64_t id)
-        : ConstraintsBase(id)
+        : PhysicsAbstract(id), ConstraintsBase(id)
         , m_stiffness(stiffness)
         , m_entityA(entityA)
         , m_entityB(entityB)
@@ -80,10 +80,10 @@ namespace egret
         const double dx = dist - m_restLength;
 
         // 胡克定律：F = -k · Δx（标量）
-        const double forceMagnitude = -m_stiffness * dx;
-
         // 单位方向向量（A → B）
         const Eigen::Vector3d direction = delta / dist;
+        const double relativeSpeed = (entityB->getVelocity() - entityA->getVelocity()).dot(direction);
+        const double forceMagnitude = -m_stiffness * dx - m_damping * relativeSpeed;
 
         // A 受力 +F·n，B 受力 -F·n（牛顿第三定律）
         const Eigen::Vector3d forceOnA =  -forceMagnitude * direction;

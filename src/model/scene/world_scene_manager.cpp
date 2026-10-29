@@ -388,7 +388,7 @@ namespace egret
         items.reserve(m_bodies.size());
 
         for (const auto& body : m_bodies) {
-            if (body == nullptr || body->entity == nullptr || body->entity->getShape() == nullptr) {
+            if (body == nullptr || !body->visible || body->loadTime > m_simulationTime + 1e-12 || body->entity == nullptr || body->entity->getShape() == nullptr) {
                 continue;
             }
 
@@ -397,6 +397,8 @@ namespace egret
             const Eigen::Vector3d angularVelocity = body->entity->getAngularVelocity();
 
             SceneRenderItem item{};
+            item.staticFriction = body->entity->getStaticFriction();
+            item.dynamicFriction = body->entity->getDynamicFriction();
             item.basic.id = body->entity->getId();
             item.basic.kind = static_cast<std::uint32_t>(body->entity->getShape()->getType());
             item.basic.name = body->name;
@@ -404,7 +406,9 @@ namespace egret
             item.basic.label = body->name.empty()
                              ? (std::string("Body ") + std::to_string(body->entity->getId()))
                              : body->name;
-            item.basic.color = body->entity->getMass() <= 0.0 ? "#6C7A89" : "#3EC5FF";
+            item.basic.color = body->color.empty()
+                ? (body->entity->getMass() <= 0.0 ? "#6C7A89" : "#3EC5FF")
+                : body->color;
 
             const Transform& transform = body->entity->getTransform();
             const Eigen::Vector3d modelScale = transform.getScale();
@@ -493,7 +497,8 @@ namespace egret
         items.reserve(m_constraints.size());
 
         for (const auto& constraintRecord : m_constraints) {
-            if (constraintRecord == nullptr || constraintRecord->constraint == nullptr) {
+            if (constraintRecord == nullptr || constraintRecord->constraint == nullptr ||
+                !isConstraintActive(constraintRecord->constraint->getId())) {
                 continue;
             }
 
@@ -570,7 +575,8 @@ namespace egret
         items.reserve(m_constraints.size());
 
         for (const auto& constraintRecord : m_constraints) {
-            if (constraintRecord == nullptr || constraintRecord->constraint == nullptr) {
+            if (constraintRecord == nullptr || constraintRecord->constraint == nullptr ||
+                !isConstraintActive(constraintRecord->constraint->getId())) {
                 continue;
             }
 
@@ -608,7 +614,7 @@ namespace egret
         items.reserve(m_bodies.size());
 
         for (const auto& bodyRecord : m_bodies) {
-            if (bodyRecord == nullptr || bodyRecord->entity == nullptr) {
+            if (bodyRecord == nullptr || !bodyRecord->visible || bodyRecord->loadTime > m_simulationTime + 1e-12 || bodyRecord->entity == nullptr) {
                 continue;
             }
 
@@ -667,6 +673,42 @@ namespace egret
     double WorldSceneManager::getSimulationTime() const
     {
         return m_simulationTime;
+    }
+
+    void WorldSceneManager::setSimulationTime(const double time)
+    {
+        if (std::isfinite(time) && time >= 0.0) m_simulationTime = time;
+    }
+
+    bool WorldSceneManager::isBodyActive(const std::uint64_t id) const
+    {
+        const auto* record = findBody(id);
+        return record && record->entity && record->loadTime <= m_simulationTime + 1e-12;
+    }
+
+    bool WorldSceneManager::isFieldActive(const std::uint64_t id) const
+    {
+        const auto* record = findField(id);
+        return record && record->field && record->loadTime <= m_simulationTime + 1e-12;
+    }
+
+    bool WorldSceneManager::isConstraintActive(const std::uint64_t id) const
+    {
+        const auto* record = findConstraint(id);
+        if (!record || !record->constraint || !record->enabled || !record->constraint->isEnabled() ||
+            record->loadTime > m_simulationTime + 1e-12) return false;
+        const auto type = record->constraint->getType();
+        const bool independentTargets = type == ConstraintType::SlidingRail || type == ConstraintType::AirResistance;
+        bool anyActive = false;
+        for (const auto* entity : record->constraint->getConstrainedEntities()) {
+            if (!entity) continue;
+            const auto* body = findBody(entity->getId());
+            if (!body) continue; // 单摆的内部锚点不属于场景实体。
+            const bool active = body->loadTime <= m_simulationTime + 1e-12;
+            if (!active && !independentTargets) return false;
+            anyActive = anyActive || active;
+        }
+        return !independentTargets || anyActive;
     }
 
     void WorldSceneManager::advanceSimulationTime(const double dt)
@@ -742,13 +784,16 @@ namespace egret
 
             SolverBodyHandle handle{};
             handle.entity = body->entity.get();
+            const bool active = body->loadTime <= m_simulationTime + 1e-12;
+            body->entity->setActive(active);
             // handle.shape = body->entity->getShape().get();
             // 休眠实体以静态体身份参与碰撞检测：逆质量置 0，
             // 既跳过积分，又避免接触冲量在冻结实体上累积速度。
             const bool asleep = body->entity->isAsleep();
-            handle.inverseMass = (!asleep && body->entity->getMass() > 0.0) ? 1.0 / body->entity->getMass() : 0.0;
-            handle.enableCollision = body->enableCollision;
-            handle.enableIntegration = body->enableIntegration;
+            handle.inverseMass = (active && !asleep && !body->entity->isFixed() && body->entity->getMass() > 0.0)
+                ? 1.0 / body->entity->getMass() : 0.0;
+            handle.enableCollision = active && body->enableCollision;
+            handle.enableIntegration = active && body->enableIntegration;
 
             // 如果实体已在旧缓存中，保留其惯性张量
             auto it = oldHandleMap.find(body->entity.get());
@@ -764,7 +809,7 @@ namespace egret
     {
         std::size_t validFieldCount = 0;
         for (const auto& field : m_fields) {
-            if (field != nullptr && field->field != nullptr) {
+            if (field != nullptr && field->field != nullptr && field->loadTime <= m_simulationTime + 1e-12) {
                 ++validFieldCount;
             }
         }
@@ -775,7 +820,7 @@ namespace egret
 
         std::size_t writeIndex = 0;
         for (const auto& field : m_fields) {
-            if (field != nullptr && field->field != nullptr) {
+            if (field != nullptr && field->field != nullptr && field->loadTime <= m_simulationTime + 1e-12) {
                 m_solverFieldOwners.push_back(field->field);
                 rebuiltFields[writeIndex] = field->field.get();
                 ++writeIndex;
@@ -1085,7 +1130,7 @@ namespace egret
         m_solverConstraintOwners.reserve(m_constraints.size());
 
         for (auto& record : m_constraints) {
-            if (record == nullptr || record->constraint == nullptr || !record->enabled) {
+            if (record == nullptr || record->constraint == nullptr || !isConstraintActive(record->constraint->getId())) {
                 continue;
             }
 

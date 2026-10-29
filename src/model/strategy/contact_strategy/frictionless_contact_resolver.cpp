@@ -32,7 +32,10 @@ namespace egret
                                                               SolverStats& stats) const
     {
         std::vector<SolverContactConstraint> frictionless(constraints.begin(), constraints.end());
-        for (auto& c : frictionless) c.frictionCoefficient = 0.0;
+        for (auto& c : frictionless) {
+            c.frictionCoefficient = 0.0;
+            c.dynamicFrictionCoefficient = 0.0;
+        }
         FrictionalContactResolverStrategy resolver;
         resolver.resolveContacts(scene, frictionless, dt, config, stats);
     }

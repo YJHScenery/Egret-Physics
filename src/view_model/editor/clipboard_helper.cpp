@@ -92,14 +92,7 @@ namespace egret
 
         // 再删除原实体
         EditorManager* em = EditorManager::instance();
-        int cutCount = 0;
-        for (const QString& id : ids) {
-            ModelItemData* model = em->getModel(id);
-            if (model) {
-                em->removeModel(id);
-                ++cutCount;
-            }
-        }
+        const int cutCount = em->removeModels(ids);
 
         emit operationCompleted(true,
                                 QStringLiteral("已剪切 %1 个实体").arg(cutCount));
@@ -120,6 +113,16 @@ namespace egret
 
         EditorManager* em = EditorManager::instance();
         QStringList newIds;
+        QHash<QString, QString> idMap;
+        for (const auto& value : m_clipboard) {
+            const QString oldId = value.toObject().value("id").toString();
+            if (oldId.isEmpty() || idMap.contains(oldId)) continue;
+            QString newId;
+            do { newId = QString::number(UniqueIDGenerator::instance().generate()); }
+            while (em->getModel(newId) || idMap.values().contains(newId));
+            idMap.insert(oldId, newId);
+        }
+        QList<ModelItemData*> models;
 
         for (const QJsonValueRef& val : m_clipboard) {
             if (!val.isObject()) {
@@ -127,6 +130,8 @@ namespace egret
             }
 
             QJsonObject json = val.toObject();
+            const QString originalId = json.value("id").toString();
+            if (!idMap.contains(originalId)) continue;
 
             // 仅对 Shape 实体 (category == 0) 应用位置累加偏移
             int cat = json.value("category").toInt(-1);
@@ -140,24 +145,68 @@ namespace egret
                 }
             }
 
+            // 同时复制对象与约束时，约束必须指向新对象。
+            const QJsonArray oldTargets = json.value("entity_ids").toArray();
+            QJsonArray newTargets;
+            bool allTargetsCopied = !oldTargets.isEmpty();
+            for (const auto& target : oldTargets) {
+                const QString targetId = target.toString();
+                if (!idMap.contains(targetId)) allTargetsCopied = false;
+                newTargets.append(idMap.value(targetId, targetId));
+            }
+            if (!oldTargets.isEmpty()) json["entity_ids"] = newTargets;
+            QJsonObject constraintData = json.value("constraint_data").toObject();
+            const QJsonArray oldOverrides = constraintData.value("entity_overrides").toArray();
+            if (!oldOverrides.isEmpty()) {
+                QJsonArray newOverrides;
+                for (const auto& value : oldOverrides) {
+                    QJsonObject entry = value.toObject();
+                    const QString targetId = entry.value("entity_id").toString();
+                    entry["entity_id"] = idMap.value(targetId, targetId);
+                    newOverrides.append(entry);
+                }
+                constraintData["entity_overrides"] = newOverrides;
+                json["constraint_data"] = constraintData;
+            }
+
+            // 跟随被复制的对象平移导轨控制点和单摆锚点。
+            if (allTargetsCopied && cat == 2) {
+                const QVector3D offset = m_baseOffset + accumulatedOffset;
+                QJsonObject data = json.value("constraint_data").toObject();
+                for (const auto& key : {"start", "control1", "control2", "end", "anchor_pos"}) {
+                    QJsonArray point = data.value(key).toArray();
+                    if (point.size() < 3) continue;
+                    point[0] = point[0].toDouble() + offset.x();
+                    point[1] = point[1].toDouble() + offset.y();
+                    point[2] = point[2].toDouble() + offset.z();
+                    data[key] = point;
+                }
+                json["constraint_data"] = data;
+                QJsonObject anchor = json.value("anchor_pos").toObject();
+                if (!anchor.isEmpty()) {
+                    anchor["x"] = anchor.value("x").toDouble() + offset.x();
+                    anchor["y"] = anchor.value("y").toDouble() + offset.y();
+                    anchor["z"] = anchor.value("z").toDouble() + offset.z();
+                    json["anchor_pos"] = anchor;
+                }
+            }
+
             // 从 JSON 反序列化创建新实体
             auto* newModel = new ModelItemData();
             newModel->fromJson(json);
 
             // 生成全新 ID（避免与原有实体冲突）
-            newModel->setId(QString::number(UniqueIDGenerator::instance().generate()));
+            newModel->setId(idMap.value(originalId));
 
             newModel->setName(newModel->name() + "-" + QString::number(m_nameCount.value(newModel->name())));
 
             m_nameCount[json.value("name").toString()]++;
 
-            if (em->addModel(newModel)) {
-                newIds.append(newModel->id());
-            }
-            else {
-                delete newModel;
-            }
+            newIds.append(newModel->id());
+            models.append(newModel);
         }
+
+        if (!models.isEmpty()) em->addModels(models);
 
         emit operationCompleted(!newIds.isEmpty(),
                                 newIds.isEmpty()

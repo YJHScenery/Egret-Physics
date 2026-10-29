@@ -21,17 +21,15 @@
 namespace egret
 {
     AirResistance::AirResistance(const std::uint64_t id)
-        : ConstraintsBase(id)
+        : PhysicsAbstract(id), ConstraintsBase(id)
     {
     }
 
     // ==================== 实体注册 ====================
     void AirResistance::registerEntity(PhysicalEntity* entity)
     {
+        if (entity == nullptr || isRegistered(entity->getId())) return;
         ConstraintsBase::registerEntity(entity);
-        if (entity == nullptr) {
-            return;
-        }
         m_entityDrags.push_back(EntityDragEntry{entity, m_defaultConfig});
     }
 
@@ -49,10 +47,12 @@ namespace egret
 
     void AirResistance::addEntity(PhysicalEntity* entity, const DragConfig& config)
     {
-        ConstraintsBase::registerEntity(entity);
-        if (entity == nullptr) {
+        if (entity == nullptr) return;
+        if (isRegistered(entity->getId())) {
+            setEntityDragConfig(entity->getId(), config);
             return;
         }
+        ConstraintsBase::registerEntity(entity);
         m_entityDrags.push_back(EntityDragEntry{entity, config});
     }
 
@@ -131,7 +131,7 @@ namespace egret
     {
         for (const EntityDragEntry& entry : m_entityDrags) {
             PhysicalEntity* entity = entry.entity;
-            if (entity == nullptr) {
+            if (entity == nullptr || !entity->isActive()) {
                 continue;
             }
 

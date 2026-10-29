@@ -28,10 +28,11 @@ namespace egret
                                            const double mass,
                                            const double coupling,
                                            const bool fixed, const std::uint64_t id)
-        : FieldBase(id), Particle(position, speed, mass, id),
+        : PhysicsAbstract(id), FieldBase(id), Particle(position, speed, mass, id),
         m_coupling(coupling),
         m_fixed(fixed)
     {
+        if (m_fixed) setSpeed(Eigen::Vector3d::Zero());
     }
 
     Eigen::Vector3d GravitationalField::sample(const Eigen::Vector3d& position)
@@ -92,6 +93,7 @@ namespace egret
     void GravitationalField::setFixed(const bool fixed)
     {
         m_fixed = fixed;
+        if (fixed) setSpeed(Eigen::Vector3d::Zero());
     }
 
     bool GravitationalField::isFixed() const
@@ -110,6 +112,11 @@ namespace egret
     }
 
     FieldType GravitationalField::getTypeId() const
+    {
+        return FieldType::Gravitation;
+    }
+
+    FieldType GravitationalField::getType() const
     {
         return FieldType::Gravitation;
     }

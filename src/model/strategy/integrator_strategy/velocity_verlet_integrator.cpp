@@ -161,6 +161,9 @@ namespace egret
                 }
                 constraint->applyConstraintForces();
             }
+            for (ConstraintsBase* constraint : constraints) {
+                if (constraint && constraint->isEnabled()) constraint->applyFrictionForces(dt);
+            }
         }
 
 
