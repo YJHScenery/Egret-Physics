@@ -77,6 +77,9 @@ namespace egret::analysis
          */
         Q_INVOKABLE void setOverlaySeries(const QVariantList& points, const QString& label);
 
+        /** 设置横轴与纵轴的名称。 */
+        Q_INVOKABLE void setAxisLabels(const QString& xLabel, const QString& yLabel);
+
         /** 恢复为全部数据的完整范围。 */
         Q_INVOKABLE void resetView();
 
@@ -92,6 +95,14 @@ namespace egret::analysis
          */
         Q_INVOKABLE void setAreaZoomEnabled(bool enabled);
 
+        /** 设置横轴可见范围，供多个图表同步。 */
+        Q_INVOKABLE void setVisibleXRange(double lower, double upper);
+
+    signals:
+        /** 横轴范围改变时通知其他图表。 */
+        void visibleXRangeChanged(double lower, double upper);
+
+    public:
         /** 当前可见横轴下限。 */
         [[nodiscard]] Q_INVOKABLE double visibleXMin() const;
 
@@ -120,6 +131,12 @@ namespace egret::analysis
     private:
         /** 按当前尺寸重新渲染缓存图像。 */
         void refreshCache();
+
+        /** 合并刷新请求后实际渲染缓存。 */
+        void renderCache();
+
+        /** 是否已有缓存刷新等待执行。 */
+        bool m_refreshPending{false};
 
         /** 逻辑像素到设备像素的比例。 */
         [[nodiscard]] double plotScale() const;

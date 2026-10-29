@@ -53,6 +53,11 @@ ColumnLayout {
     /** 当前用于绘图的序列键。 */
     property string chartSeriesKey: ""
 
+    /** 后台绘图请求编号与横轴同步开关。 */
+    property int plotRequestId: 0
+    property bool synchronizeAxes: false
+    property real spectrumMaxFrequency: 0
+
     /** 单条曲线最大绘图点数。 */
     property int maxPlotPoints: 4000
 
@@ -152,7 +157,7 @@ ColumnLayout {
 
     /** 重画叠加曲线（拟合曲线或理论曲线）。 */
     function refreshOverlay() {
-        chart.setOverlaySeries(analysisSession.overlayPoints, "拟合 / 理论曲线");
+        chart.setOverlaySeries(viewBox.currentIndex === 0 ? analysisSession.overlayPoints : [], "拟合 / 理论曲线");
     }
 
     /** 以视图中心为基准缩放坐标轴：factor < 1 放大，> 1 缩小。 */
@@ -162,7 +167,19 @@ ColumnLayout {
 
     /** 把视图恢复到整条序列的完整范围。 */
     function resetChart() {
-        chart.resetView();
+        if (viewBox.currentIndex !== 0) {
+            synchronizeAxes = false;
+            phaseChart.resetView();
+            chart.resetView();
+            if (spectrumMaxFrequency > 0)
+                chart.setVisibleXRange(0, spectrumMaxFrequency);
+            synchronizeAxes = true;
+            phaseChart.setVisibleXRange(chart.visibleXMin(), chart.visibleXMax());
+            ++plotRequestId;
+            spectrumViewTimer.restart();
+        } else {
+            chart.resetView();
+        }
     }
 
     /** 把分析区间同步为某条序列的完整范围。 */
@@ -175,27 +192,65 @@ ColumnLayout {
         rangeMaxField.setValue(summary.xMax);
     }
 
-    /** 重画曲线：从 C++ 取抽稀后的点集，交给 QCustomPlot。 */
+    /** 在后台准备当前曲线的数据，旧请求完成时自动忽略。 */
     function refreshChart(resetView) {
+        spectrumViewTimer.stop();
         const summary = summaryOf(chartSeriesKey);
+        const requestId = ++plotRequestId;
+        synchronizeAxes = false;
+        chart.clearSeries();
+        phaseChart.clearSeries();
         if (summary === null) {
             chartTitle.text = "尚未抽取数据";
-            chart.clearSeries();
             return;
         }
+        chartTitle.text = "正在计算绘图数据…";
+        analysisSession.requestPlot(chartSeriesKey, viewBox.currentIndex !== 0,
+                                    maxPlotPoints, uniformCheck.checked, requestId);
+    }
 
-        const points = analysisSession.seriesPoints(chartSeriesKey,
-                                                   summary.xMin,
-                                                   summary.xMax,
-                                                   maxPlotPoints,
-                                                   uniformCheck.checked);
-        chart.setPrimarySeries(points, summary.label);
-        if (resetView !== false) {
-            chart.resetView();
+    /** 接收当前请求的结果并更新图表。 */
+    function applyPlot(requestId, result) {
+        if (requestId !== plotRequestId) return;
+        const summary = summaryOf(chartSeriesKey);
+        if (summary === null) return;
+        if (result.message) {
+            chartTitle.text = result.message;
+            return;
         }
-        chartTitle.text = summary.label
-                          + "　显示 " + points.length + " / " + summary.sampleCount + " 点";
-        analysisRoot.refreshOverlay();
+        if (viewBox.currentIndex !== 0) {
+            if (result.viewUpdate) {
+                chart.setPrimarySeries(result.amplitudes, summary.label + " · 幅度谱");
+                phaseChart.setPrimarySeries(result.phases, summary.label + " · 相位谱");
+                return;
+            }
+            spectrumMaxFrequency = result.maxFrequency;
+            chart.setAxisLabels("频率 (Hz)", "幅度 (" + summary.unit + ")");
+            phaseChart.setAxisLabels("频率 (Hz)", "相位 (rad)");
+            chart.setPrimarySeries(result.amplitudes, summary.label + " · 幅度谱");
+            phaseChart.setPrimarySeries(result.phases, summary.label + " · 相位谱");
+            chart.setOverlaySeries([], "");
+            phaseChart.setOverlaySeries([], "");
+            resetChart();
+            chartTitle.text = summary.label + "　采样率 "
+                              + Number(result.sampleRate).toPrecision(5) + " Hz　矩形窗";
+        } else {
+            chart.setAxisLabels("时间 (s)", summary.unit);
+            chart.setPrimarySeries(result.points, summary.label);
+            refreshOverlay();
+            chart.resetView();
+            chartTitle.text = summary.label + "　显示 " + result.points.length
+                              + " / " + summary.sampleCount + " 点";
+        }
+    }
+
+    /** 合并连续拖动或缩放产生的视口抽稀请求。 */
+    Timer {
+        id: spectrumViewTimer
+        interval: 120
+        repeat: false
+        onTriggered: analysisSession.requestSpectrumView(chart.visibleXMin(), chart.visibleXMax(),
+                                                         maxPlotPoints, plotRequestId)
     }
 
     FileDialog {
@@ -237,6 +292,10 @@ ColumnLayout {
 
     Connections {
         target: analysisSession
+
+        function onPlotReady(requestId, result) {
+            analysisRoot.applyPlot(requestId, result);
+        }
 
         function onCatalogChanged() {
             analysisRoot.refreshChart();
@@ -501,7 +560,7 @@ ColumnLayout {
             Layout.fillWidth: true
             Layout.minimumWidth: 320
             Layout.fillHeight: true
-            title: "散点图 / Scatter"
+            title: "数据图 / Plot"
 
             ColumnLayout {
                 anchors.fill: parent
@@ -531,9 +590,17 @@ ColumnLayout {
                         }
                     }
 
+                    EgretComboBox {
+                        id: viewBox
+                        Layout.preferredWidth: 130
+                        model: [{ text: "时域波形" }, { text: "频谱与相位" }]
+                        onActivated: analysisRoot.refreshChart()
+                    }
+
                     EgretCheckBox {
                         id: uniformCheck
                         text: "均匀抽样"
+                        enabled: viewBox.currentIndex === 0
                         textColor: theme.textPrimary
                         onToggled: analysisRoot.refreshChart(false)
                     }
@@ -571,7 +638,7 @@ ColumnLayout {
                         id: areaZoomCheck
                         text: "框选放大"
                         textColor: theme.textPrimary
-                        onToggled: chart.setAreaZoomEnabled(checked)
+                        onToggled: { chart.setAreaZoomEnabled(checked); phaseChart.setAreaZoomEnabled(checked); }
                     }
 
                     Label {
@@ -595,18 +662,32 @@ ColumnLayout {
                     text: "尚未抽取数据"
                 }
 
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-
-                // 图表改用 QCustomPlot：平移 / 滚轮缩放 / 框选放大 / 自适应刻度
-                // 都是它内建且成熟的功能，不再自行实现交互。
                 QCustomPlotItem {
                     id: chart
-                    anchors.fill: parent
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.preferredHeight: 1
+                    onVisibleXRangeChanged: function(lower, upper) {
+                        if (analysisRoot.synchronizeAxes && viewBox.currentIndex !== 0) {
+                            phaseChart.setVisibleXRange(lower, upper);
+                            ++analysisRoot.plotRequestId;
+                            spectrumViewTimer.restart();
+                        }
+                    }
                 }
 
+                QCustomPlotItem {
+                    id: phaseChart
+                    visible: viewBox.currentIndex !== 0
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.preferredHeight: 1
+                    onVisibleXRangeChanged: function(lower, upper) {
+                        if (analysisRoot.synchronizeAxes && viewBox.currentIndex !== 0)
+                            chart.setVisibleXRange(lower, upper);
+                    }
                 }
+
             }
         }
 

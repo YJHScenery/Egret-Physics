@@ -43,6 +43,7 @@
 
 namespace egret::analysis
 {
+    struct SpectrumData;
     /**
      * @brief       数据分析工作区的门面对象。
      * @details     在 main.cpp 中以上下文属性 analysisSession 注册给 QML。
@@ -184,6 +185,26 @@ namespace egret::analysis
         Q_INVOKABLE [[nodiscard]] QVariantMap seriesValues(const QString& seriesKey) const;
 
         /**
+         * @brief 在后台准备时域绘图点或计算频谱。
+         * @param seriesKey 序列键。
+         * @param frequencyDomain 是否计算频谱。
+         * @param maxPoints 时域绘图点数上限。
+         * @param uniform 是否均匀抽样。
+         * @param requestId 界面请求编号，用于忽略过期结果。
+         */
+        Q_INVOKABLE void requestPlot(const QString& seriesKey, bool frequencyDomain,
+                                     int maxPoints, bool uniform, int requestId);
+
+        /**
+         * @brief 在后台抽取缓存频谱的可见范围。
+         * @param xMin 可见频率下限。
+         * @param xMax 可见频率上限。
+         * @param maxPoints 绘图点数上限。
+         * @param requestId 请求编号。
+         */
+        Q_INVOKABLE void requestSpectrumView(double xMin, double xMax, int maxPoints, int requestId);
+
+        /**
          * @brief  对某个序列做曲线拟合。
          * @param  seriesKey 序列键。
          * @param  model 模型键（linear / polynomial / trigonometric / exponential / logarithmic）。
@@ -248,6 +269,9 @@ namespace egret::analysis
 
         /** 误差对比结果变化。 */
         void comparisonChanged();
+
+        /** 后台绘图数据准备完成，携带请求编号和结果。 */
+        void plotReady(int requestId, const QVariantMap& result);
 
         /** 叠加曲线变化。 */
         void overlayChanged();
@@ -348,6 +372,12 @@ namespace egret::analysis
 
         /** 抽取结果。 */
         ExtractionResult m_result{};
+
+        /** 当前序列的完整频谱缓存。 */
+        std::shared_ptr<SpectrumData> m_spectrumCache{};
+
+        /** 最近一次完整绘图请求编号。 */
+        int m_plotGeneration{0};
 
         /** 序列键 → LOD 条目。 */
         QHash<QString, LodEntry> m_lod{};

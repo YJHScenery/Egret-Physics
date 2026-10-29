@@ -494,9 +494,22 @@ set_target_properties(FFmpeg::avformat PROPERTIES
         INTERFACE_LINK_LIBRARIES "FFmpeg::avcodec;FFmpeg::avutil"
 )
 
+# FFTW 使用项目内的头文件、MSVC 导入库和 Windows 运行库。
+set(FFTW_DEPENDENCY_ROOT "${CMAKE_SOURCE_DIR}/dependency")
+add_library(FFTW::FFTW SHARED IMPORTED)
+set_target_properties(FFTW::FFTW PROPERTIES
+        IMPORTED_LOCATION "${FFTW_DEPENDENCY_ROOT}/bin/fftw/libfftw3-3.dll"
+        IMPORTED_IMPLIB "${FFTW_DEPENDENCY_ROOT}/lib/fftw/libfftw3-3.lib"
+        INTERFACE_INCLUDE_DIRECTORIES "${FFTW_DEPENDENCY_ROOT}/include/fftw"
+)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:FFTW::FFTW>" "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
         Qt6::GuiPrivate
         FFmpeg::avcodec FFmpeg::avformat FFmpeg::avutil FFmpeg::swscale
+        FFTW::FFTW
         ${QT_MODULES_LIST_WITH_PREFIX}
         QXlsx::QXlsx
         Assimp::Assimp

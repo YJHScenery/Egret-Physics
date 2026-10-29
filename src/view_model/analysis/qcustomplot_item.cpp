@@ -26,6 +26,7 @@
 #include <QPainter>
 #include <QQuickWindow>
 #include <QWheelEvent>
+#include <QTimer>
 
 #include <algorithm>
 #include <cmath>
@@ -90,6 +91,11 @@ namespace egret::analysis
         m_overlay->setPen(QPen(QColor(255, 184, 77), 2));
         m_overlay->setAdaptiveSampling(true);
 
+        connect(plot->xAxis, QOverload<const QCPRange&>::of(&QCPAxis::rangeChanged),
+                this, [this](const QCPRange& range)
+                {
+                    emit visibleXRangeChanged(range.lower, range.upper);
+                });
         plot->resize(1, 1);
     }
 
@@ -106,6 +112,18 @@ namespace egret::analysis
     }
 
     void QCustomPlotItem::refreshCache()
+    {
+        if (m_refreshPending) return;
+        m_refreshPending = true;
+        QTimer::singleShot(0, this, [this]()
+        {
+            m_refreshPending = false;
+            renderCache();
+            update();
+        });
+    }
+
+    void QCustomPlotItem::renderCache()
     {
         if (m_plot == nullptr)
         {
@@ -184,6 +202,14 @@ namespace egret::analysis
         update();
     }
 
+    void QCustomPlotItem::setAxisLabels(const QString& xLabel, const QString& yLabel)
+    {
+        m_plot->xAxis->setLabel(xLabel);
+        m_plot->yAxis->setLabel(yLabel);
+        refreshCache();
+        update();
+    }
+
     void QCustomPlotItem::resetView()
     {
         if (m_plot == nullptr)
@@ -214,6 +240,15 @@ namespace egret::analysis
             return;
         }
         m_plot->setSelectionRectMode(enabled ? QCP::srmZoom : QCP::srmNone);
+    }
+
+    void QCustomPlotItem::setVisibleXRange(const double lower, const double upper)
+    {
+        const QCPRange range = m_plot->xAxis->range();
+        if (range.lower == lower && range.upper == upper) return;
+        m_plot->xAxis->setRange(lower, upper);
+        refreshCache();
+        update();
     }
 
     double QCustomPlotItem::visibleXMin() const

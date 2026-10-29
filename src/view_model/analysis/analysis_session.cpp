@@ -27,13 +27,20 @@
 #include "epsx_series_extractor.h"
 #include "expression_evaluator.h"
 
+#include <fftw3.h>
+
 #include <QDir>
 #include <QFileInfo>
 #include <QMetaObject>
 #include <QPointF>
+#include <QFutureWatcher>
+#include <QMutex>
+#include <QMutexLocker>
 #include <QtConcurrent>
 
 #include <cstddef>
+#include <cmath>
+#include <limits>
 #include <tuple>
 #include <utility>
 
@@ -821,6 +828,184 @@ namespace egret::analysis
         values[QStringLiteral("xs")] = xs;
         values[QStringLiteral("ys")] = ys;
         return values;
+    }
+
+    /** @brief 保存完整频谱，供缩放后重新生成绘图点。 */
+    struct SpectrumData
+    {
+        double spacing{0.0};
+        double sampleRate{0.0};
+        std::vector<double> amplitudes{};
+        std::vector<double> phases{};
+    };
+
+    /** @brief 对指定频率范围按桶保留极值，限制界面线程的数据量。 */
+    static QVariantList spectrumPoints(const std::vector<double>& values, double spacing,
+                                       double lower, double upper, int maxPoints)
+    {
+        QVariantList points;
+        if (values.empty() || spacing <= 0.0 || upper < 0.0 || lower > upper) return points;
+        const double lastFrequency = spacing * static_cast<double>(values.size() - 1);
+        if (lower > lastFrequency) return points;
+        const auto first = static_cast<std::size_t>(std::max(0.0, std::floor(lower / spacing)));
+        const auto last = static_cast<std::size_t>(std::min(static_cast<double>(values.size() - 1),
+                                                            std::ceil(upper / spacing)));
+        const std::size_t count = last - first + 1;
+        const std::size_t buckets = std::max<std::size_t>(1, static_cast<std::size_t>(std::max(4, maxPoints)) / 2);
+        const std::size_t step = std::max<std::size_t>(1, (count + buckets - 1) / buckets);
+        points.append(QVariant::fromValue(QPointF(first * spacing, values[first])));
+        for (std::size_t begin = first; begin <= last; begin += step)
+        {
+            const std::size_t end = std::min(last + 1, begin + step);
+            std::size_t minIndex = begin, maxIndex = begin;
+            for (std::size_t i = begin + 1; i < end; ++i)
+            {
+                if (values[i] < values[minIndex]) minIndex = i;
+                if (values[i] > values[maxIndex]) maxIndex = i;
+            }
+            if (minIndex > maxIndex) std::swap(minIndex, maxIndex);
+            points.append(QVariant::fromValue(QPointF(minIndex * spacing, values[minIndex])));
+            if (maxIndex != minIndex)
+                points.append(QVariant::fromValue(QPointF(maxIndex * spacing, values[maxIndex])));
+        }
+        if (last != first)
+            points.append(QVariant::fromValue(QPointF(last * spacing, values[last])));
+        return points;
+    }
+
+    /** @brief 生成指定频率范围的两组有限绘图点。 */
+    static QVariantMap spectrumView(const SpectrumData& spectrum, double lower, double upper, int maxPoints)
+    {
+        QVariantMap result;
+        result[QStringLiteral("amplitudes")] = spectrumPoints(spectrum.amplitudes, spectrum.spacing, lower, upper, maxPoints);
+        result[QStringLiteral("phases")] = spectrumPoints(spectrum.phases, spectrum.spacing, lower, upper, maxPoints);
+        result[QStringLiteral("sampleRate")] = spectrum.sampleRate;
+        result[QStringLiteral("maxFrequency")] = spectrum.spacing * (spectrum.amplitudes.size() - 1);
+        return result;
+    }
+
+    /** @brief 在工作线程中计算等间隔序列的单边频谱。 */
+    static QVariantMap calculateSpectrum(const std::vector<double>& times, const std::vector<double>& values,
+                                         SpectrumData& spectrum, int maxPoints)
+    {
+        QVariantMap result{};
+        const std::size_t count = times.size();
+        if (count < 2 ||
+            count > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+        {
+            result[QStringLiteral("message")] = QStringLiteral("频谱分析至少需要两个有效样本。");
+            return result;
+        }
+        const double dt = (times.back() - times.front()) / static_cast<double>(count - 1);
+        if (!std::isfinite(dt) || dt <= 0.0)
+        {
+            result[QStringLiteral("message")] = QStringLiteral("采样时间无效，无法计算频谱。");
+            return result;
+        }
+        for (std::size_t i = 0; i < count; ++i)
+        {
+            if (!std::isfinite(values[i]) || !std::isfinite(times[i]) ||
+                (i > 0 && std::abs((times[i] - times[i - 1]) - dt) >
+                 std::max(dt * 1e-4, 2e-9)))
+            {
+                result[QStringLiteral("message")] = QStringLiteral("数据包含无效值或采样间隔不均匀，无法计算频谱。");
+                return result;
+            }
+        }
+
+        static QMutex fftwMutex;
+        QMutexLocker locker(&fftwMutex);
+        std::vector<double> input(values);
+        std::vector<double> output(2 * (count / 2 + 1));
+        fftw_plan plan = fftw_plan_dft_r2c_1d(static_cast<int>(count), input.data(),
+                                              reinterpret_cast<fftw_complex*>(output.data()),
+                                              FFTW_ESTIMATE);
+        if (!plan)
+        {
+            result[QStringLiteral("message")] = QStringLiteral("无法创建傅里叶变换计划。");
+            return result;
+        }
+        fftw_execute(plan);
+        fftw_destroy_plan(plan);
+        const std::size_t bins = count / 2 + 1;
+        spectrum.spacing = 1.0 / (static_cast<double>(count) * dt);
+        spectrum.sampleRate = 1.0 / dt;
+        spectrum.amplitudes.resize(bins);
+        spectrum.phases.resize(bins);
+        for (std::size_t i = 0; i < bins; ++i)
+        {
+            const double real = output[2 * i];
+            const double imaginary = output[2 * i + 1];
+            const double scale = (i == 0 || (count % 2 == 0 && i == count / 2)) ? 1.0 : 2.0;
+            spectrum.amplitudes[i] = scale * std::hypot(real, imaginary) / count;
+            spectrum.phases[i] = std::atan2(imaginary, real);
+        }
+        result = spectrumView(spectrum, 0.0, spectrum.spacing * (bins - 1), maxPoints);
+        return result;
+    }
+
+    void AnalysisSession::requestPlot(const QString& seriesKey, const bool frequencyDomain,
+                                      int maxPoints, const bool uniform, const int requestId)
+    {
+        m_plotGeneration = requestId;
+        m_spectrumCache.reset();
+        const auto found = m_lod.constFind(seriesKey);
+        if (found == m_lod.constEnd() || !found->values)
+        {
+            emit plotReady(requestId, {{QStringLiteral("message"), QStringLiteral("请选择有效序列。")}});
+            return;
+        }
+        // 工作线程持有独立快照，关闭文件或重新抽取不会使其引用失效。
+        auto times = m_result.time;
+        std::vector<double> values(found->values, found->values + times.size());
+        if (maxPoints <= 0) maxPoints = kDefaultMaxPoints;
+        auto spectrum = std::make_shared<SpectrumData>();
+        auto* watcher = new QFutureWatcher<QVariantMap>(this);
+        connect(watcher, &QFutureWatcher<QVariantMap>::finished, this, [this, watcher, requestId, frequencyDomain, spectrum]()
+        {
+            const QVariantMap result = watcher->result();
+            watcher->deleteLater();
+            if (frequencyDomain && requestId == m_plotGeneration && !spectrum->amplitudes.empty())
+                m_spectrumCache = spectrum;
+            emit plotReady(requestId, result);
+        });
+        watcher->setFuture(QtConcurrent::run([times = std::move(times), values = std::move(values),
+                                               frequencyDomain, maxPoints, uniform, spectrum]() -> QVariantMap
+        {
+            if (frequencyDomain) return calculateSpectrum(times, values, *spectrum, maxPoints);
+            QVariantMap result{};
+            if (times.empty()) return result;
+            MinMaxLod lod;
+            lod.build(times.data(), values.data(), times.size());
+            std::vector<LodPoint> decimated;
+            if (uniform) lod.decimateUniform(static_cast<std::size_t>(maxPoints), &decimated);
+            else lod.decimate(lod.xMin(), lod.xMax(), static_cast<std::size_t>(maxPoints), &decimated);
+            QVariantList points;
+            points.reserve(static_cast<qsizetype>(decimated.size()));
+            for (const auto& point : decimated)
+                points.append(QVariant::fromValue(QPointF(point.x, point.y)));
+            result[QStringLiteral("points")] = points;
+            return result;
+        }));
+    }
+
+    void AnalysisSession::requestSpectrumView(const double xMin, const double xMax,
+                                              const int maxPoints, const int requestId)
+    {
+        const auto spectrum = m_spectrumCache;
+        if (!spectrum) return;
+        auto* watcher = new QFutureWatcher<QVariantMap>(this);
+        connect(watcher, &QFutureWatcher<QVariantMap>::finished, this, [this, watcher, requestId]()
+        {
+            QVariantMap result = watcher->result();
+            watcher->deleteLater();
+            result[QStringLiteral("viewUpdate")] = true;
+            emit plotReady(requestId, result);
+        });
+        watcher->setFuture(QtConcurrent::run([spectrum, xMin, xMax, maxPoints]()
+        {
+            return spectrumView(*spectrum, xMin, xMax, maxPoints);
+        }));
     }
 
     QVariantMap AnalysisSession::fitInfo() const
