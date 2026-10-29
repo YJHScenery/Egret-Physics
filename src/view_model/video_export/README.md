@@ -1,27 +1,17 @@
-# video_encoder —— .epsx → 视频导出工具
+# 视频导出 —— .epsx → 视频
 
-把离线仿真产生的 `.epsx` 文件离屏渲染成逐帧画面，并编码为 MP4 / MOV 视频文件。
-本工具是独立子项目，不依赖主界面，可用于脚本批量导出。
+主程序通过命令行离屏渲染仿真文件并编码为 MP4 / MOV。
 
 ## 构建
 
 ```powershell
-# 在仓库根目录配置（与主程序同一个构建目录）
-cmake -S . -B build
-
-# 只构建本工具（主程序构建不会因为本目标变慢）
-cmake --build build --config Release --target video_encoder
+cmake --build build --config Release --target Egret_Physics
 ```
-
-产物位于 `<build>/subprojects/video_encoder/Release/video_encoder.exe`，Qt 运行时与
-QML 模块会在构建后自动部署到同一目录，可直接运行。
-本目标复用主工程源码与 QML 资源，保证「场景重建 + 视口渲染」与播放器完全一致，
-代价是首次编译需要额外编译一份公共源码。
 
 ## 用法
 
 ```
-video_encoder --input <a.epsx> --output <a.mp4> [选项]
+Egret_Physics --export-video --input <a.epsx> --output <a.mp4> [选项]
 ```
 
 必填：

@@ -367,7 +367,7 @@ namespace egret::video
             "egret video_encoder —— 把 .epsx 仿真文件编码为 MP4 视频\n"
             "\n"
             "用法：\n"
-            "  video_encoder --input <a.epsx> --output <a.mp4> [选项]\n"
+            "  Egret_Physics --export-video --input <a.epsx> --output <a.mp4> [选项]\n"
             "\n"
             "必填：\n"
             "  -i, --input <path>            输入 .epsx 文件\n"
@@ -405,8 +405,8 @@ namespace egret::video
             "            输出帧 n 对应仿真时刻 n / fps，源帧号取 floor(时刻 / 采样间隔)。\n"
             "\n"
             "示例：\n"
-            "  video_encoder -i sim.epsx -o sim.mp4 --fps 60 --camera-pos 0,-900,600 --camera-target 0,0,0\n"
-            "  video_encoder -i sim.epsx -o sim.mp4 --codec mpeg4 --width 1280 --height 720 --quiet\n");
+            "  Egret_Physics --export-video -i sim.epsx -o sim.mp4 --fps 60 --camera-pos 0,-900,600 --camera-target 0,0,0\n"
+            "  Egret_Physics --export-video -i sim.epsx -o sim.mp4 --codec mpeg4 --width 1280 --height 720 --quiet\n");
     }
 
     CameraPose resolveCameraPose(const CameraOptions& camera)

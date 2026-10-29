@@ -597,3 +597,7 @@
 [2026-10-29 15:07:43.596] [D] [sliding_rail.cpp:336] [void __cdecl egret::SlidingRail::applyVelocityConstraint(double)] New Speed - Old Speed = 4.1565782969264607e-07
 [2026-10-29 15:07:43.596] [D] [sliding_rail.cpp:287] [void __cdecl egret::SlidingRail::applyPositionConstraint(double)] offset: 5.637881285158741e-06, 0, -3.556552030659077e-08
 [2026-10-29 15:07:43.596] [D] [sliding_rail.cpp:336] [void __cdecl egret::SlidingRail::applyVelocityConstraint(double)] New Speed - Old Speed = 7.277900338680269e-07
+[2026-10-29 20:09:42.801] [I] [epsx_video_encoder.cpp:313] [bool __cdecl egret::video::EpsxVideoEncoder::start(const struct egret::video::Options &,class QString *)] 并行渲染通道数量：1
+[2026-10-29 20:09:42.803] [I] [ffmpeg_video_writer.cpp:151] [bool __cdecl egret::video::FfmpegVideoWriter::start(const struct egret::video::FfmpegVideoWriter::Settings &,class QString *)] 视频编码器：libx264
+[2026-10-29 20:10:09.497] [I] [epsx_video_encoder.cpp:313] [bool __cdecl egret::video::EpsxVideoEncoder::start(const struct egret::video::Options &,class QString *)] 并行渲染通道数量：1
+[2026-10-29 20:10:09.500] [I] [ffmpeg_video_writer.cpp:151] [bool __cdecl egret::video::FfmpegVideoWriter::start(const struct egret::video::FfmpegVideoWriter::Settings &,class QString *)] 视频编码器：libx264

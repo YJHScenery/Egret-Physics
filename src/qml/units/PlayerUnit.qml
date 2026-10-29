@@ -69,6 +69,186 @@ ColumnLayout {
         }
     }
 
+    /** 打开视频导出参数窗口，供菜单与播放器按钮共用。 */
+    function showVideoExport() {
+        if (playerSceneController.simulationLoaded && !videoExporter.running)
+            videoExportDialog.open();
+    }
+
+    FileDialog {
+        id: videoFileDialog
+        title: "保存导出的视频"
+        fileMode: FileDialog.SaveFile
+        currentFolder: documentsFolder
+        defaultSuffix: "mp4"
+        nameFilters: ["MP4 视频 (*.mp4)"]
+        onAccepted: {
+            if (!playerSceneController.simulationLoaded) {
+                videoResult.text = "播放器已关闭仿真文件，请重新打开后导出。";
+                videoResult.open();
+                return;
+            }
+            if (!videoExporter.start(playerSceneController.simulationFile, selectedFile,
+                                     videoWidth.value, videoHeight.value, videoFps.value,
+                                     playbackViewport.cameraState(), playbackViewport.coordinateSystem.visible)) {
+                videoResult.text = videoExporter.message;
+                videoResult.open();
+            }
+        }
+    }
+
+    /** 视频导出参数使用的主题数字输入框。 */
+    component ExportSpinBox: SpinBox {
+        id: control
+        editable: true
+        hoverEnabled: true
+        implicitWidth: 148
+        implicitHeight: 38
+        leftPadding: 36
+        rightPadding: 36
+        font.pixelSize: 13
+        contentItem: TextInput {
+            text: control.textFromValue(control.value, control.locale)
+            font: control.font
+            color: theme.textPrimary
+            selectionColor: theme.accentSoft
+            selectedTextColor: "white"
+            horizontalAlignment: Qt.AlignHCenter
+            verticalAlignment: Qt.AlignVCenter
+            readOnly: !control.editable
+            validator: control.validator
+            inputMethodHints: Qt.ImhDigitsOnly
+        }
+        background: Rectangle {
+            radius: 7
+            color: theme.bg1
+            border.width: 1
+            border.color: control.activeFocus ? theme.accent : theme.border
+        }
+        up.indicator: Rectangle {
+            x: control.width - width - 1; y: 1
+            width: 34; height: control.height - 2
+            radius: 6
+            color: control.value >= control.to ? "#102543" : control.up.pressed ? "#168CC8" : control.up.hovered ? "#286BA3" : "#16365F"
+            Behavior on color { ColorAnimation { duration: 100 } }
+            Text {
+                anchors.centerIn: parent
+                text: "+"; color: control.value < control.to ? theme.textPrimary : theme.textDim
+                font.pixelSize: 18
+            }
+        }
+        down.indicator: Rectangle {
+            x: 1; y: 1
+            width: 34; height: control.height - 2
+            radius: 6
+            color: control.value <= control.from ? "#102543" : control.down.pressed ? "#168CC8" : control.down.hovered ? "#286BA3" : "#16365F"
+            Behavior on color { ColorAnimation { duration: 100 } }
+            Text {
+                anchors.centerIn: parent
+                text: "−"; color: control.value > control.from ? theme.textPrimary : theme.textDim
+                font.pixelSize: 18
+            }
+        }
+    }
+
+    Dialog {
+        id: videoExportDialog
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        modal: true
+        width: Math.min(540, parent.width - 32)
+        padding: 24
+        closePolicy: Popup.CloseOnEscape
+        background: Rectangle { color: "#0C2041"; radius: 12; border.color: theme.border }
+        contentItem: ColumnLayout {
+            spacing: 16
+            RowLayout {
+                Layout.fillWidth: true
+                ColumnLayout {
+                    Layout.fillWidth: true; spacing: 3
+                    Text { text: "导出视频"; color: theme.textPrimary; font.pixelSize: 20; font.bold: true }
+                    Text { text: "MP4 · H.264"; color: theme.accent; font.pixelSize: 12 }
+                }
+            }
+            Rectangle { Layout.fillWidth: true; height: 1; color: "#284D75" }
+            Text {
+                Layout.fillWidth: true
+                text: "将完整仿真导出为视频，并沿用播放器当前的相机和网格设置。"
+                color: theme.textSecondary; font.pixelSize: 13; wrapMode: Text.Wrap
+            }
+            ColumnLayout {
+                Layout.fillWidth: true; spacing: 7
+                Text { text: "输出帧率"; color: theme.textPrimary; font.pixelSize: 13; font.bold: true }
+                RowLayout {
+                    ExportSpinBox { id: videoFps; from: 0; to: 240; value: 30 }
+                    Text { text: "帧 / 秒"; color: theme.textSecondary; font.pixelSize: 12 }
+                    Item { Layout.fillWidth: true }
+                }
+                Text {
+                    Layout.fillWidth: true
+                    text: "设为 0 则跟随仿真采样率；低于采样率时将跳过部分源帧。"
+                    color: theme.textSecondary; font.pixelSize: 11; wrapMode: Text.Wrap
+                }
+            }
+            ColumnLayout {
+                Layout.fillWidth: true; spacing: 7
+                Text { text: "视频分辨率"; color: theme.textPrimary; font.pixelSize: 13; font.bold: true }
+                RowLayout {
+                    ExportSpinBox { id: videoWidth; from: 2; to: 7680; stepSize: 2; value: 1920 }
+                    Text { text: "×"; color: theme.textSecondary; font.pixelSize: 16 }
+                    ExportSpinBox { id: videoHeight; from: 2; to: 4320; stepSize: 2; value: 1080 }
+                    Text { text: "像素"; color: theme.textSecondary; font.pixelSize: 12 }
+                    Item { Layout.fillWidth: true }
+                }
+                Text { text: "宽度和高度必须为偶数。"; color: theme.textSecondary; font.pixelSize: 11 }
+            }
+            Rectangle {
+                Layout.fillWidth: true; implicitHeight: encodingText.implicitHeight + 20
+                radius: 7; color: "#102F52"; border.color: "#28547B"
+                Text { id: encodingText; anchors.fill: parent; anchors.margins: 10
+                    text: "编码器将自动选择；导出时可在播放器中查看进度并取消。"
+                    color: theme.textSecondary; font.pixelSize: 11; wrapMode: Text.Wrap }
+            }
+            RowLayout {
+                Layout.fillWidth: true; spacing: 10
+                Item { Layout.fillWidth: true }
+                EgretPushButton { text: "取消"; Layout.fillWidth: false; Layout.preferredWidth: 100; Layout.preferredHeight: 34; onClicked: videoExportDialog.close() }
+                EgretPushButton { text: "选择保存位置…"; Layout.fillWidth: false; Layout.preferredWidth: 150; Layout.preferredHeight: 34
+                    onClicked: { videoExportDialog.close(); videoFileDialog.open(); }
+                }
+            }
+        }
+    }
+
+    Dialog {
+        id: videoResult
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        modal: true
+        width: Math.min(480, parent.width - 32)
+        padding: 24
+        property string text: ""
+        background: Rectangle { color: "#0C2041"; radius: 12; border.color: theme.border }
+        contentItem: ColumnLayout {
+            spacing: 16
+            Text { text: "视频导出"; color: theme.textPrimary; font.pixelSize: 18; font.bold: true }
+            Text { Layout.fillWidth: true; text: videoResult.text; color: theme.textSecondary; font.pixelSize: 13; wrapMode: Text.Wrap }
+            RowLayout {
+                Layout.fillWidth: true
+                Item { Layout.fillWidth: true }
+                EgretPushButton { text: "确定"; Layout.fillWidth: false; Layout.preferredWidth: 100; Layout.preferredHeight: 34; onClicked: videoResult.close() }
+            }
+        }
+    }
+
+    Connections {
+        target: videoExporter
+        function onCompleted(success, message) {
+            videoResult.text = message;
+            videoResult.open();
+        }
+    }
+
     RowLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
@@ -262,7 +442,7 @@ ColumnLayout {
             // ============ 仿真文件 ============
             GlassPanel {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 210
+                Layout.preferredHeight: 280
                 title: "仿真文件"
 
                 ColumnLayout {
@@ -280,6 +460,36 @@ ColumnLayout {
                         text: "打开默认缓存文件"
                         onClicked: {
                             playerSceneController.openDefaultSimulationFile();
+                        }
+                    }
+
+                    EgretPushButton {
+                        text: "导出视频（MP4）…"
+                        enabled: playerSceneController.simulationLoaded && !videoExporter.running
+                        onClicked: playerRoot.showVideoExport()
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        visible: videoExporter.running
+                        spacing: 5
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Text { text: "正在导出视频"; color: theme.textSecondary; font.pixelSize: 11 }
+                            Item { Layout.fillWidth: true }
+                            Text { text: Math.round(videoExporter.progress * 100) + "%"; color: theme.accent; font.pixelSize: 11 }
+                        }
+                        ProgressBar {
+                            Layout.fillWidth: true
+                            value: videoExporter.progress
+                            background: Rectangle { implicitHeight: 6; radius: 3; color: "#183857" }
+                            contentItem: Item {
+                                Rectangle { width: parent.width * videoExporter.progress; height: parent.height; radius: 3; color: theme.accent }
+                            }
+                        }
+                        EgretPushButton {
+                            text: "取消导出"
+                            onClicked: videoExporter.cancel()
                         }
                     }
 

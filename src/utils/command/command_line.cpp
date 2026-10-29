@@ -92,6 +92,7 @@ namespace egret::command
             app.set_help_flag("-h,--help", "显示帮助信息");
             app.set_version_flag("--version", std::string{EGRET_VERSION_STRING});
 
+            app.add_flag("--export-video", "导出视频，使用 --export-video --help 查看选项");
             app.add_flag("--solve", options.solve, "离线求解场景并写出仿真文件");
             app.add_option("scene", options.sceneFile, "场景文件路径（.epscene，与 --solve 搭配）");
             app.add_option("--duration", options.durationSeconds, "仿真时长，单位秒（默认 60）");

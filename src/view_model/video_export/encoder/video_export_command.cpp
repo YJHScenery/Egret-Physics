@@ -22,6 +22,7 @@
 
 #include <QCoreApplication>
 #include <QGuiApplication>
+#include <QApplication>
 #include <QString>
 #include <QTextStream>
 #include <QtQml/qqml.h>
@@ -71,31 +72,13 @@ namespace
 
 /**
  * @brief  程序入口：解析命令行、启动导出任务并等待结束。
- * @param  argc 参数个数。
- * @param  argv 参数列表。
+ * @param  app 应用实例。
+ * @param  arguments 导出参数列表。
  * @return 进程退出码：0 成功、1 运行期失败、2 参数错误。
  */
-int main(int argc, char* argv[])
+int runVideoExport(QApplication& app, const QStringList& arguments)
 {
-    // 必须在创建任何 Qt Multimedia 对象之前指定：QVideoFrameInput 仅由 FFmpeg 后端实现。
-    qputenv("QT_MEDIA_BACKEND", "ffmpeg");
-
-    QGuiApplication app{argc, argv};
-    QCoreApplication::setApplicationName(QStringLiteral("Egret Physics Video Encoder"));
-    QCoreApplication::setApplicationVersion(QStringLiteral("1.0.0"));
-
     setTerminalUtf8();
-
-    // 日志落盘位置与主程序保持一致，便于导出失败时排查。
-    CustomMessageHandler::setOutputTarget(QStringLiteral("./logs/qdebug_output.log"));
-    CustomMessageHandler::install();
-
-    egret::AsyncLogger& logger{egret::AsyncLogger::instance()};
-    logger.setLogFilePath("./logs/video_encoder.log");
-    logger.setOutputToConsole(false);
-    logger.setOutputToFile(true);
-
-    // 离屏场景复用播放器的视口组件，因此需要与主程序一致的 QML 类型注册。
     qmlRegisterType<egret::SpringGeometry>("EgretPhysics", 1, 0, "SpringGeometry");
     qmlRegisterType<egret::BezierCurveGeometry>("EgretPhysics", 1, 0, "BezierCurveGeometry");
     qmlRegisterType<egret::CurveGeometry>("EgretPhysics", 1, 0, "CurveGeometry");
@@ -103,7 +86,7 @@ int main(int argc, char* argv[])
     QTextStream standardOutput{stdout};
     QTextStream standardError{stderr};
 
-    const egret::video::ParseResult parsed{egret::video::parseCommandLine(app.arguments())};
+    const egret::video::ParseResult parsed{egret::video::parseCommandLine(arguments)};
     if (parsed.helpRequested) {
         standardOutput << egret::video::helpText();
         standardOutput.flush();

@@ -51,12 +51,25 @@
 #include "command_line.h"
 #include "simulation_export_controller.h"
 #include "analysis_session.h"
+#include "view_model/video_export/encoder/video_export_controller.h"
 #include "qcustomplot_item.h"
 
 
+/** @brief 执行视频导出命令。 @param app 应用实例。 @param arguments 导出参数。 @return 进程退出码。 */
+int runVideoExport(QApplication& app, const QStringList& arguments);
+
 int main(int argc, char* argv[])
 {
+    if (argc > 1 && QByteArray(argv[1]) == "--export-video") {
+        qputenv("QT_MEDIA_BACKEND", "ffmpeg");
+    }
     QApplication app(argc, argv);
+
+    QStringList arguments = app.arguments();
+    if (arguments.size() > 1 && arguments.at(1) == QStringLiteral("--export-video")) {
+        arguments.removeAt(1);
+        return runVideoExport(app, arguments);
+    }
 
     // 命令行分支：无参数时进入图形界面；纯命令行模式在创建 QML 引擎之前处理完毕。
     // --play / --edit 是例外：前者要在图形界面里打开「播放器」工作区并自动播放，
@@ -133,6 +146,7 @@ int main(int argc, char* argv[])
     // 播放器工作区同样使用独立的空场景控制器：未打开仿真文件时不渲染任何实体
     egret::SceneManagerViewModel playerSceneController{nullptr, false};
     egret::SimulationExportController simulationExporter;
+    egret::video::VideoExportController videoExporter;
     // 数据分析工作区：EPSX 读取、抽帧、导出与绘图数据都由该门面对象提供
     egret::analysis::AnalysisSession analysisSession;
     egret::QtComponentHelper qtHelper;
@@ -148,6 +162,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty("offlineSceneController", &offlineSceneController);
     engine.rootContext()->setContextProperty("playerSceneController", &playerSceneController);
     engine.rootContext()->setContextProperty("simulationExporter", &simulationExporter);
+    engine.rootContext()->setContextProperty("videoExporter", &videoExporter);
     engine.rootContext()->setContextProperty("analysisSession", &analysisSession);
     engine.rootContext()->setContextProperty("qtHelper", &qtHelper);
     engine.rootContext()->setContextProperty("resourceHelper", &resourceHelper);

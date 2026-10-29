@@ -314,6 +314,18 @@ ApplicationWindow {
                             separator: true
                         },
                         {
+                            text: "导出",
+                            enabled: mainRowLayout.currentRoute === "player" && playerSceneController.simulationLoaded && !videoExporter.running,
+                            submenu: [
+                                {
+                                    text: "视频（.mp4）…",
+                                    enabled: mainRowLayout.currentRoute === "player" && playerSceneController.simulationLoaded && !videoExporter.running,
+                                    onTriggered: function () { playerUnit.showVideoExport(); }
+                                }
+                            ]
+                        },
+                        { separator: true },
+                        {
                             text: "偏好设置(&P)",
                             shortcut: "Ctrl+P",
                             onTriggered: function () {

@@ -162,10 +162,27 @@ list(TRANSFORM QT_MODULES_LIST PREPEND "Qt::" OUTPUT_VARIABLE QT_MODULES_LIST_WI
 set(QRC_FILES
         resources/global.qrc
         src/qml/qml.qrc
+        src/view_model/video_export/resources/video_encoder.qrc
 )
 
 set(CPP_FILES
         src/main.cpp
+
+        src/view_model/video_export/encoder/epsx_video_encoder.cpp
+        src/view_model/video_export/encoder/epsx_video_encoder.h
+        src/view_model/video_export/encoder/ffmpeg_video_writer.cpp
+        src/view_model/video_export/encoder/ffmpeg_video_writer.h
+        src/view_model/video_export/encoder/offscreen_scene_renderer.cpp
+        src/view_model/video_export/encoder/offscreen_scene_renderer.h
+        src/view_model/video_export/encoder/render_lane.cpp
+        src/view_model/video_export/encoder/render_lane.h
+        src/view_model/video_export/encoder/video_encoder_options.cpp
+        src/view_model/video_export/encoder/video_encoder_options.h
+        src/view_model/video_export/encoder/video_export_command.cpp
+        src/view_model/video_export/encoder/video_export_controller.cpp
+        src/view_model/video_export/encoder/video_export_controller.h
+        src/view_model/video_export/encoder/video_frame_writer.cpp
+        src/view_model/video_export/encoder/video_frame_writer.h
 
         src/utils/constants.h
         src/utils/basic_utils.h
@@ -445,7 +462,41 @@ if (MSVC)
     target_compile_options(egret_muparser PRIVATE /W0)
 endif ()
 
+set(FFMPEG_DEPENDENCY_ROOT "${CMAKE_SOURCE_DIR}/dependency")
+
+add_library(FFmpeg::avutil SHARED IMPORTED)
+set_target_properties(FFmpeg::avutil PROPERTIES
+        IMPORTED_LOCATION "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/avutil-61.dll"
+        IMPORTED_IMPLIB "${FFMPEG_DEPENDENCY_ROOT}/lib/ffmpeg/avutil.lib"
+        INTERFACE_INCLUDE_DIRECTORIES "${FFMPEG_DEPENDENCY_ROOT}/include/ffmpeg_9_0_2"
+)
+
+add_library(FFmpeg::swscale SHARED IMPORTED)
+set_target_properties(FFmpeg::swscale PROPERTIES
+        IMPORTED_LOCATION "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/swscale-10.dll"
+        IMPORTED_IMPLIB "${FFMPEG_DEPENDENCY_ROOT}/lib/ffmpeg/swscale.lib"
+        INTERFACE_INCLUDE_DIRECTORIES "${FFMPEG_DEPENDENCY_ROOT}/include/ffmpeg_9_0_2"
+)
+
+add_library(FFmpeg::avcodec SHARED IMPORTED)
+set_target_properties(FFmpeg::avcodec PROPERTIES
+        IMPORTED_LOCATION "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/avcodec-63.dll"
+        IMPORTED_IMPLIB "${FFMPEG_DEPENDENCY_ROOT}/lib/ffmpeg/avcodec.lib"
+        INTERFACE_INCLUDE_DIRECTORIES "${FFMPEG_DEPENDENCY_ROOT}/include/ffmpeg_9_0_2"
+        INTERFACE_LINK_LIBRARIES "FFmpeg::avutil"
+)
+
+add_library(FFmpeg::avformat SHARED IMPORTED)
+set_target_properties(FFmpeg::avformat PROPERTIES
+        IMPORTED_LOCATION "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/avformat-63.dll"
+        IMPORTED_IMPLIB "${FFMPEG_DEPENDENCY_ROOT}/lib/ffmpeg/avformat.lib"
+        INTERFACE_INCLUDE_DIRECTORIES "${FFMPEG_DEPENDENCY_ROOT}/include/ffmpeg_9_0_2"
+        INTERFACE_LINK_LIBRARIES "FFmpeg::avcodec;FFmpeg::avutil"
+)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
+        Qt6::GuiPrivate
+        FFmpeg::avcodec FFmpeg::avformat FFmpeg::avutil FFmpeg::swscale
         ${QT_MODULES_LIST_WITH_PREFIX}
         QXlsx::QXlsx
         Assimp::Assimp
@@ -483,6 +534,15 @@ if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
                 "${QT_INSTALL_PATH}/bin/Qt6${QT_LIB}${DEBUG_SUFFIX}.dll"
                 "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
     endforeach (QT_LIB)
+
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/avutil-61.dll"
+        "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/swresample-7.dll"
+        "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/swscale-10.dll"
+        "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/avcodec-63.dll"
+        "${FFMPEG_DEPENDENCY_ROOT}/bin/ffmpeg/avformat-63.dll"
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
 
     # 复制 Assimp DLL 到输出目录
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
@@ -522,16 +582,6 @@ add_subdirectory(subprojects/epsx_register)
 # 区别在于扩展名换成 .epscene、图标换成场景图标，双击时以 `--edit` 让主程序在
 # 场景编辑器工作区载入该场景。
 add_subdirectory(subprojects/epscene_register)
-
-# 视频导出工具：独立的命令行程序（.epsx → MP4），复用主工程源码。
-add_subdirectory(subprojects/video_encoder)
-
-# 构建主程序时一并构建全部三个子项目。
-# 项目约定的构建命令是 `cmake --build <dir> --config Release --target Egret_Physics`，
-# 带 --target 时只会构建该目标及其依赖（默认的 ALL 目标不参与），
-# 因此在主程序上显式声明依赖，避免子项目被跳过；
-# 若不带 --target 构建整个解决方案，三者本来就会一起构建。
-# add_dependencies(${PROJECT_NAME} epsx_register epscene_register) # video_encoder
 
 
 

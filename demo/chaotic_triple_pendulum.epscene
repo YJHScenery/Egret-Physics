@@ -1,0 +1,188 @@
+{
+  "_documentation": "三阶混沌摆演示：三颗等质量摆球由长度相等的约束依次连接，初始时从大偏角静止释放。",
+  "models": [
+    {
+      "category": 0,
+      "type": 8,
+      "id": "1",
+      "name": "第一摆球",
+      "pos": [
+        200,
+        0,
+        400
+      ],
+      "initial_velocity": [
+        0,
+        0,
+        0
+      ],
+      "initial_angular_velocity": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "mass": 10,
+      "restitution": 1,
+      "radius": 18,
+      "visible": true,
+      "materials": {
+        "baseColor": "#3b82f6"
+      }
+    },
+    {
+      "category": 0,
+      "type": 8,
+      "id": "2",
+      "name": "第二摆球",
+      "pos": [
+        200,
+        0,
+        200
+      ],
+      "initial_velocity": [
+        0,
+        0,
+        0
+      ],
+      "initial_angular_velocity": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "mass": 10,
+      "restitution": 1,
+      "radius": 18,
+      "visible": true,
+      "materials": {
+        "baseColor": "#ef4444"
+      }
+    },
+    {
+      "category": 1,
+      "type": 1,
+      "id": "100",
+      "name": "重力场",
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "field_data": {
+        "gravity": [
+          0,
+          0,
+          -180
+        ],
+        "reference_point": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "category": 2,
+      "type": 2,
+      "id": "101",
+      "name": "上摆杆",
+      "entity_ids": [
+        "1"
+      ],
+      "anchor_pos": {
+        "x": 0,
+        "y": 0,
+        "z": 400
+      },
+      "constraint_data": {
+        "length": 200
+      }
+    },
+    {
+      "category": 2,
+      "type": 3,
+      "id": "102",
+      "name": "下摆杆",
+      "entity_ids": [
+        "1",
+        "2"
+      ],
+      "constraint_data": {
+        "length": 200
+      }
+    },
+    {
+      "category": 0,
+      "type": 8,
+      "id": "3",
+      "name": "第三摆球",
+      "pos": [
+        400,
+        0,
+        200
+      ],
+      "initial_velocity": [
+        0,
+        0,
+        0
+      ],
+      "initial_angular_velocity": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "mass": 10,
+      "restitution": 1,
+      "radius": 18,
+      "visible": true,
+      "materials": {
+        "baseColor": "#f59e0b"
+      }
+    },
+    {
+      "category": 2,
+      "type": 3,
+      "id": "103",
+      "name": "第三摆杆",
+      "entity_ids": [
+        "2",
+        "3"
+      ],
+      "constraint_data": {
+        "length": 200
+      }
+    }
+  ]
+}
