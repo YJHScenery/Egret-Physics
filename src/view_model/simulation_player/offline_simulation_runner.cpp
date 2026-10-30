@@ -31,6 +31,7 @@
 #include <tuple>
 #include <vector>
 
+#include "bvh_broad_strategy.h"
 #include "broad_phase_strategy/octree_broad_strategy.h"
 #include "constraints_base.h"
 #include "contact_strategy/frictional_contact_resolver.h"
@@ -317,7 +318,7 @@ namespace egret
         auto solver = std::make_unique<Solver>(
             request.solverConfig,
             std::make_unique<VelocityVerletIntegratorStrategy>(),
-            std::make_unique<OctreeBroadStrategy>(),
+            std::make_unique<BVHBroadStrategy>(),
             std::make_unique<FrictionalContactResolverStrategy>());
         solver->setSleepStrategy(std::make_unique<KineticSleepStrategy>(SleepConfig{}));
 

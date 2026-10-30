@@ -595,7 +595,7 @@ namespace egret
         auto solver = std::make_unique<Solver>(
             config,
             std::make_unique<VelocityVerletIntegratorStrategy>(),
-            std::make_unique<OctreeBroadStrategy>(),
+            std::make_unique<BVHBroadStrategy>(),
             std::make_unique<FrictionalContactResolverStrategy>());
 
         // 挂载休眠策略：解决实体受恒定外力时无法自然静止的问题

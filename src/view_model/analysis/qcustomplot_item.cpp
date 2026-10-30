@@ -22,6 +22,8 @@
 #include "qcustomplot.h"
 
 #include <QHoverEvent>
+#include <QElapsedTimer>
+#include <QDebug>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QQuickWindow>
@@ -115,7 +117,7 @@ namespace egret::analysis
     {
         if (m_refreshPending) return;
         m_refreshPending = true;
-        QTimer::singleShot(0, this, [this]()
+        QTimer::singleShot(16, this, [this]()
         {
             m_refreshPending = false;
             renderCache();
@@ -129,11 +131,15 @@ namespace egret::analysis
         {
             return;
         }
+        QElapsedTimer timer;
+        timer.start();
         const double scale = plotScale();
         const int pixelWidth = std::max(1, static_cast<int>(std::lround(width() * scale)));
         const int pixelHeight = std::max(1, static_cast<int>(std::lround(height() * scale)));
         m_plot->resize(pixelWidth, pixelHeight);
         m_cache = m_plot->toPixmap(pixelWidth, pixelHeight, 1.0).toImage();
+        if (timer.elapsed() >= 50)
+            qDebug() << "图表重绘耗时毫秒" << timer.elapsed() << "像素" << pixelWidth << pixelHeight;
     }
 
     void QCustomPlotItem::paint(QPainter* painter)
@@ -154,7 +160,6 @@ namespace egret::analysis
         m_primary->data()->clear();
         m_overlay->data()->clear();
         refreshCache();
-        update();
     }
 
     void QCustomPlotItem::setPrimarySeries(const QVariantList& points, const QString& label)
@@ -163,6 +168,8 @@ namespace egret::analysis
         {
             return;
         }
+        QElapsedTimer timer;
+        timer.start();
         QVector<double> keys{};
         QVector<double> values{};
         keys.reserve(points.size());
@@ -173,10 +180,11 @@ namespace egret::analysis
             keys.append(point.x());
             values.append(point.y());
         }
-        m_primary->setData(keys, values);
+        m_primary->setData(keys, values, std::is_sorted(keys.cbegin(), keys.cend()));
+        if (timer.elapsed() >= 20)
+            qDebug() << "图表接收数据耗时毫秒" << timer.elapsed() << "点数" << points.size();
         m_primary->setName(label);
         refreshCache();
-        update();
     }
 
     void QCustomPlotItem::setOverlaySeries(const QVariantList& points, const QString& label)
@@ -199,7 +207,6 @@ namespace egret::analysis
         m_overlay->setName(label);
         m_overlay->setVisible(!keys.isEmpty());
         refreshCache();
-        update();
     }
 
     void QCustomPlotItem::setAxisLabels(const QString& xLabel, const QString& yLabel)
@@ -207,7 +214,6 @@ namespace egret::analysis
         m_plot->xAxis->setLabel(xLabel);
         m_plot->yAxis->setLabel(yLabel);
         refreshCache();
-        update();
     }
 
     void QCustomPlotItem::resetView()
@@ -218,7 +224,6 @@ namespace egret::analysis
         }
         m_plot->rescaleAxes(true);
         refreshCache();
-        update();
     }
 
     void QCustomPlotItem::zoomBy(const double factor)
@@ -230,7 +235,6 @@ namespace egret::analysis
         m_plot->xAxis->scaleRange(factor, m_plot->xAxis->range().center());
         m_plot->yAxis->scaleRange(factor, m_plot->yAxis->range().center());
         refreshCache();
-        update();
     }
 
     void QCustomPlotItem::setAreaZoomEnabled(const bool enabled)
@@ -248,7 +252,6 @@ namespace egret::analysis
         if (range.lower == lower && range.upper == upper) return;
         m_plot->xAxis->setRange(lower, upper);
         refreshCache();
-        update();
     }
 
     double QCustomPlotItem::visibleXMin() const
@@ -265,7 +268,6 @@ namespace egret::analysis
     {
         QQuickPaintedItem::geometryChange(newGeometry, oldGeometry);
         refreshCache();
-        update();
     }
 
     void QCustomPlotItem::mousePressEvent(QMouseEvent* event)
@@ -281,7 +283,6 @@ namespace egret::analysis
                            event->pointingDevice()};
         static_cast<PlotWidget*>(m_plot)->mousePressEvent(&mapped);
         refreshCache();
-        update();
         event->accept();
     }
 
@@ -298,7 +299,6 @@ namespace egret::analysis
                            event->pointingDevice()};
         static_cast<PlotWidget*>(m_plot)->mouseMoveEvent(&mapped);
         refreshCache();
-        update();
         event->accept();
     }
 
@@ -314,8 +314,6 @@ namespace egret::analysis
                            Qt::NoButton,
                            Qt::NoModifier};
         static_cast<PlotWidget*>(m_plot)->mouseMoveEvent(&mapped);
-        refreshCache();
-        update();
         event->accept();
     }
 
@@ -332,7 +330,6 @@ namespace egret::analysis
                            event->pointingDevice()};
         static_cast<PlotWidget*>(m_plot)->mouseReleaseEvent(&mapped);
         refreshCache();
-        update();
         event->accept();
     }
 
@@ -351,7 +348,6 @@ namespace egret::analysis
                            event->pointingDevice()};
         static_cast<PlotWidget*>(m_plot)->wheelEvent(&mapped);
         refreshCache();
-        update();
         event->accept();
     }
 }

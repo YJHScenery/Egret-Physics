@@ -59,7 +59,7 @@ ColumnLayout {
     property real spectrumMaxFrequency: 0
 
     /** 单条曲线最大绘图点数。 */
-    property int maxPlotPoints: 4000
+    property int maxPlotPoints: Math.min(4000, Math.max(512, Math.ceil(chart.width * 2)))
 
     /** 可选的拟合模型（供下拉框使用）。 */
     readonly property var fitModels: [
@@ -169,12 +169,12 @@ ColumnLayout {
     function resetChart() {
         if (viewBox.currentIndex !== 0) {
             synchronizeAxes = false;
-            phaseChart.resetView();
+            if (phaseCheck.checked) phaseChart.resetView();
             chart.resetView();
             if (spectrumMaxFrequency > 0)
                 chart.setVisibleXRange(0, spectrumMaxFrequency);
             synchronizeAxes = true;
-            phaseChart.setVisibleXRange(chart.visibleXMin(), chart.visibleXMax());
+            if (phaseCheck.checked) phaseChart.setVisibleXRange(chart.visibleXMin(), chart.visibleXMax());
             ++plotRequestId;
             spectrumViewTimer.restart();
         } else {
@@ -199,14 +199,14 @@ ColumnLayout {
         const requestId = ++plotRequestId;
         synchronizeAxes = false;
         chart.clearSeries();
-        phaseChart.clearSeries();
+        if (phaseCheck.checked) phaseChart.clearSeries();
         if (summary === null) {
             chartTitle.text = "尚未抽取数据";
             return;
         }
         chartTitle.text = "正在计算绘图数据…";
         analysisSession.requestPlot(chartSeriesKey, viewBox.currentIndex !== 0,
-                                    maxPlotPoints, uniformCheck.checked, requestId);
+                                    maxPlotPoints, uniformCheck.checked, phaseCheck.checked, requestId);
     }
 
     /** 接收当前请求的结果并更新图表。 */
@@ -221,16 +221,19 @@ ColumnLayout {
         if (viewBox.currentIndex !== 0) {
             if (result.viewUpdate) {
                 chart.setPrimarySeries(result.amplitudes, summary.label + " · 幅度谱");
-                phaseChart.setPrimarySeries(result.phases, summary.label + " · 相位谱");
+                if (phaseCheck.checked)
+                    phaseChart.setPrimarySeries(result.phases, summary.label + " · 相位谱");
                 return;
             }
             spectrumMaxFrequency = result.maxFrequency;
             chart.setAxisLabels("频率 (Hz)", "幅度 (" + summary.unit + ")");
-            phaseChart.setAxisLabels("频率 (Hz)", "相位 (rad)");
             chart.setPrimarySeries(result.amplitudes, summary.label + " · 幅度谱");
-            phaseChart.setPrimarySeries(result.phases, summary.label + " · 相位谱");
+            if (phaseCheck.checked) {
+                phaseChart.setAxisLabels("频率 (Hz)", "相位 (rad)");
+                phaseChart.setPrimarySeries(result.phases, summary.label + " · 相位谱");
+            }
             chart.setOverlaySeries([], "");
-            phaseChart.setOverlaySeries([], "");
+            if (phaseCheck.checked) phaseChart.setOverlaySeries([], "");
             resetChart();
             chartTitle.text = summary.label + "　采样率 "
                               + Number(result.sampleRate).toPrecision(5) + " Hz　矩形窗";
@@ -250,7 +253,7 @@ ColumnLayout {
         interval: 120
         repeat: false
         onTriggered: analysisSession.requestSpectrumView(chart.visibleXMin(), chart.visibleXMax(),
-                                                         maxPlotPoints, plotRequestId)
+                                                         maxPlotPoints, phaseCheck.checked, plotRequestId)
     }
 
     FileDialog {
@@ -593,7 +596,7 @@ ColumnLayout {
                     EgretComboBox {
                         id: viewBox
                         Layout.preferredWidth: 130
-                        model: [{ text: "时域波形" }, { text: "频谱与相位" }]
+                        model: [{ text: "时域波形" }, { text: "频域频谱" }]
                         onActivated: analysisRoot.refreshChart()
                     }
 
@@ -635,6 +638,15 @@ ColumnLayout {
                     }
 
                     EgretCheckBox {
+                        id: phaseCheck
+                        text: "显示相位谱"
+                        checked: false
+                        visible: viewBox.currentIndex !== 0
+                        textColor: theme.textPrimary
+                        onToggled: if (viewBox.currentIndex !== 0) analysisRoot.refreshChart()
+                    }
+
+                    EgretCheckBox {
                         id: areaZoomCheck
                         text: "框选放大"
                         textColor: theme.textPrimary
@@ -669,7 +681,7 @@ ColumnLayout {
                     Layout.preferredHeight: 1
                     onVisibleXRangeChanged: function(lower, upper) {
                         if (analysisRoot.synchronizeAxes && viewBox.currentIndex !== 0) {
-                            phaseChart.setVisibleXRange(lower, upper);
+                            if (phaseCheck.checked) phaseChart.setVisibleXRange(lower, upper);
                             ++analysisRoot.plotRequestId;
                             spectrumViewTimer.restart();
                         }
@@ -678,7 +690,7 @@ ColumnLayout {
 
                 QCustomPlotItem {
                     id: phaseChart
-                    visible: viewBox.currentIndex !== 0
+                    visible: viewBox.currentIndex !== 0 && phaseCheck.checked
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.preferredHeight: 1

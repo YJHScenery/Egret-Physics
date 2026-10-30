@@ -188,21 +188,23 @@ namespace egret::analysis
          * @brief 在后台准备时域绘图点或计算频谱。
          * @param seriesKey 序列键。
          * @param frequencyDomain 是否计算频谱。
+         * @param includePhase 是否计算并显示相位谱。
          * @param maxPoints 时域绘图点数上限。
          * @param uniform 是否均匀抽样。
          * @param requestId 界面请求编号，用于忽略过期结果。
          */
         Q_INVOKABLE void requestPlot(const QString& seriesKey, bool frequencyDomain,
-                                     int maxPoints, bool uniform, int requestId);
+                                     int maxPoints, bool uniform, bool includePhase, int requestId);
 
         /**
          * @brief 在后台抽取缓存频谱的可见范围。
          * @param xMin 可见频率下限。
          * @param xMax 可见频率上限。
          * @param maxPoints 绘图点数上限。
+         * @param includePhase 是否生成相位谱绘图点。
          * @param requestId 请求编号。
          */
-        Q_INVOKABLE void requestSpectrumView(double xMin, double xMax, int maxPoints, int requestId);
+        Q_INVOKABLE void requestSpectrumView(double xMin, double xMax, int maxPoints, bool includePhase, int requestId);
 
         /**
          * @brief  对某个序列做曲线拟合。
@@ -375,6 +377,12 @@ namespace egret::analysis
 
         /** 当前序列的完整频谱缓存。 */
         std::shared_ptr<SpectrumData> m_spectrumCache{};
+
+        /** 缓存所属序列键。 */
+        QString m_spectrumCacheKey{};
+
+        /** 绘图任务共享的代次，用于提前放弃过期任务。 */
+        std::shared_ptr<std::atomic<int>> m_plotEpoch{std::make_shared<std::atomic<int>>(0)};
 
         /** 最近一次完整绘图请求编号。 */
         int m_plotGeneration{0};

@@ -29,6 +29,8 @@
 
 #include <fftw3.h>
 
+#include <QDebug>
+#include <QElapsedTimer>
 #include <QDir>
 #include <QFileInfo>
 #include <QMetaObject>
@@ -163,6 +165,12 @@ namespace egret::analysis
     AnalysisSession::AnalysisSession(QObject* parent)
         : QObject(parent)
     {
+        connect(this, &AnalysisSession::resultChanged, this, [this]()
+        {
+            m_spectrumCache.reset();
+            m_spectrumCacheKey.clear();
+            ++(*m_plotEpoch);
+        });
     }
 
     AnalysisSession::~AnalysisSession() = default;
@@ -837,6 +845,7 @@ namespace egret::analysis
         double sampleRate{0.0};
         std::vector<double> amplitudes{};
         std::vector<double> phases{};
+        std::vector<double> complexValues{};
     };
 
     /** @brief 对指定频率范围按桶保留极值，限制界面线程的数据量。 */
@@ -874,19 +883,29 @@ namespace egret::analysis
     }
 
     /** @brief 生成指定频率范围的两组有限绘图点。 */
-    static QVariantMap spectrumView(const SpectrumData& spectrum, double lower, double upper, int maxPoints)
+    static QVariantMap spectrumView(const SpectrumData& spectrum, double lower, double upper, int maxPoints, bool includePhase)
     {
         QVariantMap result;
         result[QStringLiteral("amplitudes")] = spectrumPoints(spectrum.amplitudes, spectrum.spacing, lower, upper, maxPoints);
-        result[QStringLiteral("phases")] = spectrumPoints(spectrum.phases, spectrum.spacing, lower, upper, maxPoints);
+        if (includePhase)
+            result[QStringLiteral("phases")] = spectrumPoints(spectrum.phases, spectrum.spacing, lower, upper, maxPoints);
         result[QStringLiteral("sampleRate")] = spectrum.sampleRate;
         result[QStringLiteral("maxFrequency")] = spectrum.spacing * (spectrum.amplitudes.size() - 1);
         return result;
     }
 
+    /** @brief 根据已缓存的复数频谱计算相位。 */
+    static void calculatePhase(SpectrumData& spectrum)
+    {
+        spectrum.phases.resize(spectrum.amplitudes.size());
+        for (std::size_t i = 0; i < spectrum.phases.size(); ++i)
+            spectrum.phases[i] = std::atan2(spectrum.complexValues[2 * i + 1], spectrum.complexValues[2 * i]);
+    }
+
     /** @brief 在工作线程中计算等间隔序列的单边频谱。 */
     static QVariantMap calculateSpectrum(const std::vector<double>& times, const std::vector<double>& values,
-                                         SpectrumData& spectrum, int maxPoints)
+                                         SpectrumData& spectrum, int maxPoints, bool includePhase,
+                                         const std::shared_ptr<std::atomic<int>>& epochState, int epoch)
     {
         QVariantMap result{};
         const std::size_t count = times.size();
@@ -913,8 +932,12 @@ namespace egret::analysis
             }
         }
 
+        QElapsedTimer timer;
+        timer.start();
         static QMutex fftwMutex;
         QMutexLocker locker(&fftwMutex);
+        const qint64 waitMs = timer.elapsed();
+        if (epochState->load() != epoch) return {};
         std::vector<double> input(values);
         std::vector<double> output(2 * (count / 2 + 1));
         fftw_plan plan = fftw_plan_dft_r2c_1d(static_cast<int>(count), input.data(),
@@ -927,56 +950,92 @@ namespace egret::analysis
         }
         fftw_execute(plan);
         fftw_destroy_plan(plan);
+        const qint64 fftMs = timer.elapsed();
+        locker.unlock();
         const std::size_t bins = count / 2 + 1;
         spectrum.spacing = 1.0 / (static_cast<double>(count) * dt);
         spectrum.sampleRate = 1.0 / dt;
         spectrum.amplitudes.resize(bins);
-        spectrum.phases.resize(bins);
         for (std::size_t i = 0; i < bins; ++i)
         {
             const double real = output[2 * i];
             const double imaginary = output[2 * i + 1];
             const double scale = (i == 0 || (count % 2 == 0 && i == count / 2)) ? 1.0 : 2.0;
             spectrum.amplitudes[i] = scale * std::hypot(real, imaginary) / count;
-            spectrum.phases[i] = std::atan2(imaginary, real);
         }
-        result = spectrumView(spectrum, 0.0, spectrum.spacing * (bins - 1), maxPoints);
+        spectrum.complexValues = std::move(output);
+        if (includePhase) calculatePhase(spectrum);
+        result = spectrumView(spectrum, 0.0, spectrum.spacing * (bins - 1), maxPoints, includePhase);
+        qDebug() << "频谱耗时：样本数" << count << "等待毫秒" << waitMs
+                 << "FFT 毫秒" << fftMs - waitMs << "频谱及绘图点毫秒" << timer.elapsed() - fftMs;
         return result;
     }
 
     void AnalysisSession::requestPlot(const QString& seriesKey, const bool frequencyDomain,
-                                      int maxPoints, const bool uniform, const int requestId)
+                                      int maxPoints, const bool uniform, const bool includePhase, const int requestId)
     {
         m_plotGeneration = requestId;
-        m_spectrumCache.reset();
+        const int epoch = ++(*m_plotEpoch);
         const auto found = m_lod.constFind(seriesKey);
         if (found == m_lod.constEnd() || !found->values)
         {
             emit plotReady(requestId, {{QStringLiteral("message"), QStringLiteral("请选择有效序列。")}});
             return;
         }
-        // 工作线程持有独立快照，关闭文件或重新抽取不会使其引用失效。
-        auto times = m_result.time;
-        std::vector<double> values(found->values, found->values + times.size());
         if (maxPoints <= 0) maxPoints = kDefaultMaxPoints;
-        auto spectrum = std::make_shared<SpectrumData>();
+        const auto epochState = m_plotEpoch;
+        const auto cached = frequencyDomain && m_spectrumCacheKey == seriesKey ? m_spectrumCache : nullptr;
+        const bool needsPhase = cached && includePhase && cached->phases.empty();
+        auto spectrum = cached && !needsPhase ? cached : std::make_shared<SpectrumData>();
+        std::vector<double> times;
+        std::vector<double> values;
+        QElapsedTimer copyTimer;
+        copyTimer.start();
+        if (!cached)
+        {
+            // 快照与任务同寿命，避免重新抽取时工作线程使用失效的指针。
+            times = m_result.time;
+            values.assign(found->values, found->values + times.size());
+        }
+        qDebug() << "绘图快照耗时毫秒" << copyTimer.elapsed() << "缓存命中" << bool(cached);
         auto* watcher = new QFutureWatcher<QVariantMap>(this);
-        connect(watcher, &QFutureWatcher<QVariantMap>::finished, this, [this, watcher, requestId, frequencyDomain, spectrum]()
+        connect(watcher, &QFutureWatcher<QVariantMap>::finished, this,
+                [this, watcher, requestId, frequencyDomain, spectrum, seriesKey, epoch, epochState]()
         {
             const QVariantMap result = watcher->result();
             watcher->deleteLater();
+            if (epochState->load() != epoch) return;
             if (frequencyDomain && requestId == m_plotGeneration && !spectrum->amplitudes.empty())
+            {
                 m_spectrumCache = spectrum;
+                m_spectrumCacheKey = seriesKey;
+            }
             emit plotReady(requestId, result);
         });
         watcher->setFuture(QtConcurrent::run([times = std::move(times), values = std::move(values),
-                                               frequencyDomain, maxPoints, uniform, spectrum]() -> QVariantMap
+                                               frequencyDomain, maxPoints, uniform, includePhase, spectrum, cached, needsPhase,
+                                               epochState, epoch]() -> QVariantMap
         {
-            if (frequencyDomain) return calculateSpectrum(times, values, *spectrum, maxPoints);
+            if (epochState->load() != epoch) return {};
+            if (frequencyDomain)
+            {
+                if (cached)
+                {
+                    if (needsPhase)
+                    {
+                        *spectrum = *cached;
+                        calculatePhase(*spectrum);
+                    }
+                    return spectrumView(*spectrum, 0.0,
+                                        spectrum->spacing * (spectrum->amplitudes.size() - 1), maxPoints, includePhase);
+                }
+                return calculateSpectrum(times, values, *spectrum, maxPoints, includePhase, epochState, epoch);
+            }
             QVariantMap result{};
             if (times.empty()) return result;
             MinMaxLod lod;
             lod.build(times.data(), values.data(), times.size());
+            if (epochState->load() != epoch) return {};
             std::vector<LodPoint> decimated;
             if (uniform) lod.decimateUniform(static_cast<std::size_t>(maxPoints), &decimated);
             else lod.decimate(lod.xMin(), lod.xMax(), static_cast<std::size_t>(maxPoints), &decimated);
@@ -990,7 +1049,7 @@ namespace egret::analysis
     }
 
     void AnalysisSession::requestSpectrumView(const double xMin, const double xMax,
-                                              const int maxPoints, const int requestId)
+                                              const int maxPoints, const bool includePhase, const int requestId)
     {
         const auto spectrum = m_spectrumCache;
         if (!spectrum) return;
@@ -1002,9 +1061,13 @@ namespace egret::analysis
             result[QStringLiteral("viewUpdate")] = true;
             emit plotReady(requestId, result);
         });
-        watcher->setFuture(QtConcurrent::run([spectrum, xMin, xMax, maxPoints]()
+        watcher->setFuture(QtConcurrent::run([spectrum, xMin, xMax, maxPoints, includePhase]()
         {
-            return spectrumView(*spectrum, xMin, xMax, maxPoints);
+            QElapsedTimer timer;
+            timer.start();
+            auto result = spectrumView(*spectrum, xMin, xMax, maxPoints, includePhase);
+            if (timer.elapsed() >= 20) qDebug() << "频谱视口抽稀耗时毫秒" << timer.elapsed();
+            return result;
         }));
     }
 
