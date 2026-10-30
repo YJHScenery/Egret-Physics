@@ -31,6 +31,10 @@ Item {
     property int decimals: 3
     property real value: 0
     property bool readOnly: false
+    property bool externalValueBinding: false
+
+    /** @brief 用户提交数值时通知外部数据源。 */
+    signal valueEdited(real editedValue)
 
     // ── 前缀 / 后缀（如单位 "m"、"°"） ──
     property string suffix: ""
@@ -49,12 +53,21 @@ Item {
     function setValue(v) {
         var clamped = clampValue(v);
         if (Math.abs(clamped - value) > 0.0000001) {
-            value = clamped;
+            if (externalValueBinding)
+                valueEdited(clamped);
+            else
+                value = clamped;
         }
         // 始终更新文本显示：外部 setValue（如预设按钮）在编辑中也需要即时反映
         field.text = formatValue(value);
     }
 
+    /** @brief 提交当前输入框中的数值。 */
+    function commit() {
+        if (!field.acceptableInput) return;
+        var parsed = Number(field.text);
+        if (!isNaN(parsed)) setValue(parsed);
+    }
     Rectangle {
         anchors.fill: parent
         radius: theme.radiusS
@@ -111,7 +124,7 @@ Item {
     }
 
     onValueChanged: {
-        if (!field.activeFocus) {
+        if (externalValueBinding || !field.activeFocus) {
             field.text = formatValue(value);
         }
     }

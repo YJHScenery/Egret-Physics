@@ -64,7 +64,7 @@
 #include "gravity_field.h"
 #include "gravitational_field.h"
 #include "constraints/connecting_line.h"
-#include "constraints/simple_pendulum.h"
+#include "particle.h"
 #include "constraints/spring.h"
 #include "async_logger.h"
 #include "model_item_data.h"
@@ -351,6 +351,7 @@ namespace egret
         std::unordered_map<std::uint64_t, PhysicalEntity*> strIdToEntity;
 
         std::unordered_set<std::uint64_t> usedIds;
+        for (const auto& entry : entries) usedIds.insert(entry.obj.value("id").toString().toULongLong());
 
         // ================================================================
         //  第一遍 — Shape（category = 0）
@@ -452,7 +453,7 @@ namespace egret
         for (const RawEntry& entry : entries) {
             if (entry.category != 2) continue;
             const QJsonObject& obj = entry.obj;
-            const std::uint32_t ctype = static_cast<std::uint32_t>(obj["type"].toInteger());
+            const std::uint32_t ctype = obj["type"].toInteger() == 2 ? 1 : static_cast<std::uint32_t>(obj["type"].toInteger());
             const QJsonObject cd = obj.value("constraint_data").toObject();
             const QJsonArray eids = obj.value("entity_ids").toArray();
             const auto previousConstraintCount = record.constraints.size();
@@ -462,9 +463,28 @@ namespace egret
             // qDebug() << entry.category << entry.obj;
             const std::uint64_t cid = obj["id"].toString().toULongLong();
 
-            // ConstraintType: ConnectingLine=1, SimplePendulum=2, ConnectingRod=3,
+            // ConstraintType: ConnectingLine=1, ConnectingRod=3,
             //                 Spring=5, AirResistance=7
-            if (ctype == magic_enum::enum_integer(ConstraintType::ConnectingLine) && eids.size() >= 2) {
+            if ((ctype == magic_enum::enum_integer(ConstraintType::ConnectingLine) || ctype == magic_enum::enum_integer(ConstraintType::ConnectingRod)) && eids.size() == 1 && (obj.value("anchor_pos").isObject() || cd.value("anchor_pos").isObject() || cd.value("anchor_pos").isArray())) {
+                auto* body = strIdToEntity[eids[0].toString().toULongLong()];
+                if (body) {
+                    BodyRecord anchor;
+                    anchor.name = "";
+                    anchor.visible = false;
+                    anchor.enableCollision = false;
+                    anchor.enableIntegration = false;
+                    std::uint64_t anchorId;
+                    do { anchorId = UniqueIDGenerator::instance().generate(); } while (!usedIds.insert(anchorId).second);
+                    anchor.entity = std::make_shared<Particle>(readVec3(obj.value("anchor_pos"), readVec3(cd.value("anchor_pos"))), Eigen::Vector3d::Zero(), 0.0, anchorId);
+                    auto* fixed = anchor.entity.get();
+                    record.bodies.push_back(std::move(anchor));
+                    if (ctype == magic_enum::enum_integer(ConstraintType::ConnectingLine))
+                        record.constraints.push_back({obj["name"].toString().toStdString(), std::make_shared<ConnectingLine>(cd["length"].toDouble(), fixed, body, cid)});
+                    else
+                        record.constraints.push_back({obj["name"].toString().toStdString(), std::make_shared<ConnectingRod>(cd["length"].toDouble(), fixed, body, cid)});
+                }
+            }
+            else if (ctype == magic_enum::enum_integer(ConstraintType::ConnectingLine) && eids.size() >= 2) {
                 // ConnectingLine
                 auto* a = strIdToEntity[eids[0].toString().toULongLong()];
                 auto* b = strIdToEntity[eids[1].toString().toULongLong()];
@@ -476,16 +496,6 @@ namespace egret
                 //     qDebug() << a << " " << b << " " << cid;
                 //     qDebug() << "Invalid Pointer";
                 // }
-            }
-            else if (ctype == magic_enum::enum_integer(ConstraintType::SimplePendulum) && !eids.empty()) {
-                // SimplePendulum
-                auto* body = strIdToEntity[eids[0].toString().toULongLong()];
-                if (body) {
-                    auto c = std::make_shared<SimplePendulum>(
-                        cd["length"].toDouble(),
-                        readVec3(obj.value("anchor_pos"), readVec3(cd["anchor_pos"])), body, cid);
-                    record.constraints.push_back({obj["name"].toString().toStdString(), std::move(c)});
-                }
             }
             else if (ctype == magic_enum::enum_integer(ConstraintType::ConnectingRod) && eids.size() >= 2) {
                 // ConnectingRod
@@ -1417,7 +1427,7 @@ namespace egret
         //
         //
         // std::uint64_t id4 = m_world->spawnSphere("456", {0, 100, 800}, {0, 0, 0}, 10, 5);
-        // m_world->createSimplePendulum("", 100, {0, 0, 800}, id4);
+
         //
         //
         // std::uint64_t id5 = m_world->spawnSphere("阻力测试", {300, 200, 400}, {0, 200, 0}, 10, 100);

@@ -31,7 +31,7 @@ namespace egret
      * @invariant   m_length > 0，约束长度必须为正值
      * @invariant   m_entityA / m_entityB 包含两个物理实体（起点和终点）
      * @remark      连接线是柔性约束，只能限制最大距离，不能限制最小距离
-     * @see         ConstraintsBase, SimplePendulum, PhysicalEntity
+     * @see         ConstraintsBase, PhysicalEntity
      */
     class ConnectingLine : public ConstraintsBase
     {

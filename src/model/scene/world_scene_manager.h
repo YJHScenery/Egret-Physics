@@ -570,18 +570,7 @@ namespace egret
                                            std::uint64_t entityStartId,
                                            std::uint64_t entityEndId);
 
-        /**
-         * @brief 创建并注册折线约束器。
-         * @param name 约束名称。
-         * @param length 最大折线长度。
-         * @param anchorPos 锚点位置
-         * @param entityId 实体 ID。
-         * @return 新约束的 ID，失败返回 0。
-         */
-        std::uint64_t createSimplePendulum(const std::string& name,
-                                           double length, const Eigen::Vector3d& anchorPos, std::uint64_t entityId);
-
-        /**
+/**
          * @brief 创建并注册弹簧约束器。
          * @param name 约束名称。
          * @param stiffness 弹性系数 k（N/m），必须 > 0。

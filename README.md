@@ -181,10 +181,6 @@ for (int i = 0; i < 600; ++i) {
 ### 添加约束
 
 ```cpp
-// 创建单摆约束
-// 锚点位置在 (0, 5, 0)，连接到球体
-std::uint64_t pendulumId = scene->createSimplePendulum("Pendulum", 3.0, {0, 5, 0}, sphereId);
-
 // 创建两个由线连接的球体
 std::uint64_t bodyA = scene->spawnSphere("Ball A", {-2, 5, 0}, {0, 0, 0}, 0.5, 1.0);
 std::uint64_t bodyB = scene->spawnSphere("Ball B", {2, 5, 0}, {0, 0, 0}, 0.5, 1.0);

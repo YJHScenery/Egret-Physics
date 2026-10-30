@@ -88,7 +88,7 @@ namespace egret
         {
             Unknown = 0,
 
-            ConnectingLine, SimplePendulum, ConnectingRod, SlidingRail,
+            ConnectingLine = 1, ConnectingRod = 3, SlidingRail = 4,
 
             Spring,
 

@@ -171,7 +171,7 @@ namespace egret
     void EditorManager::updateConstraintLengths(const QString& entityId)
     {
         for (const auto& constraint : m_modelList) {
-            if (constraint->category() != 2 || (constraint->type() != 1 && constraint->type() != 2 && constraint->type() != 3)) continue;
+            if (constraint->category() != 2 || (constraint->type() != 1 && constraint->type() != 3)) continue;
             QJsonObject payload = constraint->payload();
             const QJsonArray ids = payload.value("entity_ids").toArray();
             bool involved = false;
@@ -180,7 +180,7 @@ namespace egret
             const auto* first = getModel(ids[0].toString());
             if (!first) continue;
             QVector3D other;
-            if (constraint->type() == 2) {
+            if (ids.size() == 1) {
                 const QJsonObject anchor = payload.value("anchor_pos").toObject();
                 if (anchor.isEmpty()) continue;
                 other = QVector3D(anchor.value("x").toDouble(), anchor.value("y").toDouble(), anchor.value("z").toDouble());

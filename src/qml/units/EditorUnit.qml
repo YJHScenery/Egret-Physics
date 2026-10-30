@@ -58,7 +58,7 @@ ColumnLayout {
         editorCanvas.gizmoActive = false;
         editorCanvas.selectedObjectName = "";
         editedConstraintEntityIds = [];
-        anchorPosX = 0; anchorPosY = 0; anchorPosZ = 0;
+        anchorPosX = 0; anchorPosY = 0; anchorPosZ = 0; fixedAnchor = false;
         inspectorPanel.m_name = ""; inspectorPanel.m_id = "";
         inspectorPanel.m_mass = 0; inspectorPanel.m_loadTime = 0;
         inspectorPanel.m_restitution = 1; inspectorPanel.m_staticFriction = 0.5; inspectorPanel.m_dynamicFriction = 0.5;
@@ -86,7 +86,7 @@ ColumnLayout {
             sceneEntityListPanel.selectionMode = true;
             var tid = EditorParameterManager.currentTypeId;
             sceneEntityListPanel.minSelection = (tid === 1 || tid === 3 || tid === 5) ? 2 : 1;
-            sceneEntityListPanel.maxSelection = (tid === 1 || tid === 3 || tid === 5) ? 2 : (tid === 2 ? 1 : 999);
+            sceneEntityListPanel.maxSelection = (tid === 1 || tid === 3 || tid === 5) ? 2 : 999;
         }
     }
 
@@ -166,18 +166,28 @@ ColumnLayout {
     /** 当前修改的约束器所绑定的实体，与侧栏普通选择相互独立。 */
     property var editedConstraintEntityIds: []
 
-    // ── 锚点位置（单摆约束使用） ──
+    // ── 固定锚点位置 ──
+    property bool fixedAnchor: false
     property real anchorPosX: 0.0
     property real anchorPosY: 0.0
     property real anchorPosZ: 0.0
+
+    /** @brief 根据实体和固定锚点更新约束长度。 */
+    function updateAnchorLength() {
+        if (!fixedAnchor || !operatingButton.isCreateMode) return;
+        var ids = sceneEntityListPanel.selectedEntityIds;
+        if (ids.length !== 1) return;
+        var body = EditorManager.getModel(ids[0]);
+        if (body) EditorParameterManager.setParameterValue("length", body.pos.minus(Qt.vector3d(anchorPosX, anchorPosY, anchorPosZ)).length());
+    }
 
     // ── 约束对象选择是否有效 ──
     readonly property bool constraintSelectionValid: {
         if (!inspectorColumn.isConstraintCategory || !operatingButton.isCreateMode) return true;
         var tid = EditorParameterManager.currentTypeId;
         var count = sceneEntityListPanel.selectedEntityIds.length;
-        if (tid === 1 || tid === 3 || tid === 5) return count === 2;  // 连接线/连接杆/弹簧
-        if (tid === 2) return count === 1;                              // 单摆
+        if (tid === 1 || tid === 3) return count === (fixedAnchor ? 1 : 2);
+        if (tid === 5) return count === 2;  // 连接线/连接杆/弹簧
         if (tid === 4) return count >= 1;                              // 滑动导轨
         if (tid === 6) return count >= 1;                              // 空气阻力
         return true;
@@ -431,9 +441,10 @@ ColumnLayout {
             // 恢复约束器的目标实体 ID（否则 serializeToJson 采集不到 entity_ids）
             if (category === 2) {
                 var entityIds = payload["entity_ids"];
+                editorRoot.fixedAnchor = (model.type === 1 || model.type === 3) && !!payload["anchor_pos"] && entityIds && entityIds.length === 1;
                 editorRoot.editedConstraintEntityIds = entityIds ? Array.from(entityIds) : [];
 
-                // 恢复单摆锚点位置
+                // 恢复固定锚点位置
                 var anchor = payload["anchor_pos"];
                 if (anchor) {
                     editorRoot.anchorPosX = anchor.x !== undefined ? anchor.x : 0;
@@ -572,6 +583,7 @@ ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 4
                         FloatField {
+                            externalValueBinding: true
                             id: linearSpeedField
                             Layout.preferredWidth: 66
                             suffix: "m"
@@ -580,7 +592,7 @@ ColumnLayout {
                             to: 100.0
                             stepSize: 0.01
                             decimals: 3
-                            onValueChanged: editorGizmo.linearSpeed = value
+                            onValueEdited: (value) => editorGizmo.linearSpeed = value
                         }
                         Repeater {
                             model: [0.1, 1.0, 10.0]
@@ -604,6 +616,7 @@ ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 4
                         FloatField {
+                            externalValueBinding: true
                             id: angularSpeedField
                             Layout.preferredWidth: 66
                             suffix: "°"
@@ -612,7 +625,7 @@ ColumnLayout {
                             to: 180.0
                             stepSize: 0.5
                             decimals: 1
-                            onValueChanged: editorGizmo.angularSpeed = value
+                            onValueEdited: (value) => editorGizmo.angularSpeed = value
                         }
                         Repeater {
                             model: [2.0, 10.0, 20.0]
@@ -859,9 +872,9 @@ ColumnLayout {
                                 property var firstBody: targets.length > 0 ? EditorManager.getModel(targets[0]) : null
                                 property var secondBody: targets.length > 1 ? EditorManager.getModel(targets[1]) : null
                                 property var anchor: payload.anchor_pos || {x: 0, y: 0, z: 0}
-                                property var firstPoint: modelData.type === 2 ? Qt.vector3d(anchor.x || 0, anchor.y || 0, anchor.z || 0)
+                                property var firstPoint: ((modelData.type === 1 || modelData.type === 3) && targets.length === 1 && payload.anchor_pos) ? Qt.vector3d(anchor.x || 0, anchor.y || 0, anchor.z || 0)
                                                                                  : (firstBody ? firstBody.pos : Qt.vector3d(0, 0, 0))
-                                property var secondPoint: modelData.type === 2 ? (firstBody ? firstBody.pos : Qt.vector3d(0, 0, 0))
+                                property var secondPoint: ((modelData.type === 1 || modelData.type === 3) && targets.length === 1 && payload.anchor_pos) ? (firstBody ? firstBody.pos : Qt.vector3d(0, 0, 0))
                                                                                   : (secondBody ? secondBody.pos : Qt.vector3d(0, 0, 0))
                                 property var constraintPositionA: [firstPoint.y, firstPoint.z, firstPoint.x]
                                 property var constraintPositionB: [secondPoint.y, secondPoint.z, secondPoint.x]
@@ -870,7 +883,7 @@ ColumnLayout {
                                 property real constraintCurrentDistance: secondPoint.minus(firstPoint).length()
                                 property color constraintColor: "#4FC3F7"
                                 visible: modelData.category === 2 && modelData.visible
-                                         && ((modelData.type === 2 && firstBody) || (modelData.type !== 2 && firstBody && secondBody))
+                                         && ((((modelData.type === 1 || modelData.type === 3) && targets.length === 1 && payload.anchor_pos) && firstBody) || (firstBody && secondBody))
                             }
                         }
 
@@ -1259,8 +1272,8 @@ ColumnLayout {
                             ? sceneEntityListPanel.selectedEntityIds.slice()
                             : editorRoot.editedConstraintEntityIds.slice();
 
-                        // 锚点位置（单摆使用）
-                        if (inspectorPanel.m_type === 2) {
+                        // 固定锚点位置
+                        if ((inspectorPanel.m_type === 1 || inspectorPanel.m_type === 3) && editorRoot.fixedAnchor) {
                             data.anchor_pos = {
                                 x: editorRoot.anchorPosX,
                                 y: editorRoot.anchorPosY,
@@ -1271,7 +1284,11 @@ ColumnLayout {
                         var constraintParams = flattenParams(geoParams);
                         if (!operatingButton.isCreateMode && (EditorParameterManager.currentTypeId === 1 || EditorParameterManager.currentTypeId === 3)) {
                             var currentPayload = EditorManager.getModelPayload(inspectorPanel.m_id);
-                            if (currentPayload.constraint_data && currentPayload.constraint_data.length !== undefined)
+                            var previousAnchor = currentPayload.anchor_pos;
+                            if (editorRoot.fixedAnchor && previousAnchor && (previousAnchor.x !== editorRoot.anchorPosX || previousAnchor.y !== editorRoot.anchorPosY || previousAnchor.z !== editorRoot.anchorPosZ)) {
+                                var body = EditorManager.getModel(editorRoot.editedConstraintEntityIds[0]);
+                                if (body) constraintParams.length = body.pos.minus(Qt.vector3d(editorRoot.anchorPosX, editorRoot.anchorPosY, editorRoot.anchorPosZ)).length();
+                            } else if (currentPayload.constraint_data && currentPayload.constraint_data.length !== undefined)
                                 constraintParams.length = currentPayload.constraint_data.length;
                         }
 
@@ -1518,7 +1535,7 @@ ColumnLayout {
                                     // property bool isReadOnly: false
                                     anchors.fill: parent
                                     text: inspectorPanel.m_name
-                                    onTextChanged: inspectorPanel.m_name = text
+                                    onTextEdited: inspectorPanel.m_name = text
                                     color: "#FFFFFF"
                                     horizontalAlignment: Text.AlignLeft
                                     verticalAlignment: Text.AlignVCenter
@@ -1636,12 +1653,13 @@ ColumnLayout {
                                 visible: EditorParameterManager.currentCategory === 0
                             }
                             FloatField {
+                                externalValueBinding: true
                                 Layout.fillWidth: true
                                 from: 0
                                 to: 100000
                                 stepSize: 0.1
                                 value: inspectorPanel.m_mass
-                                onValueChanged: inspectorPanel.m_mass = value
+                                onValueEdited: (value) => inspectorPanel.m_mass = value
                                 visible: EditorParameterManager.currentCategory === 0
                             }
 
@@ -1650,12 +1668,13 @@ ColumnLayout {
                                 color: "#BFD8F4"
                             }
                             FloatField {
+                                externalValueBinding: true
                                 Layout.fillWidth: true
                                 from: 0
                                 to: 120
                                 stepSize: 0.1
                                 value: inspectorPanel.m_loadTime
-                                onValueChanged: inspectorPanel.m_loadTime = value
+                                onValueEdited: (value) => inspectorPanel.m_loadTime = value
                             }
 
                             Label {
@@ -1664,12 +1683,13 @@ ColumnLayout {
                                 visible: EditorParameterManager.currentCategory === 0
                             }
                             FloatField {
+                                externalValueBinding: true
                                 Layout.fillWidth: true
                                 from: 0
                                 to: 1
                                 stepSize: 0.05
                                 value: inspectorPanel.m_restitution
-                                onValueChanged: inspectorPanel.m_restitution = value
+                                onValueEdited: (value) => inspectorPanel.m_restitution = value
                                 visible: EditorParameterManager.currentCategory === 0
                             }
                         }
@@ -1725,13 +1745,11 @@ ColumnLayout {
                                 function onCurrentTypeIdChanged() {
                                     if (!operatingButton.isCreateMode || inspectorColumn.isLoadingFromPick) return;
                                     sceneEntityListPanel.clearSelection();
+                                    editorRoot.fixedAnchor = false;
                                     var tid = EditorParameterManager.currentTypeId;
                                     if (tid === 1 || tid === 3 || tid === 5) {
                                         sceneEntityListPanel.minSelection = 2;
                                         sceneEntityListPanel.maxSelection = 2;
-                                    } else if (tid === 2) {
-                                        sceneEntityListPanel.minSelection = 1;
-                                        sceneEntityListPanel.maxSelection = 1;
                                     } else if (tid === 4 || tid === 6) {
                                         sceneEntityListPanel.minSelection = 1;
                                         sceneEntityListPanel.maxSelection = 999;
@@ -1750,14 +1768,14 @@ ColumnLayout {
                                     // 修改模式不自动计算，使用已存储的值
                                     if (!operatingButton.isCreateMode) return;
                                     var tid = EditorParameterManager.currentTypeId;
-                                    if ((tid !== 1 && tid !== 3) || entityIds.length !== 2) return;
+                                    if ((tid !== 1 && tid !== 3) || entityIds.length !== (editorRoot.fixedAnchor ? 1 : 2)) return;
 
                                     var m1 = EditorManager.getModel(entityIds[0]);
-                                    var m2 = EditorManager.getModel(entityIds[1]);
-                                    if (!m1 || !m2) return;
+                                    var m2 = editorRoot.fixedAnchor ? null : EditorManager.getModel(entityIds[1]);
+                                    if (!m1 || (!editorRoot.fixedAnchor && !m2)) return;
 
                                     var p1 = m1.pos;
-                                    var p2 = m2.pos;
+                                    var p2 = editorRoot.fixedAnchor ? Qt.vector3d(editorRoot.anchorPosX, editorRoot.anchorPosY, editorRoot.anchorPosZ) : m2.pos;
                                     var dx = p2.x - p1.x;
                                     var dy = p2.y - p1.y;
                                     var dz = p2.z - p1.z;
@@ -1773,9 +1791,8 @@ ColumnLayout {
                                 text: {
                                     var tid = EditorParameterManager.currentTypeId;
                                     if (!operatingButton.isCreateMode) return "修改参数时保留已绑定的实体。";
-                                    if (tid === 1) return "连接线需选择 2 个实体 — 长度自动计算";
-                                    if (tid === 2) return "单摆需选择 1 个实体 + 设置锚点位置";
-                                    if (tid === 3) return "连接杆需选择 2 个实体 — 长度自动计算";
+                                    if (tid === 1) return editorRoot.fixedAnchor ? "选择 1 个实体并设置固定锚点" : "连接线需选择 2 个实体 — 长度自动计算";
+                                    if (tid === 3) return editorRoot.fixedAnchor ? "选择 1 个实体并设置固定锚点" : "连接杆需选择 2 个实体 — 长度自动计算";
                                     if (tid === 4) return "导轨需选择至少 1 个实体并设置起点和终点";
                                     if (tid === 5) return "弹簧需选择 2 个实体（在左侧实体列表中点击选择）";
                                     if (tid === 6) return "空气阻力需选择至少 1 个实体";
@@ -1801,9 +1818,22 @@ ColumnLayout {
                                 }
                             }
 
-                            // ── 锚点位置编辑器（仅单摆显示） ──
+                            EgretCheckBox {
+                                text: "绑定固定锚点"
+                                visible: EditorParameterManager.currentTypeId === 1 || EditorParameterManager.currentTypeId === 3
+                                enabled: operatingButton.isCreateMode
+                                checked: editorRoot.fixedAnchor
+                                onToggled: {
+                                    editorRoot.fixedAnchor = checked;
+                                    sceneEntityListPanel.clearSelection();
+                                    sceneEntityListPanel.minSelection = checked ? 1 : 2;
+                                    sceneEntityListPanel.maxSelection = checked ? 1 : 2;
+                                }
+                            }
+
+                            // ── 固定锚点位置 ──
                             Column {
-                                visible: EditorParameterManager.currentTypeId === 2
+                                visible: editorRoot.fixedAnchor && (EditorParameterManager.currentTypeId === 1 || EditorParameterManager.currentTypeId === 3)
                                 width: parent.width
                                 Layout.fillWidth: true
                                 spacing: 4
@@ -1814,27 +1844,40 @@ ColumnLayout {
                                     font.pixelSize: 11
                                 }
                                 RowLayout {
+                                    width: parent.width
                                     spacing: 6
                                     FloatField {
+                                        externalValueBinding: true
                                         Layout.fillWidth: true
+                                        Layout.minimumWidth: 0
+                                        Layout.preferredWidth: 1
                                         from: -100000;
                                         to: 100000; stepSize: 0.1; decimals: 3
+                                        id: anchorXField
                                         value: editorRoot.anchorPosX
-                                        onValueChanged: editorRoot.anchorPosX = value
+                                        onValueEdited: (value) => { editorRoot.anchorPosX = value; editorRoot.updateAnchorLength(); }
                                     }
                                     FloatField {
+                                        externalValueBinding: true
                                         Layout.fillWidth: true
+                                        Layout.minimumWidth: 0
+                                        Layout.preferredWidth: 1
                                         from: -100000;
                                         to: 100000; stepSize: 0.1; decimals: 3
+                                        id: anchorYField
                                         value: editorRoot.anchorPosY
-                                        onValueChanged: editorRoot.anchorPosY = value
+                                        onValueEdited: (value) => { editorRoot.anchorPosY = value; editorRoot.updateAnchorLength(); }
                                     }
                                     FloatField {
+                                        externalValueBinding: true
                                         Layout.fillWidth: true
+                                        Layout.minimumWidth: 0
+                                        Layout.preferredWidth: 1
                                         from: -100000;
                                         to: 100000; stepSize: 0.1; decimals: 3
+                                        id: anchorZField
                                         value: editorRoot.anchorPosZ
-                                        onValueChanged: editorRoot.anchorPosZ = value
+                                        onValueEdited: (value) => { editorRoot.anchorPosZ = value; editorRoot.updateAnchorLength(); }
                                     }
                                 }
                             }
@@ -1887,6 +1930,7 @@ ColumnLayout {
                                     active: modelData.type === "float"
                                     sourceComponent: Component {
                                         FloatField {
+                                            externalValueBinding: true
                                             Layout.fillWidth: true
                                             from: modelData.min !== undefined ? modelData.min : -1000000
                                             to: modelData.max !== undefined ? modelData.max : 1000000
@@ -1895,7 +1939,7 @@ ColumnLayout {
                                             value: modelData.value
                                             readOnly: modelData.key === "length" && inspectorColumn.constraintLengthReadOnly
                                             suffix: modelData.key === "length" && inspectorColumn.constraintLengthReadOnly ? "(auto)" : ""
-                                            onValueChanged: EditorParameterManager.setParameterValue(modelData.key, value)
+                                            onValueEdited: (value) => EditorParameterManager.setParameterValue(modelData.key, value)
                                         }
                                     }
                                 }
@@ -1920,30 +1964,33 @@ ColumnLayout {
                                         RowLayout {
                                             spacing: 6
                                             FloatField {
+                                                externalValueBinding: true
                                                 Layout.fillWidth: true
                                                 value: modelData.value ? modelData.value.x : 0
                                                 stepSize: 0.1
-                                                onValueChanged: {
+                                                onValueEdited: (value) => {
                                                     var v = EditorParameterManager.parameterValue(modelData.key);
                                                     if (!v) v = Qt.vector3d(0, 0, 0);
                                                     EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(value, v.y, v.z));
                                                 }
                                             }
                                             FloatField {
+                                                externalValueBinding: true
                                                 Layout.fillWidth: true
                                                 value: modelData.value ? modelData.value.y : 0
                                                 stepSize: 0.1
-                                                onValueChanged: {
+                                                onValueEdited: (value) => {
                                                     var v = EditorParameterManager.parameterValue(modelData.key);
                                                     if (!v) v = Qt.vector3d(0, 0, 0);
                                                     EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(v.x, value, v.z));
                                                 }
                                             }
                                             FloatField {
+                                                externalValueBinding: true
                                                 Layout.fillWidth: true
                                                 value: modelData.value ? modelData.value.z : 0
                                                 stepSize: 0.1
-                                                onValueChanged: {
+                                                onValueEdited: (value) => {
                                                     var v = EditorParameterManager.parameterValue(modelData.key);
                                                     if (!v) v = Qt.vector3d(0, 0, 0);
                                                     EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(v.x, v.y, value));
@@ -2070,13 +2117,14 @@ ColumnLayout {
                                         active: modelData.type === "float"
                                         sourceComponent: Component {
                                             FloatField {
+                                                externalValueBinding: true
                                                 Layout.fillWidth: true
                                                 from: modelData.min !== undefined ? modelData.min : -1000000
                                                 to: modelData.max !== undefined ? modelData.max : 1000000
                                                 stepSize: modelData.step !== undefined ? modelData.step : 0.1
                                                 decimals: modelData.decimals !== undefined ? modelData.decimals : 3
                                                 value: modelData.value
-                                                onValueChanged: EditorParameterManager.setParameterValue(modelData.key, value)
+                                                onValueEdited: (value) => EditorParameterManager.setParameterValue(modelData.key, value)
                                             }
                                         }
                                     }
@@ -2087,30 +2135,33 @@ ColumnLayout {
                                             RowLayout {
                                                 spacing: 6
                                                 FloatField {
+                                                    externalValueBinding: true
                                                     Layout.fillWidth: true
                                                     value: modelData.value ? modelData.value.x : 0
                                                     stepSize: 0.1
-                                                    onValueChanged: {
+                                                    onValueEdited: (value) => {
                                                         var v = EditorParameterManager.parameterValue(modelData.key);
                                                         if (!v) v = Qt.vector3d(0, 0, 0);
                                                         EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(value, v.y, v.z));
                                                     }
                                                 }
                                                 FloatField {
+                                                    externalValueBinding: true
                                                     Layout.fillWidth: true
                                                     value: modelData.value ? modelData.value.y : 0
                                                     stepSize: 0.1
-                                                    onValueChanged: {
+                                                    onValueEdited: (value) => {
                                                         var v = EditorParameterManager.parameterValue(modelData.key);
                                                         if (!v) v = Qt.vector3d(0, 0, 0);
                                                         EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(v.x, value, v.z));
                                                     }
                                                 }
                                                 FloatField {
+                                                    externalValueBinding: true
                                                     Layout.fillWidth: true
                                                     value: modelData.value ? modelData.value.z : 0
                                                     stepSize: 0.1
-                                                    onValueChanged: {
+                                                    onValueEdited: (value) => {
                                                         var v = EditorParameterManager.parameterValue(modelData.key);
                                                         if (!v) v = Qt.vector3d(0, 0, 0);
                                                         EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(v.x, v.y, value));
@@ -2235,13 +2286,14 @@ ColumnLayout {
                                         active: modelData.type === "float"
                                         sourceComponent: Component {
                                             FloatField {
+                                                externalValueBinding: true
                                                 Layout.fillWidth: true
                                                 from: modelData.min !== undefined ? modelData.min : -1000000
                                                 to: modelData.max !== undefined ? modelData.max : 1000000
                                                 stepSize: modelData.step !== undefined ? modelData.step : 0.1
                                                 decimals: modelData.decimals !== undefined ? modelData.decimals : 3
                                                 value: modelData.value
-                                                onValueChanged: EditorParameterManager.setParameterValue(modelData.key, value)
+                                                onValueEdited: (value) => EditorParameterManager.setParameterValue(modelData.key, value)
                                             }
                                         }
                                     }
@@ -2252,30 +2304,33 @@ ColumnLayout {
                                             RowLayout {
                                                 spacing: 6
                                                 FloatField {
+                                                    externalValueBinding: true
                                                     Layout.fillWidth: true
                                                     value: modelData.value ? modelData.value.x : 0
                                                     stepSize: 0.1
-                                                    onValueChanged: {
+                                                    onValueEdited: (value) => {
                                                         var v = EditorParameterManager.parameterValue(modelData.key);
                                                         if (!v) v = Qt.vector3d(0, 0, 0);
                                                         EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(value, v.y, v.z));
                                                     }
                                                 }
                                                 FloatField {
+                                                    externalValueBinding: true
                                                     Layout.fillWidth: true
                                                     value: modelData.value ? modelData.value.y : 0
                                                     stepSize: 0.1
-                                                    onValueChanged: {
+                                                    onValueEdited: (value) => {
                                                         var v = EditorParameterManager.parameterValue(modelData.key);
                                                         if (!v) v = Qt.vector3d(0, 0, 0);
                                                         EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(v.x, value, v.z));
                                                     }
                                                 }
                                                 FloatField {
+                                                    externalValueBinding: true
                                                     Layout.fillWidth: true
                                                     value: modelData.value ? modelData.value.z : 0
                                                     stepSize: 0.1
-                                                    onValueChanged: {
+                                                    onValueEdited: (value) => {
                                                         var v = EditorParameterManager.parameterValue(modelData.key);
                                                         if (!v) v = Qt.vector3d(0, 0, 0);
                                                         EditorParameterManager.setParameterValue(modelData.key, Qt.vector3d(v.x, v.y, value));
@@ -2375,24 +2430,29 @@ ColumnLayout {
                                 Layout.columnSpan: 2
                                 spacing: 6
                                 FloatField {
+                                    externalValueBinding: true
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_pos.x
                                     stepSize: 0.1
-                                    onValueChanged: inspectorPanel.m_pos = Qt.vector3d(value, inspectorPanel.m_pos.y, inspectorPanel.m_pos.z)
+                                    onValueEdited: (value) => inspectorPanel.m_pos = Qt.vector3d(value, inspectorPanel.m_pos.y, inspectorPanel.m_pos.z)
                                 }
 
                                 FloatField {
+
+                                    externalValueBinding: true
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_pos.y
                                     stepSize: 0.1
-                                    onValueChanged: inspectorPanel.m_pos = Qt.vector3d(inspectorPanel.m_pos.x, value, inspectorPanel.m_pos.z)
+                                    onValueEdited: (value) => inspectorPanel.m_pos = Qt.vector3d(inspectorPanel.m_pos.x, value, inspectorPanel.m_pos.z)
                                 }
 
                                 FloatField {
+
+                                    externalValueBinding: true
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_pos.z
                                     stepSize: 0.1
-                                    onValueChanged: inspectorPanel.m_pos = Qt.vector3d(inspectorPanel.m_pos.x, inspectorPanel.m_pos.y, value)
+                                    onValueEdited: (value) => inspectorPanel.m_pos = Qt.vector3d(inspectorPanel.m_pos.x, inspectorPanel.m_pos.y, value)
                                 }
                             }
 
@@ -2407,22 +2467,25 @@ ColumnLayout {
                                 Layout.columnSpan: 2
                                 spacing: 6
                                 FloatField {
+                                    externalValueBinding: true
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_scale.x
                                     stepSize: 0.05
-                                    onValueChanged: inspectorPanel.m_scale = Qt.vector3d(value, inspectorPanel.m_scale.y, inspectorPanel.m_scale.z)
+                                    onValueEdited: (value) => inspectorPanel.m_scale = Qt.vector3d(value, inspectorPanel.m_scale.y, inspectorPanel.m_scale.z)
                                 }
                                 FloatField {
+                                    externalValueBinding: true
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_scale.y
                                     stepSize: 0.05
-                                    onValueChanged: inspectorPanel.m_scale = Qt.vector3d(inspectorPanel.m_scale.x, value, inspectorPanel.m_scale.z)
+                                    onValueEdited: (value) => inspectorPanel.m_scale = Qt.vector3d(inspectorPanel.m_scale.x, value, inspectorPanel.m_scale.z)
                                 }
                                 FloatField {
+                                    externalValueBinding: true
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_scale.z
                                     stepSize: 0.05
-                                    onValueChanged: inspectorPanel.m_scale = Qt.vector3d(inspectorPanel.m_scale.x, inspectorPanel.m_scale.y, value)
+                                    onValueEdited: (value) => inspectorPanel.m_scale = Qt.vector3d(inspectorPanel.m_scale.x, inspectorPanel.m_scale.y, value)
                                 }
                             }
 
@@ -2437,31 +2500,38 @@ ColumnLayout {
                                 Layout.columnSpan: 2
                                 spacing: 6
                                 FloatField {
+                                    externalValueBinding: true
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_rotation.scalar
                                     stepSize: 0.05
-                                    onValueChanged: inspectorPanel.m_rotation = Qt.quaternion(value, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z)
+                                    onValueEdited: (value) => inspectorPanel.m_rotation = Qt.quaternion(value, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z)
                                 }
 
                                 FloatField {
+
+                                    externalValueBinding: true
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_rotation.x
                                     stepSize: 0.05
-                                    onValueChanged: inspectorPanel.m_rotation = Qt.quaternion(inspectorPanel.m_rotation.scalar, value, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z)
+                                    onValueEdited: (value) => inspectorPanel.m_rotation = Qt.quaternion(inspectorPanel.m_rotation.scalar, value, inspectorPanel.m_rotation.y, inspectorPanel.m_rotation.z)
                                 }
 
                                 FloatField {
+
+                                    externalValueBinding: true
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_rotation.y
                                     stepSize: 0.05
-                                    onValueChanged: inspectorPanel.m_rotation = Qt.quaternion(inspectorPanel.m_rotation.scalar, inspectorPanel.m_rotation.x, value, inspectorPanel.m_rotation.z)
+                                    onValueEdited: (value) => inspectorPanel.m_rotation = Qt.quaternion(inspectorPanel.m_rotation.scalar, inspectorPanel.m_rotation.x, value, inspectorPanel.m_rotation.z)
                                 }
 
                                 FloatField {
+
+                                    externalValueBinding: true
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_rotation.z
                                     stepSize: 0.05
-                                    onValueChanged: inspectorPanel.m_rotation = Qt.quaternion(inspectorPanel.m_rotation.scalar, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, value)
+                                    onValueEdited: (value) => inspectorPanel.m_rotation = Qt.quaternion(inspectorPanel.m_rotation.scalar, inspectorPanel.m_rotation.x, inspectorPanel.m_rotation.y, value)
                                 }
                             }
                         }
@@ -2505,22 +2575,25 @@ ColumnLayout {
                                 Layout.columnSpan: 2
                                 spacing: 6
                                 FloatField {
+                                    externalValueBinding: true
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_initialVelo.x
                                     stepSize: 0.1
-                                    onValueChanged: inspectorPanel.m_initialVelo = Qt.vector3d(value, inspectorPanel.m_initialVelo.y, inspectorPanel.m_initialVelo.z)
+                                    onValueEdited: (value) => inspectorPanel.m_initialVelo = Qt.vector3d(value, inspectorPanel.m_initialVelo.y, inspectorPanel.m_initialVelo.z)
                                 }
                                 FloatField {
+                                    externalValueBinding: true
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_initialVelo.y
                                     stepSize: 0.1
-                                    onValueChanged: inspectorPanel.m_initialVelo = Qt.vector3d(inspectorPanel.m_initialVelo.x, value, inspectorPanel.m_initialVelo.z)
+                                    onValueEdited: (value) => inspectorPanel.m_initialVelo = Qt.vector3d(inspectorPanel.m_initialVelo.x, value, inspectorPanel.m_initialVelo.z)
                                 }
                                 FloatField {
+                                    externalValueBinding: true
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_initialVelo.z
                                     stepSize: 0.1
-                                    onValueChanged: inspectorPanel.m_initialVelo = Qt.vector3d(inspectorPanel.m_initialVelo.x, inspectorPanel.m_initialVelo.y, value)
+                                    onValueEdited: (value) => inspectorPanel.m_initialVelo = Qt.vector3d(inspectorPanel.m_initialVelo.x, inspectorPanel.m_initialVelo.y, value)
                                 }
                             }
 
@@ -2536,22 +2609,25 @@ ColumnLayout {
                                 spacing: 6
                                 visible: inspectorColumn.isAngularVelocityVisible
                                 FloatField {
+                                    externalValueBinding: true
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_initialAnguVelo.x
                                     stepSize: 0.1
-                                    onValueChanged: inspectorPanel.m_initialAnguVelo = Qt.vector3d(value, inspectorPanel.m_initialAnguVelo.y, inspectorPanel.m_initialAnguVelo.z)
+                                    onValueEdited: (value) => inspectorPanel.m_initialAnguVelo = Qt.vector3d(value, inspectorPanel.m_initialAnguVelo.y, inspectorPanel.m_initialAnguVelo.z)
                                 }
                                 FloatField {
+                                    externalValueBinding: true
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_initialAnguVelo.y
                                     stepSize: 0.1
-                                    onValueChanged: inspectorPanel.m_initialAnguVelo = Qt.vector3d(inspectorPanel.m_initialAnguVelo.x, value, inspectorPanel.m_initialAnguVelo.z)
+                                    onValueEdited: (value) => inspectorPanel.m_initialAnguVelo = Qt.vector3d(inspectorPanel.m_initialAnguVelo.x, value, inspectorPanel.m_initialAnguVelo.z)
                                 }
                                 FloatField {
+                                    externalValueBinding: true
                                     Layout.fillWidth: true
                                     value: inspectorPanel.m_initialAnguVelo.z
                                     stepSize: 0.1
-                                    onValueChanged: inspectorPanel.m_initialAnguVelo = Qt.vector3d(inspectorPanel.m_initialAnguVelo.x, inspectorPanel.m_initialAnguVelo.y, value)
+                                    onValueEdited: (value) => inspectorPanel.m_initialAnguVelo = Qt.vector3d(inspectorPanel.m_initialAnguVelo.x, inspectorPanel.m_initialAnguVelo.y, value)
                                 }
                             }
                         }
@@ -2630,12 +2706,13 @@ ColumnLayout {
                                 color: "#BFD8F4"
                             }
                             FloatField {
+                                externalValueBinding: true
                                 Layout.fillWidth: true
                                 from: 0
                                 to: 10
                                 stepSize: 0.05
                                 value: inspectorPanel.m_staticFriction
-                                onValueChanged: inspectorPanel.m_staticFriction = value
+                                onValueEdited: (value) => inspectorPanel.m_staticFriction = value
                             }
 
                             Label {
@@ -2643,12 +2720,13 @@ ColumnLayout {
                                 color: "#BFD8F4"
                             }
                             FloatField {
+                                externalValueBinding: true
                                 Layout.fillWidth: true
                                 from: 0
                                 to: 10
                                 stepSize: 0.05
                                 value: inspectorPanel.m_dynamicFriction
-                                onValueChanged: inspectorPanel.m_dynamicFriction = value
+                                onValueEdited: (value) => inspectorPanel.m_dynamicFriction = value
                             }
                         }
 
@@ -2663,6 +2741,11 @@ ColumnLayout {
                             enabled: !isCreateMode || editorRoot.constraintSelectionValid
                             onClicked: {
                                 // 先结束当前输入框编辑，确保最新数值已写入参数管理器。
+                                if (editorRoot.fixedAnchor && EditorParameterManager.currentCategory === 2) {
+                                    anchorXField.commit();
+                                    anchorYField.commit();
+                                    anchorZField.commit();
+                                }
                                 operatingButton.forceActiveFocus();
                                 if (isCreateMode) {
                                     if (!editorRoot.constraintSelectionValid) {

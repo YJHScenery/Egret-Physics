@@ -63,6 +63,10 @@ namespace egret
     {
         m_entities = std::move(entities);
         nodes.clear();
+        if (m_entities.empty()) {
+            m_rootIndex = -1;
+            return;
+        }
         std::vector<IndexType> indices(m_entities.size());
         std::iota(indices.begin(), indices.end(), 0);
         m_rootIndex = buildRecursive(indices, 0);

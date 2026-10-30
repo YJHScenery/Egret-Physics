@@ -169,7 +169,7 @@ namespace egret
                 json["constraint_data"] = constraintData;
             }
 
-            // 跟随被复制的对象平移导轨控制点和单摆锚点。
+            // 跟随被复制的对象平移导轨控制点和固定锚点。
             if (allTargetsCopied && cat == 2) {
                 const QVector3D offset = m_baseOffset + accumulatedOffset;
                 QJsonObject data = json.value("constraint_data").toObject();

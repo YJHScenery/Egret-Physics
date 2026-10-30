@@ -32,7 +32,7 @@ namespace egret
     {
         Unknown = 0,
 
-        ConnectingLine, SimplePendulum, ConnectingRod, SlidingRail,
+        ConnectingLine = 1, ConnectingRod = 3, SlidingRail = 4,
 
         Spring, AirResistance,
 
@@ -59,7 +59,7 @@ namespace egret
 
     /**
      * @brief       约束器抽象基类，定义所有约束器的公共接口。
-     * @details     ConstraintsBase 是所有约束器（连接线、单摆、连接杆、滑轨等）的抽象基类，
+     * @details     ConstraintsBase 是所有约束器（连接线、连接杆、滑轨等）的抽象基类，
      *              提供速度约束、位置约束、角速度约束等接口。
      *              约束器用于限制物理实体的运动自由度，如保持距离、限制角度等。
      *              采用策略模式，派生类实现具体的约束逻辑。
@@ -72,7 +72,7 @@ namespace egret
      * @invariant   m_registeredEntities 中的实体指针有效
      * @invariant   m_enabled 表示约束器是否激活
      * @remark      约束器不是线程安全的，多线程访问需要外部同步
-     * @see         ConnectingLine, SimplePendulum, ConnectingRod, SlidingRail, PhysicalEntity
+     * @see         ConnectingLine = 1, ConnectingRod = 3, SlidingRail = 4, PhysicalEntity
      */
     class ConstraintsBase : virtual public PhysicsAbstract
     {

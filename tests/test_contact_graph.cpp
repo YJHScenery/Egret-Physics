@@ -13,7 +13,6 @@
 #include "connecting_line.h"
 #include "sliding_rail.h"
 #include "spring.h"
-#include "simple_pendulum.h"
 #include "curve_bezier.h"
 #include "kinetic_sleep_strategy.h"
 #include "async_logger.h"
@@ -22,6 +21,7 @@
 #include "gravitational_field.h"
 #include "air_resistance.h"
 #include "brute_force_broad_strategy.h"
+#include "bvh_broad_strategy.h"
 #include "velocity_verlet_integrator.h"
 #include <iostream>
 #include <iomanip>
@@ -75,6 +75,28 @@ SolverBodyHandle handle(PhysicalEntity& body)
     if (result.inverseMass>0.0 && body.hasRotation())
         result.inverseInertiaTensor = body.getShape()->getInertiaTensor(body.getMass()).inverse();
     return result;
+}
+
+/** @brief 验证 BVH 忽略虚拟锚点并返回原场景索引。 */
+void testBvhVirtualAnchor()
+{
+    Particle anchor(Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), 0, 1);
+    RigidBody first(1, 2), second(1, 3);
+    first.setShape(std::make_shared<ShapeBox>(10, 10, 10));
+    second.setShape(std::make_shared<ShapeBox>(10, 10, 10));
+    ContactTestScene scene;
+    auto anchorHandle = handle(anchor);
+    anchorHandle.enableCollision = false;
+    scene.bodies = {anchorHandle, handle(first), handle(second)};
+    BVHBroadStrategy broad;
+    SolverStats stats{};
+    std::vector<SolverBodyPair> pairs;
+    broad.buildCandidatePairs(scene, SolverConfig{}, pairs, stats);
+    require(pairs.size() == 1 && pairs[0].bodyAIndex == 1 && pairs[0].bodyBIndex == 2,
+            "BVH 未正确过滤锚点或映射实体索引");
+    scene.bodies = {anchorHandle};
+    broad.buildCandidatePairs(scene, SolverConfig{}, pairs, stats);
+    require(pairs.empty() && stats.broadPhasePairCount == 0, "BVH 空碰撞集处理失败");
 }
 
 /** @brief 验证偏心平面接触仍给出竖直法线和覆盖支撑面，并满足交换对称性。 */
@@ -264,18 +286,6 @@ void testConstraintBehavior()
     other.removeForceById(15); other.setActive(false); drag.applyConstraintForces();
     require(other.getJoinForce().norm()<1e-12, "空气阻力作用于尚未加载的实体");
     other.setActive(true);
-    std::unique_ptr<PhysicsAbstract> cloned;
-    const PhysicalEntity* originalAnchor = nullptr;
-    {
-        SimplePendulum pendulum(1, {0,0,0}, &other, 16);
-        for (const auto* entity : pendulum.getConstrainedEntities()) if (entity != &other) originalAnchor = entity;
-        cloned = pendulum.clone(17);
-        auto* copied = dynamic_cast<SimplePendulum*>(cloned.get());
-        require(copied && copied->getConstrainedEntities().size()==2, "单摆克隆丢失约束实体");
-        require(!copied->getConstrainedEntities().contains(const_cast<PhysicalEntity*>(originalAnchor)), "单摆克隆引用了原锚点");
-    }
-    auto* copied = dynamic_cast<SimplePendulum*>(cloned.get());
-    require(copied && std::isfinite(copied->computeConstraintError()), "原单摆销毁后克隆失效");
 }
 
 /** @brief 验证导轨摩擦在完整积分流程中的静止和滑动行为。 */
@@ -310,9 +320,8 @@ void testRopeConstraints()
     moving.setSpeed({-1,1,0}); rope.applyVelocityConstraint(0.01);
     require((moving.getVelocity()-Eigen::Vector3d(-1,1,0)).norm()<1e-12, "绳子错误阻止向内运动");
     moving.setPosition({1,0,0}); moving.setSpeed({2,0,0});
-    SimplePendulum pendulum(1, {0,0,0}, &moving, 34);
-    pendulum.applyVelocityConstraint(0.01);
-    require(moving.getVelocity().norm()<1e-12, "单摆未阻止纯径向拉伸");
+    rope.applyVelocityConstraint(0.01);
+    require(moving.getVelocity().norm()<1e-12, "固定锚点连接线未阻止径向拉伸");
     auto ropeCopy = rope.clone(35);
     auto* cloned = dynamic_cast<ConnectingLine*>(ropeCopy.get());
     require(cloned && cloned->getConstrainedEntities().size()==2, "连接线克隆丢失实体");
@@ -414,6 +423,6 @@ void testGravitySimulation()
 /** @brief 执行全部独立回归并返回可用于 CTest 的退出码。 */
 int main()
 {
-    try { testInitializedPhysicsState(); testManifolds(); testGraph(); testHighDegreeAndBoundary(); testVelocity(); testConstraintBehavior(); testRailFrictionIntegration(); testRopeConstraints(); testJointProjection(); testContactSleep(); testGravitySimulation(); std::cout<<"接触回归全部通过\n"; return 0; }
+    try { testBvhVirtualAnchor(); testInitializedPhysicsState(); testManifolds(); testGraph(); testHighDegreeAndBoundary(); testVelocity(); testConstraintBehavior(); testRailFrictionIntegration(); testRopeConstraints(); testJointProjection(); testContactSleep(); testGravitySimulation(); std::cout<<"接触回归全部通过\n"; return 0; }
     catch (const std::exception& error) { std::cerr<<error.what()<<'\n'; return 1; }
 }

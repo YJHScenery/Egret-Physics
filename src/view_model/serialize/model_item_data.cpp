@@ -168,7 +168,7 @@ namespace egret
             data.m_payload["entity_ids"] = obj["entity_ids"].toArray();
         }
 
-        // 提取锚点位置（单摆使用）
+        // 提取锚点位置（固定端使用）
         if (obj.contains("anchor_pos") && obj["anchor_pos"].isObject()) {
             data.m_payload["anchor_pos"] = obj["anchor_pos"].toObject();
         }
@@ -542,7 +542,7 @@ namespace egret
             setLoadTime(json["load_time"].toDouble());
         }
         if (json.contains("type")) {
-            setType(static_cast<std::uint32_t>(json["type"].toInteger()));
+            setType(m_data.m_category == 2 && json["type"].toInteger() == 2 ? 1 : static_cast<std::uint32_t>(json["type"].toInteger()));
         }
         if (json.contains("id")) {
             setId(json["id"].toString());
@@ -635,6 +635,15 @@ namespace egret
             m_data.m_payload[k] = it.value();
         }
 
+        // 旧场景也可能将锚点存放在约束参数中。
+        if (m_data.m_category == 2 && json.value("type").toInt() == 2 && !m_data.m_payload.contains("anchor_pos")) {
+            const QJsonValue anchor = m_data.m_payload.value("constraint_data").toObject().value("anchor_pos");
+            if (anchor.isObject()) m_data.m_payload["anchor_pos"] = anchor;
+            else if (anchor.isArray() && anchor.toArray().size() >= 3) {
+                const QJsonArray point = anchor.toArray();
+                m_data.m_payload["anchor_pos"] = QJsonObject{{"x", point[0]}, {"y", point[1]}, {"z", point[2]}};
+            }
+        }
         return true;
     }
 

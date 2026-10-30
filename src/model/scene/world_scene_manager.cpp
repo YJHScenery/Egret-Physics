@@ -30,11 +30,9 @@
 #include "shape_box.h"
 #include "shape_cylinder.h"
 #include "shape_sphere.h"
-#include "simple_pendulum.h"
 #include "sliding_rail.h"
 #include "unique_id_generator.h"
 #include "constraints/connecting_line.h"
-#include "constraints/simple_pendulum.h"
 #include "constraints/spring.h"
 #include "constraints/connecting_rod.h"
 // #include "constraints/support_surface.h"
@@ -505,7 +503,7 @@ namespace egret
             const ConstraintsBase* constraint = constraintRecord->constraint.get();
             const auto& entities = constraint->getConstrainedEntities();
 
-            // 目前只支持连接两个实体的约束（如 ConnectingLine、SimplePendulum）
+            // 目前只支持连接两个实体的约束（如 ConnectingLine、ConnectingRod）
             if (entities.size() < 2) {
                 continue;
             }
@@ -703,7 +701,7 @@ namespace egret
         for (const auto* entity : record->constraint->getConstrainedEntities()) {
             if (!entity) continue;
             const auto* body = findBody(entity->getId());
-            if (!body) continue; // 单摆的内部锚点不属于场景实体。
+            if (!body) continue; // 约束端点可能不属于场景实体。
             const bool active = body->loadTime <= m_simulationTime + 1e-12;
             if (!active && !independentTargets) return false;
             anyActive = anyActive || active;
@@ -776,7 +774,7 @@ namespace egret
         m_solverBodyOwners.reserve(m_bodies.size());
 
         for (const auto& body : m_bodies) {
-            if (body == nullptr || body->entity == nullptr || body->entity->getShape() == nullptr) {
+            if (body == nullptr || body->entity == nullptr || (body->enableCollision && body->entity->getShape() == nullptr)) {
                 continue;
             }
 
@@ -903,22 +901,6 @@ namespace egret
             length, startBody->entity.get(), endBody->entity.get(), UniqueIDGenerator::instance().generate());
 
         return registerConstraint(name, constraint);
-    }
-
-    std::uint64_t WorldSceneManager::createSimplePendulum(const std::string& name, double length,
-                                                          const Eigen::Vector3d& anchorPos, std::uint64_t entityId)
-    {
-        BodyRecord* body = findBody(entityId);
-        if (body == nullptr) {
-            return 0;
-        }
-
-        const auto simplePendulum{
-            std::make_shared<SimplePendulum>(
-                length, anchorPos, body->entity.get(), UniqueIDGenerator::instance().generate())
-        };
-
-        return registerConstraint(name, simplePendulum);
     }
 
     std::uint64_t WorldSceneManager::createSpring(const std::string& name,

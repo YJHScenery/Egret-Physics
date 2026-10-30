@@ -208,7 +208,7 @@ namespace egret
         /** @brief 监听实体位置并同步其相关约束的几何长度。 */
         void watchModelPosition(ModelItemData *model);
 
-        /** @brief 根据实体当前位置更新连接线、连接杆和单摆长度。 */
+        /** @brief 根据实体当前位置更新连接线和连接杆长度。 */
         void updateConstraintLengths(const QString &entityId);
 
         void emitModelListChanged();

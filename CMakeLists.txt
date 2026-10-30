@@ -319,8 +319,6 @@ set(CPP_FILES
 
         src/view/resource_helper.cpp
         src/view/resource_helper.h
-        src/model/physics/constraints/simple_pendulum.cpp
-        src/model/physics/constraints/simple_pendulum.h
         src/view/file_handler.cpp
         src/view/file_handler.h
         src/view/enum_handler.cpp
@@ -604,16 +602,17 @@ option(BUILD_TESTS "Build unit tests" ON)
 if (BUILD_TESTS)
 add_executable(Egret_Contact_Tests
         tests/test_contact_graph.cpp
+        src/utils/aabb.cpp
         src/model/physics/field/gravitational_field.cpp
         src/model/physics/constraints/connecting_line.cpp
         src/model/physics/constraints/sliding_rail.cpp
         src/model/physics/constraints/spring.cpp
-        src/model/physics/constraints/simple_pendulum.cpp
         src/model/geometry/curve/curve_base.cpp
         src/model/geometry/curve/curve_bezier.cpp
         src/model/solver/solver.cpp
         src/model/solver/ccd_solver_adapter.cpp
         src/model/strategy/broad_phase_strategy/brute_force_broad_strategy.cpp
+        src/model/strategy/broad_phase_strategy/bvh_broad_strategy.cpp
         src/model/strategy/integrator_strategy/velocity_verlet_integrator.cpp
         src/model/physics/field/field_base.cpp
         src/model/physics/field/gravity_field.cpp

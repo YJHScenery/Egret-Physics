@@ -141,7 +141,7 @@
 |------|------|
 | 形状 `ShapeType` | `1` Box、`2` Cylinder、`3` Capsule、`4` CylindricalShell、`5` Disk、`6` Ring、`7` Rod、`8` Sphere、`9` SphericalShell、`10` ConvexMesh |
 | 力场 `FieldType` | `1` Gravity、`2` Gravitation |
-| 约束 `ConstraintType` | `1` ConnectingLine、`2` SimplePendulum、`3` ConnectingRod、`5` Spring、`7` AirResistance |
+| 约束 `ConstraintType` | `1` ConnectingLine、`2`（旧格式保留）、`3` ConnectingRod、`5` Spring、`7` AirResistance |
 
 > 当前加载器可重建的解析形状为 Box / Cylinder / CylindricalShell / Disk / Ring / Rod / Sphere / SphericalShell；
 > `Capsule` 与 `ConvexMesh`（网格数据）暂无法从 JSON 还原，遇到时会被跳过并记录警告。

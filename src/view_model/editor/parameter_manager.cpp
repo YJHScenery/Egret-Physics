@@ -228,19 +228,6 @@ namespace egret
             0
         });
         m_constraintSchemas.append({
-            static_cast<int>(ConstraintType::SimplePendulum),
-            QStringLiteral("单摆"),
-            {
-                {
-                    QStringLiteral("length"), QStringLiteral("摆长"),
-                    QStringLiteral("float"), 1.0,
-                    0.001, 100000.0, 0.1, 3
-                },
-            },
-            0
-        });
-
-        m_constraintSchemas.append({
             static_cast<int>(ConstraintType::ConnectingRod),
             QStringLiteral("连接杆"),
             {
