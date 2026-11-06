@@ -62,6 +62,8 @@
 #include "shape_spherical_shell.h"
 #include "rigid_body.h"
 #include "gravity_field.h"
+#include "constant_force_field.h"
+#include "serialize/scene_settings.h"
 #include "gravitational_field.h"
 #include "constraints/connecting_line.h"
 #include "particle.h"
@@ -347,6 +349,28 @@ namespace egret
         }
 
         SceneRecord record;
+        try {
+            if(root.contains("scene_settings") && !root["scene_settings"].isObject()) throw std::invalid_argument("场景设置必须为对象");
+            const auto settings=parseSceneSettings(root["scene_settings"].toObject());
+            if(!settings.rules.empty()) record.controlProgramFactory=[rules=settings.rules]() {
+                return std::make_unique<control::PredicateProgram>(rules);
+            };
+            // 编辑器可在删除物体后保留规则供修复，求解前必须拒绝失效引用。
+            std::unordered_set<std::uint64_t> ids;
+            for(const auto& value:models) if(value.toObject().value("category").toInt()==0)
+                ids.insert(value.toObject()["id"].toString().toULongLong());
+            for(const auto& rule:settings.rules) {
+                for(const auto& p:rule.predicates) {
+                    if(p.kind!=control::PredicateKind::Always && p.kind!=control::PredicateKind::Time &&
+                       p.kind!=control::PredicateKind::All && p.kind!=control::PredicateKind::Any && p.kind!=control::PredicateKind::Not && !ids.contains(p.first))
+                        throw std::invalid_argument("控制条件引用已删除或无效的物体");
+                    if((p.kind==control::PredicateKind::RelativePosition || p.kind==control::PredicateKind::RelativeVelocity ||
+                        p.kind==control::PredicateKind::RelativeAngularVelocity || p.kind==control::PredicateKind::Distance || p.kind==control::PredicateKind::Contact) && !ids.contains(p.second))
+                        throw std::invalid_argument("相对条件引用已删除或无效的第二物体");
+                }
+                for(const auto& command:rule.commands) if(!ids.contains(command.target)) throw std::invalid_argument("控制动作引用已删除或无效的物体");
+            }
+        } catch(const std::exception& error) {qWarning()<<"场景设置无效："<<error.what();return {};}
         // 字符串 JSON ID → entity 指针（用于约束的 entity_ids 解析）
         std::unordered_map<std::uint64_t, PhysicalEntity*> strIdToEntity;
 
@@ -372,16 +396,20 @@ namespace egret
             }
 
             const std::uint64_t bodyId = obj["id"].toString().toULongLong();
-            auto rb = std::make_shared<RigidBody>(
-                readVec3(obj["pos"]), readVec3(obj["initial_velocity"]),
-                obj["mass"].toDouble(1.0), bodyId);
+            std::shared_ptr<PhysicalEntity> rb;
+            if (obj.value("rotation_enabled").toBool(true))
+                rb = std::make_shared<RigidBody>(readVec3(obj["pos"]), readVec3(obj["initial_velocity"]),
+                                                 obj["mass"].toDouble(1.0), bodyId);
+            else
+                rb = std::make_shared<Particle>(readVec3(obj["pos"]), readVec3(obj["initial_velocity"]),
+                                                obj["mass"].toDouble(1.0), bodyId);
 
             rb->setRotation(readQuat(obj["rotation"]));
             rb->setScale(readVec3(obj["scale"], {1, 1, 1}));
             rb->setRestitution(obj.contains("restitution") ? obj["restitution"].toDouble() : 1.0);
             rb->setStaticFriction(obj.value("static_friction").toDouble(0.5));
             rb->setDynamicFriction(obj.value("dynamic_friction").toDouble(0.5));
-            rb->setAngular(readVec3(obj["initial_angular_velocity"]));
+            rb->setAngular(rb->hasRotation() ? readVec3(obj["initial_angular_velocity"]) : Eigen::Vector3d::Zero());
             rb->setShape(std::shared_ptr<ShapeBase>(std::move(shape)));
 
             BodyRecord body;
@@ -395,6 +423,15 @@ namespace egret
                 strIdToEntity[sid.toULongLong()] = body.entity.get();
             };
             record.bodies.push_back(std::move(body));
+            // 恒力作为目标场参与 Verlet 的中步重算，避免被外力累加器清空。
+            const Eigen::Vector3d constantForce = readVec3(obj.value("constant_force"));
+            if (constantForce.allFinite() && constantForce.squaredNorm() > 0.0) {
+                std::uint64_t forceId;
+                do { forceId = UniqueIDGenerator::instance().generate(); } while (!usedIds.insert(forceId).second);
+                record.fields.push_back({obj["name"].toString().toStdString() + "恒力",
+                    std::make_shared<ConstantForceField>(constantForce, bodyId, forceId)});
+                record.fields.back().loadTime = std::max(0.0, obj.value("load_time").toDouble(0.0));
+            }
         }
 
         // ================================================================
@@ -914,6 +951,8 @@ namespace egret
         // 2. 清空当前世界并注册新场景
         m_world->clear();
         m_world->registerScene(record);
+        m_displaySettings=QJsonDocument::fromJson(jsonString.toUtf8()).object()["scene_settings"].toObject()["display"].toObject().toVariantMap();
+        emit displaySettingsChanged();
 
         // qDebug() << record.fields.size();
         // qDebug() << record.constraints.size();
@@ -1243,6 +1282,8 @@ namespace egret
                 continue;
             }
             entity->setPosition(body.position);
+            m_world->setBodyControlEnabled(entity->getId(),(body.stateFlags & (epsx::kBodyStateCollision|epsx::kBodyStateIntegration))!=0);
+            entity->setAsleep((body.stateFlags & epsx::kBodyStateAsleep)!=0);
             entity->setRotation(body.rotation);
             entity->setSpeed(body.linearVelocity);
             entity->setAngular(body.angularVelocity);
@@ -1497,6 +1538,7 @@ namespace egret
             item.angularVelocity[2] = static_cast<float>(renderItem.angularVelocity.z());
 
             item.kineticEnergy = renderItem.kineticEnergy;
+            item.mass=renderItem.mass;
 
             item.centerPos[0] = static_cast<float>(renderItem.position.x());
             item.centerPos[1] = static_cast<float>(renderItem.position.y());

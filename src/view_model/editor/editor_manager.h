@@ -55,9 +55,14 @@ namespace egret
         Q_PROPERTY(int currentDocument READ currentDocument NOTIFY documentsChanged)
         Q_PROPERTY(int count READ count NOTIFY countChanged)
         Q_PROPERTY(QStringList modelIds READ modelIds NOTIFY modelListChanged)
+        Q_PROPERTY(QVariantMap sceneSettings READ sceneSettings NOTIFY sceneSettingsChanged)
 
     public:
         explicit EditorManager(QObject *parent = nullptr);
+        /** @brief 返回当前标签的显示设置与控制规则。 */
+        QVariantMap sceneSettings() const {return m_sceneSettings.toVariantMap();}
+        /** @brief 校验并保存场景设置，作为一次可撤销操作。 */
+        Q_INVOKABLE bool setSceneSettings(const QVariantMap& settings);
 
         // 单例访问
         static EditorManager *instance();
@@ -158,6 +163,10 @@ namespace egret
         Q_INVOKABLE bool redo();
 
     signals:
+        /** @brief 当前场景设置或标签已切换。 */
+        void sceneSettingsChanged();
+        /** @brief 场景文件加载或标签恢复完成，可据此自动取景。 */
+        void sceneLoaded();
         /** @brief 标签状态发生变化。 */
         void documentsChanged();
         void countChanged();
@@ -179,13 +188,19 @@ namespace egret
         void error(const QString& title, const QString &message);
 
     private:
+        /** @brief 场景历史同时保存对象和根级设置。 */
+        struct HistoryState {
+            QList<QSharedPointer<ModelItemData>> models;
+            QJsonObject settings;
+        };
         /** @brief 单个标签的场景及独立撤销历史。 */
         struct Document {
             QString path;
             QByteArray savedContent;
             QList<QSharedPointer<ModelItemData>> models;
-            QList<QList<QSharedPointer<ModelItemData>>> undo;
-            QList<QList<QSharedPointer<ModelItemData>>> redo;
+            QJsonObject settings;
+            QList<HistoryState> undo;
+            QList<HistoryState> redo;
         };
         QList<Document> m_documents;
         int m_currentDocument{0};
@@ -201,9 +216,10 @@ namespace egret
 
         QList<QSharedPointer<ModelItemData>> m_modelList;
 
-        QList<QList<QSharedPointer<ModelItemData>>> m_undoStack;
+        QJsonObject m_sceneSettings;
+        QList<HistoryState> m_undoStack;
 
-        QList<QList<QSharedPointer<ModelItemData>>> m_redoStack;
+        QList<HistoryState> m_redoStack;
 
         /** @brief 监听实体位置并同步其相关约束的几何长度。 */
         void watchModelPosition(ModelItemData *model);

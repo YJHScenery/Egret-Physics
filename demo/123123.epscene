@@ -71,9 +71,9 @@
             },
             "name": "第二摆球",
             "pos": [
-                267.64654541015625,
-                145.2233428955078,
-                157.3604278564453
+                270.4916076660156,
+                160.9921112060547,
+                168.38694763183594
             ],
             "radius": 18,
             "restitution": 1,
@@ -139,13 +139,13 @@
                 0,
                 0
             ],
-            "type": 2,
+            "type": 1,
             "visible": true
         },
         {
             "category": 2,
             "constraint_data": {
-                "length": 223.14500427246094
+                "length": 227.40139770507812
             },
             "entity_ids": [
                 "1",
@@ -211,7 +211,7 @@
         {
             "category": 2,
             "constraint_data": {
-                "length": 334.2752990722656
+                "length": 332.4051818847656
             },
             "entity_ids": [
                 "2",
@@ -259,7 +259,7 @@
             "pos": [
                 0,
                 0,
-                -100.00001525878906
+                -100.54010772705078
             ],
             "restitution": 1,
             "rotation": [
@@ -279,6 +279,45 @@
             "visible": true
         }
     ],
-    "timestamp": "2026-10-29T21:01:29",
+    "scene_settings": {
+        "display": {
+            "reference_length": 1
+        },
+        "rules": [
+            {
+                "actions": [
+                    {
+                        "enabled": true,
+                        "kind": "SetVelocity",
+                        "target": "1",
+                        "value": [
+                            101,
+                            200,
+                            300
+                        ]
+                    }
+                ],
+                "conditions": [
+                    {
+                        "comparison": "GreaterEqual",
+                        "component": "X",
+                        "expected": true,
+                        "first": "1",
+                        "kind": "Time",
+                        "lower": 1,
+                        "negate": false,
+                        "second": "2",
+                        "tolerance": 1e-06,
+                        "upper": 2
+                    }
+                ],
+                "enabled": true,
+                "match": "All",
+                "name": "新规则",
+                "trigger": "Once"
+            }
+        ]
+    },
+    "timestamp": "2026-11-06T23:39:12",
     "version": "1.0"
 }

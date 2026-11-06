@@ -49,6 +49,7 @@ namespace egret
 
         const SceneBodyVisualItem& item = m_items[static_cast<qsizetype>(index.row())];
         switch (role) {
+        case MassRole:return item.mass;
         case IdRole: {
             return QVariant::fromValue(QString::number(item.id));
         }

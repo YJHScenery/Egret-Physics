@@ -18,6 +18,8 @@
 #include "async_logger.h"
 #include "solver.h"
 #include "gravity_field.h"
+#include "constant_force_field.h"
+#include "ccd_solver_adapter.h"
 #include "gravitational_field.h"
 #include "air_resistance.h"
 #include "brute_force_broad_strategy.h"
@@ -27,8 +29,12 @@
 #include <iomanip>
 #include <stdexcept>
 #include <algorithm>
+#include <cmath>
 
 using namespace egret;
+
+/** @brief 在真实世界管理器中验证控制后端、动作边界与接触输入。 */
+void testSceneControlWorld();
 
 /** @brief 为接触回归提供最小场景，避免依赖 GUI 世界管理器。 */
 class ContactTestScene final : public SolverSceneSnapshotBase
@@ -420,9 +426,77 @@ void testGravitySimulation()
     }
 }
 
+/** @brief 验证极薄平动物体落地的碰撞时刻与法线，远离地面时不得碰撞。 */
+void testThinBoxContinuousCollision()
+{
+    Particle ground({0,0,-0.5}, Eigen::Vector3d::Zero(), 0, 1);
+    Particle block({0,0,0.01}, {3,0,-2}, 1, 2);
+    ground.setShape(std::make_shared<ShapeBox>(100,100,1));
+    block.setShape(std::make_shared<ShapeBox>(2e-8,0.02,2e-8));
+    const auto hit=runCcdOnEntities(&ground,&block,0.01);
+    require(hit && std::abs(hit->timeOfImpact-(0.01-1e-8)/2)<1e-9,
+            "极薄盒体落地的连续碰撞时刻错误");
+    require(hit->normal.dot(Eigen::Vector3d::UnitZ())>0.999,
+            "极薄盒体落地法线错误");
+    block.setSpeed({3,0,2});
+    require(!runCcdOnEntities(&ground,&block,0.01), "远离地面的薄盒体出现虚假碰撞");
+}
+
+/** @brief 使用完整碰撞与积分流水线验证滑块木板题、恒力重算及禁止转动。 */
+void testSlidingBlockBoard(double thickness=0.000002, double dt=0.0001)
+{
+    Particle ground({20,0,-0.5}, Eigen::Vector3d::Zero(), 0, 1);
+    Particle board({0.5,0,0.5*thickness}, Eigen::Vector3d::Zero(), 3, 2);
+    Particle block({1,0,1.5*thickness}, Eigen::Vector3d::Zero(), 1, 3);
+    ground.setShape(std::make_shared<ShapeBox>(100,2,1));
+    board.setShape(std::make_shared<ShapeBox>(1,0.2,thickness));
+    block.setShape(std::make_shared<ShapeBox>(thickness,0.02,thickness));
+    for (auto* body : {&ground,&board,&block}) {
+        body->setRestitution(0);
+        const double mu = body == &ground ? 2.0/15.0 : 0.3;
+        body->setStaticFriction(mu); body->setDynamicFriction(mu);
+    }
+    GravityField gravity({0,0,-10}, Eigen::Vector3d::Zero(), 100);
+    ConstantForceField pull({26,0,0}, 2, 101);
+    const auto separatedGround = buildContactManifold(ground,block,0,Eigen::Vector3d::Zero(),0,Eigen::Vector3d::Zero());
+    require(std::none_of(separatedGround.begin(),separatedGround.end(),
+                        [](const auto& point) { return point.normal.norm()>0.5; }),
+            "小尺度滑块尚未落地就产生虚假地面接触");
+    ContactTestScene scene;
+    scene.bodies = {handle(ground),handle(board),handle(block)};
+    scene.fields = {&gravity,&pull};
+    Solver solver(SolverConfig{}, std::make_unique<VelocityVerletIntegratorStrategy>(),
+                  std::make_unique<BVHBroadStrategy>(), std::make_unique<FrictionalContactResolverStrategy>());
+    double separationTime = 0, separationSpeed = 0, stopTime = 0, distance = 0;
+    for (int step=1; step<=std::lround(2.6/dt); ++step) {
+        (void)solver.step(scene,dt);
+        for (auto* body : {&board,&block}) {
+            require(body->getPosition().y()==0 && body->getVelocity().y()==0,
+                    "二维场景产生侧向漂移");
+            require(body->getAngularVelocity().norm()==0, "禁止转动物体被接触冲量转动");
+        }
+        if (step==std::lround(0.5/dt)) require(std::abs(board.getVelocity().x()/0.5-5)<0.001,
+                               "木板滑动阶段加速度不符合解析解");
+        if (separationTime==0 && board.getPosition().x()-0.5 > block.getPosition().x()+0.5*thickness) {
+            separationTime=step*dt; separationSpeed=block.getVelocity().x();
+        }
+        if (separationTime>0 && block.getVelocity().x()<1e-6) {
+            stopTime=step*dt; distance=board.getPosition().x()-0.5-block.getPosition().x();
+            break;
+        }
+    }
+    require(std::abs(separationTime-1)<0.003 && std::abs(separationSpeed-3)<0.01,
+            "滑块分离时间或速度不符合解析解");
+    require(std::abs(stopTime-2.5)<0.005*(dt/0.0001) && std::abs(distance-12.75)<0.02*(dt/0.0001),
+            "滑块停下时刻或距木板左端距离不符合薄板近似");
+    std::cout << std::setprecision(12) << "滑块木板：厚度=" << thickness << "，步长=" << dt << "，分离时间=" << separationTime
+              << "，分离速度=" << separationSpeed << "，停止时间=" << stopTime
+              << "，距离=" << distance << '\n';
+}
+
 /** @brief 执行全部独立回归并返回可用于 CTest 的退出码。 */
 int main()
 {
-    try { testBvhVirtualAnchor(); testInitializedPhysicsState(); testManifolds(); testGraph(); testHighDegreeAndBoundary(); testVelocity(); testConstraintBehavior(); testRailFrictionIntegration(); testRopeConstraints(); testJointProjection(); testContactSleep(); testGravitySimulation(); std::cout<<"接触回归全部通过\n"; return 0; }
+    try { testSceneControlWorld(); testThinBoxContinuousCollision(); testSlidingBlockBoard(); testSlidingBlockBoard(2e-8,1e-5); testBvhVirtualAnchor(); testInitializedPhysicsState(); testManifolds(); testGraph(); testHighDegreeAndBoundary(); testVelocity(); testConstraintBehavior(); testRailFrictionIntegration(); testRopeConstraints(); testJointProjection(); testContactSleep(); testGravitySimulation(); std::cout<<"接触回归全部通过\n"; return 0; }
     catch (const std::exception& error) { std::cerr<<error.what()<<'\n'; return 1; }
 }

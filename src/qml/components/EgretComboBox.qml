@@ -81,6 +81,10 @@ Basic.ComboBox {
         if (entry === null) {
             return "";
         }
+        // 统一支持仅包含显示文字的选项数组。
+        if (typeof entry === "string" || typeof entry === "number") {
+            return String(entry);
+        }
         const role = textRole.length > 0 ? textRole : "text";
         return entry[role] !== undefined ? String(entry[role]) : "";
     }
@@ -151,15 +155,22 @@ Basic.ComboBox {
         anchors.verticalCenter: parent.verticalCenter
         contextType: "2d"
 
+        // 初次加载或重新挂接视口时，等待画布可用后补画箭头。
+        onAvailableChanged: if (available) requestPaint()
+
         onPaint: {
-            context.reset();
-            context.fillStyle = "#8BB5EA";
-            context.beginPath();
-            context.moveTo(0, 0);
-            context.lineTo(width, 0);
-            context.lineTo(width * 0.5, height);
-            context.closePath();
-            context.fill();
+            const ctx = getContext("2d");
+            if (!ctx) {
+                return;
+            }
+            ctx.reset();
+            ctx.fillStyle = "#8BB5EA";
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(width, 0);
+            ctx.lineTo(width * 0.5, height);
+            ctx.closePath();
+            ctx.fill();
         }
     }
 

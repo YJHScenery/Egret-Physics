@@ -42,6 +42,8 @@ namespace egret
      */
     struct SceneBodyVisualItem
     {
+        /** 物体质量，供自动取景选择动态对象。 */
+        double mass{0};
         /** 实体 ID。 */
         quint64 id{0};
 
@@ -113,6 +115,7 @@ namespace egret
             StaticFrictionRole,
             DynamicFrictionRole,
             LabelRole,
+            MassRole,
         };
 
         /** 默认构造。 */

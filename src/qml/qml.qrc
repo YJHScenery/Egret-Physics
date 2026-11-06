@@ -11,6 +11,7 @@
         <file>components/EgretPopupMenu.qml</file>
         <file>components/GlassPanel.qml</file>
         <file>components/EgretComboBox.qml</file>
+        <file>components/EgretTextField.qml</file>
         <file>components/LeftNavPanel.qml</file>
         <file>components/MetricCard.qml</file>
         <file>components/Coordinate.qml</file>
@@ -18,6 +19,8 @@
         <file>components/FloatField.qml</file>
         <file>components/TransformGizmo.qml</file>
         <file>components/SceneEntityListPanel.qml</file>
+        <file>components/SceneControlPanel.qml</file>
+        <file>components/SceneScaleControls.qml</file>
         <file>components/message_box/EgretMessageDialog.qml</file>
         <file>components/message_box/EgretMessageBox.js</file>
         <file>components/viewport/SimulationViewport.qml</file>

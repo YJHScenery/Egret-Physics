@@ -4,6 +4,7 @@
  */
 #include "editor_manager.h"
 #include "clipboard_helper.h"
+#include "serialize/scene_settings.h"
 #include <QCoreApplication>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -22,20 +23,54 @@ static void require(bool condition, const char* message)
     if (!condition) throw std::runtime_error(message);
 }
 
+/** @brief 验证显示参考与规则随场景保存、撤销、重做和多标签切换。 */
+static void testSceneSettings()
+{
+    EditorManager editor;
+    const auto config=QJsonDocument::fromJson(R"({"display":{"reference_length":0.01,"markers":false},"rules":[{"name":"测试规则","enabled":true,"trigger":"Once","match":"Any","conditions":[{"kind":"Time","comparison":"Less","lower":1},{"kind":"Position","first":"1","component":"X","comparison":"Greater","lower":0,"negate":true}],"actions":[{"kind":"SetVelocity","target":"1","value":[2,0,0]}]}]})").object();
+    require(editor.setSceneSettings(config.toVariantMap()),"无法保存场景设置");
+    require(editor.undo() && editor.sceneSettings().isEmpty(),"场景设置无法撤销");
+    require(editor.redo() && editor.sceneSettings().value("display").toMap().value("reference_length").toDouble()==0.01,"场景设置无法重做");
+    const auto json=editor.toJsonString(false);
+    EditorManager loaded;require(loaded.fromJsonString(json) && loaded.sceneSettings()==editor.sceneSettings(),"场景设置往返丢失");
+    editor.newDocument();require(editor.sceneSettings().isEmpty(),"新标签继承了其它标签规则");
+    require(editor.switchDocument(0) && editor.sceneSettings()==loaded.sceneSettings(),"切换标签丢失设置");
+    auto invalid=config;invalid["display"]=QJsonObject{{"reference_length",0}};
+    require(!editor.setSceneSettings(invalid.toVariantMap()) && editor.sceneSettings()==loaded.sceneSettings(),"非法显示尺度改变了场景");
+    const auto parsed=parseSceneSettings(config);
+    require(parsed.referenceLength==0.01 && !parsed.markers && parsed.rules.size()==1,"场景配置解析错误");
+    control::PredicateProgram program(parsed.rules);control::CommandBuffer output;
+    const std::vector<control::BodyState> bodies={{1,{1,0,0},{},{},true,false}};
+    program.evaluate({0,0.01,bodies,{}},output);require(output.commands().size()==1,"任一条件编译失败");
+    program.reset();output.clear();program.evaluate({2,0.01,bodies,{}},output);
+    require(output.commands().empty(),"条件取反或组合编译错误");
+}
+
 /** @brief 验证旧场景加载、新摩擦参数保存、同名修改和变换历史。 */
 int main(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
     try {
+        testSceneSettings();
         EditorManager editor;
-        const QString source = QStringLiteral(R"({"models":[{"id":"1","name":"相同","category":0,"type":1,"mass":1,"static_friction":0.9,"dynamic_friction":0.4,"materials":{"baseColor":"#ff123456"}},{"id":"2","name":"相同","category":0,"type":1,"mass":1}]})");
+        const QString source = QStringLiteral(R"({"models":[{"id":"1","name":"相同","category":0,"type":1,"mass":1,"static_friction":0.9,"dynamic_friction":0.4,"rotation_enabled":false,"constant_force":[26,0,0],"materials":{"baseColor":"#ff123456"}},{"id":"2","name":"相同","category":0,"type":1,"mass":1}]})");
         require(editor.fromJsonString(source), "场景加载失败");
         auto* first = editor.getModel("1");
         auto* second = editor.getModel("2");
         require(first && second && first->staticFriction() == 0.9 && second->staticFriction() == 0.5, "摩擦参数或旧场景默认值错误");
         first->setStaticFriction(1.2);
         const auto saved = QJsonDocument::fromJson(editor.toJsonString(false).toUtf8()).object();
+        const auto savedFirst = saved["models"].toArray()[0].toObject();
+        require(!savedFirst["rotation_enabled"].toBool(true)
+                && savedFirst["constant_force"].toArray()[0].toDouble()==26,
+                "场景保存丢失禁止转动或恒力配置");
         require(std::abs(saved["models"].toArray()[0].toObject()["static_friction"].toDouble() - 1.2) < 1e-12, "旧字段覆盖了新的摩擦系数");
+        require(editor.modifyModelByJsonString(QStringLiteral(R"({"entity_id":"1","entity_name":"相同","entity_type":1,"category":0,"entity_mass":1,"box_size":[1,1,1]})")),
+                "修改带恒力配置的物体失败");
+        require(!editor.getModel("1")->payload()["rotation_enabled"].toBool(true)
+                && editor.getModel("1")->payload()["constant_force"].toArray()[0].toDouble()==26,
+                "属性面板修改丢失禁止转动或恒力配置");
+        require(editor.undo(), "动力学配置保留测试撤销失败");
         require(editor.setModelTransform("2", QVector3D(3, 4, 5), QQuaternion()), "变换更新失败");
         require(editor.undo(), "变换撤销失败");
         require(editor.getModelAtIndex(0)->id() == "1" && editor.getModelAtIndex(1)->id() == "2", "撤销改变了对象顺序");

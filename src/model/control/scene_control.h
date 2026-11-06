@@ -1,0 +1,93 @@
+/** @file scene_control.h @brief 与谓词实现解耦的场景控制输入、输出及程序接口。 */
+#pragma once
+#include <array>
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <span>
+#include <stdexcept>
+#include <vector>
+
+namespace egret::control
+{
+    using EntityId = std::uint64_t;
+    using Vector = std::array<double,3>;
+
+    /** @brief 按稳定标识排序的只读实体状态，不暴露引擎指针。 */
+    struct BodyState
+    {
+        EntityId id{};
+        Vector position{}, velocity{}, angularVelocity{};
+        bool active{}, asleep{};
+    };
+    /** @brief 上一计算步中真实参与接触求解的实体对。 */
+    struct ContactPair { EntityId first{}, second{}; };
+    /** @brief 一次判断的输入快照，所有视图仅在 evaluate 调用期间有效。 */
+    struct Frame
+    {
+        double time{}, step{};
+        std::span<const BodyState> bodies;
+        std::span<const ContactPair> contacts;
+        /** @brief 根据稳定标识查找实体，未找到返回空指针。 */
+        const BodyState* find(EntityId id) const
+        {
+            const auto it=std::lower_bound(bodies.begin(),bodies.end(),id,
+                /** @brief 按稳定标识比较快照条目。 */
+                [](const BodyState& body,EntityId value){return body.id<value;});
+            return it!=bodies.end() && it->id==id ? &*it : nullptr;
+        }
+        /** @brief 查询上一步是否发生过指定实体对的真实接触。 */
+        bool touching(EntityId a,EntityId b) const
+        {
+            if (a>b) std::swap(a,b);
+            const auto it=std::lower_bound(contacts.begin(),contacts.end(),ContactPair{a,b},
+                /** @brief 按两个标识的字典序比较接触对。 */
+                [](const ContactPair& x,const ContactPair& y){return x.first<y.first || (x.first==y.first && x.second<y.second);});
+            return it!=contacts.end() && it->first==a && it->second==b;
+        }
+    };
+    /** @brief 宿主支持的场景干预语义，与判断程序的实现方式无关。 */
+    enum class CommandKind { SetPosition, SetVelocity, SetActive, SetForce };
+    /** @brief 延迟提交的干预值；启用状态使用 enabled，其余使用 value。 */
+    struct Command
+    {
+        CommandKind kind{};
+        EntityId target{};
+        Vector value{};
+        bool enabled{true};
+    };
+    /** @brief 有容量限制的动作缓冲，后端不能直接修改物理世界。 */
+    class CommandBuffer
+    {
+    public:
+        /** @brief 在开始运行前预留动作容量。 */
+        explicit CommandBuffer(std::size_t capacity=1024):m_capacity(capacity) {m_commands.reserve(capacity);}
+        /** @brief 提交动作；达到预算时明确抛出异常，禁止静默截断。 */
+        void append(const Command& command)
+        {
+            if (m_commands.size()==m_capacity) throw std::runtime_error("场景控制动作数量超出预算");
+            m_commands.push_back(command);
+        }
+        /** @brief 读取已生成的动作。 */
+        std::span<const Command> commands() const {return m_commands;}
+        /** @brief 清空本次输出但保留内存。 */
+        void clear() {m_commands.clear();}
+    private:
+        std::size_t m_capacity;
+        std::vector<Command> m_commands;
+    };
+    /** @brief 控制程序抽象，谓词后端及未来机器码适配器共享输入输出约定。
+     * @details 这里只约定逻辑边界，不承诺 C++ 虚表、标准库或结构体具有稳定的机器码 ABI。
+     * 未来后端负责校验、编译及 ABI 桥接；不得保留快照视图或直接访问求解器。
+     */
+    class Program
+    {
+    public:
+        /** @brief 销毁程序及其执行状态。 */
+        virtual ~Program()=default;
+        /** @brief 在安全步边界读取同一快照并生成有限动作；失败由宿主中止本步。 */
+        virtual void evaluate(const Frame& frame,CommandBuffer& output)=0;
+        /** @brief 重置触发历史和用户状态，使重新运行具有确定语义。 */
+        virtual void reset()=0;
+    };
+}

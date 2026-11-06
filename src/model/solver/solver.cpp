@@ -259,7 +259,7 @@ namespace egret
     {
         auto bodies = scene.getBodies();
         for (SolverBodyHandle& body : bodies) {
-            if (body.entity == nullptr || body.inverseMass <= 0.0) {
+            if (body.entity == nullptr || body.inverseMass <= 0.0 || !body.entity->hasRotation()) {
                 body.inverseInertiaTensor.setZero();
                 continue;
             }
@@ -683,6 +683,7 @@ namespace egret
                                  SolverStats& stats) const
     {
         if (m_contactResolver != nullptr) {
+            scene.recordControlContacts(constraints);
             auto bodies=scene.getBodies();
             std::vector<bool> wake(bodies.size(),false);
             for (const auto& c:constraints) {

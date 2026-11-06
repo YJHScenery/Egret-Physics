@@ -111,12 +111,12 @@ Node {
         property color minorColor: "#1c2634"
         property real minorThickness: root.unitsPerPixel(root.orbitDistance) * root.minorLinePixels
         property real majorThickness: root.unitsPerPixel(root.orbitDistance) * root.majorLinePixels
-        readonly property int desiredLines: Math.floor(extent / Math.max(step, 0.05)) * 2 + 1
+        readonly property int desiredLines: Math.floor(extent / Math.max(step, 1e-15)) * 2 + 1
         readonly property int lineCount: Math.min(desiredLines, maxLines)
-        readonly property real majorEvery: Math.max(step * 5, 0.5)
+        readonly property real majorEvery: step * 5
 
         function isMajor(offset) {
-            return Math.abs(offset) % majorEvery < 0.001;
+            return Math.abs(Math.round(offset/step)) % 5 === 0;
         }
 
         Repeater3D {
@@ -160,7 +160,7 @@ Node {
         Model {
             source: "#Cube"
 
-            scale: Qt.vector3d(extent * 0.02, extent * 0.02, 0.0002)
+            scale: Qt.vector3d(extent * 0.02, extent * 0.02, step*0.000004)
             materials: DefaultMaterial {
                 diffuseColor: "#0c1220"
                 lighting: DefaultMaterial.NoLighting
@@ -174,8 +174,8 @@ Node {
     component AxisHelper: Node {
         property real axisLength: 50
         property real axisThickness: 0.06
-        property real arrowLength: 1.2
-        property real arrowRadius: 0.22
+        property real arrowLength: axisLength*0.025
+        property real arrowRadius: axisThickness*2.5
 
         AxisLine {
             length: axisLength
@@ -269,7 +269,8 @@ Node {
         property real length: 1.2
         property real radius: 0.22
 
-        property quaternion rotation: {
+        /** 箭头方向仅施加到锥体模型，避免与父节点的旋转属性混淆。 */
+        readonly property quaternion arrowOrientation: {
             if (direction.y === 1)
                 return Qt.quaternion(1, 0, 0, 0);  // 单位旋转
             if (direction.y === -1)
@@ -288,8 +289,9 @@ Node {
         Model {
             source: "#Cone"
             position: offset
-            scale: Qt.vector3d(radius * 0.8, length, radius * 0.8)
-            rotation: axisArrowRoot.rotation
+            // 内置锥体高、直径均为 100，将物理长度和半径转换为网格缩放。
+            scale: Qt.vector3d(axisArrowRoot.radius / 50, axisArrowRoot.length / 100, axisArrowRoot.radius / 50)
+            rotation: axisArrowRoot.arrowOrientation
             materials: DefaultMaterial {
                 diffuseColor: axisArrowRoot.color
                 lighting: DefaultMaterial.NoLighting

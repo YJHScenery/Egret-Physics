@@ -44,7 +44,7 @@ Node {
         : 1.0
 
     /** 只对连接两个实体的约束可见。 */
-    visible: constraintKind > 0 && entityDist > 0.001
+    visible: constraintKind > 0 && entityDist > 1e-15
 
     /**
      * @brief  计算从默认 Z 轴指向目标方向的旋转四元数。
@@ -77,7 +77,7 @@ Node {
         z: constraintNode.renderPosA.z + constraintNode.direction.z * 0.5
 
         source: "#Cube"
-        scale: Qt.vector3d(0.01, 0.01, 0.01 * constraintNode.entityDist)
+        scale: Qt.vector3d(0.00004*constraintNode.entityDist, 0.00004*constraintNode.entityDist, 0.01 * constraintNode.entityDist)
         rotation: constraintNode.rotationFromZTo(constraintNode.direction)
 
         materials: PrincipledMaterial {
@@ -103,7 +103,7 @@ Node {
         }
 
         // 螺旋半径固定
-        property real springCoilScale: 8
+        property real springCoilScale: constraintNode.entityDist*0.05
         scale: Qt.vector3d(springCoilScale, springCoilScale, constraintNode.entityDist)
         rotation: constraintNode.rotationFromZTo(constraintNode.direction)
 

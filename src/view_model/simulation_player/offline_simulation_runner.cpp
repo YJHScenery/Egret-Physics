@@ -324,6 +324,12 @@ namespace egret
 
         auto world = std::make_unique<WorldSceneManager>(std::move(solver));
         world->registerScene(record);
+        try {
+            if (request.controlProgramFactory) world->setControlProgram(request.controlProgramFactory());
+        } catch (const std::exception& error) {
+            setError(errorMessage,QStringLiteral("控制程序初始化失败：%1").arg(QString::fromUtf8(error.what())));
+            return false;
+        }
 
         const std::vector<PhysicalEntity*> entities = world->getAllPhysicalEntities();
         const std::vector<ConstraintsBase*> constraints = world->getAllConstraints();
@@ -362,7 +368,13 @@ namespace egret
         bool canceled{false};
 
         for (std::uint64_t step = 1; step <= totalSteps; ++step) {
-            std::ignore = world->tick(stepSeconds);
+            try {
+                std::ignore = world->tick(stepSeconds);
+            } catch (const std::exception& error) {
+                setError(errorMessage,QStringLiteral("仿真步 %1 的控制或求解失败：%2")
+                    .arg(static_cast<qulonglong>(step)).arg(QString::fromUtf8(error.what())));
+                return false;
+            }
             performedSteps = step;
 
             if (step % 100 == 0) {

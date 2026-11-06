@@ -3,6 +3,7 @@
  * @brief 通过分离轴与参考面裁剪生成平面支撑流形，避免质心法线回退。
  */
 #include "contact_manifold_builder.h"
+#include "contact_geometry_tolerance.h"
 #include "physical_entity.h"
 #include "shape_box.h"
 #include "shape_cylinder.h"
@@ -69,7 +70,7 @@ namespace egret
     std::vector<CcdContactData> buildContactManifold(PhysicalEntity& a, PhysicalEntity& b,
         double time, const Eigen::Vector3d& rawNormal, double penetration, const Eigen::Vector3d& point)
     {
-        constexpr double margin = 2e-4;
+        const double margin = scaledContactTolerance(a,b,2e-4,1e-3);
         const auto ta = predictTransform(a,time), tb = predictTransform(b,time);
         const auto* boxA = dynamic_cast<const ShapeBox*>(a.getShape().get());
         const auto* boxB = dynamic_cast<const ShapeBox*>(b.getShape().get());

@@ -1,0 +1,157 @@
+{
+  "_documentation": "/** @file sliding_block_board.epscene @brief 高中滑块木板题的薄板极限复现场景；长度单位米，质量单位千克，时间单位秒，所有实体的 y 与 vy 为零。 */",
+  "models": [
+    {
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "restitution": 0,
+      "id": "1",
+      "pos": [
+        20,
+        0,
+        -0.5
+      ],
+      "name": "地面",
+      "initial_velocity": [
+        0,
+        0,
+        0
+      ],
+      "mass": 0,
+      "box_size": [
+        100,
+        2,
+        1
+      ],
+      "category": 0,
+      "visible": true,
+      "rotation_enabled": false,
+      "dynamic_friction": 0.13333333333333333,
+      "initial_angular_velocity": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "type": 1,
+      "static_friction": 0.13333333333333333
+    },
+    {
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "restitution": 0,
+      "id": "2",
+      "pos": [
+        0.5,
+        0,
+        1E-06
+      ],
+      "name": "木板",
+      "initial_velocity": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "mass": 3,
+      "box_size": [
+        1,
+        0.2,
+        2E-06
+      ],
+      "category": 0,
+      "visible": true,
+      "rotation_enabled": false,
+      "dynamic_friction": 0.3,
+      "initial_angular_velocity": [
+        0,
+        0,
+        0
+      ],
+      "constant_force": [
+        26,
+        0,
+        0
+      ],
+      "type": 1,
+      "static_friction": 0.3
+    },
+    {
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "restitution": 0,
+      "id": "3",
+      "pos": [
+        1,
+        0,
+        3E-06
+      ],
+      "name": "滑块",
+      "initial_velocity": [
+        0,
+        0,
+        0
+      ],
+      "mass": 1,
+      "box_size": [
+        2E-06,
+        0.02,
+        2E-06
+      ],
+      "category": 0,
+      "visible": true,
+      "rotation_enabled": false,
+      "dynamic_friction": 0.3,
+      "initial_angular_velocity": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "type": 1,
+      "static_friction": 0.3
+    },
+    {
+      "name": "重力场",
+      "field_data": {
+        "gravity": [
+          0,
+          0,
+          -10
+        ],
+        "reference_point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "type": 1,
+      "category": 1,
+      "id": "100"
+    }
+  ]
+}

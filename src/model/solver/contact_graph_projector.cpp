@@ -5,6 +5,7 @@
  *          冗余约束无需求逆，闭环全部保留。每轮仅在整岛求解后提交位姿。
  */
 #include "contact_graph_projector.h"
+#include "contact_geometry_tolerance.h"
 #include "physical_entity.h"
 #include "transform.h"
 #include <algorithm>
@@ -25,6 +26,8 @@ namespace egret
             bool distanceConstraint{false};
             bool bilateral{false};
             double length{0.0};
+            double slop{0.0};
+            double tolerance{1e-7};
         };
 
         /** @brief 查找并压缩并查集路径；静态边界不会合并独立动态岛。 */
@@ -60,6 +63,8 @@ namespace egret
                     (c.contactPosition + half - a.entity->getPosition()),
                 b.entity->getTransformCR().getRotation().conjugate() *
                     (c.contactPosition - half - b.entity->getPosition()), n});
+            rows.back().slop = scaledContactTolerance(*a.entity,*b.entity,config.penetrationSlop,0.01);
+            rows.back().tolerance = scaledContactTolerance(*a.entity,*b.entity,config.positionTolerance,0.001);
             if (a.inverseMass > 0.0 && b.inverseMass > 0.0)
                 roots[findRoot(roots, c.bodyBIndex)] = findRoot(roots, c.bodyAIndex);
         }
@@ -75,6 +80,8 @@ namespace egret
             row.a=pair[0]; row.b=pair[1]; row.localA.setZero(); row.localB.setZero(); row.normal=Eigen::Vector3d::UnitX();
             row.distanceConstraint=true; row.bilateral=joint->getType()==ConstraintType::ConnectingRod;
             row.length=joint->getReferenceLength(); rows.push_back(row);
+            rows.back().slop=config.penetrationSlop;
+            rows.back().tolerance=config.positionTolerance;
             if (bodies[row.a].inverseMass>0 && bodies[row.b].inverseMass>0)
                 roots[findRoot(roots,row.b)]=findRoot(roots,row.a);
         }
@@ -109,7 +116,7 @@ namespace egret
                     }
                 }
                 Eigen::VectorXd target(count);
-                double maxPenetration = 0.0;
+                bool positionSatisfied = true;
                 for (Eigen::Index k = 0; k < count; ++k) {
                     auto& c = rows[indices[k]];
                     const auto& a = bodies[c.a]; const auto& b = bodies[c.b];
@@ -121,8 +128,9 @@ namespace egret
                         if (displacement.norm()>1e-12) c.normal=-displacement.normalized();
                         gap=c.length-displacement.norm();
                     }
-                    maxPenetration = std::max(maxPenetration, c.bilateral ? std::abs(gap) : -gap);
-                    target[k] = config.positionCorrectionBeta * (c.bilateral ? -gap : std::max(-gap - config.penetrationSlop, 0.0));
+                    positionSatisfied = positionSatisfied &&
+                        (c.bilateral ? std::abs(gap) : -gap) <= c.slop+c.tolerance;
+                    target[k] = config.positionCorrectionBeta * (c.bilateral ? -gap : std::max(-gap - c.slop, 0.0));
                     for (const auto i : {c.a, c.b}) {
                         if (bodies[i].inverseMass <= 0.0) continue;
                         const auto slot = std::lower_bound(nodes.begin(), nodes.end(), i) - nodes.begin();
@@ -135,7 +143,7 @@ namespace egret
                         }
                     }
                 }
-                if (maxPenetration <= config.penetrationSlop + config.positionTolerance) break;
+                if (positionSatisfied) break;
                 J.setFromTriplets(jEntries.begin(),jEntries.end());
                 W.setFromTriplets(wEntries.begin(),wEntries.end());
                 const Eigen::SparseMatrix<double> absJ=J.cwiseAbs(), absW=W.cwiseAbs();
@@ -184,7 +192,7 @@ namespace egret
                         const auto& c=rows[r];
                         const double gap=c.distanceConstraint ? c.length-(positions[c.b]-positions[c.a]).norm() :
                             c.normal.dot(positions[c.b]+rotations[c.b]*c.localB-positions[c.a]-rotations[c.a]*c.localA);
-                        const double amount=c.bilateral ? gap : std::min(gap+config.penetrationSlop,0.0);
+                        const double amount=c.bilateral ? gap : std::min(gap+c.slop,0.0);
                         error+=amount*amount;
                     }
                     return error;

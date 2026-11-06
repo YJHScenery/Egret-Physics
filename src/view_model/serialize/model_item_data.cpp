@@ -155,6 +155,9 @@ namespace egret
         data.m_materials->setMetalness(getDouble("material_metalness"));
         data.m_materials->setRoughness(getDouble("material_roughness"));
 
+        // 保留平动物体和持续恒力配置，供编辑器再次导出。
+        for (const auto key : {"rotation_enabled", "constant_force"})
+            if (obj.contains(key)) data.m_payload[key] = obj.value(key);
         // 提取 field_data / constraint_data 到 payload
         if (obj.contains("field_data") && obj["field_data"].isObject()) {
             data.m_payload["field_data"] = obj["field_data"].toObject();

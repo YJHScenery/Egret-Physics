@@ -16,6 +16,7 @@
 
 #include "ccd_solver_adapter.h"
 #include "contact_manifold_builder.h"
+#include "contact_geometry_tolerance.h"
 
 // ── 重型模板头文件 —— 仅在 .cpp 中引入 ──
 
@@ -219,6 +220,48 @@ namespace egret
             result.penetrationDepth = stable.front().penetration;
             result.contactPoint = stable.front().position;
             result.manifold = stable;
+            return result;
+        }
+        // 无转动盒体的连续 SAT 不依赖 GJK/EPA 的绝对收敛阈值，适用于极薄板与大地面。
+        if (dynamic_cast<const ShapeBox*>(entityA->getShape().get()) &&
+            dynamic_cast<const ShapeBox*>(entityB->getShape().get()) &&
+            entityA->getAngularVelocity().norm()<1e-12 && entityB->getAngularVelocity().norm()<1e-12) {
+            const auto& ta=entityA->getTransformCR(); const auto& tb=entityB->getTransformCR();
+            const Eigen::Matrix3d ra=ta.getRotationMatrix(), rb=tb.getRotationMatrix();
+            const Eigen::Vector3d relative=entityB->getVelocity()-entityA->getVelocity();
+            const double margin=scaledContactTolerance(*entityA,*entityB,2e-4,1e-3);
+            double entry=0.0, exit=dt;
+            Eigen::Vector3d normal=Eigen::Vector3d::Zero();
+            /** @brief 求一个分离轴上两投影区间在恒速运动下的重叠时间。 */
+            auto sweepAxis=[&](Eigen::Vector3d axis) {
+                if (axis.norm()<1e-12) return true;
+                axis.normalize();
+                const double amin=axis.dot(entityA->getShape()->support(-axis,ta));
+                const double amax=axis.dot(entityA->getShape()->support(axis,ta));
+                const double bmin=axis.dot(entityB->getShape()->support(-axis,tb));
+                const double bmax=axis.dot(entityB->getShape()->support(axis,tb));
+                const double speed=axis.dot(relative);
+                if (std::abs(speed)<1e-15) return bmin<=amax+margin && amin<=bmax+margin;
+                // 未来冲击采用真实几何相交时刻；容差仅用于当前支撑，避免边界舍入退回零接触点。
+                double first=(amin-bmax)/speed, last=(amax-bmin)/speed;
+                if (first>last) std::swap(first,last);
+                if (first>entry) { entry=first; normal=axis; }
+                exit=std::min(exit,last);
+                return entry<=exit;
+            };
+            for (int k=0;k<3;++k) if (!sweepAxis(ra.col(k)) || !sweepAxis(rb.col(k))) return std::nullopt;
+            for (int k=0;k<3;++k) for (int j=0;j<3;++j)
+                if (!sweepAxis(ra.col(k).cross(rb.col(j)))) return std::nullopt;
+            if (entry>dt || exit<0 || normal.norm()<0.5) return std::nullopt;
+            if (normal.dot(entityB->getPosition()-entityA->getPosition()+entry*relative)<0) normal=-normal;
+            AdapterCcdResult result{};
+            result.isCollided=true; result.timeOfImpact=entry; result.normal=normal;
+            result.manifold=buildContactManifold(*entityA,*entityB,entry,normal,0,Eigen::Vector3d::Zero());
+            if (!result.manifold.empty()) {
+                result.contactPoint=result.manifold.front().position;
+                result.normal=result.manifold.front().normal;
+                result.penetrationDepth=result.manifold.front().penetration;
+            }
             return result;
         }
         // 转换为维度泛化运动状态

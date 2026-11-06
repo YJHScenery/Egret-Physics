@@ -110,6 +110,15 @@ namespace egret
     class SceneManagerViewModel final : public QObject
     {
         Q_OBJECT
+        Q_PROPERTY(QVariantMap displaySettings READ displaySettings NOTIFY displaySettingsChanged)
+    public:
+        /** @brief 返回当前加载场景的纯显示配置。 */
+        QVariantMap displaySettings() const {return m_displaySettings;}
+    signals:
+        /** @brief 加载了新的场景显示配置。 */
+        void displaySettingsChanged();
+    private:
+        QVariantMap m_displaySettings;
 
         Q_PROPERTY(bool running READ isRunning NOTIFY runningChanged)
 

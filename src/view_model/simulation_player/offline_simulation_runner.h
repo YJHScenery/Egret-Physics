@@ -31,6 +31,8 @@
 
 #include "epsx_format.h"
 #include "solver_types.h"
+#include "control/scene_control.h"
+#include <memory>
 
 namespace egret
 {
@@ -65,6 +67,8 @@ namespace egret
 
             /** 求解器运行时配置（迭代次数、穿透容差等）。 */
             SolverConfig solverConfig{};
+            /** 每次离线运行创建独立控制后端；在写入文件静态表之前安装。 */
+            std::function<std::unique_ptr<control::Program>()> controlProgramFactory{};
 
             /**
              * @brief 进度回调。

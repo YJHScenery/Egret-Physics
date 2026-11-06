@@ -29,6 +29,9 @@
 #include "rigid_body.h"
 #include "shape_base.h"
 #include "solver.h"
+#include "control/scene_control.h"
+#include "control/control_force_field.h"
+#include <functional>
 // #include "surface_base.h"
 #include "scene_convex_mesh_render_item.h"
 #include "scene_curve_render_item.h"
@@ -73,6 +76,8 @@ namespace egret
 
         /** 开始参与仿真和渲染的时间，单位为秒。 */
         double loadTime{0.0};
+        /** 控制层的生命周期开关；停用保留对象和历史标识。 */
+        bool controlEnabled{true};
     };
 
     /**
@@ -138,6 +143,8 @@ namespace egret
         std::vector<BodyRecord> bodies;
         std::vector<FieldRecord> fields;
         std::vector<ConstraintRecord> constraints;
+        /** 每次注册场景时创建独立控制程序，不共享触发历史。 */
+        std::function<std::unique_ptr<control::Program>()> controlProgramFactory;
     };
 
     class Solver;
@@ -161,6 +168,8 @@ namespace egret
      */
     struct SceneRenderItem
     {
+        /** 质量用于取景时排除巨大静态地面，不参与显示缩放。 */
+        double mass{0};
         /** 用于生成展示材质的摩擦系数。 */
         double staticFriction{0.5};
         double dynamicFriction{0.5};
@@ -236,6 +245,17 @@ namespace egret
          * @param solver 负责推进世界状态的求解器实例。
          */
         explicit WorldSceneManager(std::unique_ptr<Solver> solver);
+
+        /** @brief 安装任意控制后端；应在创建离线文件实体与场表之前调用。 */
+        void setControlProgram(std::unique_ptr<control::Program> program);
+        /** @brief 清空控制程序状态与控制力，不改变物体位置及生命周期。 */
+        void resetControlProgram();
+        /** @brief 设置实体的控制生命周期，供回放恢复活动标志。 */
+        bool setBodyControlEnabled(std::uint64_t id,bool enabled);
+        /** @brief 在安全步边界采样、求值并原子校验动作批次后执行。 */
+        void runControlProgram(double dt);
+        /** @brief 采集上一计算步实际进入求解的接触对。 */
+        void recordControlContacts(std::span<const SolverContactConstraint> contacts) override;
 
         /** 默认虚析构。 */
         ~WorldSceneManager() override = default;
@@ -755,6 +775,12 @@ namespace egret
 
         /** 求解器所有权。 */
         std::unique_ptr<Solver> m_solver;
+        /** 控制后端只通过值快照与动作缓冲访问世界。 */
+        std::unique_ptr<control::Program> m_controlProgram;
+        std::shared_ptr<control::ControlForceField> m_controlForces;
+        control::CommandBuffer m_controlCommands;
+        std::vector<control::BodyState> m_controlBodies;
+        std::vector<control::ContactPair> m_controlContacts;
 
         /** 世界实体记录。 */
         std::vector<std::unique_ptr<BodyRecord>> m_bodies;

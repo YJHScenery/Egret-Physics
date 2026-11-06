@@ -38,6 +38,8 @@ Node {
     property var targetNode: null       // the Model/Node the gizmo is attached to
 
     property real linearSpeed: 0.01
+    /** 显示父节点的统一缩放，平移写回前转换回物理坐标。 */
+    property real translationScale:1
     property real angularSpeed: 2.0
 
     property bool visible: false        // overrides Node.visible
@@ -268,9 +270,9 @@ Node {
 
     function translate(dx, dy, dz) {
         if (!targetNode) return
-        targetNode.position.x += linearSpeed * dx
-        targetNode.position.y += linearSpeed * dy
-        targetNode.position.z += linearSpeed * dz
+        targetNode.position.x += linearSpeed * dx / translationScale
+        targetNode.position.y += linearSpeed * dy / translationScale
+        targetNode.position.z += linearSpeed * dz / translationScale
     }
 
     function rotate(dx, dy, dz) {

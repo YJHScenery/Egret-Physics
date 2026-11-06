@@ -26,6 +26,7 @@
 #include "unique_id_generator.h"
 #include "os/windows/windows_sound.h"
 #include "serialize/transform_transformer.h"
+#include "serialize/scene_settings.h"
 
 namespace egret
 {
@@ -41,7 +42,7 @@ namespace egret
     {
         QJsonArray models;
         for (const auto& model : m_modelList) models.append(model->toJson());
-        return QJsonDocument(models).toJson(QJsonDocument::Compact);
+        return QJsonDocument(QJsonObject{{"models",models},{"scene_settings",m_sceneSettings}}).toJson(QJsonDocument::Compact);
     }
 
     QVariantList EditorManager::documents() const
@@ -51,7 +52,7 @@ namespace egret
             const auto& document = m_documents[i];
             QJsonArray models;
             if (i != m_currentDocument) for (const auto& model : document.models) models.append(model->toJson());
-            const QByteArray content = i == m_currentDocument ? documentContent() : QJsonDocument(models).toJson(QJsonDocument::Compact);
+            const QByteArray content = i == m_currentDocument ? documentContent() : QJsonDocument(QJsonObject{{"models",models},{"scene_settings",document.settings}}).toJson(QJsonDocument::Compact);
             result.append(QVariantMap{{"name", document.path.isEmpty() ? QStringLiteral("untitled.epscene") : QFileInfo(document.path).fileName()},
                                       {"path", document.path}, {"dirty", content != document.savedContent}});
         }
@@ -62,6 +63,7 @@ namespace egret
     {
         auto& document = m_documents[m_currentDocument];
         document.models = m_modelList;
+        document.settings=m_sceneSettings;
         document.undo = m_undoStack;
         document.redo = m_redoStack;
     }
@@ -72,12 +74,15 @@ namespace egret
         m_currentDocument = index;
         const auto& document = m_documents[index];
         m_modelList = document.models;
+        m_sceneSettings=document.settings;
         m_undoStack = document.undo;
         m_redoStack = document.redo;
         m_models.clear();
         for (const auto& model : m_modelList) m_models.insert(model->id(), model);
         emitModelListChanged();
         m_switchingDocument = false;
+        emit sceneSettingsChanged();
+        emit sceneLoaded();
         emit documentsChanged();
     }
 
@@ -85,7 +90,7 @@ namespace egret
     {
         storeDocument();
         Document document;
-        document.savedContent = QJsonDocument(QJsonArray{}).toJson(QJsonDocument::Compact);
+        document.savedContent = QJsonDocument(QJsonObject{{"models",QJsonArray{}},{"scene_settings",QJsonObject{}}}).toJson(QJsonDocument::Compact);
         m_documents.append(document);
         restoreDocument(m_documents.size() - 1);
     }
@@ -146,7 +151,7 @@ namespace egret
         m_documents.removeAt(index);
         if (m_documents.isEmpty()) {
             Document document;
-            document.savedContent = QJsonDocument(QJsonArray{}).toJson(QJsonDocument::Compact);
+            document.savedContent = QJsonDocument(QJsonObject{{"models",QJsonArray{}},{"scene_settings",QJsonObject{}}}).toJson(QJsonDocument::Compact);
             m_documents.append(document);
         }
         if (wasCurrent) restoreDocument(qMin(index, int(m_documents.size()) - 1));
@@ -158,6 +163,17 @@ namespace egret
     {
         static EditorManager manager;
         return &manager;
+    }
+
+    /** @brief 校验根级设置后一次性写入历史与当前场景。 */
+    bool EditorManager::setSceneSettings(const QVariantMap& settings)
+    {
+        const auto object=QJsonObject::fromVariantMap(settings);
+        try {parseSceneSettings(object);} catch(const std::exception& error) {
+            emit warning(QStringLiteral("场景设置无效"),QString::fromUtf8(error.what()));return false;
+        }
+        if(object==m_sceneSettings) return true;
+        saveState();m_sceneSettings=object;emit sceneSettingsChanged();emit documentsChanged();return true;
     }
 
     void EditorManager::watchModelPosition(ModelItemData* model)
@@ -493,7 +509,12 @@ namespace egret
         model->materials()->setBaseColor(data.m_materials->baseColor());
 
         // 更新透传负载（field_data / constraint_data / entity_ids / anchor_pos）
-        model->setPayload(data.m_payload);
+        auto payload = data.m_payload;
+        // 属性面板尚未提供这两个字段时，保留场景文件中已有的动力学配置。
+        for (const auto key : {"rotation_enabled", "constant_force"})
+            if (!payload.contains(key) && model->payload().contains(key))
+                payload[key] = model->payload().value(key);
+        model->setPayload(payload);
 
         emit modelListChanged();
         return true;
@@ -511,6 +532,7 @@ namespace egret
         root["timestamp"] = QDateTime::currentDateTime().toString(Qt::ISODate);
         root["modelCount"] = m_modelList.size();
         root["models"] = modelsArray;
+        root["scene_settings"]=m_sceneSettings;
 
         QSaveFile file(filePath);
         if (!file.open(QIODevice::WriteOnly)) {
@@ -554,6 +576,7 @@ namespace egret
         root["timestamp"] = QDateTime::currentDateTime().toString(Qt::ISODate);
         root["modelCount"] = m_modelList.size();
         root["models"] = modelsArray;
+        root["scene_settings"]=m_sceneSettings;
 
         QJsonDocument doc(root);
         return pretty ? doc.toJson(QJsonDocument::Indented) : doc.toJson(QJsonDocument::Compact);
@@ -573,8 +596,14 @@ namespace egret
             return false;
         }
 
+        try {
+            if(root.contains("scene_settings") && !root["scene_settings"].isObject()) throw std::invalid_argument("场景设置必须为对象");
+            parseSceneSettings(root["scene_settings"].toObject());
+        } catch(const std::exception& error) {emit warning(QStringLiteral("场景设置无效"),QString::fromUtf8(error.what()));return false;}
         saveState();
         clearAllNoSave();
+        m_sceneSettings=root["scene_settings"].toObject();
+        emit sceneSettingsChanged();
 
         QJsonArray modelsArray = root["models"].toArray();
         for (const QJsonValueRef& value : modelsArray) {
@@ -593,6 +622,7 @@ namespace egret
         emitModelListChanged();
 
         emit operationCompleted(true, "Models loaded from JSON");
+        emit sceneLoaded();
         return true;
     }
 
@@ -712,7 +742,7 @@ namespace egret
         for (const QSharedPointer<ModelItemData>& model : m_modelList) {
             currentState.append(model->clone());
         }
-        m_undoStack.append(currentState);
+        m_undoStack.append({currentState,m_sceneSettings});
         m_redoStack.clear();
     }
 
@@ -728,7 +758,7 @@ namespace egret
         for (const QSharedPointer<ModelItemData>& model : m_modelList) {
             currentState.append(model->clone());
         }
-        m_redoStack.append(currentState);
+        m_redoStack.append({currentState,m_sceneSettings});
 
         // 恢复上一个状态
         const auto prevState = m_undoStack.takeLast();
@@ -736,7 +766,9 @@ namespace egret
         // 用内部清空方法（不触发 saveState），避免破坏 redo 栈
         clearAllNoSave();
 
-        for (const QSharedPointer<ModelItemData>& model : prevState) {
+        m_sceneSettings=prevState.settings;
+        emit sceneSettingsChanged();
+        for (const QSharedPointer<ModelItemData>& model : prevState.models) {
             ModelItemData* copy = ModelItemData::createCopy(*model);
             if (!addModelNoSave(copy)) {
                 delete copy;
@@ -760,14 +792,16 @@ namespace egret
         for (const QSharedPointer<ModelItemData>& model : m_modelList) {
             currentState.append(model->clone());
         }
-        m_undoStack.append(currentState);
+        m_undoStack.append({currentState,m_sceneSettings});
 
         const auto nextState = m_redoStack.takeLast();
 
         // 用内部清空方法（不触发 saveState）
         clearAllNoSave();
 
-        for (const QSharedPointer<ModelItemData>& model : nextState) {
+        m_sceneSettings=nextState.settings;
+        emit sceneSettingsChanged();
+        for (const QSharedPointer<ModelItemData>& model : nextState.models) {
             ModelItemData* copy = ModelItemData::createCopy(*model);
             if (!addModelNoSave(copy)) {
                 delete copy;

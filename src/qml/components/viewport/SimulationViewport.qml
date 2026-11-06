@@ -19,6 +19,7 @@
  */
 
 import QtQuick 2.15
+import QtQuick.Controls 6.9
 import QtQuick3D 6.9
 
 import "qrc:/components/components"
@@ -26,6 +27,41 @@ import "qrc:/components/components/viewport"
 
 Item {
     id: viewportRoot
+    /** 场景显示配置来源，播放器可注入自己的控制器。 */
+    property var displayController:sceneController
+    property real referenceLength:displayController && displayController.displaySettings.reference_length || 1
+    property bool showMarkers:displayController ? displayController.displaySettings.markers!==false : true
+    readonly property real displayScale:100/referenceLength
+    readonly property real minOrbitDistance:referenceLength*1e-8
+    readonly property real maxOrbitDistance:referenceLength*1e10
+    readonly property vector3d renderOrigin:useExplicitCamera?toRenderVector(explicitCameraTarget.x,explicitCameraTarget.y,explicitCameraTarget.z):toRenderVector(orbitTargetX,orbitTargetY,orbitTargetZ)
+    property int cameraRevision:0
+    property bool autoFitPending:true
+    /** @brief 将相机坐标映射到以观察点为原点的显示空间。 */
+    function cameraRenderVector(x,y,z) {return toRenderVector(x,y,z).minus(renderOrigin).times(displayScale);}
+    /** @brief 按可见动态物体或当前选择对象计算取景，避免巨大地面压缩教学对象。 */
+    function fitScene(selectedOnly) {
+        var nodes=[],dynamic=false;
+        for(var i=0;i<bodyRepeater.count;++i){var node=bodyRepeater.objectAt(i);if(node && (!selectedOnly || node.entityId===selectedBodyId)){nodes.push(node);if(node.physicalMass>0)dynamic=true;}}
+        var min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity],count=0;
+        for(var j=0;j<nodes.length;++j){var item=nodes[j];if(!selectedOnly&&dynamic&&item.physicalMass<=0)continue;
+            var radius=Math.max(referenceLength*1e-6,item.scale.length()*50);var p=item.position;
+            for(var k=0;k<3;++k){var c=[p.x,p.y,p.z][k];min[k]=Math.min(min[k],c-radius);max[k]=Math.max(max[k],c+radius);}count++;}
+        if(!count)return;
+        orbitTargetX=(min[2]+max[2])/2;orbitTargetY=(min[0]+max[0])/2;orbitTargetZ=(min[1]+max[1])/2;
+        var radius=Math.hypot(max[0]-min[0],max[1]-min[1],max[2]-min[2])/2;
+        var half=Math.min(1,sceneView.width/Math.max(1,sceneView.height))*sceneCamera.fieldOfView*Math.PI/360;
+        orbitDistance=Math.max(minOrbitDistance,radius/Math.sin(half)*1.15);updateCameraPose();
+    }
+    onReferenceLengthChanged: {orbitDistance=9*referenceLength;if(useExplicitCamera)applyExplicitCamera();else updateCameraPose();}
+    Connections {
+        target:viewportRoot.displayController
+        function onDisplaySettingsChanged(){viewportRoot.autoFitPending=true;viewportRoot.referenceLength=viewportRoot.displayController.displaySettings.reference_length||1;viewportRoot.showMarkers=viewportRoot.displayController.displaySettings.markers!==false;}
+    }
+    Connections {
+        target:viewportRoot.bodyModelSource
+        function onModelReset(){if(viewportRoot.autoFitPending)Qt.callLater(function(){viewportRoot.fitScene(false);viewportRoot.autoFitPending=bodyRepeater.count===0;});}
+    }
 
     // ============ 相机轨道状态 ============
 
@@ -36,7 +72,7 @@ Item {
     property real orbitPitch: 55
 
     /** 轨道半径（世界单位）。 */
-    property real orbitDistance: 900
+    property real orbitDistance: 9*referenceLength
 
     /** 轨道注视点 x。 */
     property real orbitTargetX: 0
@@ -150,8 +186,8 @@ Item {
             upY: 0,
             upZ: 1,
             fovY: sceneCamera.fieldOfView,
-            nearClip: sceneCamera.clipNear,
-            farClip: sceneCamera.clipFar
+            nearClip: sceneCamera.clipNear/displayScale,
+            farClip: sceneCamera.clipFar/displayScale
         };
     }
 
@@ -168,12 +204,16 @@ Item {
 
     /** @brief 按当前轨道参数刷新相机位置与注视点。 */
     function updateCameraPose() {
+        if(!sceneCamera || !sceneView)return;
         updateGridSpacing();
         updateGridLineCount();
         const cam = cameraPhysicsPosition();
-        const target = toRenderVector(orbitTargetX, orbitTargetY, orbitTargetZ);
-        sceneCamera.position = toRenderVector(cam.x, cam.y, cam.z);
+        const target = cameraRenderVector(orbitTargetX, orbitTargetY, orbitTargetZ);
+        sceneCamera.position = cameraRenderVector(cam.x, cam.y, cam.z);
+        sceneCamera.clipNear=Math.max(1e-10,orbitDistance*displayScale*1e-4);
+        sceneCamera.clipFar=Math.max(1,orbitDistance*displayScale*1000);
         sceneCamera.lookAt(target);
+        cameraRevision++;
     }
 
     /**
@@ -184,7 +224,7 @@ Item {
         const dx = explicitCameraPosition.x - explicitCameraTarget.x
         const dy = explicitCameraPosition.y - explicitCameraTarget.y
         const dz = explicitCameraPosition.z - explicitCameraTarget.z
-        return Math.max(1, Math.sqrt(dx * dx + dy * dy + dz * dz))
+        return Math.max(1e-15, Math.sqrt(dx * dx + dy * dy + dz * dz))
     }
 
     /**
@@ -192,24 +232,25 @@ Item {
      * @remark 相机朝向固定为无滚转（与 Camera::lookAt 的约定一致），上方向等价于物理 +Z 轴。
      */
     function applyExplicitCamera() {
+        if(!sceneCamera || !sceneView)return;
         updateGridSpacing();
         updateGridLineCount();
-        const cam = toRenderVector(explicitCameraPosition.x, explicitCameraPosition.y, explicitCameraPosition.z);
-        const target = toRenderVector(explicitCameraTarget.x, explicitCameraTarget.y, explicitCameraTarget.z);
+        const cam = cameraRenderVector(explicitCameraPosition.x, explicitCameraPosition.y, explicitCameraPosition.z);
+        const target = cameraRenderVector(explicitCameraTarget.x, explicitCameraTarget.y, explicitCameraTarget.z);
         sceneCamera.position = cam;
         sceneCamera.lookAt(target);
         sceneCamera.fieldOfView = explicitFieldOfView;
-        sceneCamera.clipNear = explicitClipNear;
-        sceneCamera.clipFar = explicitClipFar;
+        sceneCamera.clipNear = Math.max(1e-10,Math.min(explicitClipNear,viewDistance*0.01)*displayScale);
+        sceneCamera.clipFar = Math.max(explicitClipFar,viewDistance*1000)*displayScale;
+        cameraRevision++;
     }
 
     /** @brief 随相机距离自适应网格间距。 */
     function updateGridSpacing() {
         const distance = viewDistance;
-        const newSpacing = distance < 400 ? 20 : (distance < 1200 ? 50 : 100);
-        if (Math.abs(newSpacing - gridSpacing) > 0.1) {
-            gridSpacing = newSpacing;
-        }
+        const magnitude=Math.pow(10,Math.floor(Math.log10(Math.max(1e-12,distance/12))));
+        const ratio=distance/12/magnitude;
+        gridSpacing=magnitude*(ratio<2?1:(ratio<5?2:5));
     }
 
     /** @brief 随视锥覆盖范围自适应网格线数量。 */
@@ -224,7 +265,7 @@ Item {
         const aspect = w / h;
         const halfWidth = halfHeight * aspect;
         const extent = Math.max(halfWidth, halfHeight) * 1.2;
-        const desired = Math.floor(extent / Math.max(gridSpacing, 0.05)) * 2 + 1;
+        const desired = Math.floor(extent / Math.max(gridSpacing, 1e-15)) * 2 + 1;
         const clamped = Math.max(41, Math.min(desired, 1201));
         if (gridCount !== clamped) {
             gridCount = clamped;
@@ -266,6 +307,7 @@ Item {
         else {
             updateCameraPose();
         }
+        if(!useExplicitCamera)Qt.callLater(function(){fitScene(false);});
     }
 
     // 相机模式或显式相机参数发生变化时立即刷新（轨道模式下保持不变）。
@@ -318,6 +360,8 @@ Item {
 
         Node {
             id: worldRoot
+            scale:Qt.vector3d(viewportRoot.displayScale,viewportRoot.displayScale,viewportRoot.displayScale)
+            position:viewportRoot.renderOrigin.times(-viewportRoot.displayScale)
 
             Coordinate {
                 id: coordinateSystem
@@ -332,6 +376,7 @@ Item {
 
             // ---- 刚体渲染 ----
             Repeater3D {
+                id:bodyRepeater
                 model: viewportRoot.bodyModelSource
 
                 delegate: BodyDelegate {
@@ -364,5 +409,25 @@ Item {
                 delegate: ConvexMeshDelegate {}
             }
         }
+    }
+    Repeater {
+        model:viewportRoot.showMarkers?viewportRoot.bodyModelSource:null
+        delegate:Rectangle {
+            property var center:bodyPosition
+            property var sizes:bodyScale
+            property vector3d screen:{viewportRoot.cameraRevision;return sceneView.mapFrom3DScene(Qt.vector3d(center[0],center[1],center[2]).minus(viewportRoot.renderOrigin).times(viewportRoot.displayScale));}
+            property real diameter:100*Math.hypot(sizes[0],sizes[1],sizes[2])
+            visible:bodyMass>0 && screen.z>0 && diameter/Math.max(viewportRoot.viewDistance,1e-15)*sceneView.height<10
+            x:screen.x-5;y:screen.y-5;width:10;height:10;radius:5;color:"#F4B942";border.color:"#FFFFFF";border.width:1;z:5
+            ToolTip.visible:markerMouse.containsMouse;ToolTip.text:bodyName+"（辅助标记，不改变物理尺寸）"
+            MouseArea {id:markerMouse;anchors.fill:parent;hoverEnabled:true;onClicked:viewportRoot.selectedBodyId=bodyId}
+        }
+    }
+    SceneScaleControls {
+        visible:!viewportRoot.useExplicitCamera;anchors.top:parent.top;anchors.left:parent.left;anchors.right:parent.right;anchors.margins:8;z:20
+        referenceLength:viewportRoot.referenceLength;markers:viewportRoot.showMarkers;selectionAvailable:viewportRoot.selectedBodyId!==""
+        onReferenceRequested:function(value){viewportRoot.referenceLength=value;}
+        onMarkersRequested:function(value){viewportRoot.showMarkers=value;}
+        onFitRequested:function(selectedOnly){viewportRoot.fitScene(selectedOnly);}
     }
 }

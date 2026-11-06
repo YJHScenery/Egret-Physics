@@ -27,7 +27,7 @@
  */
 function rotationFromZTo(x, y, z) {
     var len = Math.sqrt(x * x + y * y + z * z);
-    if (len < 0.0001) {
+    if (len < 1e-30) {
         return [1, 0, 0, 0];
     }
 
@@ -66,7 +66,7 @@ function rotationFromZTo(x, y, z) {
  */
 function perpendicular2D(x, y, z) {
     var len = Math.sqrt(x * x + y * y + z * z);
-    if (len < 0.0001) {
+    if (len < 1e-30) {
         return [0, 1, 0];
     }
 

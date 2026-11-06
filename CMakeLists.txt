@@ -600,8 +600,25 @@ option(BUILD_TESTS "Build unit tests" ON)
 
 # 接触回归与旧 CCD 测试解耦，可独立构建和运行。
 if (BUILD_TESTS)
+add_executable(Egret_Control_Tests tests/test_scene_control.cpp)
+set_target_properties(Egret_Control_Tests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+if(MSVC)
+    target_compile_options(Egret_Control_Tests PRIVATE /utf-8)
+endif()
+enable_testing()
+add_test(NAME EgretControlTests COMMAND Egret_Control_Tests)
 add_executable(Egret_Contact_Tests
         tests/test_contact_graph.cpp
+        tests/test_scene_control_world.cpp
+        src/model/scene/world_scene_manager.cpp
+        src/view_model/serialize/transform_transformer.cpp
+        src/view_model/serialize/model_item_data.cpp
+        src/view_model/serialize/model_item_data.h
+        src/view/resource_helper.cpp
+        src/utils/unique_id_generator.cpp
+        src/utils/os/windows/windows_config.cpp
+        src/model/physics/rigid/shape/standard/convex_mesh.cpp
+        src/model/geometry/tessellated_mesh.cpp
         src/utils/aabb.cpp
         src/model/physics/field/gravitational_field.cpp
         src/model/physics/constraints/connecting_line.cpp
@@ -633,7 +650,8 @@ add_executable(Egret_Contact_Tests
         src/model/physics/rigid/shape/standard/shape_box.cpp
         src/model/physics/rigid/shape/standard/shape_cylinder.cpp
         src/utils/transform.cpp)
-target_link_libraries(Egret_Contact_Tests PRIVATE ${QT_MODULES_LIST_WITH_PREFIX})
+target_link_libraries(Egret_Contact_Tests PRIVATE ${QT_MODULES_LIST_WITH_PREFIX} Assimp::Assimp)
+target_include_directories(Egret_Contact_Tests PRIVATE ${CMAKE_BINARY_DIR}/generated)
 enable_testing()
 add_test(NAME EgretContactTests COMMAND Egret_Contact_Tests)
 
@@ -654,8 +672,11 @@ add_executable(Egret_Editor_Tests
 target_link_libraries(Egret_Editor_Tests PRIVATE ${QT_MODULES_LIST_WITH_PREFIX})
 target_include_directories(Egret_Editor_Tests PRIVATE ${CMAKE_BINARY_DIR}/generated)
 add_test(NAME EgretEditorTests COMMAND Egret_Editor_Tests)
-add_test(NAME EgretLoadTimeTests COMMAND powershell -NoProfile -File
+add_test(NAME EgretLoadTimeTests COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File
         ${CMAKE_SOURCE_DIR}/tests/test_load_time.ps1
+        -Executable $<TARGET_FILE:Egret_Physics> -WorkDir ${CMAKE_BINARY_DIR})
+add_test(NAME EgretSceneSettingsTests COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File
+        ${CMAKE_SOURCE_DIR}/tests/test_scene_settings.ps1
         -Executable $<TARGET_FILE:Egret_Physics> -WorkDir ${CMAKE_BINARY_DIR})
 endif ()
 

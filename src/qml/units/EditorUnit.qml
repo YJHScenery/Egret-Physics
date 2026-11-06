@@ -43,6 +43,20 @@ ColumnLayout {
 
     /** 当前右侧工具面板。 */
     property string rightTool: "properties"
+    readonly property real referenceLength:(EditorManager.sceneSettings.display||{}).reference_length||1
+    readonly property real displayScale:100/referenceLength
+    readonly property bool showSmallMarkers:(EditorManager.sceneSettings.display||{}).markers!==false
+    /** @brief 保存纯显示设置，不改动物体的物理位置或尺寸。 */
+    function saveDisplay(key,value) {var settings=JSON.parse(JSON.stringify(EditorManager.sceneSettings));if(!settings.display)settings.display={};settings.display[key]=value;EditorManager.setSceneSettings(settings);}
+    onReferenceLengthChanged: {editorCanvas.orbitDistance=12*referenceLength;editorCanvas.updateCameraPose();}
+
+    onRightToolChanged: {
+        if (rightTool === "solver") {
+            clipboardContextMenu.close();
+            editorGizmo.detach();
+            editorCanvas.gizmoActive = false;
+        }
+    }
 
     /** 请求主窗口关闭指定场景标签。 */
     signal closeDocumentRequested(int index)
@@ -105,6 +119,7 @@ ColumnLayout {
 
     Connections {
         target: EditorManager
+        function onSceneLoaded(){Qt.callLater(function(){editorCanvas.fitScene(false);});}
 
         function onModelUpdated(id) {
             if (operatingButton.isCreateMode || inspectorPanel.m_id !== id || !inspectorColumn.isConstraintCategory) return;
@@ -554,6 +569,7 @@ ColumnLayout {
         spacing: 6
 
         ColumnLayout {
+            visible: editorRoot.rightTool === "properties"
             Layout.preferredWidth: 250
             Layout.minimumWidth: 250
             Layout.maximumWidth: 250
@@ -675,7 +691,8 @@ ColumnLayout {
                 property string selectedObjectName: ""
                 property real orbitYaw: 35
                 property real orbitPitch: 45
-                property real orbitDistance: 1200
+                property real orbitDistance: 12*editorRoot.referenceLength
+                property int cameraRevision:0
                 property real orbitTargetX: 0
                 property real orbitTargetY: 0
                 property real orbitTargetZ: 0
@@ -690,12 +707,28 @@ ColumnLayout {
 
                 function updateGridParams() {
                     const distance = orbitDistance;
-                    const spacing = distance < 800 ? 50 : (distance < 2500 ? 100 : 200);
-                    if (Math.abs(spacing - gridSpacing) > 0.1) {
-                        gridSpacing = spacing;
-                    }
-                    const desired = Math.floor((distance * 2.2) / Math.max(gridSpacing, 0.1)) * 2 + 1;
-                    gridCount = Math.max(201, Math.min(desired, 1201));
+                    const magnitude=Math.pow(10,Math.floor(Math.log10(Math.max(1e-12,distance/12))));
+                    const ratio=distance/12/magnitude;
+                    gridSpacing=magnitude*(ratio<2?1:(ratio<5?2:5));
+                    const desired = Math.floor((distance * 2.2) / Math.max(gridSpacing, 1e-15)) * 2 + 1;
+                    gridCount = Math.max(41, Math.min(desired, 401));
+                }
+
+                /** @brief 自动取景优先包括可见动态物体，可单独适应所选对象。 */
+                function fitScene(selectedOnly) {
+                    var list=basicNode.modelList,selected=editorRoot.getSelectedShapeIds(),dynamic=false;
+                    for(var i=0;i<list.length;++i)if(list[i].category===0&&list[i].visible&&list[i].mass>0)dynamic=true;
+                    var min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity],count=0;
+                    for(var j=0;j<list.length;++j){var m=list[j];if(m.category!==0||!m.visible)continue;
+                        if(selectedOnly&&selected.indexOf(m.id)<0)continue;if(!selectedOnly&&dynamic&&m.mass<=0)continue;
+                        var transform=EditorManager.setQuick3DRenderTransform(j),size=transform.scale;
+                        var radius=Math.max(editorRoot.referenceLength*1e-6,size.length()*50);var position=[m.pos.x,m.pos.y,m.pos.z];
+                        for(var k=0;k<3;++k){min[k]=Math.min(min[k],position[k]-radius);max[k]=Math.max(max[k],position[k]+radius);}count++;}
+                    if(!count)return;
+                    orbitTargetX=(min[0]+max[0])/2;orbitTargetY=(min[1]+max[1])/2;orbitTargetZ=(min[2]+max[2])/2;
+                    var radius=Math.hypot(max[0]-min[0],max[1]-min[1],max[2]-min[2])/2;
+                    var half=Math.min(1,width/Math.max(1,height))*editorCamera.fieldOfView*Math.PI/360;
+                    orbitDistance=Math.max(editorRoot.referenceLength*1e-8,radius/Math.sin(half)*1.15);updateCameraPose();
                 }
 
                 function cameraPhysicsPosition() {
@@ -743,15 +776,19 @@ ColumnLayout {
                 }
 
                 function updateCameraPose() {
+                    if(!editorCamera)return;
                     updateGridParams();
                     const cam = cameraPhysicsPosition();
                     const target = toRenderVector(orbitTargetX, orbitTargetY, orbitTargetZ);
-                    editorCamera.position = toRenderVector(cam.x, cam.y, cam.z);
-                    editorCamera.lookAt(target);
+                    editorCamera.position = toRenderVector(cam.x, cam.y, cam.z).minus(target).times(editorRoot.displayScale);
+                    editorCamera.clipNear=Math.max(1e-10,orbitDistance*editorRoot.displayScale*1e-4);
+                    editorCamera.clipFar=Math.max(1,orbitDistance*editorRoot.displayScale*1000);
+                    editorCamera.lookAt(Qt.vector3d(0,0,0));cameraRevision++;
                 }
 
                 Component.onCompleted: {
                     updateCameraPose();
+                    Qt.callLater(function(){fitScene(false);});
                 }
 
                 View3D {
@@ -794,6 +831,8 @@ ColumnLayout {
 
                     Node {
                         id: basicNode
+                        scale:Qt.vector3d(editorRoot.displayScale,editorRoot.displayScale,editorRoot.displayScale)
+                        position:editorCanvas.toRenderVector(editorCanvas.orbitTargetX,editorCanvas.orbitTargetY,editorCanvas.orbitTargetZ).times(-editorRoot.displayScale)
 
                         property var alphaModeMap: ({
                             "Default": PrincipledMaterial.Default,
@@ -914,8 +953,31 @@ ColumnLayout {
 
                 // ── Gizmo 叠加层 (独立 View3D, Offscreen, 透明背景) ──
 
+                Repeater {
+                    model:editorRoot.showSmallMarkers?basicNode.modelList:[]
+                    delegate:Rectangle {
+                        property var physicalPosition:modelData.pos
+                        property var markerTransform:EditorManager.setQuick3DRenderTransform(index)
+                        property vector3d screen:{editorCanvas.cameraRevision;return editorView.mapFrom3DScene(editorCanvas.toRenderVector(physicalPosition.x,physicalPosition.y,physicalPosition.z).minus(editorCanvas.toRenderVector(editorCanvas.orbitTargetX,editorCanvas.orbitTargetY,editorCanvas.orbitTargetZ)).times(editorRoot.displayScale));}
+                        property real diameter:markerTransform.scale?markerTransform.scale.length()*100:0
+                        visible:modelData.category===0 && modelData.visible && modelData.mass>0 && screen.z>0 && diameter/Math.max(editorCanvas.orbitDistance,1e-15)*editorCanvas.height<10
+                        x:screen.x-5;y:screen.y-5;width:10;height:10;radius:5;color:"#F4B942";border.color:"#FFFFFF";border.width:1;z:5
+                        ToolTip.visible:smallMarkerMouse.containsMouse;ToolTip.text:modelData.name+"（辅助标记，不改变物理尺寸）"
+                        MouseArea {id:smallMarkerMouse;anchors.fill:parent;hoverEnabled:true;onClicked:{editorCanvas.selectedObjectName=modelData.id;editorRoot.loadModelById(modelData.id);}}
+                    }
+                }
+                SceneScaleControls {
+                    anchors.top:parent.top;anchors.left:parent.left;anchors.right:parent.right;anchors.margins:8;z:20
+                    referenceLength:editorRoot.referenceLength;markers:editorRoot.showSmallMarkers
+                    selectionAvailable:editorRoot.getSelectedShapeIds().length>0
+                    onReferenceRequested:function(value){editorRoot.saveDisplay("reference_length",value);}
+                    onMarkersRequested:function(value){editorRoot.saveDisplay("markers",value);}
+                    onFitRequested:function(selectedOnly){editorCanvas.fitScene(selectedOnly);}
+                }
+
                 View3D {
                     id: gizmoView
+                    visible: editorRoot.rightTool === "properties"
                     anchors.fill: parent
                     renderMode: View3D.Offscreen
                     camera: gizmoCamera
@@ -947,6 +1009,7 @@ ColumnLayout {
 
                     TransformGizmo {
                         id: editorGizmo
+                        translationScale:editorRoot.displayScale
                         view3d: gizmoView
                         camera: gizmoCamera
                         visible: targetNode !== null
@@ -965,7 +1028,7 @@ ColumnLayout {
                     anchors.left: parent.left
                     anchors.top: parent.top
                     anchors.leftMargin: 12
-                    anchors.topMargin: 10
+                    anchors.topMargin: 66
                     radius: theme.radiusS
                     color: "#0D274899"
                     border.width: 1
@@ -986,7 +1049,7 @@ ColumnLayout {
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.rightMargin: 12
-                    anchors.topMargin: 10
+                    anchors.topMargin: 66
                     radius: theme.radiusS
                     color: "#0D274899"
                     border.width: 1
@@ -1005,7 +1068,7 @@ ColumnLayout {
                             font.pixelSize: 12
                         }
                         Text {
-                            text: "单位: 米"
+                            text: "物理输入单位：米；参考 " + editorRoot.referenceLength + " m"
                             color: "#9EC4EA"
                             font.pixelSize: 11
                         }
@@ -1017,9 +1080,12 @@ ColumnLayout {
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                     preventStealing: true
+                    property point rightPressPoint: Qt.point(0, 0)
+                    property bool rightDragged: false
 
                     onClicked: function (mouse) {
                         if (mouse.button === Qt.RightButton) {
+                            if (editorRoot.rightTool !== "properties" || rightDragged) return;
                             // 仅当选中了 Shape 实体时才弹出右键菜单
                             if (getSelectedShapeIds().length === 0) return;
 
@@ -1036,8 +1102,13 @@ ColumnLayout {
                     onPressed: function (mouse) {
                         editorCanvas.lastMousePoint = Qt.point(mouse.x, mouse.y);
                         // 右键交给 onClicked 处理
-                        if (mouse.button === Qt.RightButton) return;
+                        if (mouse.button === Qt.RightButton) {
+                            rightPressPoint = Qt.point(mouse.x, mouse.y);
+                            rightDragged = false;
+                            return;
+                        }
                         if (mouse.button !== Qt.LeftButton) return;
+                        if (editorRoot.rightTool !== "properties") return;
 
                         // 优先检测 Gizmo 交互（在独立的 gizmoView 中拾取）
                         if (editorGizmo.visible) {
@@ -1081,27 +1152,37 @@ ColumnLayout {
                         editorCanvas.lastMousePoint = Qt.point(mouse.x, mouse.y);
 
                         // ── Gizmo 拖拽中 ──
-                        if (editorGizmo.activeElement !== TransformGizmo.UIElement.None) {
+                        if (editorRoot.rightTool === "properties" && editorGizmo.activeElement !== TransformGizmo.UIElement.None) {
                             editorGizmo.handleDrag(dx, dy);
                             return;
                         }
 
                         // ── Hover 追踪（Gizmo 可见时，在 gizmoView 中拾取） ──
-                        if (editorGizmo.visible && mouse.buttons === Qt.NoButton) {
+                        if (editorRoot.rightTool === "properties" && editorGizmo.visible && mouse.buttons === Qt.NoButton) {
                             const gizmoPick = gizmoView.pick(mouse.x, mouse.y);
                             editorGizmo.handleHover(gizmoPick);
                         }
 
                         // ── 相机轨道（右键 / 中键） ──
                         if ((mouse.buttons & Qt.RightButton) !== 0) {
+                            const totalX = mouse.x - rightPressPoint.x;
+                            const totalY = mouse.y - rightPressPoint.y;
+                            if (totalX * totalX + totalY * totalY > 25) rightDragged = true;
                             editorCanvas.orbitYaw -= dx * 0.22;
                             editorCanvas.orbitPitch = editorCanvas.clamp(editorCanvas.orbitPitch - dy * 0.2, -85, 85);
                             editorCanvas.updateCameraPose();
                         }
 
                         if ((mouse.buttons & Qt.MiddleButton) !== 0) {
-                            editorCanvas.orbitTargetX -= dx * 1.6;
-                            editorCanvas.orbitTargetY += dy * 1.6;
+                            const yaw = editorCanvas.orbitYaw * Math.PI / 180;
+                            const pitch = editorCanvas.orbitPitch * Math.PI / 180;
+                            const rightX = -Math.sin(yaw), rightY = Math.cos(yaw);
+                            const upX = -Math.sin(pitch) * Math.cos(yaw);
+                            const upY = -Math.sin(pitch) * Math.sin(yaw);
+                            const upZ = Math.cos(pitch);
+                            editorCanvas.orbitTargetX += (-dx * rightX + dy * upX) * editorCanvas.orbitDistance*0.0015;
+                            editorCanvas.orbitTargetY += (-dx * rightY + dy * upY) * editorCanvas.orbitDistance*0.0015;
+                            editorCanvas.orbitTargetZ += dy * upZ * editorCanvas.orbitDistance*0.0015;
                             editorCanvas.updateCameraPose();
                         }
                     }
@@ -1135,7 +1216,7 @@ ColumnLayout {
 
                     onWheel: function (wheel) {
                         const factor = wheel.angleDelta.y > 0 ? 0.86 : 1.16;
-                        editorCanvas.orbitDistance = editorCanvas.clamp(editorCanvas.orbitDistance * factor, 120, 12000);
+                        editorCanvas.orbitDistance = editorCanvas.clamp(editorCanvas.orbitDistance * factor, editorRoot.referenceLength*1e-8, editorRoot.referenceLength*1e10);
                         editorCanvas.updateCameraPose();
                     }
                 }
@@ -2824,44 +2905,9 @@ ColumnLayout {
 
     GlassPanel {
         Layout.fillWidth: true
-        Layout.preferredHeight: 140
-        title: "时间轴 / Timeline"
-
-        RowLayout {
-            anchors.fill: parent
-            spacing: 6
-
-            Repeater {
-                model: 6
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    radius: theme.radiusS
-                    property bool hovered: false
-                    color: hovered ? "#1A3B83" : "#112F52"
-                    border.width: 1
-                    border.color: "#2C5D88"
-
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onEntered: {
-                            parent.hovered = true;
-                        }
-                        onExited: {
-                            parent.hovered = false;
-                        }
-                    }
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "片段 " + (index + 1)
-                        color: "#9EC4EA"
-                        font.pixelSize: 12
-                    }
-                }
-            }
-        }
+        Layout.preferredHeight: 190
+        title: "时间轴 / 条件控制"
+        SceneControlPanel { anchors.fill: parent }
     }
 
 }

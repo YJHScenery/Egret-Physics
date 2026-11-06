@@ -22,6 +22,10 @@ Model {
 
     /** 当前被选中的实体 ID（由视口注入，用于高亮）。 */
     property string selectedBodyId: ""
+    /** 只用于取景筛选和辅助标记的物理质量。 */
+    property real physicalMass:bodyMass
+    /** 稳定实体标识，供辅助标记拾取。 */
+    property string entityId:bodyId
 
     /** 是否处于选中状态。 */
     readonly property bool isSelected: selectedBodyId === bodyId

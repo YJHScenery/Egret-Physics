@@ -713,7 +713,7 @@ ColumnLayout {
 
                     onWheel: function (wheel) {
                         const factor = wheel.angleDelta.y > 0 ? 0.88 : 1.12;
-                        canvas3d.orbitDistance = canvas3d.clamp(canvas3d.orbitDistance * factor, 120, 8000);
+                        canvas3d.orbitDistance = canvas3d.clamp(canvas3d.orbitDistance * factor, canvas3d.minOrbitDistance, canvas3d.maxOrbitDistance);
                         canvas3d.updateCameraPose();
                     }
                 }

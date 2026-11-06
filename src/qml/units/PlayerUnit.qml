@@ -263,6 +263,7 @@ ColumnLayout {
             // 播放模式下只做只读浏览（轨道旋转 + 缩放）。
             SimulationViewport {
                 id: playbackViewport
+                displayController:playerSceneController
                 anchors.fill: parent
 
                 // 使用播放器自己的场景控制器：未打开仿真文件时是空世界，只显示坐标系与网格
@@ -348,7 +349,7 @@ ColumnLayout {
                     onWheel: function (wheel) {
                         const factor = wheel.angleDelta.y > 0 ? 0.88 : 1.12;
                         playbackViewport.orbitDistance =
-                            playbackViewport.clamp(playbackViewport.orbitDistance * factor, 120, 8000);
+                            playbackViewport.clamp(playbackViewport.orbitDistance * factor, playbackViewport.minOrbitDistance, playbackViewport.maxOrbitDistance);
                         playbackViewport.updateCameraPose();
                     }
                 }

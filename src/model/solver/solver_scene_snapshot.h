@@ -81,6 +81,9 @@ namespace egret
          */
         virtual void advanceSimulationTime(double dt) = 0;
 
+        /** @brief 收集本步真实提交接触求解的实体对；默认场景无需提供控制机制。 */
+        virtual void recordControlContacts(std::span<const SolverContactConstraint>) {}
+
         /**
          * @brief 返回活动约束的可变连续视图。
          * @return 约束指针的 span。
