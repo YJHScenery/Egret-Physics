@@ -257,7 +257,7 @@ ApplicationWindow {
             fileMode: FileDialog.OpenFile
             currentFolder: documentsFolder
             nameFilters: [
-                "序列化场景 (*.epscene)",
+                "场景文件 (*.epscenex *.epscene)",
                 "所有文件 (*)"
             ]
 
@@ -288,13 +288,14 @@ ApplicationWindow {
             title: "保存场景"
             fileMode: FileDialog.SaveFile
             currentFolder: documentsFolder
-            defaultSuffix: "epscene"
+            defaultSuffix: selectedNameFilter.index === 1 ? "epscene" : "epscenex"
             nameFilters: [
-                "序列化场景 (*.epscene)",
+                "场景 V2.0 (*.epscenex)",
+                "兼容场景 V1.0 (*.epscene)",
                 "所有文件 (*)"
             ]
 
-            // currentFile: "Untitled.epscene"
+            // currentFile: "Untitled.epscenex"
 
             onAccepted: {
                 // 注意：selectedFile 返回的是 file:// 开头的 URL，需转换为本地路径
@@ -510,7 +511,7 @@ ApplicationWindow {
 
             // 双击文件启动时按类型分派：
             //   .epsx  → --play <文件>：切到播放器工作区，打开并立即播放；
-            //   .epscene → --edit <文件>：切到场景编辑器并载入场景。
+            //   .epscene / .epscenex → --edit <文件>：切到场景编辑器并载入场景。
             Component.onCompleted: {
                 // 启动时也暂停未显示工作区的默认计算，避免后台持续运行。
                 if (currentRoute !== "scene") sceneController.pause();

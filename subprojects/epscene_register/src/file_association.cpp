@@ -68,6 +68,9 @@ namespace
     /** 目标扩展名（小写，含点）。 */
     constexpr wchar_t kEpsceneExtension[] = L".epscene";
 
+    /** V2 ZIP 场景扩展名，与旧格式共用编辑器入口。 */
+    constexpr wchar_t kEpscenexExtension[] = L".epscenex";
+
     /** 关联使用的 ProgID。 */
     constexpr wchar_t kEpsceneProgId[] = L"EgretPhysics.Scene";
 
@@ -408,12 +411,15 @@ namespace egret::epscene_register
             QStringLiteral("\"%1\" --edit \"%2\"").arg(executable, QStringLiteral("%1"));
 
         const QString extensionKey = classesKeyPath(QString::fromWCharArray(kEpsceneExtension));
+        const QString archiveExtensionKey = classesKeyPath(QString::fromWCharArray(kEpscenexExtension));
         const QString progIdKey = classesKeyPath(QString::fromWCharArray(kEpsceneProgId));
         const QString progId = QString::fromWCharArray(kEpsceneProgId);
 
         const bool writeOk =
             writeStringValue(extensionKey, nullptr, progId.toStdWString(), &error) &&
             writeEmptyValue(extensionKey + QStringLiteral("\\OpenWithProgids"), kEpsceneProgId, &error) &&
+            writeStringValue(archiveExtensionKey, nullptr, progId.toStdWString(), &error) &&
+            writeEmptyValue(archiveExtensionKey + QStringLiteral("\\OpenWithProgids"), kEpsceneProgId, &error) &&
             writeStringValue(progIdKey, nullptr, std::wstring{kEpsceneFriendlyName}, &error) &&
             writeStringValue(progIdKey + QStringLiteral("\\DefaultIcon"), nullptr,
                              iconPath.toStdWString(), &error) &&
@@ -430,11 +436,11 @@ namespace egret::epscene_register
 
         return {
             true,
-            QStringLiteral("已注册 .epscene 场景文件关联（当前用户）。\n"
+            QStringLiteral("已注册 .epscene / .epscenex 场景文件关联（当前用户）。\n"
                            "  编辑器：%1\n"
                            "  文件图标：%2\n"
                            "  双击命令：%3\n"
-                           "现在双击任意 .epscene 文件将以场景编辑器打开并载入场景。")
+                           "现在双击任意 .epscene / .epscenex 文件将以场景编辑器打开并载入场景。")
                 .arg(executable, iconPath, openCommand)
         };
     }
@@ -444,6 +450,7 @@ namespace egret::epscene_register
         QString error;
         const bool deleteOk =
             deleteKeyTree(classesKeyPath(QString::fromWCharArray(kEpsceneProgId)), &error) &&
+            deleteKeyTree(classesKeyPath(QString::fromWCharArray(kEpscenexExtension)), &error) &&
             deleteKeyTree(classesKeyPath(QString::fromWCharArray(kEpsceneExtension)), &error);
 
         if (!deleteOk) {
@@ -453,7 +460,7 @@ namespace egret::epscene_register
         removeIconFiles(); // 图标删除失败不影响注销结果（例如文件正被资源管理器占用）
         ::SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nullptr, nullptr);
 
-        return {true, QStringLiteral("已删除 .epscene 场景文件关联（当前用户），并清理了图标副本。")};
+        return {true, QStringLiteral("已删除 .epscene / .epscenex 场景文件关联（当前用户），并清理了图标副本。")};
     }
 }
 

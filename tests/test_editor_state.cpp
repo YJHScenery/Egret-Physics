@@ -158,8 +158,18 @@ int main(int argc, char** argv)
         EditorManager documentsEditor;
         require(documentsEditor.documentNeedsSaveAs(), "新场景应要求另存为");
         require(documentsEditor.fromJsonString(source), "文档场景初始化失败");
-        const QString documentPath = documentDir.filePath("scene.epscene");
+        const QString documentPath = documentDir.filePath("scene.epscenex");
         require(documentsEditor.saveDocument(documentPath), "文档首次保存失败");
+        EditorManager reopened;
+        require(reopened.openDocument(documentPath) && reopened.count() == documentsEditor.count()
+                && reopened.sceneSettings() == documentsEditor.sceneSettings(), "V2 文档打开丢失实体或控制器源码");
+        const QString legacyPath = documentDir.filePath("legacy.epscene");
+        require(documentsEditor.exportToFile(legacyPath), "V1 兼容导出失败");
+        QFile legacyFile(legacyPath);
+        require(legacyFile.open(QIODevice::ReadOnly) && QJsonDocument::fromJson(legacyFile.readAll()).isObject(),
+                "V1 扩展名没有保存为 JSON");
+        EditorManager legacyEditor;
+        require(legacyEditor.openDocument(legacyPath) && legacyEditor.count() == documentsEditor.count(), "V1 文件无法重新打开");
         require(!documentsEditor.documents()[0].toMap()["dirty"].toBool(), "保存后文档仍标记为修改");
         require(documentsEditor.setModelTransform("2", QVector3D(3, 4, 5), QQuaternion()), "文档修改失败");
         require(documentsEditor.documents()[0].toMap()["dirty"].toBool(), "修改后文档未标记为修改");

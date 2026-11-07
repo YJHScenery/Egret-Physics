@@ -27,10 +27,10 @@
 namespace egret
 {
     template <std::unsigned_integral T>
-    constexpr T EGRET_PHYSICS_VERSION_MAJOR = 1;
+    constexpr T EGRET_PHYSICS_VERSION_MAJOR = 2;
 
     template <std::unsigned_integral T>
-    constexpr T EGRET_PHYSICS_VERSION_MINOR = 1;
+    constexpr T EGRET_PHYSICS_VERSION_MINOR = 0;
 
     template <std::unsigned_integral T>
     constexpr T EGRET_PHYSICS_VERSION_PATCH = 0;

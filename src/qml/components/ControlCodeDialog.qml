@@ -86,7 +86,7 @@ Basic.Dialog {
     header: Label {text: root.title;color: theme.textPrimary;font.pixelSize: 18;padding: 18}
     contentItem: ColumnLayout {
         spacing: 10
-        Label {Layout.fillWidth: true;wrapMode: Text.Wrap;color: theme.textSecondary;text: "源码随 epscene 保存；求解自动编译。各程序读取同一轮快照，按左侧顺序提交动作；后设置的力覆盖前设置。编辑只影响下一次求解。"}
+        Label {Layout.fillWidth: true;wrapMode: Text.Wrap;color: theme.textSecondary;text: "源码随场景文件保存；求解自动编译。各程序读取同一轮快照，按左侧顺序提交动作；后设置的力覆盖前设置。编辑只影响下一次求解。"}
         RowLayout {
             Layout.fillWidth: true;Layout.fillHeight: true;spacing: 14
             ColumnLayout {

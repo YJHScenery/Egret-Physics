@@ -47,6 +47,7 @@
 #include "kinetic_sleep_strategy.h"
 #include "sleep_strategy.h"
 #include <QJsonDocument>
+#include "serialize/epscene_archive.h"
 #include <QJsonObject>
 #include <QJsonArray>
 
@@ -634,13 +635,13 @@ namespace egret
 
     SceneRecord SceneManagerViewModel::createSceneFromJsonFile(const QString& fileName)
     {
-        QFile file(fileName);
-        if (!file.open(QIODevice::ReadOnly)) {
+        QJsonObject scene;
+        QString error;
+        if (!EpsceneArchive::read(fileName, scene, error)) {
+            LOG_WARN(error.toStdString());
             return {};
         }
-        const QByteArray data = file.readAll();
-        file.close();
-        return createSceneFromJsonString(QString::fromUtf8(data));
+        return createSceneFromJsonString(QString::fromUtf8(QJsonDocument(scene).toJson()));
     }
 
     void SceneManagerViewModel::initialize()
@@ -938,15 +939,13 @@ namespace egret
 
     void SceneManagerViewModel::loadSceneFronJsonFile(const QString& fileName)
     {
-        QFile file(fileName);
-        if (!file.open(QIODevice::ReadOnly)) {
-            LOG_WARN("loadSceneFronJsonFile: 无法打开文件 %s");
-            LOG_WARN(fileName.toStdString());
+        QJsonObject scene;
+        QString error;
+        if (!EpsceneArchive::read(fileName, scene, error)) {
+            LOG_WARN(error.toStdString());
             return;
         }
-        const QByteArray data = file.readAll();
-        file.close();
-        loadSceneFromJsonString(QString::fromUtf8(data));
+        loadSceneFromJsonString(QString::fromUtf8(QJsonDocument(scene).toJson()));
     }
 
     void SceneManagerViewModel::loadSceneFromJsonString(const QString& jsonString,bool prepareControl)

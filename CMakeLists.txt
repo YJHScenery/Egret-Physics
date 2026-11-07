@@ -619,17 +619,35 @@ endif ()
 # 与主程序解耦（安装包或手动部署时单独调用它即可）。
 add_subdirectory(subprojects/epsx_register)
 
-# .epscene 场景文件关联工具：与 .epsx 工具同构（同样只写 HKCU\Software\Classes），
-# 区别在于扩展名换成 .epscene、图标换成场景图标，双击时以 `--edit` 让主程序在
+# .epscene / .epscenex 场景文件关联工具：与 .epsx 工具同构（同样只写 HKCU\Software\Classes），
+# 区别在于支持 .epscene / .epscenex、图标换成场景图标，双击时以 `--edit` 让主程序在
 # 场景编辑器工作区载入该场景。
 add_subdirectory(subprojects/epscene_register)
 
 
 
+# 场景归档通过独立库统一供编辑器、求解器和测试使用。
+add_library(Egret_Scene_Archive STATIC
+        src/view_model/serialize/epscene_archive.cpp
+        src/view_model/serialize/epscene_archive.h)
+target_link_libraries(Egret_Scene_Archive PRIVATE Qt6::CorePrivate PUBLIC Qt6::Core)
+if(MSVC)
+    target_compile_options(Egret_Scene_Archive PRIVATE /utf-8)
+endif()
+target_link_libraries(${PROJECT_NAME} PRIVATE Egret_Scene_Archive)
+
 option(BUILD_TESTS "Build unit tests" ON)
 
 # 接触回归与旧 CCD 测试解耦，可独立构建和运行。
 if (BUILD_TESTS)
+add_executable(Egret_Scene_Archive_Tests tests/test_epscene_archive.cpp)
+target_link_libraries(Egret_Scene_Archive_Tests PRIVATE Egret_Scene_Archive Qt6::CorePrivate)
+target_compile_definitions(Egret_Scene_Archive_Tests PRIVATE EGRET_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+if(MSVC)
+    target_compile_options(Egret_Scene_Archive_Tests PRIVATE /utf-8)
+endif()
+enable_testing()
+add_test(NAME EgretSceneArchiveTests COMMAND Egret_Scene_Archive_Tests)
 add_executable(Egret_Control_Tests tests/test_scene_control.cpp)
 set_target_properties(Egret_Control_Tests PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
 if(MSVC)
@@ -680,7 +698,7 @@ add_executable(Egret_Contact_Tests
         src/model/physics/rigid/shape/standard/shape_box.cpp
         src/model/physics/rigid/shape/standard/shape_cylinder.cpp
         src/utils/transform.cpp)
-target_link_libraries(Egret_Contact_Tests PRIVATE ${QT_MODULES_LIST_WITH_PREFIX} Assimp::Assimp)
+target_link_libraries(Egret_Contact_Tests PRIVATE Egret_Scene_Archive ${QT_MODULES_LIST_WITH_PREFIX} Assimp::Assimp)
 target_include_directories(Egret_Contact_Tests PRIVATE ${CMAKE_BINARY_DIR}/generated)
 enable_testing()
 add_test(NAME EgretContactTests COMMAND Egret_Contact_Tests)
@@ -707,11 +725,14 @@ add_executable(Egret_Editor_Tests
         src/utils/unique_id_generator.cpp
         src/utils/os/windows/windows_config.cpp
         src/utils/io/async_logger.cpp)
-target_link_libraries(Egret_Editor_Tests PRIVATE ${QT_MODULES_LIST_WITH_PREFIX} Egret_Control_Core)
+target_link_libraries(Egret_Editor_Tests PRIVATE Egret_Scene_Archive ${QT_MODULES_LIST_WITH_PREFIX} Egret_Control_Core)
 target_include_directories(Egret_Editor_Tests PRIVATE ${CMAKE_BINARY_DIR}/generated)
 add_test(NAME EgretEditorTests COMMAND Egret_Editor_Tests)
 set_tests_properties(EgretEditorTests PROPERTIES ENVIRONMENT
         "QT_QPA_PLATFORM_PLUGIN_PATH=${CMAKE_PREFIX_PATH}/plugins/platforms;QT_QUICK_BACKEND=software")
+add_test(NAME EgretEpscenexSolveTests COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File
+        ${CMAKE_SOURCE_DIR}/tests/test_epscenex_solve.ps1
+        -Executable $<TARGET_FILE:Egret_Physics> -WorkDir ${CMAKE_BINARY_DIR})
 add_test(NAME EgretProgrammableSceneTests COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File
         ${CMAKE_SOURCE_DIR}/tests/test_programmable_scene.ps1
         -Executable $<TARGET_FILE:Egret_Physics> -WorkDir ${CMAKE_BINARY_DIR})
@@ -805,7 +826,7 @@ set(CPACK_CREATE_DESKTOP_LINKS      "Egret_Physics")
 
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 
-# 主可执行文件 + .epsx / .epscene 关联工具
+# 主可执行文件 + .epsx / .epscene / .epscenex 关联工具
 install(TARGETS ${PROJECT_NAME} epsx_register epscene_register
     RUNTIME DESTINATION .
     )

@@ -1,7 +1,7 @@
 # =============================================================================
-#  epscene_register —— .epscene 场景文件关联工具（独立子项目）
+#  epscene_register —— .epscene / .epscenex 场景文件关联工具（独立子项目）
 #
-#  用途：把 .epscene 扩展名注册 / 注销到当前用户（HKCU\Software\Classes）。
+#  用途：把 .epscene / .epscenex 扩展名注册 / 注销到当前用户（HKCU\Software\Classes）。
 #  单独成 exe 的原因：注册是安装期的一次性动作，与编辑器主程序无关；
 #  拆开后主程序不必携带注册表代码，安装包也可以直接调用本工具。
 #

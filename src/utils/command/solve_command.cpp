@@ -17,7 +17,8 @@
 
 #include "solve_command.h"
 
-#include <QFile>
+#include <QJsonDocument>
+#include "serialize/epscene_archive.h"
 #include <QTextStream>
 
 #include <cstdio>
@@ -29,7 +30,7 @@ namespace egret::command
     namespace
     {
         /**
-         * @brief  读取整个文本文件。
+         * @brief  兼容读取场景 JSON 或 ZIP 归档。
          * @param  path 文件路径。
          * @param  out 输出文件内容。
          * @param  errorMessage 失败时写入错误描述。
@@ -37,12 +38,9 @@ namespace egret::command
          */
         bool readTextFile(const QString& path, QString* out, QString* errorMessage)
         {
-            QFile file(path);
-            if (!file.open(QIODevice::ReadOnly)) {
-                *errorMessage = QStringLiteral("无法打开文件：%1").arg(path);
-                return false;
-            }
-            *out = QString::fromUtf8(file.readAll());
+            QJsonObject scene;
+            if (!EpsceneArchive::read(path, scene, *errorMessage)) return false;
+            *out = QString::fromUtf8(QJsonDocument(scene).toJson(QJsonDocument::Compact));
             return true;
         }
     }
@@ -53,7 +51,7 @@ namespace egret::command
         QTextStream err(stderr);
 
         if (request.sceneFile.isEmpty()) {
-            err << "请通过 --solve <scene.epscene> 指定场景文件。\n";
+            err << "请通过 --solve <scene.epscenex> 指定场景文件。\n";
             err.flush();
             return 2;
         }

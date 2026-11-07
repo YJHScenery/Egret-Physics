@@ -1,7 +1,7 @@
 /**
  * @file        main.cpp
- * @brief       epscene_register 命令行入口：注册 / 注销 .epscene 文件关联。
- * @details     本工具只做一件事——把 .epscene 扩展名关联到 Egret Physics 场景编辑器，
+ * @brief       epscene_register 命令行入口：注册 / 注销 .epscene / .epscenex 文件关联。
+ * @details     本工具只做一件事——把 .epscene / .epscenex 扩展名关联到 Egret Physics 场景编辑器，
  *              或删除这一关联。注册内容全部写在 `HKCU\Software\Classes`，
  *              因此不需要管理员权限，也不会影响其他用户或系统级关联。
  *
@@ -81,19 +81,19 @@ namespace
      */
     void printUsage(QTextStream& out)
     {
-        out << "epscene_register —— Egret Physics 的 .epscene 场景文件关联工具\n"
+        out << "epscene_register —— Egret Physics 的 .epscene / .epscenex 场景文件关联工具\n"
                "\n"
                "用法：epscene_register [选项]\n"
                "\n"
                "选项：\n"
-               "  --register              注册 .epscene 关联（不带任何选项时的默认动作）\n"
-               "  --unregister            删除 .epscene 关联，并清理图标副本\n"
+               "  --register              注册 .epscene / .epscenex 关联（不带任何选项时的默认动作）\n"
+               "  --unregister            删除 .epscene / .epscenex 关联，并清理图标副本\n"
                "  -e, --executable <路径> 指定场景编辑器可执行文件；\n"
                "                          缺省取本工具同目录下的 Egret_Physics.exe\n"
                "  -h, --help              显示本帮助\n"
                "\n"
                "说明：关联只写入 HKCU\\Software\\Classes（当前用户），无需管理员权限；\n"
-               "      注册后资源管理器双击 .epscene 会执行 \"<编辑器>\" --edit \"%1\"，\n"
+               "      注册后资源管理器双击 .epscene / .epscenex 会执行 \"<编辑器>\" --edit \"%1\"，\n"
                "      并在场景编辑器工作区载入该场景。\n";
         out.flush();
     }

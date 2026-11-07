@@ -7,7 +7,7 @@
  *              3. 按模式分发到 solve_command 与 parse_command。
  *
  *              支持的语法：
- *              - `--solve <scene.epscene> [--duration <秒>] [--sample <毫秒>] [--step <毫秒>] [-o <文件>]`
+ *              - `--solve <scene.epscenex> [--duration <秒>] [--sample <毫秒>] [--step <毫秒>] [-o <文件>]`
  *              - `--parse EPSX <帧号> [文件]`（缩写 `-p`）
  *              - `--play <文件>`（缩写 `-r`，进入图形界面的播放器工作区并自动播放）
  *              - `--edit <文件>`（进入图形界面的场景编辑器工作区并载入场景）
@@ -94,7 +94,7 @@ namespace egret::command
 
             app.add_flag("--export-video", "导出视频，使用 --export-video --help 查看选项");
             app.add_flag("--solve", options.solve, "离线求解场景并写出仿真文件");
-            app.add_option("scene", options.sceneFile, "场景文件路径（.epscene，与 --solve 搭配）");
+            app.add_option("scene", options.sceneFile, "场景文件路径（.epscenex / .epscene，与 --solve 搭配）");
             app.add_option("--duration", options.durationSeconds, "仿真时长，单位秒（默认 60）");
             app.add_option("--sample", options.sampleMs,
                            "文件采样间隔，单位毫秒：1 / 2 / 5 / 10 / 20（默认 10）");

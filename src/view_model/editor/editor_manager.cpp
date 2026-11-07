@@ -29,6 +29,7 @@
 #include "os/windows/windows_sound.h"
 #include "serialize/transform_transformer.h"
 #include "serialize/scene_settings.h"
+#include "serialize/epscene_archive.h"
 
 namespace egret
 {
@@ -56,7 +57,7 @@ namespace egret
             QJsonArray models;
             if (i != m_currentDocument) for (const auto& model : document.models) models.append(model->toJson());
             const QByteArray content = i == m_currentDocument ? documentContent() : QJsonDocument(QJsonObject{{"models",models},{"scene_settings",document.settings}}).toJson(QJsonDocument::Compact);
-            result.append(QVariantMap{{"name", document.path.isEmpty() ? QStringLiteral("untitled.epscene") : QFileInfo(document.path).fileName()},
+            result.append(QVariantMap{{"name", document.path.isEmpty() ? QStringLiteral("untitled.epscenex") : QFileInfo(document.path).fileName()},
                                       {"path", document.path}, {"dirty", content != document.savedContent}});
         }
         return result;
@@ -112,11 +113,13 @@ namespace egret
     bool EditorManager::openDocument(const QString& path)
     {
         const QString localPath = path.startsWith(QStringLiteral("file:")) ? QUrl(path).toLocalFile() : path;
-        QFile file(localPath);
-        if (!file.open(QIODevice::ReadOnly)) return false;
-        const QByteArray data = file.readAll();
-        const QJsonDocument parsed = QJsonDocument::fromJson(data);
-        if (!parsed.isObject() || !parsed.object().value("models").isArray()) return false;
+        QJsonObject scene;
+        QString error;
+        if (!EpsceneArchive::read(localPath, scene, error)) {
+            emit operationCompleted(false, error);
+            return false;
+        }
+        const QByteArray data = QJsonDocument(scene).toJson(QJsonDocument::Compact);
         newDocument();
         m_switchingDocument = true;
         const bool ok = fromJsonString(QString::fromUtf8(data));
@@ -781,34 +784,34 @@ namespace egret
         root["models"] = modelsArray;
         root["scene_settings"]=m_sceneSettings;
 
-        QSaveFile file(filePath);
-        if (!file.open(QIODevice::WriteOnly)) {
-            emit operationCompleted(false, "Cannot open file for writing");
+        QString error;
+        if (QFileInfo(filePath).suffix().compare(QStringLiteral("epscene"), Qt::CaseInsensitive) == 0) {
+            QSaveFile file(filePath);
+            const QByteArray data = QJsonDocument(root).toJson();
+            if (!file.open(QIODevice::WriteOnly) || file.write(data) != data.size() || !file.commit()) {
+                emit operationCompleted(false, file.errorString());
+                return false;
+            }
+            emit operationCompleted(true, QStringLiteral("场景已保存为 V1.0 JSON"));
+            return true;
+        }
+        if (!EpsceneArchive::write(filePath, root, error)) {
+            emit operationCompleted(false, error);
             return false;
         }
-
-        const QByteArray data = QJsonDocument(root).toJson();
-        if (file.write(data) != data.size() || !file.commit()) {
-            emit operationCompleted(false, "Cannot write scene file");
-            return false;
-        }
-
-        emit operationCompleted(true, "Models saved to JSON");
+        emit operationCompleted(true, QStringLiteral("场景已保存为 V2.0 归档"));
         return true;
     }
 
     bool EditorManager::loadFromJson(const QString& filePath)
     {
-        QFile file(filePath);
-        if (!file.open(QIODevice::ReadOnly)) {
-            emit operationCompleted(false, "Cannot open file for reading");
+        QJsonObject scene;
+        QString error;
+        if (!EpsceneArchive::read(filePath, scene, error)) {
+            emit operationCompleted(false, error);
             return false;
         }
-
-        QByteArray data = file.readAll();
-        file.close();
-
-        return fromJsonString(QString::fromUtf8(data));
+        return fromJsonString(QString::fromUtf8(QJsonDocument(scene).toJson()));
     }
 
     QString EditorManager::toJsonString(bool pretty)

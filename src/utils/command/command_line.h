@@ -56,7 +56,7 @@ namespace egret::command
         /**
          * --edit：以场景编辑器模式打开场景文件。
          * 该模式不在此处执行：main.cpp 会继续进入图形界面，并在场景编辑器工作区
-         * 载入指定场景（Windows 双击 .epscene 即走这条路径）。
+         * 载入指定场景（Windows 双击 .epscene / .epscenex 即走这条路径）。
          *
          * 注：文件关联的注册 / 注销由独立子项目 `subprojects/epscene_register`
          * （epscene_register.exe）负责，主程序不再提供相关命令行选项。
