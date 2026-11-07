@@ -23,6 +23,7 @@
         <file>components/ControlCodeDialog.qml</file>
         <file>components/SceneCloseDialog.qml</file>
         <file>components/editor/CodeEditor.qml</file>
+        <file>components/editor/CIndent.js</file>
         <file>components/presets/EgretPresetMenu.qml</file>
         <file>components/SceneScaleControls.qml</file>
         <file>components/message_box/EgretMessageDialog.qml</file>

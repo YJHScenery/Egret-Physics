@@ -24,6 +24,7 @@ import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import "qrc:/components/components/theme"
 import EditorManager 1.0
+import "CIndent.js" as CIndent
 
 Rectangle {
     id: root
@@ -300,6 +301,20 @@ Rectangle {
                     if (root.readOnly) {
                         return
                     }
+                    if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+                            && event.modifiers === Qt.NoModifier) {
+                        root.insertNewline()
+                        event.accepted = true
+                        return
+                    }
+                    if (event.text === "}" && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))) {
+                        const edit = CIndent.closingBrace(codeArea.text, codeArea.selectionStart, codeArea.selectionEnd)
+                        if (edit) {
+                            root.applyIndentEdit(edit)
+                            event.accepted = true
+                            return
+                        }
+                    }
                     if (event.key === Qt.Key_Tab) {
                         root.insertIndent()
                         event.accepted = true
@@ -366,5 +381,17 @@ Rectangle {
         if (count > 0) {
             codeArea.remove(lineStart, lineStart + count)
         }
+    }
+    /** @brief 插入按 C 代码块层级计算的换行，不在普通语句后逐次增加缩进。 */
+    function insertNewline() {
+        if (codeArea.readOnly) return
+        applyIndentEdit(CIndent.newline(codeArea.text, codeArea.selectionStart, codeArea.selectionEnd))
+    }
+
+    /** @brief 应用局部替换并将光标放到新行的正确缩进位置。 */
+    function applyIndentEdit(edit) {
+        if (edit.end > edit.start) codeArea.remove(edit.start, edit.end)
+        codeArea.insert(edit.start, edit.text)
+        codeArea.cursorPosition = edit.cursor
     }
 }
