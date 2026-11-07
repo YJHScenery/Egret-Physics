@@ -60,6 +60,8 @@ int runVideoExport(QApplication& app, const QStringList& arguments);
 
 int main(int argc, char* argv[])
 {
+    // 为受限 C 的运行错误保留源码行号，仅影响本应用及其子进程。
+    qputenv("WASMTIME_BACKTRACE_DETAILS", "1");
     if (argc > 1 && QByteArray(argv[1]) == "--export-video") {
         qputenv("QT_MEDIA_BACKEND", "ffmpeg");
     }

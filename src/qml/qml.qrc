@@ -20,6 +20,7 @@
         <file>components/TransformGizmo.qml</file>
         <file>components/SceneEntityListPanel.qml</file>
         <file>components/SceneControlPanel.qml</file>
+        <file>components/ControlCodeDialog.qml</file>
         <file>components/SceneScaleControls.qml</file>
         <file>components/message_box/EgretMessageDialog.qml</file>
         <file>components/message_box/EgretMessageBox.js</file>

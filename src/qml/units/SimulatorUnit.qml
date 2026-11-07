@@ -944,14 +944,14 @@ ColumnLayout {
                         }
                         Text {
                             anchors.centerIn: parent
-                            text: sceneController.running ? "暂停仿真" : "开始仿真"
+                            text: sceneController.controlPreparing ? "正在准备控制程序…" : (sceneController.running ? "暂停仿真" : "开始仿真")
 
                             color: "#EAF5FF"
                             font.pixelSize: 14
                             font.bold: true
                         }
                     }
-
+                    Label {Layout.fillWidth: true;visible: sceneController.simulationError.length > 0;text: sceneController.simulationError;color: "#ff9a85";wrapMode: Text.Wrap}
                     Item {
                         Layout.fillHeight: true
                     }

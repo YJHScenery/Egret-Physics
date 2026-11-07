@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cmath>
 #include <unordered_map>
+#include <set>
 
 #include <QVector3D>
 
@@ -41,6 +42,8 @@ namespace egret
 {
     namespace
     {
+        /** @brief 将原生实体转换为不暴露指针的控制快照。 */
+        control::BodyState controlState(const PhysicalEntity& entity,bool active){const auto p=entity.getPosition(),v=entity.getVelocity(),w=entity.getAngularVelocity();const auto q=entity.getTransformCR().getRotation();control::BodyState state{entity.getId(),{p.x(),p.y(),p.z()},{v.x(),v.y(),v.z()},{w.x(),w.y(),w.z()},active,entity.isAsleep(),entity.getMass()};state.rotation={q.x(),q.y(),q.z(),q.w()};state.material={entity.getStaticFriction(),entity.getDynamicFriction(),entity.getRestitution()};state.rotatable=entity.hasRotation();return state;}
         [[nodiscard]] double readShapeParamAsDouble(const ShapeLoadInfo& info, const std::string& key,
                                                     const double fallback)
         {
@@ -79,13 +82,14 @@ namespace egret
     void WorldSceneManager::setControlProgram(std::unique_ptr<control::Program> program)
     {
         resetControlProgram();
-        if (program && !m_controlForces) {
+        if (program && program->usesForces() && !m_controlForces) {
             std::uint64_t id;
-            do {id=UniqueIDGenerator::instance().generate();} while(findBody(id)||findField(id)||findConstraint(id));
+            do {id=UniqueIDGenerator::instance().generate()&0x7fffffffffffffffULL;} while(!id||findBody(id)||findField(id)||findConstraint(id));
             m_controlForces=std::make_shared<control::ControlForceField>(id);
             m_fields.push_back(std::make_unique<FieldRecord>(FieldRecord{"场景控制力",m_controlForces}));
         }
         m_controlProgram=std::move(program);
+        m_controlBodies.reserve(4096);m_controlContacts.reserve(8192);m_controlAlive.reserve(5120);m_controlEvents.reserve(1024);
         if (m_controlProgram) m_controlProgram->reset();
     }
 
@@ -95,8 +99,8 @@ namespace egret
         if (m_controlProgram) m_controlProgram->reset();
         if (m_controlForces) {
             m_controlForces->clear();
-            for (auto& body:m_bodies) if (body && body->entity)
-                body->entity->removeForceById(m_controlForces->getId());
+            for (auto& body:m_bodies) if (body && body->entity){
+                body->entity->removeForceById(m_controlForces->getId());body->entity->removeTorqueById(m_controlForces->getId());}
         }
         m_controlCommands.clear(); m_controlContacts.clear();
     }
@@ -111,7 +115,7 @@ namespace egret
     /** @brief 收集真实接触求解事件，不改变求解器当前缓存。 */
     void WorldSceneManager::recordControlContacts(std::span<const SolverContactConstraint> contacts)
     {
-        if (!m_controlProgram) return;
+        if (!m_controlProgram||!m_controlProgram->wantsContacts(m_simulationTime)) return;
         // 求解器传入的索引属于当前缓存；采集时不重建缓存，避免使其 span 失效。
         for (const auto& contact:contacts) {
             if (contact.bodyAIndex>=m_solverBodies.size() || contact.bodyBIndex>=m_solverBodies.size()) continue;
@@ -120,20 +124,20 @@ namespace egret
             if (!a || !b) continue;
             auto first=a->getId(), second=b->getId(); if (first>second) std::swap(first,second);
             m_controlContacts.push_back({first,second});
+            if(m_controlContacts.size()>8192)throw std::runtime_error("累计接触超过控制预算，请提高控制频率");
         }
     }
 
     /** @brief 在同一快照上判断全部规则，并在完整校验后提交动作。 */
     void WorldSceneManager::runControlProgram(double dt)
     {
-        if (!m_controlProgram) return;
+        if (!m_controlProgram || !m_controlProgram->due(m_simulationTime)) return;
         m_controlBodies.clear(); m_controlBodies.reserve(m_bodies.size());
         for (const auto& body:m_bodies) {
             if (!body || !body->entity) continue;
             const auto& entity=*body->entity;
-            const auto p=entity.getPosition(), v=entity.getVelocity(), w=entity.getAngularVelocity();
-            m_controlBodies.push_back({entity.getId(),{p.x(),p.y(),p.z()},{v.x(),v.y(),v.z()},
-                {w.x(),w.y(),w.z()},isBodyActive(entity.getId()),entity.isAsleep()});
+            if(!m_controlProgram->observes(entity.getId()))continue;
+            m_controlBodies.push_back(controlState(entity,isBodyActive(entity.getId())));
         }
         std::sort(m_controlBodies.begin(),m_controlBodies.end(),
             /** @brief 按稳定标识组织输入，供后端二分查找。 */
@@ -145,17 +149,46 @@ namespace egret
             /** @brief 合并同一接触对的多个流形点与子步记录。 */
             [](const auto& a,const auto& b){return a.first==b.first && a.second==b.second;}),m_controlContacts.end());
         m_controlCommands.clear();
-        m_controlProgram->evaluate({m_simulationTime,dt,m_controlBodies,m_controlContacts},m_controlCommands);
+        m_controlProgram->evaluate({m_simulationTime,dt,m_controlBodies,m_controlContacts,m_stepCount,m_controlTemplateStates},m_controlCommands);
+        std::map<std::uint64_t,std::unique_ptr<BodyRecord>> prepared;
+        auto& alive=m_controlAlive;alive.clear();bool destroyed=false;
+        for(const auto& body:m_bodies)if(body&&body->entity)alive.push_back(body->entity->getId());
         // 校验完整批次后才执行，后端的无效输出不得留下半批物理修改。
         for (const auto& command:m_controlCommands.commands()) {
-            if (!findBody(command.target)) throw std::runtime_error("场景控制动作引用不存在的实体");
-            if (command.kind!=control::CommandKind::SetPosition && command.kind!=control::CommandKind::SetVelocity &&
-                command.kind!=control::CommandKind::SetActive && command.kind!=control::CommandKind::SetForce)
+            if(command.kind==control::CommandKind::Spawn){
+                if(std::find(alive.begin(),alive.end(),command.target)!=alive.end()||prepared.contains(command.target)||m_controlTemplates.contains(command.target)||findField(command.target)||findConstraint(command.target)||!(command.target>>63)||!m_controlTemplates.contains(command.source))throw std::runtime_error("非法创建身份或不存在的模板：target="+std::to_string(command.target)+"，source="+std::to_string(command.source)+"，模板数="+std::to_string(m_controlTemplates.size()));
+                if(alive.size()>=4096)throw std::runtime_error("场景活动实体超过 4096 个");
+                auto record=std::make_unique<BodyRecord>(m_controlTemplates.at(command.source));
+                if(findField(command.source))throw std::runtime_error("共享实体力源暂不支持作为克隆模板");
+                record->entity=unique_ptr_cast<PhysicalEntity,PhysicsAbstract>(record->entity->clone(command.target));
+                record->loadTime=0;record->controlEnabled=true;record->name+="（控制创建）";
+                prepared.emplace(command.target,std::move(record));alive.push_back(command.target);
+            }else if(std::find(alive.begin(),alive.end(),command.target)==alive.end())throw std::runtime_error("场景控制动作引用不存在或已销毁的实体");
+            if(command.kind==control::CommandKind::Destroy){
+                for(const auto& constraint:m_constraints)for(const auto* entity:constraint->constraint->getConstrainedEntities())if(entity&&entity->getId()==command.target)throw std::runtime_error("实体存在关联约束，不能永久销毁");
+                if(findField(command.target))throw std::runtime_error("实体同时充当力源，不能单独销毁");
+                std::erase(alive,command.target);destroyed=true;
+            }
+            if (command.kind==control::CommandKind::Reserved || static_cast<unsigned>(command.kind)>11)
                 throw std::runtime_error("场景控制动作类型不受支持");
             for (double value:command.value) if (!std::isfinite(value))
                 throw std::runtime_error("场景控制动作包含非有限值");
+            if(command.kind==control::CommandKind::SetMass&&(command.value[0]<0||command.value[0]>1e15))throw std::runtime_error("质量须在零至 10¹⁵ 千克之间");
+            if((command.kind==control::CommandKind::SetForce||command.kind==control::CommandKind::SetTorque)&&!m_controlForces)throw std::runtime_error("本程序未安装控制力通道");
+            if(!std::isfinite(command.scalar))throw std::runtime_error("控制动作第四分量不是有限数");
+            if(command.kind==control::CommandKind::SetRotation){Eigen::Quaterniond q(command.scalar,command.value[0],command.value[1],command.value[2]);if(!std::isfinite(q.norm())||q.norm()<1e-12)throw std::runtime_error("姿态四元数必须非零且可归一化");}
+            if(command.kind==control::CommandKind::SetMaterial&&(command.value[0]<0||command.value[1]<0||command.value[2]<0||command.value[2]>1))throw std::runtime_error("摩擦系数须非负，恢复系数须在零至一之间");
+            if(command.kind==control::CommandKind::SetTorque||command.kind==control::CommandKind::SetAngularVelocity){auto* record=prepared.contains(command.target)?prepared.at(command.target).get():findBody(command.target);if(!record||!record->entity->hasRotation())throw std::runtime_error("目标物体没有转动自由度");}
         }
+        // 克隆与容器容量在提交前准备；内部缓存异常仍终止任务，不承诺异常回滚。
+        m_bodies.reserve(m_bodies.size()+prepared.size());
+        if(m_controlEvents.size()+m_controlCommands.commands().size()>262144)throw std::runtime_error("控制诊断记录超出预算，请缩短采样间隔");
+        m_controlEvents.reserve(m_controlEvents.size()+m_controlCommands.commands().size());
+        for(const auto& command:m_controlCommands.commands())if(command.kind==control::CommandKind::Spawn)m_controlOrigins.emplace(command.target,command.source);
         for (const auto& command:m_controlCommands.commands()) {
+            m_controlEvents.push_back({command,m_simulationTime,m_stepCount});
+            if(command.kind==control::CommandKind::Spawn){auto record=std::move(prepared.at(command.target));record->entity->setPosition({command.value[0],command.value[1],command.value[2]});record->entity->wakeUp();m_bodies.push_back(std::move(record));continue;}
+            if(command.kind==control::CommandKind::Destroy){if(m_controlForces)m_controlForces->erase(command.target);removeBody(command.target);m_controlOrigins.erase(command.target);continue;}
             auto* record=findBody(command.target); auto& entity=*record->entity;
             const Eigen::Vector3d value(command.value[0],command.value[1],command.value[2]);
             switch(command.kind) {
@@ -163,10 +196,29 @@ namespace egret
             case control::CommandKind::SetVelocity:entity.setSpeed(value);entity.wakeUp();break;
             case control::CommandKind::SetActive:record->controlEnabled=command.enabled;entity.setActive(isBodyActive(command.target));if(command.enabled)entity.wakeUp();break;
             case control::CommandKind::SetForce:m_controlForces->set(command.target,value);entity.wakeUp();break;
+            case control::CommandKind::SetAngularVelocity:entity.setAngular(value);entity.wakeUp();break;
+            case control::CommandKind::SetMass:entity.setMass(value.x());entity.wakeUp();break;
+            case control::CommandKind::SetRotation:entity.setRotation(Eigen::Quaterniond(command.scalar,value.x(),value.y(),value.z()).normalized());entity.wakeUp();break;
+            case control::CommandKind::SetTorque:m_controlForces->setTorque(command.target,value);entity.wakeUp();break;
+            case control::CommandKind::SetMaterial:entity.setStaticFriction(value.x());entity.setDynamicFriction(value.y());entity.setRestitution(value.z());entity.wakeUp();break;
+            default:break;
             }
         }
         m_controlContacts.clear();
+        if(!prepared.empty()||destroyed)rebuildSolverCaches();
     }
+
+    /** @brief 整数时钟是求解期权威值，拒绝真实倒退而允许浮点舍入对齐。 */
+    void WorldSceneManager::synchronizeSolverTime(std::uint64_t nanoseconds){if(m_exactClockNs&&nanoseconds<*m_exactClockNs)throw std::runtime_error("求解时钟不得倒退");m_exactClockNs=nanoseconds;m_simulationTime=static_cast<double>(nanoseconds)/1e9;}
+    /** @brief 按模板身份恢复实体，支持跳转至任意回放帧。 */
+    bool WorldSceneManager::restoreControlBody(std::uint64_t id,std::uint64_t source){
+        if(findBody(id))return true;const auto it=m_controlTemplates.find(source);if(it==m_controlTemplates.end())return false;
+        auto record=std::make_unique<BodyRecord>(it->second);record->entity=unique_ptr_cast<PhysicalEntity,PhysicsAbstract>(record->entity->clone(id));record->loadTime=0;m_bodies.push_back(std::move(record));if(id!=source)m_controlOrigins[id]=source;rebuildSolverCaches();return true;
+    }
+    /** @brief 查询动态身份模板，原始对象返回零。 */
+    std::uint64_t WorldSceneManager::controlBodyTemplate(std::uint64_t id)const{auto it=m_controlOrigins.find(id);return it==m_controlOrigins.end()?0:it->second;}
+    /** @brief 回放以完整身份集合为准，删除缺席实体。 */
+    void WorldSceneManager::synchronizePlaybackBodies(std::span<const std::uint64_t> identities){std::erase_if(m_bodies,[&](const auto& body){return std::find(identities.begin(),identities.end(),body->entity->getId())==identities.end();});rebuildSolverCaches();}
 
     std::uint64_t WorldSceneManager::spawnBody(const std::string& name,
                                                const Eigen::Vector3d& position,
@@ -367,6 +419,8 @@ namespace egret
     {
         for (const auto& body : record.bodies) {
             m_bodies.push_back(std::make_unique<BodyRecord>(body));
+            auto initial=body;initial.entity=unique_ptr_cast<PhysicalEntity,PhysicsAbstract>(body.entity->clone(body.entity->getId()));m_controlTemplates.emplace(body.entity->getId(),std::move(initial));
+            m_controlTemplateStates.push_back(controlState(*body.entity,body.controlEnabled));
         }
         for (const auto& field : record.fields) {
             m_fields.push_back(std::make_unique<FieldRecord>(field));
@@ -431,6 +485,8 @@ namespace egret
         m_controlProgram.reset(); m_controlForces.reset();
         m_controlBodies.clear(); m_controlContacts.clear(); m_controlCommands.clear();
         m_bodies.clear();
+        m_controlTemplates.clear();m_controlOrigins.clear();m_controlEvents.clear();
+        m_controlTemplateStates.clear();
         m_fields.clear();
         m_constraints.clear();
         m_solverBodies.clear();
@@ -441,6 +497,7 @@ namespace egret
         m_solverConstraintOwners.clear();
         m_simulationTime = 0.0;
         m_stepCount = 0;
+        m_exactClockNs.reset();
         m_nextId = 1;
 
         // 场景清空后休眠策略的内部状态表同步重置，防止陈旧 ID 与新实体冲突

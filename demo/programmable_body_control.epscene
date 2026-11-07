@@ -1,0 +1,85 @@
+{
+    "modelCount": 1,
+    "models": [
+        {
+            "box_size": [
+                0.5,
+                0.5,
+                0.5
+            ],
+            "category": 0,
+            "dynamic_friction": 0.5,
+            "id": "1",
+            "initial_angular_velocity": [
+                0,
+                0,
+                0
+            ],
+            "initial_velocity": [
+                0,
+                0,
+                0
+            ],
+            "load_time": 0,
+            "mass": 1,
+            "materials": {
+                "alphaMode": "",
+                "baseColor": "#ffac1919",
+                "metalness": 0.19999999999999998,
+                "roughness": 0.3833333333333333
+            },
+            "name": "可编程方块",
+            "pos": [
+                0,
+                0,
+                0
+            ],
+            "restitution": 1,
+            "rotation": [
+                1,
+                0,
+                0,
+                0
+            ],
+            "rotation_enabled": true,
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "source": "#Cube",
+            "static_friction": 0.5,
+            "type": 1,
+            "visible": true
+        }
+    ],
+    "scene_settings": {
+        "programs": [
+            {
+                "bindings": {
+                    "body": "1"
+                },
+                "enabled": true,
+                "name": "定时拉力",
+                "parameters": {
+                    "force": 2
+                },
+                "period": 0.01,
+                "source": "/** @brief 一秒开始施力，三秒停止。 */\nvoid on_step(void)\n{\n    Entity body = scene_entity(\"body\");\n    if (simulation_time() >= 1 && !state_bool(\"started\")) {\n        entity_set_force(body, vector3(parameter_number(\"force\"), 0, 0));\n        state_set_bool(\"started\", true);\n    }\n    if (simulation_time() >= 3 && !state_bool(\"ended\")) {\n        entity_set_force(body, vector3(0, 0, 0));\n        state_set_bool(\"ended\", true);\n    }\n}",
+                "version": 1
+            },
+            {
+                "bindings": {
+                    "body": "1"
+                },
+                "enabled": true,
+                "name": "动态替身",
+                "period": 0.01,
+                "source": "/** @brief 创建替身并在后续时刻销毁原物体。 */\nvoid on_step(void)\n{\n    if (simulation_time() >= 3.2 && !state_bool(\"created\")) {\n        Entity replacement = scene_spawn(scene_template(\"body\"), vector3(0, 1, 0));\n        entity_set_velocity(replacement, vector3(1, 0, 0));\n        state_set_entity(\"replacement\", replacement);\n        state_set_bool(\"created\", true);\n    }\n    if (simulation_time() >= 4 && !state_bool(\"removed\")) {\n        entity_destroy(scene_entity(\"body\"));\n        state_set_bool(\"removed\", true);\n    }\n}",
+                "version": 1
+            }
+        ]
+    },
+    "timestamp": "2026-11-07T15:50:06",
+    "version": "1.0"
+}

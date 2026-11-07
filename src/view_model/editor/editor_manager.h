@@ -56,11 +56,19 @@ namespace egret
         Q_PROPERTY(int count READ count NOTIFY countChanged)
         Q_PROPERTY(QStringList modelIds READ modelIds NOTIFY modelListChanged)
         Q_PROPERTY(QVariantMap sceneSettings READ sceneSettings NOTIFY sceneSettingsChanged)
+        Q_PROPERTY(QString controlDiagnostics READ controlDiagnostics NOTIFY controlDiagnosticsChanged)
+        Q_PROPERTY(bool controlValidationRunning READ controlValidationRunning NOTIFY controlDiagnosticsChanged)
 
     public:
         explicit EditorManager(QObject *parent = nullptr);
         /** @brief 返回当前标签的显示设置与控制规则。 */
-        QVariantMap sceneSettings() const {return m_sceneSettings.toVariantMap();}
+        QVariantMap sceneSettings() const;
+        /** @brief 返回最近一次后台源码检查诊断。 */
+        QString controlDiagnostics() const{return m_controlDiagnostics;}
+        /** @brief 源码检查是否正在后台运行。 */
+        bool controlValidationRunning() const{return m_controlValidationRunning;}
+        /** @brief 捕获表单版本并在后台执行完整编译检查，不修改当前求解任务。 */
+        Q_INVOKABLE void validateControlPrograms(const QVariantList& programs);
         /** @brief 校验并保存场景设置，作为一次可撤销操作。 */
         Q_INVOKABLE bool setSceneSettings(const QVariantMap& settings);
 
@@ -163,6 +171,8 @@ namespace egret
         Q_INVOKABLE bool redo();
 
     signals:
+        /** @brief 后台检查状态或诊断内容更新。 */
+        void controlDiagnosticsChanged();
         /** @brief 当前场景设置或标签已切换。 */
         void sceneSettingsChanged();
         /** @brief 场景文件加载或标签恢复完成，可据此自动取景。 */
@@ -217,6 +227,8 @@ namespace egret
         QList<QSharedPointer<ModelItemData>> m_modelList;
 
         QJsonObject m_sceneSettings;
+        QString m_controlDiagnostics;
+        bool m_controlValidationRunning{};
         QList<HistoryState> m_undoStack;
 
         QList<HistoryState> m_redoStack;

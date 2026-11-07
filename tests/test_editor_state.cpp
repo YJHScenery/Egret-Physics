@@ -29,11 +29,11 @@ static void testSceneSettings()
     EditorManager editor;
     const auto config=QJsonDocument::fromJson(R"({"display":{"reference_length":0.01,"markers":false},"rules":[{"name":"测试规则","enabled":true,"trigger":"Once","match":"Any","conditions":[{"kind":"Time","comparison":"Less","lower":1},{"kind":"Position","first":"1","component":"X","comparison":"Greater","lower":0,"negate":true}],"actions":[{"kind":"SetVelocity","target":"1","value":[2,0,0]}]}]})").object();
     require(editor.setSceneSettings(config.toVariantMap()),"无法保存场景设置");
-    require(editor.undo() && editor.sceneSettings().isEmpty(),"场景设置无法撤销");
+    require(editor.undo() && !editor.sceneSettings().contains("display") && editor.sceneSettings().value("programs").toList().size()==1,"场景设置撤销未恢复默认源码");
     require(editor.redo() && editor.sceneSettings().value("display").toMap().value("reference_length").toDouble()==0.01,"场景设置无法重做");
     const auto json=editor.toJsonString(false);
     EditorManager loaded;require(loaded.fromJsonString(json) && loaded.sceneSettings()==editor.sceneSettings(),"场景设置往返丢失");
-    editor.newDocument();require(editor.sceneSettings().isEmpty(),"新标签继承了其它标签规则");
+    editor.newDocument();require(!editor.sceneSettings().contains("display") && editor.sceneSettings().value("programs").toList().size()==1,"新标签未建立独立默认源码");
     require(editor.switchDocument(0) && editor.sceneSettings()==loaded.sceneSettings(),"切换标签丢失设置");
     auto invalid=config;invalid["display"]=QJsonObject{{"reference_length",0}};
     require(!editor.setSceneSettings(invalid.toVariantMap()) && editor.sceneSettings()==loaded.sceneSettings(),"非法显示尺度改变了场景");

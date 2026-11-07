@@ -32,6 +32,7 @@
 #include "control/scene_control.h"
 #include "control/control_force_field.h"
 #include <functional>
+#include <map>
 // #include "surface_base.h"
 #include "scene_convex_mesh_render_item.h"
 #include "scene_curve_render_item.h"
@@ -254,6 +255,18 @@ namespace egret
         bool setBodyControlEnabled(std::uint64_t id,bool enabled);
         /** @brief 在安全步边界采样、求值并原子校验动作批次后执行。 */
         void runControlProgram(double dt);
+        /** @brief 用单调整数纳秒对齐求解步时钟；浮点舍入修正不等同于用户回退重置。 */
+        void synchronizeSolverTime(std::uint64_t nanoseconds);
+        /** @brief 回放按稳定身份恢复模板实例，不执行控制源码。 */
+        bool restoreControlBody(std::uint64_t id,std::uint64_t source);
+        /** @brief 查询动态实体模板，原始实体返回零。 */
+        std::uint64_t controlBodyTemplate(std::uint64_t id) const;
+        /** @brief 删除回放缺席实体，保留独立模板以支持倒放。 */
+        void synchronizePlaybackBodies(std::span<const std::uint64_t> identities);
+        /** @brief 读取自上次采样以来已提交的动作，不分配。 */
+        std::span<const control::AppliedCommand> controlEvents()const{return m_controlEvents;}
+        /** @brief 消费动作记录并保留预分配容量。 */
+        void clearControlEvents(){m_controlEvents.clear();}
         /** @brief 采集上一计算步实际进入求解的接触对。 */
         void recordControlContacts(std::span<const SolverContactConstraint> contacts) override;
 
@@ -780,7 +793,12 @@ namespace egret
         std::shared_ptr<control::ControlForceField> m_controlForces;
         control::CommandBuffer m_controlCommands;
         std::vector<control::BodyState> m_controlBodies;
+        std::vector<control::BodyState> m_controlTemplateStates;
+        std::vector<std::uint64_t> m_controlAlive;
         std::vector<control::ContactPair> m_controlContacts;
+        std::map<std::uint64_t,BodyRecord> m_controlTemplates;
+        std::map<std::uint64_t,std::uint64_t> m_controlOrigins;
+        std::vector<control::AppliedCommand> m_controlEvents;
 
         /** 世界实体记录。 */
         std::vector<std::unique_ptr<BodyRecord>> m_bodies;
@@ -814,6 +832,7 @@ namespace egret
 
         /** 已完成的步数。 */
         std::size_t m_stepCount{0};
+        std::optional<std::uint64_t> m_exactClockNs;
 
         /** 递增 ID 生成器。 */
         std::uint64_t m_nextId{1};

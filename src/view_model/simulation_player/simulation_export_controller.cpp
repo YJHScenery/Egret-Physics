@@ -235,6 +235,7 @@ namespace egret
         setRunning(false);
 
         if (!success) {
+            if(report.canceled){m_statusMessage=QStringLiteral("已取消：控制程序尚未准备完成，未生成新的结果");emit statusMessageChanged();setError({});emit finished(false);return;}
             m_statusMessage = QStringLiteral("离线求解失败");
             emit statusMessageChanged();
             setError(errorMessage.isEmpty() ? QStringLiteral("离线求解失败") : errorMessage);

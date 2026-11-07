@@ -6,6 +6,10 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+# 可编程控制核心独立于 Qt，可单独配置和构建。
+option(BUILD_TESTS "Build unit tests" ON)
+add_subdirectory(src/control_core)
+
 set(CMAKE_PREFIX_PATH "D:/Qt/6.9.3/msvc2022_64")
 
 option(BUILD_DOCS "Build documentation with Doxygen" ON)
@@ -505,6 +509,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         "$<TARGET_FILE:FFTW::FFTW>" "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
+        Egret_Control_Core
         Qt6::GuiPrivate
         FFmpeg::avcodec FFmpeg::avformat FFmpeg::avutil FFmpeg::swscale
         FFTW::FFTW
@@ -513,6 +518,25 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         Assimp::Assimp
         egret_muparser
 )
+
+add_custom_target(Egret_Control_Runtime_Deploy
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/dependency/control/wasmtime-v38.0.3-x86_64-windows-c-api/lib/wasmtime.dll" "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROJECT_NAME}>/control/bin" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/control/licenses"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/dependency/control/llvm/bin/clang.exe" "${CMAKE_SOURCE_DIR}/dependency/control/llvm/bin/wasm-ld.exe" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/control/bin"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/dependency/control/llvm/LICENSE.TXT" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/control/licenses/LLVM-LICENSE.txt"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/dependency/control/wasmtime-v38.0.3-x86_64-windows-c-api/LICENSE" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/control/licenses/Wasmtime-LICENSE.txt"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/dependency/control/json-LICENSE.MIT" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/control/licenses/JSON-LICENSE.txt"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/src/control_core/sdk" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/control/sdk"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/src/control_core/control_abi.h" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/control/control_abi.h")
+add_dependencies(${PROJECT_NAME} Egret_Control_Runtime_Deploy)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
         ${CMAKE_BINARY_DIR}/generated
@@ -669,9 +693,12 @@ add_executable(Egret_Editor_Tests
         src/utils/unique_id_generator.cpp
         src/utils/os/windows/windows_config.cpp
         src/utils/io/async_logger.cpp)
-target_link_libraries(Egret_Editor_Tests PRIVATE ${QT_MODULES_LIST_WITH_PREFIX})
+target_link_libraries(Egret_Editor_Tests PRIVATE ${QT_MODULES_LIST_WITH_PREFIX} Egret_Control_Core)
 target_include_directories(Egret_Editor_Tests PRIVATE ${CMAKE_BINARY_DIR}/generated)
 add_test(NAME EgretEditorTests COMMAND Egret_Editor_Tests)
+add_test(NAME EgretProgrammableSceneTests COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File
+        ${CMAKE_SOURCE_DIR}/tests/test_programmable_scene.ps1
+        -Executable $<TARGET_FILE:Egret_Physics> -WorkDir ${CMAKE_BINARY_DIR})
 add_test(NAME EgretLoadTimeTests COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File
         ${CMAKE_SOURCE_DIR}/tests/test_load_time.ps1
         -Executable $<TARGET_FILE:Egret_Physics> -WorkDir ${CMAKE_BINARY_DIR})

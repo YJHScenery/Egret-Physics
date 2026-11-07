@@ -1,6 +1,8 @@
 /** @file scene_settings.h @brief 场景显示与可视化条件规则的共享校验、编译入口。 */
 #pragma once
 #include "control/predicate_program.h"
+#include "control_core/control_program.h"
+#include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QString>
@@ -14,6 +16,7 @@ namespace egret
         double referenceLength{1};
         bool markers{true};
         std::vector<control::Rule> rules;
+        std::vector<control::ControlProgramSpec> programs;
     };
     /** @brief 读取有限数值，明确拒绝字符串及非有限参数。 */
     inline double settingNumber(const QJsonObject& object,const char* key,double fallback=0)
@@ -46,6 +49,8 @@ namespace egret
     {
         using namespace control;
         ParsedSceneSettings result;
+        if(settings.contains("programs")&&!settings["programs"].isArray())throw std::invalid_argument("C 控制程序必须为数组");
+        result.programs=control::parseProgramSpecs(QJsonDocument(settings["programs"].toArray()).toJson(QJsonDocument::Compact).toStdString());
         if(settings.contains("display") && !settings["display"].isObject()) throw std::invalid_argument("显示设置必须为对象");
         const auto display=settings["display"].toObject();
         result.referenceLength=settingNumber(display,"reference_length",1);
@@ -109,5 +114,11 @@ namespace egret
         }
         if(totalCommands>1024) throw std::invalid_argument("启用规则的动作总数不能超过 1024");
         return result;
+    }
+    /** @brief 为新建及旧版场景补默认源码，保留其他设置。 */
+    inline QJsonObject normalizeSceneSettings(QJsonObject settings){
+        if(!settings.contains("programs")||settings["programs"].toArray().isEmpty()){
+            control::ControlProgramSpec spec;settings["programs"]=QJsonArray{QJsonObject{{"version",1},{"name",QString::fromStdString(spec.name)},{"source",QString::fromStdString(spec.source)},{"enabled",true},{"bindings",QJsonObject{}},{"period",0.0},{"start",0.0},{"fuel",1000000}}};
+        }return settings;
     }
 }

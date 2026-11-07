@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <chrono>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -45,6 +46,7 @@
 #include "sleep_config.h"
 #include "solver.h"
 #include "world_scene_manager.h"
+#include "serialize/scene_settings.h"
 
 namespace egret
 {
@@ -80,6 +82,7 @@ namespace egret
             epsx::FrameState frame{};
             frame.frameIndex = frameIndex;
             frame.stepIndex = stepIndex;
+            frame.hasMaterials=true;
             frame.simTimeNs = simTimeNs;
 
             const std::vector<PhysicalEntity*> entities = world.getAllPhysicalEntities();
@@ -100,6 +103,7 @@ namespace egret
                 body.angularVelocity = entity->getAngularCR();
                 body.mass = entity->getMass();
                 body.restitution = entity->getRestitution();
+                body.staticFriction=entity->getStaticFriction();body.dynamicFriction=entity->getDynamicFriction();
 
                 std::uint32_t flags{0};
                 if (entity->isAsleep()) {
@@ -170,6 +174,9 @@ namespace egret
                 frame.fields.push_back(state);
             }
 
+            for(const auto& body:frame.bodies)if(auto source=world.controlBodyTemplate(body.id))frame.dynamicBodies.push_back({body.id,source});
+            for(const auto& event:world.controlEvents())frame.controlEvents.push_back({epsx::secondsToNanoseconds(event.time),event.step,event.command.target,event.command.source,static_cast<std::uint32_t>(event.command.kind),event.command.enabled?1u:0u,event.command.value,event.command.scalar});
+            world.clearControlEvents();
             return frame;
         }
 
@@ -194,9 +201,13 @@ namespace egret
                                           const std::uint64_t decimation)
         {
             QJsonObject root = QJsonDocument::fromJson(sceneJson.toUtf8()).object();
+            root["scene_settings"]=normalizeSceneSettings(root["scene_settings"].toObject());
 
             root[QStringLiteral("format")] = QStringLiteral("EPSX");
-            root[QStringLiteral("formatVersion")] = QStringLiteral("1.0");
+            root[QStringLiteral("formatVersion")] = QStringLiteral("1.1");
+            root["controlAbiVersion"]=1;
+            root["controlSdkVersion"]=QStringLiteral("egret-control-1");
+            root["dynamicLifecycle"]=QStringLiteral("DYNA 每帧完整存活身份与模板；CTRL 自上次采样后已提交动作，仿真纳秒时间");
             root[QStringLiteral("generator")] = QString::fromStdString(info.generator);
 
             QJsonObject sampling{};
@@ -279,6 +290,8 @@ namespace egret
 
     bool OfflineSimulationRunner::run(const Request& request, Report* report, QString* errorMessage)
     {
+        QElapsedTimer taskTimer;taskTimer.start();
+        double preparationSeconds=0,physicsSeconds=0;std::uint32_t cacheHits=0;QJsonArray preparationReports;
         if (request.sceneJson.trimmed().isEmpty()) {
             setError(errorMessage, QStringLiteral("场景 JSON 为空"));
             return false;
@@ -309,7 +322,7 @@ namespace egret
         }
 
         // ---- 1. 重建场景 ----
-        SceneRecord record = SceneManagerViewModel::createSceneFromJsonString(request.sceneJson);
+        SceneRecord record = SceneManagerViewModel::createSceneFromJsonString(request.sceneJson,true,request.shouldCancel,[&](const control::PreparationReport& value){if(value.cacheHit)++cacheHits;preparationReports.append(QJsonObject{{"name",QString::fromStdString(value.name)},{"digest",QString::fromStdString(value.digest)},{"cacheHit",value.cacheHit},{"validationSeconds",value.validationSeconds},{"cCompileSeconds",value.cCompileSeconds},{"machineCompileSeconds",value.machineCompileSeconds},{"instanceSeconds",value.instanceSeconds}});});
         if (record.bodies.empty()) {
             setError(errorMessage, QStringLiteral("场景中没有可用实体，或场景 JSON 无法解析"));
             return false;
@@ -323,15 +336,17 @@ namespace egret
         solver->setSleepStrategy(std::make_unique<KineticSleepStrategy>(SleepConfig{}));
 
         auto world = std::make_unique<WorldSceneManager>(std::move(solver));
-        world->registerScene(record);
         try {
+            world->registerScene(record);
             if (request.controlProgramFactory) world->setControlProgram(request.controlProgramFactory());
         } catch (const std::exception& error) {
+            if(request.shouldCancel&&request.shouldCancel()){if(report)report->canceled=true;setError(errorMessage,QStringLiteral("控制准备已取消，尚未开始物理推进"));return false;}
             setError(errorMessage,QStringLiteral("控制程序初始化失败：%1").arg(QString::fromUtf8(error.what())));
             return false;
         }
 
         const std::vector<PhysicalEntity*> entities = world->getAllPhysicalEntities();
+        preparationSeconds=static_cast<double>(taskTimer.nsecsElapsed())/1e9;
         const std::vector<ConstraintsBase*> constraints = world->getAllConstraints();
         const std::vector<FieldBase*> fields = world->getAllFields();
 
@@ -342,18 +357,17 @@ namespace egret
         info.sampleIntervalNs = request.sampleIntervalNs;
         info.durationNs = frameCount * request.sampleIntervalNs;
         info.bodyCount = static_cast<std::uint32_t>(entities.size());
+        info.dynamicBodies=true;
         info.constraintCount = static_cast<std::uint32_t>(constraints.size());
         info.fieldCount = static_cast<std::uint32_t>(fields.size());
         info.sceneJson = buildSceneDescription(request.sceneJson, info, request.solverConfig, *world,
                                                frameCount, durationNs, decimation.value());
+        auto preparedScene=QJsonDocument::fromJson(QByteArray::fromStdString(info.sceneJson)).object();preparedScene["controlPreparation"]=preparationReports;info.sceneJson=QJsonDocument(preparedScene).toJson(QJsonDocument::Compact).toStdString();
 
         epsx::EpsxWriter writer(request.outputPath);
         if (!writer.open(info, errorMessage)) {
             return false;
         }
-
-        QElapsedTimer timer{};
-        timer.start();
 
         // ---- 3. 第 0 帧为初始状态 ----
         if (!writer.writeFrame(snapshotFrame(*world, 0, 0, 0), errorMessage)) {
@@ -368,7 +382,9 @@ namespace egret
         bool canceled{false};
 
         for (std::uint64_t step = 1; step <= totalSteps; ++step) {
+            const auto tickStart=std::chrono::steady_clock::now();
             try {
+                world->synchronizeSolverTime((step-1)*request.solverStepNs);
                 std::ignore = world->tick(stepSeconds);
             } catch (const std::exception& error) {
                 setError(errorMessage,QStringLiteral("仿真步 %1 的控制或求解失败：%2")
@@ -376,6 +392,7 @@ namespace egret
                 return false;
             }
             performedSteps = step;
+            physicsSeconds+=std::chrono::duration<double>(std::chrono::steady_clock::now()-tickStart).count();
 
             if (step % 100 == 0) {
                 if (request.progressCallback) {
@@ -419,7 +436,8 @@ namespace egret
             report->stepCount = performedSteps;
             report->frameCount = writer.frameCount();
             report->canceled = canceled;
-            report->wallClockSeconds = static_cast<double>(timer.elapsed()) / 1000.0;
+            report->wallClockSeconds = static_cast<double>(taskTimer.elapsed()) / 1000.0;
+            report->preparationSeconds=preparationSeconds;report->physicsSeconds=physicsSeconds;report->controlCacheHits=cacheHits;report->controlProgramCount=static_cast<std::uint32_t>(preparationReports.size());
             report->bodyCount = info.bodyCount;
             report->constraintCount = info.constraintCount;
             report->fieldCount = info.fieldCount;

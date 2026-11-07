@@ -239,7 +239,7 @@ namespace egret::epsx
             return false;
         }
 
-        if (frame.bodies.size() != m_info.bodyCount ||
+        if ((!m_info.dynamicBodies && frame.bodies.size() != m_info.bodyCount) ||
             frame.constraints.size() != m_info.constraintCount ||
             frame.fields.size() != m_info.fieldCount) {
             setError(errorMessage,
@@ -335,7 +335,7 @@ namespace egret::epsx
         writer.writeBytes(kFileMagic.data(), kFileMagic.size());
         writer.writeU16(kVersionMajor);
         writer.writeU16(kVersionMinor);
-        writer.writeU32(static_cast<std::uint32_t>(FileFlags::LittleEndian));
+        writer.writeU32(static_cast<std::uint32_t>(FileFlags::LittleEndian)|(m_info.dynamicBodies?static_cast<std::uint32_t>(FileFlags::VariableStride):0));
         writer.writeU64(m_frameCount);
 
         const std::uint64_t durationNs =
@@ -390,6 +390,19 @@ namespace egret::epsx
         }
         if (!frame.fields.empty()) {
             appendSection(payload, kSectionField, kFieldStrideFloat64, serializeFields(frame.fields));
+        }
+        if(!frame.dynamicBodies.empty()){
+            std::vector<std::byte> section;ByteWriter data(section);
+            for(const auto& body:frame.dynamicBodies){data.writeU64(body.id);data.writeU64(body.source);}
+            appendSection(payload,kSectionDynamic,16,section);
+        }
+        if(!frame.controlEvents.empty()){
+            std::vector<std::byte> section;ByteWriter data(section);
+            for(const auto& event:frame.controlEvents){data.writeU64(event.timeNs);data.writeU64(event.stepIndex);data.writeU64(event.target);data.writeU64(event.source);data.writeU32(event.kind);data.writeU32(event.enabled);for(double value:event.value)data.writeF64(value);data.writeF64(event.scalar);}
+            appendSection(payload,kSectionControl,72,section);
+        }
+        if(frame.hasMaterials&&!frame.bodies.empty()){
+            std::vector<std::byte> section;ByteWriter data(section);for(const auto& body:frame.bodies){data.writeU64(body.id);data.writeF64(body.staticFriction);data.writeF64(body.dynamicFriction);}appendSection(payload,kSectionMaterial,24,section);
         }
 
         return payload;

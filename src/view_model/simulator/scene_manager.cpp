@@ -158,7 +158,7 @@ namespace egret
         m_frameClock.start();
     }
 
-    SceneManagerViewModel::~SceneManagerViewModel() = default;
+    SceneManagerViewModel::~SceneManagerViewModel(){if(m_controlLoadCancelled)m_controlLoadCancelled->store(true);}
 
     // -----------------------------------------------------------------------
     //  内部辅助 — JSON 解析 helper
@@ -322,7 +322,7 @@ namespace egret
     //  createSceneFromJsonString — 三遍创建
     // -----------------------------------------------------------------------
 
-    SceneRecord SceneManagerViewModel::createSceneFromJsonString(const QString& jsonString)
+    SceneRecord SceneManagerViewModel::createSceneFromJsonString(const QString& jsonString,bool prepareControl,std::function<bool()> shouldCancel,std::function<void(const control::PreparationReport&)> onPrepared)
     {
         // 1. 基础 JSON 解析
         const QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
@@ -352,13 +352,21 @@ namespace egret
         try {
             if(root.contains("scene_settings") && !root["scene_settings"].isObject()) throw std::invalid_argument("场景设置必须为对象");
             const auto settings=parseSceneSettings(root["scene_settings"].toObject());
-            if(!settings.rules.empty()) record.controlProgramFactory=[rules=settings.rules]() {
-                return std::make_unique<control::PredicateProgram>(rules);
+            auto programs=settings.programs;
+            std::vector<control::EntityId> reservedIdentities;for(const auto& model:models){auto id=model.toObject()["id"].toString().toULongLong();if(id)reservedIdentities.push_back(id);}
+            for(auto& program:programs)program.reservedIdentities=reservedIdentities;
+            if(prepareControl)record.controlProgramFactory=[rules=settings.rules,programs=std::move(programs),shouldCancel,onPrepared]() -> std::unique_ptr<control::Program> {
+                std::vector<std::unique_ptr<control::Program>> backends;
+                if(!rules.empty())backends.push_back(std::make_unique<control::PredicateProgram>(rules));
+                auto options=control::defaultCompilerOptions();options.shouldCancel=shouldCancel;options.onPrepared=onPrepared;
+                unsigned index=1;for(const auto& spec:programs){if(spec.enabled)backends.push_back(control::prepareProgram(spec,options,index));++index;}
+                return std::make_unique<control::CompositeProgram>(std::move(backends));
             };
             // 编辑器可在删除物体后保留规则供修复，求解前必须拒绝失效引用。
             std::unordered_set<std::uint64_t> ids;
             for(const auto& value:models) if(value.toObject().value("category").toInt()==0)
                 ids.insert(value.toObject()["id"].toString().toULongLong());
+            for(const auto& spec:settings.programs)if(spec.enabled)for(const auto& [alias,id]:spec.bindings)if(!ids.contains(id))throw std::invalid_argument("C 控制程序绑定了已删除或无效的物体");
             for(const auto& rule:settings.rules) {
                 for(const auto& p:rule.predicates) {
                     if(p.kind!=control::PredicateKind::Always && p.kind!=control::PredicateKind::Time &&
@@ -842,6 +850,7 @@ namespace egret
 
     void SceneManagerViewModel::play()
     {
+        if(m_controlPreparing||m_controlRunFailed)return;
         if (m_running) {
             return;
         }
@@ -892,12 +901,18 @@ namespace egret
 
     void SceneManagerViewModel::stepOnce()
     {
+        if(m_controlPreparing||m_controlRunFailed)return;
         advanceFixedStep(true);
     }
 
     void SceneManagerViewModel::reset()
     {
+        if(m_controlLoadCancelled)m_controlLoadCancelled->store(true);++m_sceneLoadGeneration;m_controlPreparing=false;m_controlRunFailed=false;m_simulationError.clear();
         pause();
+        // 新控制场景重跑必须重建物理初态和模块状态，不能切换回内置演示世界。
+        if(QJsonDocument::fromJson(m_currentSceneJson.toUtf8()).object()["scene_settings"].toObject().contains("programs")){
+            m_timeScale=1;emit timeScaleChanged();loadSceneFromJsonString(m_currentSceneJson);emit sceneReset();return;
+        }
         // endBodyDrag();
         initialize();
         rebuildDemoWorld();
@@ -934,23 +949,32 @@ namespace egret
         loadSceneFromJsonString(QString::fromUtf8(data));
     }
 
-    void SceneManagerViewModel::loadSceneFromJsonString(const QString& jsonString)
+    void SceneManagerViewModel::loadSceneFromJsonString(const QString& jsonString,bool prepareControl)
     {
         if (m_world == nullptr) {
             LOG_WARN_LITERAL("loadSceneFromJsonString: WorldSceneManager 未初始化");
             return;
         }
 
-        // 1. 解析 JSON → SceneRecord（创建物理对象）
-        SceneRecord record = createSceneFromJsonString(jsonString);
+        if(m_controlLoadCancelled)m_controlLoadCancelled->store(true);
+        m_controlLoadCancelled=std::make_shared<std::atomic_bool>(false);const auto cancelled=m_controlLoadCancelled;
+        const auto generation=++m_sceneLoadGeneration;pause();
+        // 源码及物理定义捕获后，后台准备期间不推进旧世界。
+        SceneRecord record = createSceneFromJsonString(jsonString,prepareControl,[cancelled]{return cancelled->load();});
         if (record.bodies.empty() && record.fields.empty() && record.constraints.empty()) {
+            m_controlPreparing=false;m_controlRunFailed=true;m_simulationError=QStringLiteral("场景定义或控制配置无效，请检查对象绑定与场景设置");emit simulationChanged();
             LOG_WARN_LITERAL("loadSceneFromJsonString: 场景解析结果为空");
             return;
         }
 
-        // 2. 清空当前世界并注册新场景
+        auto sharedRecord=std::make_shared<SceneRecord>(std::move(record));
+        auto factory=std::move(sharedRecord->controlProgramFactory);
+        auto install=[this,sharedRecord,jsonString,generation]{
+        if(generation!=m_sceneLoadGeneration)return;
+        m_controlPreparing=false;m_controlRunFailed=false;m_simulationError.clear();
+        // 2. 在主线程安装已准备的独立程序，随后才允许物理推进。
         m_world->clear();
-        m_world->registerScene(record);
+        try {m_world->registerScene(*sharedRecord);}catch(const std::exception& error){m_controlRunFailed=true;m_simulationError=QString::fromUtf8(error.what());emit simulationChanged();pause();return;}
         m_displaySettings=QJsonDocument::fromJson(jsonString.toUtf8()).object()["scene_settings"].toObject()["display"].toObject().toVariantMap();
         emit displaySettingsChanged();
 
@@ -993,6 +1017,15 @@ namespace egret
         emit stepCountChanged();
         emit entityCountChanged();
         emit entityChanged();
+        emit simulationChanged();
+        };
+        if(!factory){install();return;}
+        m_controlPreparing=true;emit simulationChanged();
+        auto prepared=std::make_shared<std::unique_ptr<control::Program>>();
+        sharedRecord->controlProgramFactory=[prepared]{return std::move(*prepared);};
+        auto* watcher=new QFutureWatcher<QString>(this);
+        connect(watcher,&QFutureWatcher<QString>::finished,this,[this,watcher,install,generation]{auto error=watcher->result();watcher->deleteLater();if(generation!=m_sceneLoadGeneration)return;if(!error.isEmpty()){m_controlPreparing=false;m_controlRunFailed=true;m_simulationError=error;emit simulationChanged();return;}install();});
+        watcher->setFuture(QtConcurrent::run([factory=std::move(factory),prepared]{try{*prepared=factory();return QString{};}catch(const std::exception& error){return QString::fromUtf8(error.what());}}));
     }
 
     QString SceneManagerViewModel::currentSceneJson() const
@@ -1124,7 +1157,7 @@ namespace egret
         }
 
         // 用场景描述块重建场景；之后每一帧只需把记录的状态套用到实体上。
-        loadSceneFromJsonString(QString::fromStdString(reader->sceneJson()));
+        loadSceneFromJsonString(QString::fromStdString(reader->sceneJson()),false);
         if (m_world == nullptr || m_world->getBodyCount() == 0) {
             m_simulationError = QStringLiteral("仿真文件的场景描述块无法重建场景");
             emit simulationChanged();
@@ -1272,12 +1305,13 @@ namespace egret
             return false;
         }
 
-        const std::vector<PhysicalEntity*> entities = m_world->getAllPhysicalEntities();
+        std::vector<std::uint64_t> identities;for(const auto& body:state.bodies)identities.push_back(body.id);
+        m_world->synchronizePlaybackBodies(identities);
+        for(const auto& body:state.bodies){std::uint64_t source=body.id;for(const auto& dynamic:state.dynamicBodies)if(dynamic.id==body.id){source=dynamic.source;break;}if(!m_world->restoreControlBody(body.id,source)){m_simulationError=QStringLiteral("回放中的动态实体模板不存在");emit simulationChanged();return false;}}
+        const auto entities=m_world->getAllPhysicalEntities();
         for (const epsx::BodyState& body : state.bodies) {
-            if (body.slot >= entities.size()) {
-                continue;
-            }
-            PhysicalEntity* entity = entities[body.slot];
+            auto it=std::find_if(entities.begin(),entities.end(),[&](const auto* entity){return entity->getId()==body.id;});
+            PhysicalEntity* entity = it==entities.end()?nullptr:*it;
             if (entity == nullptr) {
                 continue;
             }
@@ -1287,6 +1321,8 @@ namespace egret
             entity->setRotation(body.rotation);
             entity->setSpeed(body.linearVelocity);
             entity->setAngular(body.angularVelocity);
+            entity->setMass(body.mass);entity->setRestitution(body.restitution);
+            if(state.hasMaterials){entity->setStaticFriction(body.staticFriction);entity->setDynamicFriction(body.dynamicFriction);}
         }
 
         m_simTime = static_cast<double>(state.simTimeNs) / 1.0e9;
@@ -1693,7 +1729,9 @@ namespace egret
             return;
         }
 
-        const SolverStepResult result = m_world->tick(m_fixedStepSeconds);
+        SolverStepResult result;
+        try{result=m_world->tick(m_fixedStepSeconds);}catch(const std::exception& error){m_controlRunFailed=true;m_simulationError=QString::fromUtf8(error.what());emit simulationChanged();m_accumulator=0;pause();return;}
+        m_world->clearControlEvents();
         std::ignore = result;
 
         m_simTime = m_world->getSimulationTime();

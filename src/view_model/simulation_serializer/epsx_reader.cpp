@@ -22,6 +22,7 @@
 #include <QJsonObject>
 
 #include <algorithm>
+#include <cmath>
 #include <tuple>
 
 namespace egret::epsx
@@ -675,6 +676,7 @@ namespace egret::epsx
         out->bodies.clear();
         out->constraints.clear();
         out->fields.clear();
+        out->dynamicBodies.clear();out->controlEvents.clear();out->hasMaterials=false;
 
         while (reader.remaining() >= kSectionHeaderBytes) {
             const FourCC tag = reader.readFourCC();
@@ -719,6 +721,19 @@ namespace egret::epsx
             else if (tag == kSectionField) {
                 parsed = parseFieldSection(sectionData, static_cast<std::size_t>(sectionBytes),
                                            elementCount, strideBytes, &out->fields, errorMessage);
+            }
+            else if(tag==kSectionDynamic||tag==kSectionControl){
+                const bool validStride=tag==kSectionDynamic?strideBytes==16:(strideBytes==64||strideBytes==72);
+                if(!validStride||sectionBytes!=std::uint64_t(elementCount)*strideBytes||elementCount>262144){setError(errorMessage,QStringLiteral("控制扩展段尺寸无效"));return false;}
+                ByteReader data(sectionData,static_cast<std::size_t>(sectionBytes));
+                for(std::uint32_t i=0;i<elementCount;++i){
+                    if(tag==kSectionDynamic)out->dynamicBodies.push_back({data.readU64(),data.readU64()});
+                    else {ControlEvent event;event.timeNs=data.readU64();event.stepIndex=data.readU64();event.target=data.readU64();event.source=data.readU64();event.kind=data.readU32();event.enabled=data.readU32();for(double& value:event.value)value=data.readF64();if(strideBytes==72)event.scalar=data.readF64();out->controlEvents.push_back(event);}
+                }
+            }
+            else if(tag==kSectionMaterial){
+                if(strideBytes!=24||sectionBytes!=std::uint64_t(elementCount)*24||elementCount!=out->bodies.size()){setError(errorMessage,QStringLiteral("材质段尺寸无效"));return false;}
+                ByteReader data(sectionData,static_cast<std::size_t>(sectionBytes));for(std::uint32_t i=0;i<elementCount;++i){auto id=data.readU64();auto s=data.readF64(),d=data.readF64();auto it=std::find_if(out->bodies.begin(),out->bodies.end(),[id](const auto& body){return body.id==id;});if(it==out->bodies.end()||!std::isfinite(s)||!std::isfinite(d)||s<0||d<0){setError(errorMessage,QStringLiteral("材质段身份或参数无效"));return false;}it->staticFriction=s;it->dynamicFriction=d;}out->hasMaterials=true;
             }
             else {
                 // 未知段按长度跳过，保证向前兼容。

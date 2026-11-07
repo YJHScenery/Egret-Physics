@@ -114,6 +114,7 @@ namespace egret::command
         for (const epsx::BodyState& body : frame.bodies) {
             QJsonObject entry{};
             entry[QStringLiteral("id")] = static_cast<double>(body.id);
+            entry[QStringLiteral("stableId")] = QString::number(body.id);
             entry[QStringLiteral("slot")] = static_cast<int>(body.slot);
             entry[QStringLiteral("name")] = slotNames.value(static_cast<int>(body.slot));
             entry[QStringLiteral("stateFlags")] = static_cast<int>(body.stateFlags);
@@ -130,9 +131,16 @@ namespace egret::command
                 .toDouble(model.value(QStringLiteral("static_friction")).toDouble(0.5));
             entry[QStringLiteral("dynamicFriction")] = material.value(QStringLiteral("dynamicFriction"))
                 .toDouble(model.value(QStringLiteral("dynamic_friction")).toDouble(0.5));
+            if(frame.hasMaterials){entry["staticFriction"]=body.staticFriction;entry["dynamicFriction"]=body.dynamicFriction;}
             bodies.append(entry);
         }
         root[QStringLiteral("bodies")] = bodies;
+        QJsonArray dynamicBodies;
+        for(const auto& body:frame.dynamicBodies)dynamicBodies.append(QJsonObject{{"id",QString::number(body.id)},{"templateId",QString::number(body.source)}});
+        root["dynamicBodies"]=dynamicBodies;
+        QJsonArray controlEvents;
+        for(const auto& event:frame.controlEvents)controlEvents.append(QJsonObject{{"timeNs",QString::number(event.timeNs)},{"stepIndex",QString::number(event.stepIndex)},{"kind",static_cast<int>(event.kind)},{"target",QString::number(event.target)},{"source",QString::number(event.source)},{"enabled",event.enabled!=0},{"value",QJsonArray{event.value[0],event.value[1],event.value[2]}},{"scalar",event.scalar}});
+        root["controlEvents"]=controlEvents;
 
         QJsonArray constraints{};
         for (const epsx::ConstraintState& constraint : frame.constraints) {

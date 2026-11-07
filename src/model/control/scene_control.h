@@ -19,6 +19,10 @@ namespace egret::control
         EntityId id{};
         Vector position{}, velocity{}, angularVelocity{};
         bool active{}, asleep{};
+        double mass{};
+        std::array<double,4> rotation{0,0,0,1};
+        Vector material{0.5,0.5,0};
+        bool rotatable{};
     };
     /** @brief 上一计算步中真实参与接触求解的实体对。 */
     struct ContactPair { EntityId first{}, second{}; };
@@ -28,6 +32,8 @@ namespace egret::control
         double time{}, step{};
         std::span<const BodyState> bodies;
         std::span<const ContactPair> contacts;
+        std::uint64_t stepIndex{};
+        std::span<const BodyState> templates;
         /** @brief 根据稳定标识查找实体，未找到返回空指针。 */
         const BodyState* find(EntityId id) const
         {
@@ -47,7 +53,7 @@ namespace egret::control
         }
     };
     /** @brief 宿主支持的场景干预语义，与判断程序的实现方式无关。 */
-    enum class CommandKind { SetPosition, SetVelocity, SetActive, SetForce };
+    enum class CommandKind { SetPosition, SetVelocity, SetActive, SetForce, SetAngularVelocity, SetMass, Reserved, Spawn, Destroy, SetRotation, SetTorque, SetMaterial };
     /** @brief 延迟提交的干预值；启用状态使用 enabled，其余使用 value。 */
     struct Command
     {
@@ -55,7 +61,11 @@ namespace egret::control
         EntityId target{};
         Vector value{};
         bool enabled{true};
+        EntityId source{};
+        double scalar{};
     };
+    /** @brief 已提交动作的仿真时间与步序号，供结果诊断。 */
+    struct AppliedCommand { Command command; double time{}; std::uint64_t step{}; };
     /** @brief 有容量限制的动作缓冲，后端不能直接修改物理世界。 */
     class CommandBuffer
     {
@@ -85,6 +95,14 @@ namespace egret::control
     public:
         /** @brief 销毁程序及其执行状态。 */
         virtual ~Program()=default;
+        /** @brief 在采样前判断是否到期，原生规则默认每步执行。 */
+        virtual bool due(double) const {return true;}
+        /** @brief 声明状态依赖；旧后端默认订阅全部实体。 */
+        virtual bool observes(EntityId)const{return true;}
+        /** @brief 判断是否需要累计接触；旧后端保持上一物理步语义。 */
+        virtual bool wantsContacts(double)const{return true;}
+        /** @brief 是否需要预建控制力场，旧后端默认可能输出持久力。 */
+        virtual bool usesForces()const{return true;}
         /** @brief 在安全步边界读取同一快照并生成有限动作；失败由宿主中止本步。 */
         virtual void evaluate(const Frame& frame,CommandBuffer& output)=0;
         /** @brief 重置触发历史和用户状态，使重新运行具有确定语义。 */

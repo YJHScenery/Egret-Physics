@@ -105,7 +105,9 @@ namespace egret::command
             << "  实体 / 约束 / 场：" << report.bodyCount << " / " << report.constraintCount
             << " / " << report.fieldCount << "\n"
             << "  求解步数：" << report.stepCount << "，写入帧数：" << report.frameCount << "\n"
-            << "  耗时：" << QString::number(report.wallClockSeconds, 'f', 2)
+            << "  控制准备：" << QString::number(report.preparationSeconds,'f',3) << " 秒，缓存命中 " << report.controlCacheHits << "/" << report.controlProgramCount << "\n"
+            << "  推进与控制：" << QString::number(report.physicsSeconds,'f',3) << " 秒\n"
+            << "  总任务耗时：" << QString::number(report.wallClockSeconds, 'f', 2)
             << " 秒，文件大小：" << (report.fileBytes / 1024ull) << " KiB\n";
         out.flush();
         return 0;

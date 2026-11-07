@@ -104,6 +104,12 @@ namespace egret
 
             /** 求解与写盘消耗的真实时间（秒）。 */
             double wallClockSeconds{0.0};
+            /** 源码校验、编译及世界安装的任务耗时。 */
+            double preparationSeconds{};
+            /** 物理逐步推进与控制执行耗时，不包含写盘。 */
+            double physicsSeconds{};
+            /** C 编译缓存命中及源码程序数量。 */
+            std::uint32_t controlCacheHits{},controlProgramCount{};
 
             /** 输出的文件大小（字节）。 */
             std::uint64_t fileBytes{0};

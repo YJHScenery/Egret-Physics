@@ -76,6 +76,8 @@ namespace egret::epsx
 
             /** 力场数量（等于每帧 FLDS 段元素数）。 */
             std::uint32_t fieldCount{0};
+            /** 允许 BODY 数量变化，按逐帧身份集合回放。 */
+            bool dynamicBodies{false};
         };
 
         /**

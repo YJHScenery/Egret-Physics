@@ -14,8 +14,12 @@ namespace egret::control
         explicit ControlForceField(std::uint64_t id):PhysicsAbstract(id),FieldBase(id) {}
         /** @brief 替换指定实体的控制力，零向量表示取消。 */
         void set(std::uint64_t id,const Eigen::Vector3d& force) {m_forces[id]=force;}
+        /** @brief 替换持久控制力矩，与控制力共享稳定场身份。 */
+        void setTorque(std::uint64_t id,const Eigen::Vector3d& torque){m_torques[id]=torque;}
         /** @brief 清除全部控制力。 */
-        void clear() {m_forces.clear();}
+        void clear() {m_forces.clear();m_torques.clear();}
+        /** @brief 永久删除后清除对应力槽。 */
+        void erase(std::uint64_t id){m_forces.erase(id);m_torques.erase(id);}
         /** @brief 多目标控制力没有统一空间场向量。 */
         Eigen::Vector3d sample(const Eigen::Vector3d&) override {return Eigen::Vector3d::Zero();}
         /** @brief 动态控制力不提供保守势能。 */
@@ -26,6 +30,7 @@ namespace egret::control
             if (!m_enabled || !entity || !entity->isActive()) return;
             const auto it=m_forces.find(entity->getId());
             if (it!=m_forces.end()) entity->upsertForce(Force{it->second,getId()});
+            const auto torque=m_torques.find(entity->getId());if(torque!=m_torques.end())entity->upsertTorque(Torque{torque->second,getId()});
         }
         /** @brief 将控制源标记为扩展力场。 */
         FieldType getType() const override {return FieldType::Other;}
@@ -36,5 +41,6 @@ namespace egret::control
         }
     private:
         std::unordered_map<std::uint64_t,Eigen::Vector3d> m_forces;
+        std::unordered_map<std::uint64_t,Eigen::Vector3d> m_torques;
     };
 }

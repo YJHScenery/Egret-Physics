@@ -33,3 +33,6 @@ count.py
 /dependency/
 
 /backup/
+
+# 固定版本控制工具链下载缓存，不进入源码提交。
+/.deps_download/control/

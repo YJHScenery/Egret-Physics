@@ -28,6 +28,7 @@
 #include <Eigen/Dense>
 
 #include <memory>
+#include <atomic>
 
 #include "sleep_config.h"
 #include "visual_item/scene_body_model.h"
@@ -35,6 +36,7 @@
 #include "visual_item/scene_convex_mesh_model.h"
 #include "visual_item/scene_curve_model.h"
 #include "world_scene_manager.h"
+#include "control_core/control_program.h"
 #include <QQuaternion>
 
 class QFile;
@@ -121,6 +123,7 @@ namespace egret
         QVariantMap m_displaySettings;
 
         Q_PROPERTY(bool running READ isRunning NOTIFY runningChanged)
+        Q_PROPERTY(bool controlPreparing READ controlPreparing NOTIFY simulationChanged)
 
         Q_PROPERTY(double simTime READ simTime NOTIFY simTimeChanged)
 
@@ -178,6 +181,8 @@ namespace egret
          *          此处只有前置声明，需要完整类型才能实例化删除器。
          */
         ~SceneManagerViewModel() override;
+        /** @brief 控制源码是否正在后台准备。 */
+        bool controlPreparing()const{return m_controlPreparing;}
 
         // ------------------------------------------------------------------
         //  离线仿真文件播放（与实时求解互斥：只要加载了文件就进入播放模式）
@@ -248,7 +253,7 @@ namespace egret
         Q_INVOKABLE void toggleSimulationPlayback();
 
         // 从 json 创建 PhysicalEntity 等实例以供仿真器使用
-        static SceneRecord createSceneFromJsonString(const QString& jsonString);
+        static SceneRecord createSceneFromJsonString(const QString& jsonString,bool prepareControl=true,std::function<bool()> shouldCancel={},std::function<void(const control::PreparationReport&)> onPrepared={});
 
         static SceneRecord createSceneFromJsonFile(const QString& fileName);
 
@@ -421,7 +426,7 @@ namespace egret
         /** 从 JSON 文件中加载新的场景 */
         Q_INVOKABLE void loadSceneFronJsonFile(const QString& fileName);
 
-        Q_INVOKABLE void loadSceneFromJsonString(const QString& jsonString);
+        Q_INVOKABLE void loadSceneFromJsonString(const QString& jsonString,bool prepareControl=true);
 
         /**
          * @brief 返回最近一次成功加载的场景 JSON 文本。
@@ -636,6 +641,9 @@ namespace egret
 
         /** 最近一次成功加载的场景 JSON 文本（供离线求解复用）。 */
         QString m_currentSceneJson{};
+        bool m_controlPreparing{},m_controlRunFailed{};
+        std::uint64_t m_sceneLoadGeneration{};
+        std::shared_ptr<std::atomic_bool> m_controlLoadCancelled;
 
         /** 当前播放帧号。 */
         int m_playbackFrame{0};

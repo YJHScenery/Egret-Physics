@@ -56,7 +56,7 @@ namespace egret::epsx
     inline constexpr std::uint16_t kVersionMajor{1};
 
     /** 格式次版本号。 */
-    inline constexpr std::uint16_t kVersionMinor{0};
+    inline constexpr std::uint16_t kVersionMinor{1};
 
     /** 文件头固定长度（字节）。 */
     inline constexpr std::size_t kFileHeaderBytes{64};
@@ -94,6 +94,12 @@ namespace egret::epsx
 
     /** 刚体帧段标记。 */
     inline constexpr FourCC kSectionBody{makeFourCC('B', 'O', 'D', 'Y')};
+    /** @brief 动态实体完整身份与模板映射，逐帧支持随机访问。 */
+    inline constexpr FourCC kSectionDynamic{makeFourCC('D','Y','N','A')};
+    /** @brief 上次采样后真实提交的控制动作。 */
+    inline constexpr FourCC kSectionControl{makeFourCC('C','T','R','L')};
+    /** @brief 每帧摩擦系数扩展，保留旧 BODY 记录步长。 */
+    inline constexpr FourCC kSectionMaterial{makeFourCC('M','T','R','L')};
 
     /** 约束帧段标记。 */
     inline constexpr FourCC kSectionConstraint{makeFourCC('C', 'O', 'N', 'S')};
@@ -261,6 +267,8 @@ namespace egret::epsx
 
         /** 恢复系数。 */
         double restitution{1.0};
+        /** 摩擦系数通过 MTRL 扩展编码，旧文件使用场景初值。 */
+        double staticFriction{0.5},dynamicFriction{0.5};
     };
 
     /** 单个约束在一帧中的状态。 */
@@ -328,6 +336,10 @@ namespace egret::epsx
         double strength{0.0};
     };
 
+    /** @brief 当前帧动态实体与初始模板身份。 */
+    struct DynamicBody {std::uint64_t id{},source{};};
+    /** @brief 一次实际控制动作，固定 72 字节编码，额外标量用于四元数第四分量。 */
+    struct ControlEvent {std::uint64_t timeNs{},stepIndex{},target{},source{};std::uint32_t kind{},enabled{};std::array<double,3> value{};double scalar{};};
     /** 一帧的完整数据。 */
     struct FrameState
     {
@@ -348,6 +360,12 @@ namespace egret::epsx
 
         /** 力场记录。 */
         std::vector<FieldState> fields{};
+        /** 当前存活的动态实体，缺席表示未出生或已销毁。 */
+        std::vector<DynamicBody> dynamicBodies;
+        /** 本采样区间控制事件，播放器不重新执行。 */
+        std::vector<ControlEvent> controlEvents;
+        /** 是否具有逐帧材质扩展。 */
+        bool hasMaterials{};
     };
 
     // ---------------------------------------------------------------------

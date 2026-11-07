@@ -22,6 +22,8 @@
 #include <QJsonDocument>
 #include <QDebug>
 #include <QQmlEngine>
+#include <QtConcurrent/QtConcurrentRun>
+#include <QFutureWatcher>
 #include "async_logger.h"
 #include "unique_id_generator.h"
 #include "os/windows/windows_sound.h"
@@ -32,6 +34,7 @@ namespace egret
 {
     EditorManager::EditorManager(QObject* parent) : QObject(parent)
     {
+        m_sceneSettings=normalizeSceneSettings({});
         m_documents.append(Document{});
         m_documents[0].savedContent = documentContent();
         connect(this, &EditorManager::modelListChanged, this, [this] { if (!m_switchingDocument) emit documentsChanged(); });
@@ -74,7 +77,7 @@ namespace egret
         m_currentDocument = index;
         const auto& document = m_documents[index];
         m_modelList = document.models;
-        m_sceneSettings=document.settings;
+        m_sceneSettings=normalizeSceneSettings(document.settings);
         m_undoStack = document.undo;
         m_redoStack = document.redo;
         m_models.clear();
@@ -90,7 +93,8 @@ namespace egret
     {
         storeDocument();
         Document document;
-        document.savedContent = QJsonDocument(QJsonObject{{"models",QJsonArray{}},{"scene_settings",QJsonObject{}}}).toJson(QJsonDocument::Compact);
+        document.settings=normalizeSceneSettings({});
+        document.savedContent = QJsonDocument(QJsonObject{{"models",QJsonArray{}},{"scene_settings",document.settings}}).toJson(QJsonDocument::Compact);
         m_documents.append(document);
         restoreDocument(m_documents.size() - 1);
     }
@@ -168,7 +172,7 @@ namespace egret
     /** @brief 校验根级设置后一次性写入历史与当前场景。 */
     bool EditorManager::setSceneSettings(const QVariantMap& settings)
     {
-        const auto object=QJsonObject::fromVariantMap(settings);
+        const auto object=normalizeSceneSettings(QJsonObject::fromVariantMap(settings));
         try {parseSceneSettings(object);} catch(const std::exception& error) {
             emit warning(QStringLiteral("场景设置无效"),QString::fromUtf8(error.what()));return false;
         }
@@ -182,6 +186,26 @@ namespace egret
             if (model->category() == 0 || model->category() == 1)
                 updateConstraintLengths(model->id());
         });
+    }
+
+    /** @brief 对外始终提供含默认源码的设置。 */
+    QVariantMap EditorManager::sceneSettings()const{return normalizeSceneSettings(m_sceneSettings).toVariantMap();}
+
+    /** @brief 后台检查捕获的程序列表，诊断不随编辑器切换而覆盖源码。 */
+    void EditorManager::validateControlPrograms(const QVariantList& programs)
+    {
+        if(m_controlValidationRunning)return;
+        std::vector<control::ControlProgramSpec> specs;
+        try{specs=control::parseProgramSpecs(QJsonDocument(QJsonArray::fromVariantList(programs)).toJson(QJsonDocument::Compact).toStdString());
+            for(const auto& spec:specs)if(spec.enabled)for(const auto& [alias,id]:spec.bindings){auto model=m_models.value(QString::number(id));if(!model||model->category()!=0)throw std::runtime_error("绑定物体已删除或类型不受支持");}
+        }catch(const std::exception& error){m_controlDiagnostics=QString::fromUtf8(error.what());emit controlDiagnosticsChanged();return;}
+        m_controlValidationRunning=true;m_controlDiagnostics=QStringLiteral("正在检查当前源码快照……");emit controlDiagnosticsChanged();
+        auto* watcher=new QFutureWatcher<QString>(this);
+        connect(watcher,&QFutureWatcher<QString>::finished,this,[this,watcher]{m_controlDiagnostics=watcher->result();m_controlValidationRunning=false;watcher->deleteLater();emit controlDiagnosticsChanged();});
+        watcher->setFuture(QtConcurrent::run([specs=std::move(specs)]{
+            try{unsigned index=1;for(const auto& spec:specs){if(spec.enabled)control::prepareProgram(spec,control::defaultCompilerOptions(),index);++index;}return QStringLiteral("检查通过：已完成 C 语义检查、Wasm 编译与独立实例准备。正式求解仍会重新检查源码版本。");}
+            catch(const std::exception& error){return QString::fromUtf8(error.what());}
+        }));
     }
 
     void EditorManager::updateConstraintLengths(const QString& entityId)
@@ -602,7 +626,7 @@ namespace egret
         } catch(const std::exception& error) {emit warning(QStringLiteral("场景设置无效"),QString::fromUtf8(error.what()));return false;}
         saveState();
         clearAllNoSave();
-        m_sceneSettings=root["scene_settings"].toObject();
+        m_sceneSettings=normalizeSceneSettings(root["scene_settings"].toObject());
         emit sceneSettingsChanged();
 
         QJsonArray modelsArray = root["models"].toArray();
