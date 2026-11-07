@@ -212,13 +212,36 @@ namespace egret
     void WorldSceneManager::synchronizeSolverTime(std::uint64_t nanoseconds){if(m_exactClockNs&&nanoseconds<*m_exactClockNs)throw std::runtime_error("求解时钟不得倒退");m_exactClockNs=nanoseconds;m_simulationTime=static_cast<double>(nanoseconds)/1e9;}
     /** @brief 按模板身份恢复实体，支持跳转至任意回放帧。 */
     bool WorldSceneManager::restoreControlBody(std::uint64_t id,std::uint64_t source){
-        if(findBody(id))return true;const auto it=m_controlTemplates.find(source);if(it==m_controlTemplates.end())return false;
+        if(findBody(id))return true;
+        const auto retained = m_playbackRetainedBodies.find(id);
+        if (retained != m_playbackRetainedBodies.end()) {
+            m_bodies.push_back(std::move(retained->second));
+            m_playbackRetainedBodies.erase(retained);
+            rebuildSolverCaches();
+            return true;
+        }
+        const auto it=m_controlTemplates.find(source);if(it==m_controlTemplates.end())return false;
         auto record=std::make_unique<BodyRecord>(it->second);record->entity=unique_ptr_cast<PhysicalEntity,PhysicsAbstract>(record->entity->clone(id));record->loadTime=0;m_bodies.push_back(std::move(record));if(id!=source)m_controlOrigins[id]=source;rebuildSolverCaches();return true;
     }
     /** @brief 查询动态身份模板，原始对象返回零。 */
     std::uint64_t WorldSceneManager::controlBodyTemplate(std::uint64_t id)const{auto it=m_controlOrigins.find(id);return it==m_controlOrigins.end()?0:it->second;}
-    /** @brief 回放以完整身份集合为准，删除缺席实体。 */
-    void WorldSceneManager::synchronizePlaybackBodies(std::span<const std::uint64_t> identities){std::erase_if(m_bodies,[&](const auto& body){return std::find(identities.begin(),identities.end(),body->entity->getId())==identities.end();});rebuildSolverCaches();}
+    /** @brief 辅助锚点不随帧删除，原始实体暂存以保证约束指针在跳帧后仍有效。 */
+    void WorldSceneManager::synchronizePlaybackBodies(std::span<const std::uint64_t> identities)
+    {
+        for (auto& body : m_bodies) {
+            const auto id = body->entity->getId();
+            if (body->auxiliaryAnchor || std::find(identities.begin(), identities.end(), id) != identities.end()) continue;
+            if (m_controlTemplates.contains(id)) m_playbackRetainedBodies.emplace(id, std::move(body));
+            else m_controlOrigins.erase(id);
+        }
+        std::erase_if(m_bodies,
+            /** @brief 移除已暂存的原始实体及当前帧缺席的动态实体。 */
+            [&](const auto& body) {
+                return !body || (!body->auxiliaryAnchor &&
+                    std::find(identities.begin(), identities.end(), body->entity->getId()) == identities.end());
+            });
+        rebuildSolverCaches();
+    }
 
     std::uint64_t WorldSceneManager::spawnBody(const std::string& name,
                                                const Eigen::Vector3d& position,
@@ -486,6 +509,7 @@ namespace egret
         m_controlBodies.clear(); m_controlContacts.clear(); m_controlCommands.clear();
         m_bodies.clear();
         m_controlTemplates.clear();m_controlOrigins.clear();m_controlEvents.clear();
+        m_playbackRetainedBodies.clear();
         m_controlTemplateStates.clear();
         m_fields.clear();
         m_constraints.clear();
@@ -845,7 +869,7 @@ namespace egret
     bool WorldSceneManager::isFieldActive(const std::uint64_t id) const
     {
         const auto* record = findField(id);
-        if (!record || !record->field || record->loadTime>m_simulationTime+1e-12) return false;
+        if (!record || !record->field || record->loadTime>m_simulationTime+1e-12 || m_playbackRetainedBodies.contains(id)) return false;
         // 同时具有实体身份的场源随物体一起停用，避免退出求解后仍对其它物体施力。
         return !findBody(id) || isBodyActive(id);
     }
@@ -860,6 +884,10 @@ namespace egret
         bool anyActive = false;
         for (const auto* entity : record->constraint->getConstrainedEntities()) {
             if (!entity) continue;
+            if (m_playbackRetainedBodies.contains(entity->getId())) {
+                if (!independentTargets) return false;
+                continue;
+            }
             const auto* body = findBody(entity->getId());
             if (!body) continue; // 约束端点可能不属于场景实体。
             const bool active = body->controlEnabled && body->loadTime <= m_simulationTime + 1e-12;

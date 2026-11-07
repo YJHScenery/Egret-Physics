@@ -79,6 +79,8 @@ namespace egret
         double loadTime{0.0};
         /** 控制层的生命周期开关；停用保留对象和历史标识。 */
         bool controlEnabled{true};
+        /** 约束自动生成的固定锚点，回放帧未记录时仍须保留。 */
+        bool auxiliaryAnchor{false};
     };
 
     /**
@@ -261,7 +263,7 @@ namespace egret
         bool restoreControlBody(std::uint64_t id,std::uint64_t source);
         /** @brief 查询动态实体模板，原始实体返回零。 */
         std::uint64_t controlBodyTemplate(std::uint64_t id) const;
-        /** @brief 删除回放缺席实体，保留独立模板以支持倒放。 */
+        /** @brief 同步回放身份，保留辅助锚点和缺席原始实体的引用有效性。 */
         void synchronizePlaybackBodies(std::span<const std::uint64_t> identities);
         /** @brief 读取自上次采样以来已提交的动作，不分配。 */
         std::span<const control::AppliedCommand> controlEvents()const{return m_controlEvents;}
@@ -797,6 +799,8 @@ namespace egret
         std::vector<std::uint64_t> m_controlAlive;
         std::vector<control::ContactPair> m_controlContacts;
         std::map<std::uint64_t,BodyRecord> m_controlTemplates;
+        /** 回放中暂时缺席的原始实体，保留约束和实体力源的指针身份。 */
+        std::map<std::uint64_t,std::unique_ptr<BodyRecord>> m_playbackRetainedBodies;
         std::map<std::uint64_t,std::uint64_t> m_controlOrigins;
         std::vector<control::AppliedCommand> m_controlEvents;
 

@@ -5,6 +5,8 @@
 #include "velocity_verlet_integrator.h"
 #include "bvh_broad_strategy.h"
 #include "frictional_contact_resolver.h"
+#include "connecting_rod.h"
+#include <array>
 #include <cmath>
 #include <stdexcept>
 
@@ -26,11 +28,66 @@ namespace
         p.comparison=egret::control::Comparison::GreaterEqual;p.lower=time;
         return {{p},std::move(commands),egret::control::Trigger::Once};
     }
+
+    /** @brief 验证旧回放遗漏辅助锚点、原始实体暂缺与动态实体跳帧恢复的生命周期。 */
+    void testPlaybackBodyLifetime()
+    {
+        using namespace egret;
+        auto world = makeWorld();
+        SceneRecord scene;
+        BodyRecord anchor;
+        anchor.entity = std::make_shared<Particle>(Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), 0, 99);
+        anchor.visible = false;
+        anchor.enableCollision = false;
+        anchor.enableIntegration = false;
+        anchor.auxiliaryAnchor = true;
+        BodyRecord first;
+        first.entity = std::make_shared<Particle>(Eigen::Vector3d(1,0,0), Eigen::Vector3d::Zero(), 1, 1);
+        first.entity->setShape(std::make_shared<ShapeBox>(1,1,1));
+        BodyRecord second;
+        second.entity = std::make_shared<Particle>(Eigen::Vector3d(2,0,0), Eigen::Vector3d::Zero(), 1, 2);
+        second.entity->setShape(std::make_shared<ShapeBox>(1,1,1));
+        scene.bodies = {anchor, first, second};
+        scene.constraints.push_back({"固定支点", std::make_shared<ConnectingRod>(1, anchor.entity.get(), first.entity.get(), 100)});
+        scene.constraints.push_back({"实体连接", std::make_shared<ConnectingRod>(1, first.entity.get(), second.entity.get(), 101)});
+        const std::weak_ptr<PhysicalEntity> anchorLifetime = anchor.entity;
+        const std::weak_ptr<PhysicalEntity> secondLifetime = second.entity;
+        const auto* secondPointer = second.entity.get();
+        world->registerScene(scene);
+        scene = {};
+        anchor.entity.reset(); first.entity.reset(); second.entity.reset();
+
+        const std::array<std::uint64_t,1> firstFrame{1};
+        world->synchronizePlaybackBodies(firstFrame);
+        check(!anchorLifetime.expired() && world->getBodyCount() == 2, "回放误删未记录的辅助锚点");
+        check(world->isConstraintActive(100) && world->buildConstraintRenderItems().size() == 1,
+              "辅助锚点约束无法渲染，或缺席实体约束仍被启用");
+        check(!secondLifetime.expired() && !world->isBodyActive(2), "缺席原始实体引用失效或仍处于活动状态");
+        check(world->buildRenderItems().size() == 1, "缺席原始实体仍被渲染");
+
+        const std::array<std::uint64_t,2> fullFrame{1,2};
+        world->synchronizePlaybackBodies(fullFrame);
+        check(world->restoreControlBody(2,2), "原始实体无法在跳帧后恢复");
+        bool restoredPointer = false;
+        for (const auto* entity : world->getAllPhysicalEntities())
+            if (entity->getId() == 2) restoredPointer = entity == secondPointer;
+        check(restoredPointer && world->isConstraintActive(101)
+              && world->buildConstraintRenderItems().size() == 2, "恢复后约束没有保持原实体指针身份");
+        const std::uint64_t dynamicId = (std::uint64_t{1} << 63) | 7;
+        check(world->restoreControlBody(dynamicId,1), "动态实体无法按模板恢复");
+        check(world->getBodyCount() == 4, "动态实体恢复数量错误");
+        world->synchronizePlaybackBodies(fullFrame);
+        check(world->getBodyCount() == 3 && world->controlBodyTemplate(dynamicId) == 0, "动态实体没有随缺席帧移除");
+        check(world->restoreControlBody(dynamicId,1), "动态实体无法在倒放时再次恢复");
+        world->clear();
+        check(anchorLifetime.expired() && secondLifetime.expired(), "清空世界未释放回放保留实体");
+    }
 }
 
 /** @brief 验证持久力、激活、退出求解、恢复以及无效批次不产生部分修改。 */
 void testSceneControlWorld()
 {
+    testPlaybackBodyLifetime();
     using namespace egret;
     using namespace egret::control;
     auto world=makeWorld();

@@ -519,6 +519,7 @@ namespace egret
                     anchor.visible = false;
                     anchor.enableCollision = false;
                     anchor.enableIntegration = false;
+                    anchor.auxiliaryAnchor = true;
                     std::uint64_t anchorId;
                     do { anchorId = UniqueIDGenerator::instance().generate(); } while (!usedIds.insert(anchorId).second);
                     anchor.entity = std::make_shared<Particle>(readVec3(obj.value("anchor_pos"), readVec3(cd.value("anchor_pos"))), Eigen::Vector3d::Zero(), 0.0, anchorId);
