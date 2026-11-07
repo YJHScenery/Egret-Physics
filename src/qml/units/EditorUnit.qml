@@ -34,6 +34,7 @@ import "qrc:/components/components/message_box"
 import "qrc:/components/components/theme"
 import "qrc:/components/components/basic"
 import "qrc:/components/components/viewport"
+import "qrc:/components/components/presets"
 import "qrc:/materials/materials"
 
 ColumnLayout {
@@ -258,6 +259,11 @@ ColumnLayout {
     EgretPopupMenu {
         id: clipboardContextMenu
         // 每次打开前由 buildContextMenuItems() 动态填充 menuItems
+    }
+
+    // ── 预设场景菜单（点击内置预设即叠加到当前文档） ──
+    EgretPresetMenu {
+        id: presetMenu
     }
 
     /** 构建右键菜单项数组（每次打开时重新求值，确保 enabled 状态是最新的） */
@@ -1560,6 +1566,22 @@ ColumnLayout {
                                 text: "添加约束器"
                                 pixelSize: 12
                                 onClicked: editorRoot.resetInspector(2)
+                            }
+                        }
+
+                        RowLayout {
+                            width: parent.width
+
+                            EgretPushButton {
+                                id: createPresetButton
+                                text: "添加预设"
+                                pixelSize: 12
+                                onClicked: {
+                                    // 在按钮正下方弹出预设菜单；Popup 的父级为 editorRoot
+                                    var pos = createPresetButton.mapToItem(editorRoot, 0,
+                                                                          createPresetButton.height + 6);
+                                    presetMenu.openAt(pos.x, pos.y);
+                                }
                             }
                         }
 

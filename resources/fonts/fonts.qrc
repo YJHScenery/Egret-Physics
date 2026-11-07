@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE RCC>
+<!--
+  @file fonts.qrc
+  @brief 内置 JetBrains Mono 字体（SIL Open Font License 1.1）。
+  资源前缀 /fonts，对应运行期路径 :/fonts/JetBrainsMono-Regular.ttf 等。
+  由 main.cpp 的 QFontDatabase::addApplicationFont 注册，由 QML 的 FontLoader 兜底加载。
+-->
+<RCC version="1.0">
+    <qresource prefix="/fonts">
+        <file>JetBrainsMono-Regular.ttf</file>
+        <file>JetBrainsMono-Bold.ttf</file>
+        <file>JetBrainsMono-Italic.ttf</file>
+        <file>JetBrainsMono-BoldItalic.ttf</file>
+        <file>OFL.txt</file>
+    </qresource>
+</RCC>

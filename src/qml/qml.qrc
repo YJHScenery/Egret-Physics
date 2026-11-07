@@ -21,9 +21,13 @@
         <file>components/SceneEntityListPanel.qml</file>
         <file>components/SceneControlPanel.qml</file>
         <file>components/ControlCodeDialog.qml</file>
+        <file>components/SceneCloseDialog.qml</file>
+        <file>components/editor/CodeEditor.qml</file>
+        <file>components/presets/EgretPresetMenu.qml</file>
         <file>components/SceneScaleControls.qml</file>
         <file>components/message_box/EgretMessageDialog.qml</file>
         <file>components/message_box/EgretMessageBox.js</file>
+
         <file>components/viewport/SimulationViewport.qml</file>
         <file>components/viewport/BodyDelegate.qml</file>
         <file>components/viewport/ConstraintDelegate.qml</file>

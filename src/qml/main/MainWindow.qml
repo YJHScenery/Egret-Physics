@@ -139,16 +139,8 @@ ApplicationWindow {
         closeDocumentDialog.open();
     }
 
-    Dialog {
+    SceneCloseDialog {
         id: closeDocumentDialog
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        modal: true
-        title: "未保存的场景"
-        property int documentIndex: -1
-        property string documentName: ""
-        standardButtons: Dialog.Save | Dialog.Discard | Dialog.Cancel
-        Label { text: "是否保存对“" + closeDocumentDialog.documentName + "”的修改？" }
         onAccepted: {
             EditorManager.switchDocument(documentIndex);
             editorUnit.resetInspector();

@@ -419,6 +419,226 @@ namespace egret
         return results;
     }
 
+    // ========================================================================
+    //  预设场景
+    // ========================================================================
+
+    namespace
+    {
+        /**
+         * @brief   内置预设场景的元信息。
+         * @details id 同时是资源文件名（:/presets/<id>.epscene）；菜单按本数组顺序显示。
+         */
+        struct PresetMeta
+        {
+            const char* id;          ///< 预设标识
+            const char* name;        ///< 显示名称
+            const char* category;    ///< 分类（场 / 地面 / 组合场景）
+            const char* description; ///< 说明文字
+        };
+
+        /** @brief 内置预设场景清单。 */
+        const PresetMeta kPresetMetas[] = {
+            {"standard_gravity", "标准重力场", "场", "竖直向下 10 m/s² 的匀强重力场，通常只需添加一次"},
+            {"large_ground_plane", "大型地平面", "地面", "10000 × 10000 × 10 的静态地面，顶面位于 z = 0"},
+            {"standard_test_scene", "标准测试场景", "组合场景", "重力场 + 大型地平面 + 两个自由落体球"},
+            {"friction_ground", "摩擦地面", "地面", "400 × 400 × 2 的静态地面，静摩擦 0.8 / 动摩擦 0.6"},
+            {"pendulum", "单摆", "组合场景", "重力场 + 悬点 + 连接线组成的单摆"},
+            {"spring_oscillator", "弹簧振子", "组合场景", "重力场 + 固定悬点 + 弹簧组成的阻尼振子"},
+            {"free_fall_spheres", "自由落体球", "组合场景", "重力场 + 1 / 10 / 100 kg 三个小球，验证重力加速度与质量无关"},
+        };
+
+        /**
+         * @brief       按标识查找预设元信息。
+         * @param presetId 预设标识。
+         * @return      指向元信息的指针，未找到时返回 nullptr。
+         */
+        const PresetMeta* findPresetMeta(const QString& presetId)
+        {
+            for (const PresetMeta& meta : kPresetMetas) {
+                if (presetId == QString::fromUtf8(meta.id))
+                    return &meta;
+            }
+            return nullptr;
+        }
+
+        /**
+         * @brief       生成不与场景中已有名称冲突的实体名。
+         * @param usedNames 场景中已占用的名称集合，生成成功后会追加新名称。
+         * @param baseName  预设中的原始实体名。
+         * @return      可用的实体名称（重名时追加 -2、-3 …… 后缀）。
+         */
+        QString makeUniqueEntityName(QStringList& usedNames, const QString& baseName)
+        {
+            if (baseName.isEmpty())
+                return baseName;
+            if (!usedNames.contains(baseName)) {
+                usedNames.append(baseName);
+                return baseName;
+            }
+            for (int suffix = 2; suffix < 10000; ++suffix) {
+                const QString candidate = QStringLiteral("%1-%2").arg(baseName).arg(suffix);
+                if (!usedNames.contains(candidate)) {
+                    usedNames.append(candidate);
+                    return candidate;
+                }
+            }
+            return baseName;
+        }
+
+        /**
+         * @brief       按映射表重写 JSON 数组中的实体 ID 引用。
+         * @param ids    待重写的实体 ID 数组。
+         * @param idMap  旧 ID → 新 ID 的映射表；未命中的引用保持原值。
+         */
+        void remapEntityIdArray(QJsonArray& ids, const QHash<QString, QString>& idMap)
+        {
+            for (int index = 0; index < ids.size(); ++index) {
+                const auto mapped = idMap.constFind(ids.at(index).toString());
+                if (mapped != idMap.cend())
+                    ids[index] = mapped.value();
+            }
+        }
+    }
+
+    QVariantList EditorManager::availablePresets() const
+    {
+        QVariantList presets;
+        for (const PresetMeta& meta : kPresetMetas) {
+            QVariantMap item;
+            item[QStringLiteral("id")] = QString::fromUtf8(meta.id);
+            item[QStringLiteral("name")] = QString::fromUtf8(meta.name);
+            item[QStringLiteral("category")] = QString::fromUtf8(meta.category);
+            item[QStringLiteral("description")] = QString::fromUtf8(meta.description);
+            presets.append(item);
+        }
+        return presets;
+    }
+
+    bool EditorManager::addPreset(const QString& presetId)
+    {
+        const PresetMeta* meta = findPresetMeta(presetId);
+        if (meta == nullptr) {
+            emit error(QStringLiteral("预设场景"), QStringLiteral("未知的预设标识：%1").arg(presetId));
+            return false;
+        }
+
+        // ---- 1. 读取并解析预设资源文件 ----
+        const QString resourcePath = QStringLiteral(":/presets/%1.epscene").arg(presetId);
+        QFile file(resourcePath);
+        if (!file.open(QIODevice::ReadOnly)) {
+            emit error(QStringLiteral("预设场景"),
+                       QStringLiteral("无法读取预设资源：%1").arg(resourcePath));
+            return false;
+        }
+        QJsonParseError parseError{};
+        const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &parseError);
+        file.close();
+        if (parseError.error != QJsonParseError::NoError) {
+            emit error(QStringLiteral("预设场景"),
+                       QStringLiteral("预设文件格式错误（第 %1 字节）：%2")
+                           .arg(parseError.offset)
+                           .arg(parseError.errorString()));
+            return false;
+        }
+        const QJsonArray sourceModels = document.object().value(QStringLiteral("models")).toArray();
+        if (sourceModels.isEmpty()) {
+            emit error(QStringLiteral("预设场景"), QStringLiteral("预设文件中不包含任何实体。"));
+            return false;
+        }
+
+        // ---- 2. 为预设中的每个实体分配全新的十进制数字 ID ----
+        // 实体 ID 必须是纯十进制数字字符串（场景设置/控制规则校验依赖 toULongLong），
+        // 因此这里使用唯一 ID 生成器，并同时避开当前场景与同批次已分配的 ID。
+        QHash<QString, QString> idMap;
+        QStringList usedIds = m_models.keys();
+        for (int index = 0; index < sourceModels.size(); ++index) {
+            const QString sourceId = sourceModels.at(index).toObject().value(QStringLiteral("id")).toString();
+            if (!sourceId.isEmpty() && idMap.contains(sourceId))
+                continue; // 预设内部重复 ID 只映射一次
+            QString newId;
+            do {
+                newId = QString::number(UniqueIDGenerator::instance().generate());
+            } while (usedIds.contains(newId));
+            usedIds.append(newId);
+            // 没有 ID 的实体同样分配新 ID，用批次序号作为内部映射键
+            idMap.insert(sourceId.isEmpty() ? QStringLiteral("#%1").arg(index) : sourceId, newId);
+        }
+
+        // ---- 3. 重建实体，并重映射预设内部的实体引用 ----
+        QStringList usedNames;
+        usedNames.reserve(m_modelList.size());
+        bool gravityAlreadyExists = false;
+        for (const QSharedPointer<ModelItemData>& model : m_modelList) {
+            usedNames.append(model->name());
+            if (model->category() == 1 && model->type() == 1)
+                gravityAlreadyExists = true;
+        }
+
+        QList<ModelItemData*> models;
+        models.reserve(sourceModels.size());
+        bool presetHasGravityField = false;
+        for (int index = 0; index < sourceModels.size(); ++index) {
+            const QJsonObject source = sourceModels.at(index).toObject();
+            QJsonObject json = source;
+            const QString sourceId = source.value(QStringLiteral("id")).toString();
+            const QString mapKey = sourceId.isEmpty() ? QStringLiteral("#%1").arg(index) : sourceId;
+            json[QStringLiteral("id")] = idMap.value(mapKey);
+
+            // 连接线/连接杆/弹簧/导轨等约束对实体的引用
+            if (json.value(QStringLiteral("entity_ids")).isArray()) {
+                QJsonArray entityIds = json.value(QStringLiteral("entity_ids")).toArray();
+                remapEntityIdArray(entityIds, idMap);
+                json[QStringLiteral("entity_ids")] = entityIds;
+            }
+            // 空气阻力等约束的子实体覆写引用
+            if (json.value(QStringLiteral("constraint_data")).isObject()) {
+                QJsonObject constraintData = json.value(QStringLiteral("constraint_data")).toObject();
+                if (constraintData.value(QStringLiteral("entity_overrides")).isArray()) {
+                    QJsonArray overrides = constraintData.value(QStringLiteral("entity_overrides")).toArray();
+                    for (int overrideIndex = 0; overrideIndex < overrides.size(); ++overrideIndex) {
+                        QJsonObject override = overrides.at(overrideIndex).toObject();
+                        const QString overrideId = override.value(QStringLiteral("entity_id")).toString();
+                        if (!overrideId.isEmpty() && idMap.contains(overrideId))
+                            override[QStringLiteral("entity_id")] = idMap.value(overrideId);
+                        overrides[overrideIndex] = override;
+                    }
+                    constraintData[QStringLiteral("entity_overrides")] = overrides;
+                }
+                json[QStringLiteral("constraint_data")] = constraintData;
+            }
+
+            auto* model = new ModelItemData();
+            if (!model->fromJson(json)) {
+                delete model;
+                continue;
+            }
+            model->setName(makeUniqueEntityName(usedNames, source.value(QStringLiteral("name")).toString()));
+            if (model->category() == 1 && model->type() == 1)
+                presetHasGravityField = true;
+            models.append(model);
+        }
+
+        if (models.isEmpty()) {
+            emit error(QStringLiteral("预设场景"), QStringLiteral("预设中没有可添加的实体。"));
+            return false;
+        }
+
+        // ---- 4. 一次性提交：addModels() 内部只调用一次 saveState()，整体可一次撤销 ----
+        addModels(models);
+
+        // ---- 5. 结果反馈 ----
+        emit information(QStringLiteral("预设场景"),
+                         QStringLiteral("已添加预设「%1」，共 %2 个实体。")
+                             .arg(QString::fromUtf8(meta->name))
+                             .arg(models.size()));
+        if (presetHasGravityField && gravityAlreadyExists) {
+            emit warning(QStringLiteral("预设场景"),
+                         QStringLiteral("当前场景已包含重力场，重复叠加会让重力效果累计，请确认是否需要重复添加。"));
+        }
+        return true;
+    }
+
     qsizetype EditorManager::count() const
     {
         return m_modelList.size();

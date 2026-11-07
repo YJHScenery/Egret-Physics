@@ -24,6 +24,7 @@
 #include <QIcon>
 #include <QUrl>
 #include <QDir>
+#include <QFontDatabase>
 
 #include "view_model/simulator/scene_manager.h"
 #include "basic_utils.h"
@@ -33,6 +34,8 @@
 #include "resource_helper.h"
 #include "editor/editor_manager.h"
 #include "editor/parameter_manager.h"
+#include "editor/code_editor_highlighter.h"
+#include "editor/code_editor_settings.h"
 #include "serialize/model_item_data.h"
 #include <QQuickStyle>
 #include <QStandardPaths>
@@ -120,6 +123,18 @@ int main(int argc, char* argv[])
     app.setApplicationVersion(egret::EGRET_VERSION_STRING.data()); // NOLINT(*-static-accessed-through-instance)
     app.setWindowIcon(QIcon(":/app_icon/assets/favicon/favicon_1024.png")); // NOLINT(*-static-accessed-through-instance)
 
+    // 注册内置的 JetBrains Mono 字体：必须在 QML 引擎加载前完成，
+    // 且早于 CodeEditorSettings 单例（其构造时会枚举可用字体族）。
+    const QStringList editorFontFiles{
+        QStringLiteral(":/fonts/JetBrainsMono-Regular.ttf"),
+        QStringLiteral(":/fonts/JetBrainsMono-Bold.ttf"),
+        QStringLiteral(":/fonts/JetBrainsMono-Italic.ttf"),
+        QStringLiteral(":/fonts/JetBrainsMono-BoldItalic.ttf")};
+    for (const QString& fontFile : editorFontFiles) {
+        if (QFontDatabase::addApplicationFont(fontFile) < 0)
+            qWarning() << "无法注册内置字体:" << fontFile;
+    }
+
 
     LOG_INFO_LITERAL("程序启动");
 
@@ -135,6 +150,10 @@ int main(int argc, char* argv[])
                                                          egret::ClipboardHelper::instance());
     qmlRegisterSingletonInstance<
         egret::EnumHandler>("EnumHandler", 1, 0, "EnumHandler", egret::EnumHandler::instance());
+    // C 代码编辑器：语法高亮器与字体设置单例
+    qmlRegisterType<egret::CodeEditorHighlighter>("EditorManager", 1, 0, "CodeEditorHighlighter");
+    qmlRegisterSingletonInstance<egret::CodeEditorSettings>(
+        "EditorManager", 1, 0, "CodeEditorSettings", egret::CodeEditorSettings::instance());
 
     qmlRegisterType<egret::SpringGeometry>("EgretPhysics", 1, 0, "SpringGeometry");
     qmlRegisterType<egret::BezierCurveGeometry>("EgretPhysics", 1, 0, "BezierCurveGeometry");

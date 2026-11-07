@@ -165,6 +165,8 @@ list(TRANSFORM QT_MODULES_LIST PREPEND "Qt::" OUTPUT_VARIABLE QT_MODULES_LIST_WI
 
 set(QRC_FILES
         resources/global.qrc
+        resources/presets.qrc
+        resources/fonts/fonts.qrc
         src/qml/qml.qrc
         src/view_model/video_export/resources/video_encoder.qrc
 )
@@ -306,6 +308,10 @@ set(CPP_FILES
         src/view_model/simulator/visual_item/scene_curve_model.cpp
         src/view_model/editor/editor_manager.cpp
         src/view_model/editor/editor_manager.h
+        src/view_model/editor/code_editor_highlighter.cpp
+        src/view_model/editor/code_editor_highlighter.h
+        src/view_model/editor/code_editor_settings.cpp
+        src/view_model/editor/code_editor_settings.h
         src/view_model/editor/parameter_manager.cpp
         src/view_model/editor/parameter_manager.h
         src/view_model/serialize/model_item_data.cpp
@@ -681,6 +687,14 @@ add_test(NAME EgretContactTests COMMAND Egret_Contact_Tests)
 
 add_executable(Egret_Editor_Tests
         tests/test_editor_state.cpp
+        tests/test_code_editor.cpp
+        src/view_model/editor/code_editor_highlighter.cpp
+        src/view_model/editor/code_editor_highlighter.h
+        src/view_model/editor/code_editor_settings.cpp
+        src/view_model/editor/code_editor_settings.h
+        src/qml/qml.qrc
+        resources/fonts/fonts.qrc
+        resources/presets.qrc
         src/view_model/editor/editor_manager.cpp
         src/view_model/editor/editor_manager.h
         src/view_model/editor/clipboard_helper.cpp
@@ -696,6 +710,8 @@ add_executable(Egret_Editor_Tests
 target_link_libraries(Egret_Editor_Tests PRIVATE ${QT_MODULES_LIST_WITH_PREFIX} Egret_Control_Core)
 target_include_directories(Egret_Editor_Tests PRIVATE ${CMAKE_BINARY_DIR}/generated)
 add_test(NAME EgretEditorTests COMMAND Egret_Editor_Tests)
+set_tests_properties(EgretEditorTests PROPERTIES ENVIRONMENT
+        "QT_QPA_PLATFORM_PLUGIN_PATH=${CMAKE_PREFIX_PATH}/plugins/platforms;QT_QUICK_BACKEND=software")
 add_test(NAME EgretProgrammableSceneTests COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File
         ${CMAKE_SOURCE_DIR}/tests/test_programmable_scene.ps1
         -Executable $<TARGET_FILE:Egret_Physics> -WorkDir ${CMAKE_BINARY_DIR})

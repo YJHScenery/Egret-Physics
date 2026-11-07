@@ -1,0 +1,16 @@
+{
+    "_documentation": "@file standard_gravity.epscene @brief 预设场景：标准重力场。竖直向下的匀强重力场，加速度 10 m/s^2，参考点位于世界原点。与其它预设可以叠加使用；同一场景中通常只需要添加一次重力场，重复添加会叠加重力效果。",
+    "models": [
+        {
+            "category": 1,
+            "type": 1,
+            "id": "100",
+            "name": "标准重力场",
+            "pos": [0, 0, 0],
+            "field_data": {
+                "gravity": [0, 0, -10],
+                "reference_point": [0, 0, 0]
+            }
+        }
+    ]
+}

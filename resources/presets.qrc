@@ -1,0 +1,13 @@
+<!DOCTYPE RCC>
+<!-- @file presets.qrc @brief 可叠加的内置 epscene 场景资源清单。 -->
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file>presets/standard_gravity.epscene</file>
+        <file>presets/large_ground_plane.epscene</file>
+        <file>presets/standard_test_scene.epscene</file>
+        <file>presets/friction_ground.epscene</file>
+        <file>presets/pendulum.epscene</file>
+        <file>presets/spring_oscillator.epscene</file>
+        <file>presets/free_fall_spheres.epscene</file>
+    </qresource>
+</RCC>

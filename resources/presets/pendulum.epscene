@@ -1,0 +1,52 @@
+{
+    "_documentation": "@file pendulum.epscene @brief 预设场景：单摆。由标准重力场、一个悬点和一根连接线组成；摆球初始位于悬点正右方 200 处，释放后做单摆运动。已自带重力场，通常无需再叠加重力预设。",
+    "models": [
+        {
+            "category": 1,
+            "type": 1,
+            "id": "100",
+            "name": "标准重力场",
+            "pos": [0, 0, 0],
+            "field_data": {
+                "gravity": [0, 0, -10],
+                "reference_point": [0, 0, 0]
+            }
+        },
+        {
+            "category": 0,
+            "type": 8,
+            "id": "1",
+            "name": "摆球",
+            "pos": [200, 0, 400],
+            "initial_velocity": [0, 0, 0],
+            "initial_angular_velocity": [0, 0, 0],
+            "rotation": [1, 0, 0, 0],
+            "scale": [1, 1, 1],
+            "mass": 10,
+            "restitution": 0.4,
+            "static_friction": 0.5,
+            "dynamic_friction": 0.5,
+            "radius": 20,
+            "visible": true,
+            "materials": {
+                "baseColor": "#FFB84D",
+                "metalness": 0.5,
+                "roughness": 0.35,
+                "alphaMode": "Opaque"
+            }
+        },
+        {
+            "category": 2,
+            "type": 1,
+            "id": "101",
+            "name": "摆线",
+            "pos": [0, 0, 400],
+            "visible": true,
+            "entity_ids": ["1"],
+            "anchor_pos": { "x": 0, "y": 0, "z": 400 },
+            "constraint_data": {
+                "length": 200
+            }
+        }
+    ]
+}

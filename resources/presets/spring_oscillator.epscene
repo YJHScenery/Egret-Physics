@@ -1,0 +1,76 @@
+{
+    "_documentation": "@file spring_oscillator.epscene @brief 预设场景：弹簧振子。由标准重力场、一个质量 0 的固定悬点球和一个通过弹簧连接的振子球组成；弹簧刚度 200、自然长度 100、阻尼 0.5，释放后沿竖直方向做阻尼振动。已自带重力场。",
+    "models": [
+        {
+            "category": 1,
+            "type": 1,
+            "id": "100",
+            "name": "标准重力场",
+            "pos": [0, 0, 0],
+            "field_data": {
+                "gravity": [0, 0, -10],
+                "reference_point": [0, 0, 0]
+            }
+        },
+        {
+            "category": 0,
+            "type": 8,
+            "id": "1",
+            "name": "弹簧悬点",
+            "pos": [0, 0, 400],
+            "initial_velocity": [0, 0, 0],
+            "initial_angular_velocity": [0, 0, 0],
+            "rotation": [1, 0, 0, 0],
+            "scale": [1, 1, 1],
+            "mass": 0,
+            "restitution": 0.2,
+            "static_friction": 0.5,
+            "dynamic_friction": 0.5,
+            "radius": 5,
+            "visible": true,
+            "materials": {
+                "baseColor": "#8DB3D9",
+                "metalness": 0.2,
+                "roughness": 0.6,
+                "alphaMode": "Opaque"
+            }
+        },
+        {
+            "category": 0,
+            "type": 8,
+            "id": "2",
+            "name": "振子球",
+            "pos": [0, 0, 300],
+            "initial_velocity": [0, 0, 0],
+            "initial_angular_velocity": [0, 0, 0],
+            "rotation": [1, 0, 0, 0],
+            "scale": [1, 1, 1],
+            "mass": 10,
+            "restitution": 0.4,
+            "static_friction": 0.5,
+            "dynamic_friction": 0.5,
+            "radius": 20,
+            "visible": true,
+            "materials": {
+                "baseColor": "#27B5FF",
+                "metalness": 0.6,
+                "roughness": 0.25,
+                "alphaMode": "Opaque"
+            }
+        },
+        {
+            "category": 2,
+            "type": 5,
+            "id": "101",
+            "name": "弹簧",
+            "pos": [0, 0, 350],
+            "visible": true,
+            "entity_ids": ["1", "2"],
+            "constraint_data": {
+                "stiffness": 200,
+                "restLength": 100,
+                "damping": 0.5
+            }
+        }
+    ]
+}

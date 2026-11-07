@@ -1,0 +1,28 @@
+{
+    "_documentation": "@file large_ground_plane.epscene @brief 预设场景：大型地平面。尺寸 10000 x 10000 x 10 的静态盒体（质量 0），几何中心位于 (0, 0, -5)，因此顶面恰好落在 z = 0 平面上。适合作为大型实验场地与其它预设叠加使用。",
+    "models": [
+        {
+            "category": 0,
+            "type": 1,
+            "id": "1",
+            "name": "大型地平面",
+            "pos": [0, 0, -5],
+            "initial_velocity": [0, 0, 0],
+            "initial_angular_velocity": [0, 0, 0],
+            "rotation": [1, 0, 0, 0],
+            "scale": [1, 1, 1],
+            "mass": 0,
+            "restitution": 1,
+            "static_friction": 0.5,
+            "dynamic_friction": 0.5,
+            "box_size": [10000, 10000, 10],
+            "visible": true,
+            "materials": {
+                "baseColor": "#8FBCE8",
+                "metalness": 0.1,
+                "roughness": 0.85,
+                "alphaMode": "Opaque"
+            }
+        }
+    ]
+}

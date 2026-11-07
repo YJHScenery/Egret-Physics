@@ -1,0 +1,85 @@
+{
+    "_documentation": "@file standard_test_scene.epscene @brief 预设场景：标准测试场景。包含标准重力场、大型地平面和两个不同高度的自由落体球，用于快速验证重力、碰撞与弹性恢复是否正常。已自带重力场与地平面，通常无需再叠加这两项预设。",
+    "models": [
+        {
+            "category": 1,
+            "type": 1,
+            "id": "100",
+            "name": "标准重力场",
+            "pos": [0, 0, 0],
+            "field_data": {
+                "gravity": [0, 0, -10],
+                "reference_point": [0, 0, 0]
+            }
+        },
+        {
+            "category": 0,
+            "type": 1,
+            "id": "1",
+            "name": "大型地平面",
+            "pos": [0, 0, -5],
+            "initial_velocity": [0, 0, 0],
+            "initial_angular_velocity": [0, 0, 0],
+            "rotation": [1, 0, 0, 0],
+            "scale": [1, 1, 1],
+            "mass": 0,
+            "restitution": 1,
+            "static_friction": 0.5,
+            "dynamic_friction": 0.5,
+            "box_size": [10000, 10000, 10],
+            "visible": true,
+            "materials": {
+                "baseColor": "#8FBCE8",
+                "metalness": 0.1,
+                "roughness": 0.85,
+                "alphaMode": "Opaque"
+            }
+        },
+        {
+            "category": 0,
+            "type": 8,
+            "id": "2",
+            "name": "下落球 A",
+            "pos": [-150, 0, 300],
+            "initial_velocity": [0, 0, 0],
+            "initial_angular_velocity": [0, 0, 0],
+            "rotation": [1, 0, 0, 0],
+            "scale": [1, 1, 1],
+            "mass": 10,
+            "restitution": 0.6,
+            "static_friction": 0.5,
+            "dynamic_friction": 0.5,
+            "radius": 20,
+            "visible": true,
+            "materials": {
+                "baseColor": "#4CA3FF",
+                "metalness": 0.6,
+                "roughness": 0.25,
+                "alphaMode": "Opaque"
+            }
+        },
+        {
+            "category": 0,
+            "type": 8,
+            "id": "3",
+            "name": "下落球 B",
+            "pos": [150, 0, 500],
+            "initial_velocity": [0, 0, 0],
+            "initial_angular_velocity": [0, 0, 0],
+            "rotation": [1, 0, 0, 0],
+            "scale": [1, 1, 1],
+            "mass": 10,
+            "restitution": 0.6,
+            "static_friction": 0.5,
+            "dynamic_friction": 0.5,
+            "radius": 20,
+            "visible": true,
+            "materials": {
+                "baseColor": "#34D5C9",
+                "metalness": 0.5,
+                "roughness": 0.3,
+                "alphaMode": "Opaque"
+            }
+        }
+    ]
+}

@@ -170,6 +170,29 @@ namespace egret
 
         Q_INVOKABLE bool redo();
 
+        // ---- 预设场景 ----
+
+        /**
+         * @brief       返回内置预设场景列表。
+         * @details     列表项为 QVariantMap，包含 id（预设标识）、name（显示名称）、
+         *              description（说明文字）、category（分类：场 / 地面 / 组合场景）。
+         *              预设场景以 epscene(JSON) 形式保存在资源 :/presets/ 目录下。
+         * @return      预设场景描述列表。
+         */
+        Q_INVOKABLE [[nodiscard]] QVariantList availablePresets() const;
+
+        /**
+         * @brief       把一个内置预设场景叠加到当前文档。
+         * @details     读取资源 :/presets/<presetId>.epscene，逐个重建实体并追加到当前文档，
+         *              不替换、不清空现有内容，因此可以与其它预设反复叠加。
+         *              为避免 ID 冲突，实体的十进制数字 ID 会重新分配，并在预设内部
+         *              重映射 entity_ids / constraint_data.entity_overrides 中的引用。
+         *              全部实体作为一次可撤销操作记录。
+         * @param presetId 预设标识（availablePresets() 返回的 id）。
+         * @return      是否成功添加预设。
+         */
+        Q_INVOKABLE bool addPreset(const QString &presetId);
+
     signals:
         /** @brief 后台检查状态或诊断内容更新。 */
         void controlDiagnosticsChanged();

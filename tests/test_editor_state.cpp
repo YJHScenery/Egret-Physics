@@ -6,16 +6,21 @@
 #include "clipboard_helper.h"
 #include "serialize/scene_settings.h"
 #include <QCoreApplication>
+#include <QGuiApplication>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QTemporaryDir>
 #include <QFile>
 #include <QDir>
+#include <QSet>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
 
 using namespace egret;
+
+/** @brief 验证代码编辑器组件与语法高亮。 */
+void testCodeEditor();
 
 /** @brief 在 Release 构建中也保留断言。 */
 static void require(bool condition, const char* message)
@@ -46,12 +51,56 @@ static void testSceneSettings()
     require(output.commands().empty(),"条件取反或组合编译错误");
 }
 
+/** @brief 验证全部预设叠加、约束引用、地面尺寸与撤销重做。 */
+static void testPresets()
+{
+    EditorManager editor;
+    const auto initialSettings = editor.sceneSettings();
+    require(editor.availablePresets().size() == 7, "预设清单不完整");
+    require(editor.addPreset("large_ground_plane"), "大型地平面添加失败");
+    const auto* ground = editor.getModelAtIndex(0);
+    require(ground->mass() == 0 && ground->pos() == QVector3D(0, 0, -5), "地面质量或中心错误");
+    require(ground->boxSize() == QVector3D(10000, 10000, 10), "地面尺寸错误");
+    for (const auto& entry : editor.availablePresets()) {
+        const QString id = entry.toMap()["id"].toString();
+        for (int repeat = 0; repeat < 2; ++repeat) {
+            const auto before = editor.toJsonString(false);
+            const auto count = editor.count();
+            require(editor.addPreset(id) && editor.count() > count, "预设未叠加");
+            const auto after = editor.toJsonString(false);
+            const QStringList ids = editor.modelIds();
+            require(QSet<QString>(ids.begin(), ids.end()).size() == ids.size(), "叠加后 ID 重复");
+            QSet<QString> addedIds;
+            for (qsizetype i = count; i < editor.count(); ++i)
+                addedIds.insert(editor.getModelAtIndex(i)->id());
+            for (qsizetype i = count; i < editor.count(); ++i) {
+                const auto* model = editor.getModelAtIndex(i);
+                bool numeric = false;
+                model->id().toULongLong(&numeric);
+                require(numeric, "预设 ID 不是有效数字");
+                for (const auto& target : model->payload()["entity_ids"].toArray()) {
+                    require(addedIds.contains(target.toString()), "约束错误绑定到原场景或其它预设");
+                }
+            }
+            require(editor.undo() && editor.toJsonString(false) == before, "预设无法一次撤销");
+            require(editor.redo() && editor.toJsonString(false) == after, "预设无法重做");
+        }
+    }
+    require(editor.sceneSettings() == initialSettings, "添加预设覆盖了控制程序或场景设置");
+    EditorManager loaded;
+    require(loaded.fromJsonString(editor.toJsonString(false)) && loaded.count() == editor.count(), "预设场景保存加载失败");
+}
+
 /** @brief 验证旧场景加载、新摩擦参数保存、同名修改和变换历史。 */
 int main(int argc, char** argv)
 {
-    QCoreApplication app(argc, argv);
+    qputenv("QT_QPA_PLATFORM", "offscreen");
+    qputenv("QT_QUICK_BACKEND", "software");
+    QGuiApplication app(argc, argv);
     try {
         testSceneSettings();
+        testPresets();
+        testCodeEditor();
         EditorManager editor;
         const QString source = QStringLiteral(R"({"models":[{"id":"1","name":"相同","category":0,"type":1,"mass":1,"static_friction":0.9,"dynamic_friction":0.4,"rotation_enabled":false,"constant_force":[26,0,0],"materials":{"baseColor":"#ff123456"}},{"id":"2","name":"相同","category":0,"type":1,"mass":1}]})");
         require(editor.fromJsonString(source), "场景加载失败");

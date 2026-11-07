@@ -1,0 +1,28 @@
+{
+    "_documentation": "@file friction_ground.epscene @brief 预设场景：摩擦地面。尺寸 400 x 400 x 2 的静态盒体（质量 0），顶面位于 z = 0；静摩擦系数 0.8、动摩擦系数 0.6，用于演示摩擦、斜面滑动与静摩擦阈值。与标准重力场叠加后即可使用。",
+    "models": [
+        {
+            "category": 0,
+            "type": 1,
+            "id": "1",
+            "name": "摩擦地面",
+            "pos": [0, 0, -1],
+            "initial_velocity": [0, 0, 0],
+            "initial_angular_velocity": [0, 0, 0],
+            "rotation": [1, 0, 0, 0],
+            "scale": [1, 1, 1],
+            "mass": 0,
+            "restitution": 0.2,
+            "static_friction": 0.8,
+            "dynamic_friction": 0.6,
+            "box_size": [400, 400, 2],
+            "visible": true,
+            "materials": {
+                "baseColor": "#6F8FB8",
+                "metalness": 0.05,
+                "roughness": 0.95,
+                "alphaMode": "Opaque"
+            }
+        }
+    ]
+}

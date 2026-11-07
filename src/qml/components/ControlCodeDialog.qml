@@ -2,10 +2,13 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Controls.Basic as Basic
 import EditorManager 1.0
 import "qrc:/components/components/theme"
+import "qrc:/components/components/basic"
+import "qrc:/components/components/editor"
 
-Dialog {
+Basic.Dialog {
     id: root
     parent: Overlay.overlay
     anchors.centerIn: parent
@@ -25,6 +28,16 @@ Dialog {
     palette.highlight: theme.accent
     palette.highlightedText: "#ffffff"
     DeepBlueTheme {id: theme}
+    /** @brief 与应用主题一致且支持键盘操作的按钮。 */
+    component ActionButton: Basic.Button {
+        id: control
+        implicitHeight: 32
+        implicitWidth: Math.max(60, implicitContentWidth + 24)
+        padding: 8
+        opacity: enabled ? 1 : 0.45
+        contentItem: Text {text: control.text;color: theme.textPrimary;font.pixelSize: 12;horizontalAlignment: Text.AlignHCenter;verticalAlignment: Text.AlignVCenter}
+        background: Rectangle {radius: 6;color: control.down ? theme.accentSoft : (control.hovered ? theme.bg2 : theme.bg1);border.color: control.visualFocus || control.hovered ? theme.accent : theme.border}
+    }
     property var programs: []
     property int selected: -1
     property var objects: []
@@ -80,75 +93,89 @@ Dialog {
                 Layout.preferredWidth: 180;Layout.fillHeight: true
                 ListView {
                     Layout.fillWidth: true;Layout.fillHeight: true;clip: true;model: root.programs;spacing: 5
-                    delegate: ItemDelegate {
+                    delegate: Basic.ItemDelegate {
                         required property int index
                         required property var modelData
                         width: ListView.view.width
                         text: (modelData.enabled === false ? "○ " : "● ") + modelData.name
                         highlighted: root.selected === index
+                        contentItem: Text {text: parent.text;color: theme.textPrimary;font.pixelSize: 13;elide: Text.ElideRight;verticalAlignment: Text.AlignVCenter}
+                        background: Rectangle {radius: 6;color: parent.highlighted ? theme.accentSoft : (parent.hovered ? theme.bg2 : theme.bg0);border.color: parent.highlighted ? theme.accent : theme.border}
                         onClicked: root.selected = index
                     }
                 }
-                RowLayout {Button {text: "添加";enabled: root.programs.length < 32;onClicked: root.add()} Button {text: "删除";enabled: root.programs.length > 1;onClicked: root.remove()}}
-                RowLayout {Button {text: "上移";onClicked: root.move(-1)} Button {text: "下移";onClicked: root.move(1)}}
+                RowLayout {ActionButton {text: "添加";enabled: root.programs.length < 32;onClicked: root.add()} ActionButton {text: "删除";enabled: root.programs.length > 1;onClicked: root.remove()}}
+                RowLayout {ActionButton {text: "上移";onClicked: root.move(-1)} ActionButton {text: "下移";onClicked: root.move(1)}}
             }
             ColumnLayout {
                 Layout.fillWidth: true;Layout.fillHeight: true;enabled: root.current !== null
                 RowLayout {
-                    TextField {Layout.fillWidth: true;text: root.current ? root.current.name : "";placeholderText: "程序名称";onTextEdited: root.change("name", text)}
-                    CheckBox {text: "启用";checked: root.current ? root.current.enabled !== false : false;onClicked: root.change("enabled", checked)}
+                    EgretTextField {Layout.fillWidth: true;text: root.current ? root.current.name : "";placeholderText: "程序名称";onTextEdited: root.change("name", text)}
+                    EgretCheckBox {text: "启用";checked: root.current ? root.current.enabled !== false : false;onClicked: root.change("enabled", checked)}
                 }
                 RowLayout {
                     Label {text: "周期（秒，0 为每步）";color: theme.textSecondary}
-                    TextField {Layout.preferredWidth: 90;text: root.current ? String(root.current.period || 0) : "0";validator: DoubleValidator {bottom: 0}onTextEdited: root.change("period", Number(text))}
+                    EgretTextField {Layout.preferredWidth: 90;text: root.current ? String(root.current.period || 0) : "0";validator: DoubleValidator {bottom: 0}onTextEdited: root.change("period", Number(text))}
                     Label {text: "开始时间";color: theme.textSecondary}
-                    TextField {Layout.preferredWidth: 90;text: root.current ? String(root.current.start || 0) : "0";validator: DoubleValidator {bottom: 0}onTextEdited: root.change("start", Number(text))}
+                    EgretTextField {Layout.preferredWidth: 90;text: root.current ? String(root.current.start || 0) : "0";validator: DoubleValidator {bottom: 0}onTextEdited: root.change("start", Number(text))}
                     Label {text: "结束时间（空为持续）";color: theme.textSecondary}
-                    TextField {Layout.preferredWidth: 90;text: root.current && root.current.end !== undefined ? String(root.current.end) : "";validator: DoubleValidator {bottom: 0}onTextEdited: {if (text.trim() === "" && root.current) {delete root.current.end;root.revision++}else root.change("end", Number(text))}}
+                    EgretTextField {Layout.preferredWidth: 90;text: root.current && root.current.end !== undefined ? String(root.current.end) : "";validator: DoubleValidator {bottom: 0}onTextEdited: {if (text.trim() === "" && root.current) {delete root.current.end;root.revision++}else root.change("end", Number(text))}}
                 }
                 Label {Layout.fillWidth: true;wrapMode: Text.Wrap;color: theme.textSecondary;text: "到达结束时间只停止回调，已设置的持久力仍保持；请在代码中显式归零。对象同时可用作克隆模板。"}
                 RowLayout {
-                    TextField {id: aliasInput;Layout.preferredWidth: 150;placeholderText: "英文别名，如 board"}
-                    ComboBox {id: objectInput;Layout.fillWidth: true;model: root.objects;textRole: "label";currentIndex: root.objects.length ? 0 : -1}
-                    Button {text: "绑定对象";onClicked: root.bind()}
-                    Button {text: "插入示例";enabled: root.aliases.length > 0;onClicked: {
+                    EgretTextField {id: aliasInput;Layout.preferredWidth: 150;placeholderText: "英文别名，如 board"}
+                    EgretComboBox {id: objectInput;Layout.fillWidth: true;model: root.objects;textRole: "label";currentIndex: root.objects.length ? 0 : -1}
+                    ActionButton {text: "绑定对象";onClicked: root.bind()}
+                    ActionButton {text: "插入示例";enabled: root.aliases.length > 0;onClicked: {
                         var alias = root.aliases[0]
                         root.change("source", "/** @brief 1 秒开始施力，3 秒结束。 */\nvoid on_step(void)\n{\n    Entity body = scene_entity(\"" + alias + "\");\n    if (simulation_time() >= 1.0 && !state_bool(\"started\")) {\n        entity_set_force(body, vector3(26.0, 0.0, 0.0));\n        state_set_bool(\"started\", true);\n    }\n    if (simulation_time() >= 3.0 && !state_bool(\"ended\")) {\n        entity_set_force(body, vector3(0.0, 0.0, 0.0));\n        state_set_bool(\"ended\", true);\n    }\n}\n")
                     }}
                 }
                 Flow {
                     Layout.fillWidth: true;Layout.preferredHeight: Math.min(90, implicitHeight);spacing: 5
-                    Repeater {model: root.aliases;delegate: Button {required property string modelData;text: modelData + " → " + root.current.bindings[modelData] + " ×";onClicked: root.unbind(modelData)}}
+                    Repeater {model: root.aliases;delegate: ActionButton {required property string modelData;text: modelData + " → " + root.current.bindings[modelData] + " ×";onClicked: root.unbind(modelData)}}
                 }
                 RowLayout {
-                    TextField {id: parameterInput;Layout.preferredWidth: 150;placeholderText: "参数名，如 gain"}
-                    TextField {id: parameterValue;Layout.preferredWidth: 120;placeholderText: "数值";validator: DoubleValidator {}}
-                    Button {text: "设置参数";onClicked: root.parameter()}
+                    EgretTextField {id: parameterInput;Layout.preferredWidth: 150;placeholderText: "参数名，如 gain"}
+                    EgretTextField {id: parameterValue;Layout.preferredWidth: 120;placeholderText: "数值";validator: DoubleValidator {}}
+                    ActionButton {text: "设置参数";onClicked: root.parameter()}
                     Label {text: "parameter_number(\"gain\")";color: theme.textSecondary}
                 }
-                Flow {Layout.fillWidth: true;Layout.preferredHeight: Math.min(70, implicitHeight);spacing: 5;Repeater {model: root.parameterNames;delegate: Button {required property string modelData;text: modelData + " = " + root.current.parameters[modelData] + " ×";onClicked: root.removeParameter(modelData)}}}
-                ScrollView {
-                    Layout.fillWidth: true;Layout.fillHeight: true;clip: true
-                    TextArea {
-                        id: code
-                        text: {var revision = root.revision;return root.current ? root.current.source : ""}
-                        font.family: "Consolas";font.pixelSize: 14
-                        color: theme.textPrimary;selectionColor: theme.accent;wrapMode: TextEdit.NoWrap;selectByMouse: true
-                        background: Rectangle {color: theme.bg0;border.color: theme.border;radius: 6}
-                        onTextChanged: {if (activeFocus && root.current) root.current.source = text}
+                Flow {Layout.fillWidth: true;Layout.preferredHeight: Math.min(70, implicitHeight);spacing: 5;Repeater {model: root.parameterNames;delegate: ActionButton {required property string modelData;text: modelData + " = " + root.current.parameters[modelData] + " ×";onClicked: root.removeParameter(modelData)}}}
+                RowLayout {
+                    Label {text: "C 源码";color: theme.textPrimary}
+                    Item {Layout.fillWidth: true}
+                    Label {text: "字体";color: theme.textSecondary}
+                    EgretComboBox {
+                        Layout.preferredWidth: 200
+                        model: CodeEditorSettings.fontFamilies
+                        currentIndex: Math.max(0, model.indexOf(CodeEditorSettings.fontFamily))
+                        onActivated: CodeEditorSettings.fontFamily = currentText
                     }
+                    Label {text: "字号";color: theme.textSecondary}
+                    ActionButton {text: "−";implicitWidth: 32;enabled: CodeEditorSettings.fontSize > CodeEditorSettings.minimumFontSize;onClicked: CodeEditorSettings.fontSize--}
+                    Label {text: CodeEditorSettings.fontSize + " px";color: theme.textPrimary}
+                    ActionButton {text: "+";implicitWidth: 32;enabled: CodeEditorSettings.fontSize < CodeEditorSettings.maximumFontSize;onClicked: CodeEditorSettings.fontSize++}
+                    ActionButton {text: "默认";onClicked: CodeEditorSettings.resetToDefaults()}
+                }
+                CodeEditor {
+                    id: codeEditor
+                    objectName: "codeEditor"
+                    Layout.fillWidth: true;Layout.fillHeight: true;Layout.minimumHeight: 130
+                    source: {var revision = root.revision;return root.current ? root.current.source : ""}
+                    onEdited: function(value) {if (root.current) root.current.source = value}
                 }
                 Label {Layout.fillWidth: true;wrapMode: Text.Wrap;color: theme.textSecondary;text: "常用接口：scene_entity / scene_template / scene_spawn / entity_destroy / entity_position / entity_set_velocity / entity_set_force / state_number / state_entity / control_delta。仅定义 void on_step(void)，可使用变量、函数、循环和具名状态。"}
             }
         }
-        Label {Layout.fillWidth: true;color: "#ff9a85";text: root.errorText;visible: text.length > 0;wrapMode: Text.Wrap}
-        ScrollView {Layout.fillWidth: true;Layout.preferredHeight: 86;clip: true;TextArea {text: EditorManager.controlDiagnostics;readOnly: true;wrapMode: TextEdit.Wrap;color: theme.textSecondary;font.family: "Consolas";font.pixelSize: 12}}
+        Label {Layout.fillWidth: true;color: theme.danger;text: root.errorText;visible: text.length > 0;wrapMode: Text.Wrap}
+        ScrollView {Layout.fillWidth: true;Layout.preferredHeight: 86;clip: true;Basic.TextArea {text: EditorManager.controlDiagnostics;readOnly: true;selectByMouse: true;wrapMode: TextEdit.Wrap;color: theme.textSecondary;selectionColor: theme.accentSoft;font.family: CodeEditorSettings.fontFamily;font.pixelSize: 12;background: Rectangle {color: theme.bg0;radius: 6;border.color: theme.border}}}
         RowLayout {
-            Button {text: EditorManager.controlValidationRunning ? "正在检查…" : "检查当前草稿";enabled: !EditorManager.controlValidationRunning;onClicked: EditorManager.validateControlPrograms(root.clone(root.programs))}
+            ActionButton {text: EditorManager.controlValidationRunning ? "正在检查…" : "检查当前草稿";enabled: !EditorManager.controlValidationRunning;onClicked: EditorManager.validateControlPrograms(root.clone(root.programs))}
             BusyIndicator {running: EditorManager.controlValidationRunning;visible: running;Layout.preferredWidth: 28;Layout.preferredHeight: 28}
             Item {Layout.fillWidth: true}
-            Button {text: "取消";onClicked: root.close()}
-            Button {text: "保存全部程序";onClicked: root.save()}
+            ActionButton {text: "取消";onClicked: root.close()}
+            ActionButton {text: "保存全部程序";onClicked: root.save()}
         }
     }
 }
