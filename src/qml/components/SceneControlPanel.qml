@@ -8,6 +8,9 @@ import "qrc:/components/components/basic"
 
 ColumnLayout {
     id: root
+    readonly property bool dialogVisible: codeDialog.visible || ruleDialog.visible
+    /** @brief 公开代码编辑器入口，供主菜单复用。 */
+    function editCode() { codeDialog.begin() }
     DeepBlueTheme { id: theme }
     spacing: 8
 

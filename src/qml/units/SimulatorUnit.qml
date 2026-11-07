@@ -36,6 +36,8 @@ ColumnLayout {
 
     property bool dataStreamVisible: true
     property bool infoPanelVisible: true
+    /** @brief 从主菜单恢复实时场景取景。 */
+    function fitView() { canvas3d.fitScene(false) }
     property var theme
     property alias coordinateSystem: canvas3d.coordinateSystem
 

@@ -58,6 +58,8 @@ namespace egret
         Q_PROPERTY(QVariantMap sceneSettings READ sceneSettings NOTIFY sceneSettingsChanged)
         Q_PROPERTY(QString controlDiagnostics READ controlDiagnostics NOTIFY controlDiagnosticsChanged)
         Q_PROPERTY(bool controlValidationRunning READ controlValidationRunning NOTIFY controlDiagnosticsChanged)
+        Q_PROPERTY(bool canUndo READ canUndo NOTIFY historyChanged)
+        Q_PROPERTY(bool canRedo READ canRedo NOTIFY historyChanged)
 
     public:
         explicit EditorManager(QObject *parent = nullptr);
@@ -169,6 +171,10 @@ namespace egret
         Q_INVOKABLE bool undo();
 
         Q_INVOKABLE bool redo();
+        /** @brief 当前标签是否存在可撤销的操作。 */
+        [[nodiscard]] bool canUndo() const { return !m_undoStack.isEmpty(); }
+        /** @brief 当前标签是否存在可重做的操作。 */
+        [[nodiscard]] bool canRedo() const { return !m_redoStack.isEmpty(); }
 
         // ---- 预设场景 ----
 
@@ -194,6 +200,8 @@ namespace egret
         Q_INVOKABLE bool addPreset(const QString &presetId);
 
     signals:
+        /** @brief 当前标签的撤销或重做状态变化。 */
+        void historyChanged();
         /** @brief 后台检查状态或诊断内容更新。 */
         void controlDiagnosticsChanged();
         /** @brief 当前场景设置或标签已切换。 */

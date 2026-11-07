@@ -81,6 +81,64 @@ static void testCIndent() {
     check(edit.property("text").toString() == "\n        \n    ", "替换选中文本时丢失代码块缩进");
 }
 
+/** @brief 验证真实菜单的多层路径、禁用传播、键盘索引与窗口边界。 */
+static void testMenus(QQmlEngine& engine) {
+    QQmlComponent component(&engine);
+    component.setData(R"QML(
+        import QtQuick
+        import QtQuick.Controls.Basic
+        import "qrc:/components/components"
+        ApplicationWindow {
+            id: host
+            width: 900; height: 650; visible: true
+            property int hits: 0
+            property bool closedBeforeAction: false
+            EditorSettingsDialog {id: settings}
+            ShortcutHelpDialog {id: help}
+            Popup {id: anchorPopup; x: 20; y: 20; width: 180; padding: 8}
+            EgretMenuBar {
+                id: bar
+                width: parent.width
+                menus: [{title: "测试(&T)", items: [
+                    {text: "顶层", shortcut: "Ctrl+K", onTriggered: function() {host.hits++}},
+                    {text: "分组", submenu: [
+                        {text: "一级", shortcut: "Ctrl+Alt+K", onTriggered: function() {host.hits++;host.closedBeforeAction = bar.openIndex === -1}},
+                        {separator: true},
+                        {text: "禁用项", enabled: false},
+                        {text: "深层分组", submenu: [{text: "二级", shortcut: "Ctrl+Shift+K", onTriggered: function() {host.hits++}}]}
+                    ]},
+                    {text: "禁用分组", enabled: false, submenu: [{text: "不可用", shortcut: "Ctrl+Alt+J", onTriggered: function() {host.hits += 100}}]}
+                ]}]
+            }
+            /** @brief 对菜单执行真实调用并返回断言结果。 */
+            function verify() {
+                var flat = bar.shortcutItems
+                if (flat.length !== 4 || flat[1].path.join() !== "0,1" || flat[2].path.join() !== "0,1,3" || flat[3].enabled) throw new Error("快捷键路径错误：" + JSON.stringify(flat))
+                bar.openMenu(0)
+                bar.openSubMenu(anchorPopup, anchorPopup, 1, bar.menus[0].items, 0, [0])
+                var popup = bar.subMenuPopups[0]
+                if (popup.nextEnabledIndex(0, 1) !== 3 || popup.x < 0 || popup.y < 0 || popup.y + popup.height > host.height) throw new Error("子菜单索引或边界错误：" + [popup.nextEnabledIndex(0, 1), popup.x, popup.y, popup.height])
+                bar.closeMenu()
+                bar.openMenu(0)
+                bar.openSubMenu(anchorPopup, anchorPopup, 1, bar.menus[0].items, 0, [0])
+                if (bar.subMenuPopups[0] !== popup) throw new Error("子菜单没有回收到复用池")
+                bar.triggerMenuItem(0, 0, [0, 1])
+                bar.triggerMenuItem(0, 0, [0, 1, 3])
+                bar.triggerMenuItem(0, 0, [0, 2])
+                if (host.hits !== 2 || !host.closedBeforeAction) throw new Error("触发结果错误：" + [host.hits, host.closedBeforeAction])
+                return true
+            }
+        }
+    )QML", QUrl("qrc:/tests/menu_smoke.qml"));
+    std::unique_ptr<QObject> host(component.create());
+    if (!host) throw std::runtime_error(component.errorString().toStdString());
+    QCoreApplication::processEvents();
+    const auto result = engine.newQObject(host.get()).property("verify").call();
+    if (result.isError() || !result.toBool())
+        throw std::runtime_error((QStringLiteral("菜单回归失败：") + result.toString()).toStdString());
+    QCoreApplication::processEvents();
+}
+
 /** @brief 验证语法高亮和实际控制窗口在离屏环境中创建成功。 */
 void testCodeEditor() {
     using namespace egret;
@@ -114,6 +172,7 @@ void testCodeEditor() {
     QObject::connect(&engine, &QQmlEngine::warnings, &engine, [&warnings](const QList<QQmlError>& errors) {
         for (const auto& error : errors) warnings.append(error.toString());
     });
+    testMenus(engine);
     QQmlComponent component(&engine);
     component.setData(R"(
         import QtQuick

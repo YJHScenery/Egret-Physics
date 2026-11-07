@@ -16,13 +16,21 @@
 
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import QtQuick.Controls.Basic 2.15 as Basic
 import QtQuick.Layouts 1.15
+import QtQuick.Window 2.15
 import QtQuick.Effects
 
 Rectangle {
     id: root
 
     property var menus: []
+    /** @brief 模态窗口打开时禁用主窗口菜单快捷键。 */
+    property bool shortcutsEnabled: true
+    /** @brief 文本输入获得焦点时，实体编辑快捷键让位于原生文本操作。 */
+    property bool textInputActive: false
+    /** @brief 打开菜单前的焦点对象，用于识别编辑上下文。 */
+    property var focusBeforeMenu: null
 
     property int barHeight: 34
     property int itemPadding: 10
@@ -146,7 +154,13 @@ Rectangle {
     }
 
     Component.onCompleted: rebuildShortcuts()
-    onMenusChanged: rebuildShortcuts()
+    onMenusChanged: {
+        rebuildShortcuts()
+        if (openIndex >= 0 && menus[openIndex]) {
+            menuPopup.menuItems = menus[openIndex].items || []
+            if (subMenuPopups.length > 0) closeAllSubMenus()
+        }
+    }
 
     function escapeHtml(text) {
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -231,20 +245,26 @@ Rectangle {
         menuMnemonicItems = mnemonicShortcuts;
     }
 
-    function collectShortcutItems(items, menuIndex, flat) {
+    /** @brief 遍历全部层级的快捷键，同时保存祖先路径与禁用状态。 */
+    function collectShortcutItems(items, menuIndex, flat, path, parentEnabled) {
+        path = path || [menuIndex]
+        parentEnabled = parentEnabled !== false
         for (var j = 0; j < items.length; j++) {
             var item = items[j];
-            if (!item || item.separator || !item.shortcut) {
+            if (!item || item.separator) {
                 continue;
             }
-            flat.push({
+            var itemEnabled = parentEnabled && item.enabled !== false
+            if (item.shortcut) flat.push({
                 menuIndex: menuIndex,
                 itemIndex: j,
+                path: path,
                 shortcut: item.shortcut,
-                enabled: item.enabled !== false
+                editing: item.editing === true,
+                enabled: itemEnabled
             });
             if (item.submenu && item.submenu.length > 0) {
-                collectShortcutItems(item.submenu, menuIndex, flat);
+                collectShortcutItems(item.submenu, menuIndex, flat, path.concat([j]), itemEnabled);
             }
         }
     }
@@ -253,6 +273,7 @@ Rectangle {
         if (index < 0 || index >= menus.length) {
             return;
         }
+        if (openIndex < 0 && root.Window.window) focusBeforeMenu = root.Window.window.activeFocusItem
         closeAllSubMenus();
         openIndex = index;
         mnemonicsVisible = true;
@@ -272,6 +293,7 @@ Rectangle {
     }
 
     function closeMenu() {
+        cancelAllCloseTimers();
         closeAllSubMenus();
         menuPopup.close();
         openIndex = -1;
@@ -280,15 +302,8 @@ Rectangle {
     }
 
     function closeAllSubMenus() {
-        for (var i = subMenuPopups.length - 1; i >= 0; i--) {
-            if (subMenuPopups[i] && subMenuPopups[i].visible) {
-                var popup = subMenuPopups[i];
-                var path = popup.subMenuPath;
-                submenuClosed(popup.menuIndex, path);
-                popup.close();
-            }
-        }
-        subMenuPopups = [];
+        cancelAllCloseTimers();
+        while (subMenuPopups.length > 0) closeSubMenu(subMenuPopups[subMenuPopups.length - 1]);
         activeSubMenuIndex = [];
     }
 
@@ -302,12 +317,13 @@ Rectangle {
         var item;
         if (path && path.length > 1) {
             menu = menus[path[0]];
+            if (!menu) return;
             var items = menu.items;
             for (var p = 1; p < path.length; p++) {
                 var idx = path[p];
-                if (items[idx] && items[idx].submenu) {
+                if (items[idx] && items[idx].enabled !== false && items[idx].submenu) {
                     items = items[idx].submenu;
-                }
+                } else return;
             }
             menu = {
                 items: items
@@ -325,7 +341,7 @@ Rectangle {
         }
 
         if (item.checkable === true) {
-            var newChecked = !item.checked;
+            var newChecked = item.actionGroup ? true : !item.checked;
             item.checked = newChecked;
 
             if (item.actionGroup) {
@@ -341,11 +357,11 @@ Rectangle {
             checkedChanged(menuIndex, itemIndex, newChecked);
         }
 
+        closeMenu();
         if (item.onTriggered) {
             item.onTriggered();
         }
         menuTriggered(menuIndex, itemIndex, item.id || "");
-        closeMenu();
     }
 
     function hasSubMenu(item) {
@@ -390,6 +406,7 @@ Rectangle {
         var subMenuPopup = subMenuPool.acquire();
         if (!subMenuPopup) {
             subMenuPopup = subMenuComponent.createObject(root);
+            subMenuPool.used.push(subMenuPopup);
         }
 
         subMenuPopup.menuIndex = menuIndex;
@@ -400,10 +417,13 @@ Rectangle {
         subMenuPopup.highlightedIndex = subMenuPopup.firstEnabledIndex();
 
         var parentX = parentPopup.x + parentPopup.width;
-        var parentY = parentPopup.y + itemIndex * root.subMenuItemHeight;
+        var rowOffset = parentPopup.topPadding;
+        for (var rowIndex = 0; rowIndex < itemIndex; ++rowIndex)
+            rowOffset += items[rowIndex].separator ? 8 : root.subMenuItemHeight;
+        var parentY = parentPopup.y + rowOffset;
 
         var screenWidth = root.width;
-        var screenHeight = root.height;
+        var screenHeight = root.Window.window ? root.Window.window.height - root.mapToItem(root.Window.window.contentItem, 0, 0).y : root.height;
 
         var subMenuWidth = Math.max(root.menuMinWidth, calculateSubMenuWidth(subMenuItems));
         var subMenuHeight = Math.min(subMenuItems.length * root.subMenuItemHeight, root.subMenuScrollHeight);
@@ -426,14 +446,11 @@ Rectangle {
         if (openRight) {
             subMenuPopup.x = parentX;
         } else {
-            subMenuPopup.x = parentPopup.x - subMenuWidth;
+            subMenuPopup.x = Math.max(0, parentPopup.x - subMenuWidth);
         }
 
-        if (openUp) {
-            subMenuPopup.y = Math.max(0, adjustedY);
-        } else {
-            subMenuPopup.y = Math.max(0, parentY);
-        }
+        subMenuPopup.y = Math.max(0, Math.min(openUp ? adjustedY : parentY,
+            screenHeight - subMenuHeight - 2 * root.subMenuPadding));
 
         subMenuPopups.push(subMenuPopup);
         activeSubMenuIndex = subMenuPath;
@@ -499,6 +516,7 @@ Rectangle {
         }
         popup.close();
         activeSubMenuIndex = popup.parentMenu ? popup.parentMenu.subMenuPath : [];
+        subMenuPool.release(popup);
     }
 
     function closeSubMenuByPath(path) {
@@ -545,8 +563,10 @@ Rectangle {
     Component {
         id: subMenuComponent
 
-        Popup {
+        Basic.Popup {
             id: subMenuPopup
+            width: popupWidth + 2 * root.subMenuPadding
+            height: subMenuHeight + 2 * root.subMenuPadding
 
             property int menuIndex: -1
             property var menuItems: []
@@ -604,7 +624,7 @@ Rectangle {
                     }
                     var item = menuItems[index];
                     if (item && !item.separator && item.enabled !== false) {
-                        return i;
+                        return index;
                     }
                 }
                 return startIndex;
@@ -1014,8 +1034,10 @@ Rectangle {
         }
     }
 
-    Popup {
+    Basic.Popup {
         id: menuPopup
+        width: popupWidth + 2 * root.menuPadding
+        height: Math.min(menuList.contentHeight, root.subMenuScrollHeight) + 2 * root.menuPadding
 
         property int menuIndex: -1
         property var menuItems: []
@@ -1378,9 +1400,9 @@ Rectangle {
 
         delegate: Shortcut {
             sequence: modelData.shortcut
-            enabled: modelData.enabled
-            context: Qt.ApplicationShortcut
-            onActivated: root.triggerMenuItem(modelData.menuIndex, modelData.itemIndex)
+            enabled: root.shortcutsEnabled && modelData.enabled && (!modelData.editing || !root.textInputActive)
+            context: Qt.WindowShortcut
+            onActivated: root.triggerMenuItem(modelData.menuIndex, modelData.itemIndex, modelData.path)
         }
     }
 
@@ -1389,7 +1411,8 @@ Rectangle {
 
         delegate: Shortcut {
             sequence: modelData.sequence
-            context: Qt.ApplicationShortcut
+            enabled: root.shortcutsEnabled
+            context: Qt.WindowShortcut
             onActivated: root.openMenu(modelData.menuIndex)
         }
     }

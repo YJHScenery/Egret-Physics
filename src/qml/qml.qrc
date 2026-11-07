@@ -22,6 +22,9 @@
         <file>components/SceneControlPanel.qml</file>
         <file>components/ControlCodeDialog.qml</file>
         <file>components/SceneCloseDialog.qml</file>
+        <file>components/EditorSettingsDialog.qml</file>
+        <file>components/MenuActionButton.qml</file>
+        <file>components/ShortcutHelpDialog.qml</file>
         <file>components/editor/CodeEditor.qml</file>
         <file>components/editor/CIndent.js</file>
         <file>components/presets/EgretPresetMenu.qml</file>

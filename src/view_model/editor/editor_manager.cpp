@@ -80,6 +80,7 @@ namespace egret
         m_sceneSettings=normalizeSceneSettings(document.settings);
         m_undoStack = document.undo;
         m_redoStack = document.redo;
+        emit historyChanged();
         m_models.clear();
         for (const auto& model : m_modelList) m_models.insert(model->id(), model);
         emitModelListChanged();
@@ -121,6 +122,7 @@ namespace egret
         const bool ok = fromJsonString(QString::fromUtf8(data));
         m_undoStack.clear();
         m_redoStack.clear();
+        emit historyChanged();
         m_switchingDocument = false;
         if (!ok) { closeDocument(m_currentDocument); return false; }
         m_documents[m_currentDocument].path = QFileInfo(localPath).absoluteFilePath();
@@ -155,7 +157,8 @@ namespace egret
         m_documents.removeAt(index);
         if (m_documents.isEmpty()) {
             Document document;
-            document.savedContent = QJsonDocument(QJsonObject{{"models",QJsonArray{}},{"scene_settings",QJsonObject{}}}).toJson(QJsonDocument::Compact);
+            document.settings = normalizeSceneSettings({});
+            document.savedContent = QJsonDocument(QJsonObject{{"models",QJsonArray{}},{"scene_settings",document.settings}}).toJson(QJsonDocument::Compact);
             m_documents.append(document);
         }
         if (wasCurrent) restoreDocument(qMin(index, int(m_documents.size()) - 1));
@@ -988,6 +991,7 @@ namespace egret
         }
         m_undoStack.append({currentState,m_sceneSettings});
         m_redoStack.clear();
+        emit historyChanged();
     }
 
     bool EditorManager::undo()
@@ -1021,6 +1025,7 @@ namespace egret
         emitModelListChanged();
 
         emit operationCompleted(true, "Undo successful");
+        emit historyChanged();
         return true;
     }
 
@@ -1054,6 +1059,7 @@ namespace egret
         emitModelListChanged();
 
         emit operationCompleted(true, "Redo successful");
+        emit historyChanged();
         return true;
     }
 

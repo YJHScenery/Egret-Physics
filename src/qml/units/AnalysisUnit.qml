@@ -37,6 +37,12 @@ ColumnLayout {
 
     /** 主题对象（由 MainWindow 注入）。 */
     property var theme
+    readonly property bool dialogVisible: openEpsxDialog.visible || exportXlsxDialog.visible || exportCsvDialog.visible
+    /** @brief 从主菜单导出已提取的分析数据。 */
+    function exportData(format) {
+        if (format === "xlsx") exportXlsxDialog.open()
+        else exportCsvDialog.open()
+    }
 
     /** 请求主窗口打开 epsx（与播放器工作区共享同一份文件）。 */
     signal epsxOpenRequested(string filePath)

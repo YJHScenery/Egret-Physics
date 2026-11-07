@@ -18,6 +18,15 @@ GlassPanel {
     property real solverStepMs: 0.5
     property int sampleMs: 10
     property real durationSeconds: 60
+    readonly property bool dialogVisible: saveSimulationFileDialog.visible
+    /** @brief 使用当前面板设置求解尚未保存的场景。 */
+    function startSolve() {
+        if (simulationExporter.running || EditorManager.count === 0) return
+        forceActiveFocus()
+        simulationExporter.start(EditorManager.toJsonString(false), durationSeconds, solverStepMs, sampleMs)
+    }
+    /** @brief 公开保存结果入口，菜单和面板共用同一对话框。 */
+    function saveResult() { saveSimulationFileDialog.open() }
 
     FileDialog {
         id: saveSimulationFileDialog
@@ -83,10 +92,7 @@ GlassPanel {
                 EgretPushButton {
                     text: simulationExporter.running ? "求解中…" : "开始求解"
                     enabled: !simulationExporter.running && EditorManager.count > 0
-                    onClicked: {
-                        forceActiveFocus();
-                        simulationExporter.start(EditorManager.toJsonString(false), root.durationSeconds, root.solverStepMs, root.sampleMs);
-                    }
+                    onClicked: root.startSolve()
                 }
                 EgretPushButton {
                     text: simulationExporter.cancelRequested ? "正在取消…" : "取消"

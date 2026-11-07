@@ -42,6 +42,59 @@ ApplicationWindow {
     DeepBlueTheme {
         id: theme
     }
+    readonly property bool editingText: isTextInput(mainMenu.openIndex >= 0 ? mainMenu.focusBeforeMenu : window.activeFocusItem)
+    readonly property bool entityEditEnabled: mainRowLayout.currentRoute === "solver" && !editingText
+    readonly property var activeCoordinates: mainRowLayout.currentRoute === "solver" ? editorUnit.coordinateSystem
+        : mainRowLayout.currentRoute === "player" ? playerUnit.coordinateSystem
+        : mainRowLayout.currentRoute === "scene" ? simulatorUnit.coordinateSystem : null
+    readonly property bool modalDialogOpen: closeDocumentDialog.visible || aboutDialog.visible || mainMsgDialog.visible
+        || editorSettingsDialog.visible || shortcutHelpDialog.visible || editorUnit.controlDialogVisible
+        || playerUnit.exportDialogVisible || openJsonFileDialog.visible || saveJsonFileDialog.visible || openEpsxFileDialog.visible
+        || (analysisUnitLoader.item !== null && analysisUnitLoader.item.dialogVisible)
+    property bool exitPending: false
+    property bool exitApproved: false
+
+    /** @brief 判断焦点是否属于可编辑文本，避免场景快捷键抢占文本操作。 */
+    function isTextInput(item) {
+        return !!item && typeof item.selectAll === "function" && typeof item.insert === "function"
+    }
+    /** @brief 根据工作区打开场景或 EPSX 文件。 */
+    function openWorkspaceFile() {
+        if (mainRowLayout.currentRoute === "player" || mainRowLayout.currentRoute === "analysis") openEpsxFileDialog.open()
+        else {openJsonFileDialog.mode = mainRowLayout.currentRoute === "solver" ? 1 : 0;openJsonFileDialog.open()}
+    }
+    /** @brief 当前工作区恢复完整取景或分析曲线范围。 */
+    function fitWorkspace() {
+        if (mainRowLayout.currentRoute === "solver") editorUnit.fitView(false)
+        else if (mainRowLayout.currentRoute === "player") playerUnit.fitView()
+        else if (mainRowLayout.currentRoute === "analysis" && analysisUnitLoader.item) analysisUnitLoader.item.resetChart()
+        else if (mainRowLayout.currentRoute === "scene") simulatorUnit.fitView()
+    }
+    /** @brief 开始退出流程，对所有未保存标签逐个询问。 */
+    function requestExit() {
+        if (exitPending) return
+        exitPending = true
+        continueExit()
+    }
+    /** @brief 保存或放弃一个标签后继续退出，取消则终止整个退出流程。 */
+    function continueExit() {
+        if (!exitPending) return
+        for (var i = 0; i < EditorManager.documents.length; ++i) {
+            if (EditorManager.documents[i].dirty) {requestCloseDocument(i);return}
+        }
+        simulationExporter.cancel()
+        videoExporter.cancel()
+        analysisSession.cancel()
+        sceneController.pause()
+        playerSceneController.pauseSimulation()
+        exitApproved = true
+        Qt.callLater(window.close)
+    }
+    onClosing: function(event) {
+        if (!exitApproved) {event.accepted = false;requestExit()}
+    }
+    EditorSettingsDialog {id: editorSettingsDialog}
+    ShortcutHelpDialog {id: shortcutHelpDialog}
 
     ListModel {
         id: workspaceRouteModel
@@ -116,8 +169,10 @@ ApplicationWindow {
         if (EditorManager.saveDocument()) {
             if (closeAfterSave >= 0) EditorManager.closeDocument(closeAfterSave);
             closeAfterSave = -1;
+            Qt.callLater(window.continueExit);
         } else {
             closeAfterSave = -1;
+            exitPending = false;
             mainMsgDialog.title = "保存失败";
             mainMsgDialog.text = "无法保存场景，请检查文件路径和权限。";
             mainMsgDialog.open();
@@ -151,7 +206,9 @@ ApplicationWindow {
             var wasCurrent = documentIndex === EditorManager.currentDocument;
             EditorManager.closeDocument(documentIndex);
             if (wasCurrent) editorUnit.resetInspector();
+            Qt.callLater(window.continueExit);
         }
+        onRejected: window.exitPending = false
     }
 
     FileDialog {
@@ -249,15 +306,17 @@ ApplicationWindow {
                         editorUnit.resetInspector();
                     }
                     window.closeAfterSave = -1;
+                    Qt.callLater(window.continueExit);
                 } else {
                     window.closeAfterSave = -1;
+                    window.exitPending = false;
                     mainMsgDialog.title = "保存失败";
                     mainMsgDialog.text = "无法保存场景，请检查文件路径和权限。";
                     mainMsgDialog.open();
                 }
             }
 
-            onRejected: { window.closeAfterSave = -1; }
+            onRejected: { window.closeAfterSave = -1; window.exitPending = false; }
         }
 
         EgretMessageDialog {
@@ -270,6 +329,10 @@ ApplicationWindow {
         }
 
         EgretMenuBar {
+            id: mainMenu
+            objectName: "mainMenu"
+            shortcutsEnabled: !window.modalDialogOpen
+            textInputActive: window.editingText
             Layout.fillWidth: true
             barHeight: 24
             barBackground: theme.panelStrong
@@ -287,264 +350,82 @@ ApplicationWindow {
             menuSeparatorColor: "#2C4E74"
 
             menus: [
-                {
-                    title: "文件(&F)",
-                    items: [
-                        {
-                            text: "新建(&N)",
-                            shortcut: "Ctrl+N",
-                            onTriggered: function () {
-                                mainRowLayout.currentRoute = "solver";
-                                EditorManager.newDocument();
-                                editorUnit.resetInspector();
-                            },
-                            icon: "qrc:/main_icons/assets/icons/new_scene.svg"
-                        },
-                        {
-                            text: "打开...(&O)",
-                            shortcut: "Ctrl+O",
-                            onTriggered: function () {
-                                console.log("Open scene");
-
-                                // 按「路由」而不是 Combo 索引分派：Combo 项一旦增减，
-                                // 索引就会错位（离线仿真曾被误派给编辑器）。
-                                switch (mainRowLayout.currentRoute){
-                                    case "player":
-                                    case "analysis":{
-                                        // 播放器与数据分析用 epsx，而不是场景 JSON
-                                        openEpsxFileDialog.open();
-                                        break;
-                                    }
-                                    case "solver":{
-                                        openJsonFileDialog.mode = 1;   // 场景编辑器
-                                        openJsonFileDialog.open();
-                                        break;
-                                    }default:{
-                                        openJsonFileDialog.mode = 0;   // 实时仿真（默认）
-                                        openJsonFileDialog.open();
-                                        break;
-                                    }
-                                }
-                            },
-                            icon: "qrc:/main_icons/assets/icons/open.svg"
-                        },
-                        {
-                            text: "保存(&S)",
-                            shortcut: "Ctrl+S",
-                            onTriggered: function () {
-                                if (mainRowLayout.currentRoute !== "solver"){
-                                    mainMsgDialog.title = "警告"
-                                    mainMsgDialog.text = "仿真器不支持保存文件！"
-                                    mainMsgDialog.open();
-                                    return;
-                                }
-
-                                window.saveEditorDocument(false);
-                            },
-                            icon: "qrc:/main_icons/assets/icons/save.svg"
-                        },
-                        {
-                            text: "另存为...(&A)",
-                            shortcut: "Ctrl+Shift+S",
-                            onTriggered: function () {
-                                if (mainRowLayout.currentRoute !== "solver"){
-                                    mainMsgDialog.title = "警告"
-                                    mainMsgDialog.text = "仿真器不支持保存文件！"
-                                    mainMsgDialog.open();
-                                    return;
-                                }
-
-                                window.saveEditorDocument(true);
-                            },
-                            icon: "qrc:/main_icons/assets/icons/save_as.svg"
-                        },
-                        {
-                            separator: true
-                        },
-                        {
-                            text: "导出",
-                            enabled: mainRowLayout.currentRoute === "player" && playerSceneController.simulationLoaded && !videoExporter.running,
-                            submenu: [
-                                {
-                                    text: "视频（.mp4）…",
-                                    enabled: mainRowLayout.currentRoute === "player" && playerSceneController.simulationLoaded && !videoExporter.running,
-                                    onTriggered: function () { playerUnit.showVideoExport(); }
-                                }
-                            ]
-                        },
-                        { separator: true },
-                        {
-                            text: "偏好设置(&P)",
-                            shortcut: "Ctrl+P",
-                            onTriggered: function () {
-                                console.log("Preference");
-                            },
-                            // icon: "qrc:/main_icons/assets/icons/settings.svg"
-                            icon: "qrc:/main_icons/assets/icons/settings.svg",
-                        },
-                        {
-                            separator: true
-                        },
-                        {
-                            text: "退出(&Q)",
-                            shortcut: "Alt+F4",
-                            onTriggered: function () {
-                                Qt.quit();
-                            },
-                            icon: "qrc:/main_icons/assets/icons/exit.svg"
-                        }
-
-                    ]
-                },
-                {
-                    title: "编辑(&E)",
-                    items: [
-                        {
-                            text: "撤销(&U)",
-                            shortcut: "Ctrl+Z",
-                            enabled: editorUnit.visible,
-                            icon: "qrc:/main_icons/assets/icons/undo.svg",
-                            onTriggered: function () {
-                                EditorManager.undo();
-                            }
-                        },
-                        {
-                            text: "恢复(&R)",
-                            shortcut: "Ctrl+Y",
-                            enabled: editorUnit.visible,
-                            icon: "qrc:/main_icons/assets/icons/recover.svg",
-                            onTriggered: function () {
-                                EditorManager.redo();
-                            }
-                        },
-                        {
-                            separator: true
-                        },
-                        {
-                            text: "剪切(&T)",
-                            shortcut: "Ctrl+X",
-                            enabled: editorUnit.visible,
-                            icon: "qrc:/main_icons/assets/icons/cut.svg",
-                            onTriggered: function () {
-                                editorUnit.cutSelectedEntities();
-                            }
-                        },
-                        {
-                            text: "复制(C)",
-                            shortcut: "Ctrl+C",
-                            enabled: editorUnit.visible,
-                            icon: "qrc:/main_icons/assets/icons/copy.svg",
-                            onTriggered: function () {
-                                editorUnit.copySelectedEntities();
-                            }
-                        },
-                        {
-                            text: "粘贴(P)",
-                            shortcut: "Ctrl+V",
-                            enabled: editorUnit.visible,
-                            icon: "qrc:/main_icons/assets/icons/paste.svg",
-                            onTriggered: function () {
-                                editorUnit.pasteEntitiesFromClipboard();
-                            }
-                        },
-                        {
-                            separator: true
-                        },
-                        {
-                            text: "删除(&D)",
-                            shortcut: "Delete",
-                            enabled: editorUnit.visible,
-                            icon: "qrc:/main_icons/assets/icons/delete.svg",
-                            onTriggered: function () {
-                                editorUnit.deleteSelectedEntities();
-                            }
-                        }
-                    ]
-                },
-                {
-                    title: "视图(&V)",
-                    items: [
-                        {
-                            separator: true
-                        },
-                        {
-                            text: "仿真器",
-                            icon: "qrc:/main_icons/assets/icons/simulator.svg",
-                            submenu: [
-                                {
-                                    text: "场景",
-                                    icon: "qrc:/main_icons/assets/icons/view.svg",
-                                    submenu: [
-                                        {
-                                            text: "网格(&G)",
-                                            shortcut: "Ctrl+G",
-                                            checkable: true,
-                                            checked: true,
-                                            onTriggered: function () {
-                                                console.log("Toggle grid");
-                                                simulatorUnit.coordinateSystem.gridOn(this.checked)
-                                            }
-                                        },
-                                        {
-                                            text: "坐标轴(&A)",
-                                            shortcut: "Ctrl+H",
-                                            checkable: true,
-                                            checked: true,
-                                            onTriggered: function () {
-                                                console.log("Toggle axes");
-                                                simulatorUnit.coordinateSystem.axisOn(this.checked)
-                                            }
-                                        }
-                                    ]
-                                },
-                                {
-                                    separator: true
-                                },
-                                {
-                                    text: "数据流(&D)",
-                                    shortcut: "Ctrl+Alt+D",
-                                    checkable: true,
-                                    checked: true,
-                                    onTriggered: function () {
-                                        console.log("数据流");
-                                        simulatorUnit.dataStreamVisible = this.checked === true
-                                    }
-                                },
-                                {
-                                    text: "控制台(&I)",
-                                    shortcut: "Ctrl+Alt+I",
-                                    checkable: true,
-                                    checked: true,
-                                    onTriggered: function () {
-                                        simulatorUnit.infoPanelVisible = this.checked === true
-                                    }
-                                }
-                            ]
-                        },
-
-                    ]
-                },
-                {
-                    title: "帮助(&H)",
-                    items: [
-                        {
-                            text: "关于(&A)",
-                            shortcut: "F1",
-                            onTriggered: function () {
-                                aboutDialog.open();
-                            },
-                            icon: "qrc:/main_icons/assets/icons/about.svg"
-                        },
-                        {
-                            text: "关于Qt(&Q)",
-                            shortcut: "Shift+Alt+Q",
-                            onTriggered: function () {
-                                qtHelper.showAboutQt();
-                            },
-                            icon: "qrc:/main_icons/assets/icons/qt_logo.png"
-                        }
-                    ]
-                }
+                {title: "文件(&F)", items: [
+                    {id: "newScene", icon: "qrc:/main_icons/assets/icons/new_scene.svg", text: "新建场景(&N)", shortcut: "Ctrl+N", onTriggered: function() {mainRowLayout.currentRoute = "solver";EditorManager.newDocument();editorUnit.resetInspector()}},
+                    {id: "openFile", icon: "qrc:/main_icons/assets/icons/open.svg", text: "打开…(&O)", shortcut: "Ctrl+O", onTriggered: function() {window.openWorkspaceFile()}},
+                    {separator: true},
+                    {id: "saveScene", icon: "qrc:/main_icons/assets/icons/save.svg", text: "保存场景(&S)", shortcut: "Ctrl+S", enabled: editorUnit.visible, onTriggered: function() {window.saveEditorDocument(false)}},
+                    {id: "saveSceneAs", icon: "qrc:/main_icons/assets/icons/save_as.svg", text: "场景另存为…(&A)", shortcut: "Ctrl+Shift+S", enabled: editorUnit.visible, onTriggered: function() {window.saveEditorDocument(true)}},
+                    {id: "closeDocument", text: "关闭当前场景(&C)", shortcut: "Ctrl+W", enabled: editorUnit.visible, onTriggered: function() {window.requestCloseDocument(EditorManager.currentDocument)}},
+                    {id: "closeResult", text: "关闭仿真文件", enabled: window.currentSimulationPath.length > 0 && (playerUnit.visible || analysisUnitLoader.visible) && !videoExporter.running && !analysisSession.busy, onTriggered: function() {window.closeEpsx()}},
+                    {separator: true},
+                    {text: "保存／导出结果", icon: "qrc:/main_icons/assets/icons/save_as.svg", enabled: (editorUnit.visible && simulationExporter.frameCount > 0 && !simulationExporter.running) || (playerUnit.visible && playerSceneController.simulationLoaded && !videoExporter.running) || (analysisUnitLoader.visible && analysisSession.sampleCount > 0 && !analysisSession.busy), submenu: [
+                        {id: "saveSolveResult", icon: "qrc:/main_icons/assets/icons/record_save.svg", text: "仿真结果（.epsx）…", enabled: editorUnit.visible && simulationExporter.frameCount > 0 && !simulationExporter.running, onTriggered: function() {editorUnit.saveSolveResult()}},
+                        {id: "exportVideo", icon: "qrc:/main_icons/assets/icons/record_save.svg", text: "视频（.mp4）…", enabled: playerUnit.visible && playerSceneController.simulationLoaded && !videoExporter.running, onTriggered: function() {playerUnit.showVideoExport()}},
+                        {id: "exportXlsx", icon: "qrc:/main_icons/assets/icons/save_as.svg", text: "分析数据（.xlsx）…", enabled: analysisUnitLoader.visible && analysisUnitLoader.item !== null && analysisSession.sampleCount > 0 && !analysisSession.busy, onTriggered: function() {analysisUnitLoader.item.exportData("xlsx")}},
+                        {id: "exportCsv", icon: "qrc:/main_icons/assets/icons/save_as.svg", text: "分析数据（.csv）…", enabled: analysisUnitLoader.visible && analysisUnitLoader.item !== null && analysisSession.sampleCount > 0 && !analysisSession.busy, onTriggered: function() {analysisUnitLoader.item.exportData("csv")}}
+                    ]},
+                    {separator: true},
+                    {id: "editorSettings", icon: "qrc:/main_icons/assets/icons/settings.svg", text: "编辑器设置…(&P)", shortcut: "Ctrl+,", onTriggered: function() {editorSettingsDialog.open()}},
+                    {id: "exit", icon: "qrc:/main_icons/assets/icons/exit.svg", text: "退出(&Q)", shortcut: "Alt+F4", onTriggered: function() {window.requestExit()}}
+                ]},
+                {title: "编辑(&E)", items: [
+                    {id: "undo", icon: "qrc:/main_icons/assets/icons/undo.svg", text: "撤销(&U)", shortcut: "Ctrl+Z", editing: true, enabled: window.entityEditEnabled && EditorManager.canUndo, onTriggered: function() {EditorManager.undo()}},
+                    {id: "redo", icon: "qrc:/main_icons/assets/icons/recover.svg", text: "重做(&R)", shortcut: "Ctrl+Y", editing: true, enabled: window.entityEditEnabled && EditorManager.canRedo, onTriggered: function() {EditorManager.redo()}},
+                    {separator: true},
+                    {id: "cut", icon: "qrc:/main_icons/assets/icons/cut.svg", text: "剪切(&T)", shortcut: "Ctrl+X", editing: true, enabled: window.entityEditEnabled && editorUnit.selectedCount > 0, onTriggered: function() {editorUnit.cutSelectedEntities()}},
+                    {id: "copy", icon: "qrc:/main_icons/assets/icons/copy.svg", text: "复制(&C)", shortcut: "Ctrl+C", editing: true, enabled: window.entityEditEnabled && editorUnit.selectedCount > 0, onTriggered: function() {editorUnit.copySelectedEntities()}},
+                    {id: "paste", icon: "qrc:/main_icons/assets/icons/paste.svg", text: "粘贴(&P)", shortcut: "Ctrl+V", editing: true, enabled: window.entityEditEnabled && ClipboardManager.hasContent, onTriggered: function() {editorUnit.pasteEntitiesFromClipboard()}},
+                    {id: "delete", icon: "qrc:/main_icons/assets/icons/delete.svg", text: "删除(&D)", shortcut: "Delete", editing: true, enabled: window.entityEditEnabled && editorUnit.selectedCount > 0, onTriggered: function() {editorUnit.deleteSelectedEntities()}},
+                    {separator: true},
+                    {id: "selectAll", text: "全选实体(&A)", shortcut: "Ctrl+A", editing: true, enabled: window.entityEditEnabled && EditorManager.count > 0, onTriggered: function() {editorUnit.selectAllEntities()}},
+                    {id: "clearSelection", text: "取消实体选择", enabled: window.entityEditEnabled && editorUnit.selectedCount > 0, onTriggered: function() {editorUnit.clearEntitySelection()}}
+                ]},
+                {title: "场景(&S)", items: [
+                    {id: "presets", icon: "qrc:/main_icons/assets/icons/new_scene.svg", text: "添加预设", enabled: editorUnit.visible, submenu: EditorManager.availablePresets().map(function(entry) {
+                        return {id: "preset_" + entry.id, text: entry.name, onTriggered: function() {EditorManager.addPreset(entry.id)}}
+                    })},
+                    {id: "controlCode", icon: "qrc:/main_icons/assets/icons/edit.svg", text: "C 控制程序…(&C)", shortcut: "Ctrl+Alt+C", enabled: editorUnit.visible, onTriggered: function() {editorUnit.editControlCode()}},
+                    {separator: true},
+                    {id: "propertiesPanel", icon: "qrc:/main_icons/assets/icons/edit.svg", text: "对象属性面板", enabled: editorUnit.visible, checkable: true, actionGroup: "editorTool", checked: editorUnit.rightTool === "properties", onTriggered: function() {editorUnit.rightTool = "properties"}},
+                    {id: "solverPanel", icon: "qrc:/main_icons/assets/icons/settings.svg", text: "求解设置面板", enabled: editorUnit.visible, checkable: true, actionGroup: "editorTool", checked: editorUnit.rightTool === "solver", onTriggered: function() {editorUnit.rightTool = "solver"}}
+                ]},
+                {title: "运行(&R)", items: [
+                    {id: "run", icon: "qrc:/main_icons/assets/icons/" + ((playerUnit.visible && playerSceneController.playbackPlaying) || (simulatorUnit.visible && sceneController.running) ? "pause.svg" : "play.svg"), text: editorUnit.visible ? "开始求解" : (playerUnit.visible ? (playerSceneController.playbackPlaying ? "暂停回放" : "播放回放") : "运行／暂停实时仿真"), shortcut: "F5", enabled: (editorUnit.visible && EditorManager.count > 0 && !simulationExporter.running) || (playerUnit.visible && playerSceneController.simulationLoaded) || simulatorUnit.visible, onTriggered: function() {
+                        if (editorUnit.visible) editorUnit.startSolve()
+                        else if (playerUnit.visible) playerSceneController.toggleSimulationPlayback()
+                        else sceneController.toggleRunning()
+                    }},
+                    {id: "stop", icon: "qrc:/main_icons/assets/icons/stop.svg", text: editorUnit.visible ? "取消求解" : "停止并回到起点", shortcut: "Shift+F5", enabled: (editorUnit.visible && simulationExporter.running && !simulationExporter.cancelRequested) || (playerUnit.visible && playerSceneController.simulationLoaded), onTriggered: function() {
+                        if (editorUnit.visible) simulationExporter.cancel()
+                        else {playerSceneController.pauseSimulation();playerSceneController.setPlaybackFrame(0)}
+                    }},
+                    {separator: true},
+                    {id: "previousFrame", text: "上一帧", shortcut: "Alt+Left", enabled: playerUnit.visible && playerSceneController.simulationLoaded && playerSceneController.playbackFrame > 0, onTriggered: function() {playerSceneController.pauseSimulation();playerSceneController.stepPlaybackFrame(-1)}},
+                    {id: "nextFrame", text: "下一帧", shortcut: "Alt+Right", enabled: playerUnit.visible && playerSceneController.simulationLoaded && playerSceneController.playbackFrame + 1 < playerSceneController.simulationFrameCount, onTriggered: function() {playerSceneController.pauseSimulation();playerSceneController.stepPlaybackFrame(1)}}
+                ]},
+                {title: "视图(&V)", items: [
+                    {text: "工作区", icon: "qrc:/main_icons/assets/icons/view.svg", submenu: [
+                        {id: "workspaceSolver", icon: "qrc:/main_icons/assets/icons/edit.svg", text: "编辑与求解", shortcut: "Ctrl+1", checkable: true, actionGroup: "workspace", checked: editorUnit.visible, onTriggered: function() {mainRowLayout.currentRoute = "solver"}},
+                        {id: "workspacePlayer", icon: "qrc:/main_icons/assets/icons/play.svg", text: "播放器", shortcut: "Ctrl+2", checkable: true, actionGroup: "workspace", checked: playerUnit.visible, onTriggered: function() {mainRowLayout.currentRoute = "player"}},
+                        {id: "workspaceAnalysis", icon: "qrc:/main_icons/assets/icons/view.svg", text: "数据分析", shortcut: "Ctrl+3", checkable: true, actionGroup: "workspace", checked: analysisUnitLoader.visible, onTriggered: function() {mainRowLayout.currentRoute = "analysis"}},
+                        {id: "workspaceRealtime", icon: "qrc:/main_icons/assets/icons/simulator.svg", text: "实时仿真（旧版）", shortcut: "Ctrl+4", checkable: true, actionGroup: "workspace", checked: simulatorUnit.visible, onTriggered: function() {mainRowLayout.currentRoute = "scene"}}
+                    ]},
+                    {separator: true},
+                    {id: "fitView", icon: "qrc:/main_icons/assets/icons/view.svg", text: "适配当前视图", shortcut: "Home", editing: true, enabled: !window.editingText, onTriggered: function() {window.fitWorkspace()}},
+                    {id: "grid", text: "显示网格(&G)", shortcut: "Ctrl+G", checkable: true, enabled: window.activeCoordinates !== null, checked: window.activeCoordinates ? window.activeCoordinates.gridVisible : false, onTriggered: function() {window.activeCoordinates.gridVisible = this.checked}},
+                    {id: "axes", text: "显示坐标轴(&A)", shortcut: "Ctrl+H", checkable: true, enabled: window.activeCoordinates !== null, checked: window.activeCoordinates ? window.activeCoordinates.axisVisible : false, onTriggered: function() {window.activeCoordinates.axisVisible = this.checked}},
+                    {separator: true},
+                    {text: "实时仿真面板", icon: "qrc:/main_icons/assets/icons/simulator.svg", enabled: simulatorUnit.visible, submenu: [
+                        {id: "dataStream", icon: "qrc:/main_icons/assets/icons/view.svg", text: "数据流", shortcut: "Ctrl+Alt+D", checkable: true, checked: simulatorUnit.dataStreamVisible, onTriggered: function() {simulatorUnit.dataStreamVisible = this.checked}},
+                        {id: "console", text: "控制台", shortcut: "Ctrl+Alt+I", checkable: true, checked: simulatorUnit.infoPanelVisible, onTriggered: function() {simulatorUnit.infoPanelVisible = this.checked}}
+                    ]}
+                ]},
+                {title: "帮助(&H)", items: [
+                    {id: "shortcuts", icon: "qrc:/main_icons/assets/icons/help.svg", text: "快捷键与菜单说明", shortcut: "F1", onTriggered: function() {shortcutHelpDialog.open()}},
+                    {id: "about", icon: "qrc:/main_icons/assets/icons/about.svg", text: "关于 Egret Physics", onTriggered: function() {aboutDialog.open()}},
+                    {id: "aboutQt", icon: "qrc:/main_icons/assets/icons/qt_logo.png", text: "关于 Qt", onTriggered: function() {qtHelper.showAboutQt()}}
+                ]}
             ]
         }
 

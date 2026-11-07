@@ -44,6 +44,35 @@ ColumnLayout {
 
     /** 当前右侧工具面板。 */
     property string rightTool: "properties"
+    readonly property int selectedCount: {
+        var currentIds = EditorManager.modelIds
+        return getSelectedShapeIds().length
+    }
+    property alias coordinateSystem: editorCoordinate
+    readonly property bool controlDialogVisible: sceneControlPanel.dialogVisible || solverPanel.dialogVisible
+    /** @brief 从菜单打开 C 控制编辑器。 */
+    function editControlCode() { sceneControlPanel.editCode() }
+    /** @brief 从菜单打开叠加预设清单。 */
+    function showPresets() { presetMenu.openAt(24, 64) }
+    /** @brief 全选场景实体，供批量编辑与菜单使用。 */
+    function selectAllEntities() {
+        sceneEntityListPanel.selectionMode = true
+        sceneEntityListPanel.selectedEntityIds = EditorManager.modelIds.slice()
+        sceneEntityListPanel.selectionChanged(sceneEntityListPanel.selectedEntityIds)
+    }
+    /** @brief 清除侧栏与视口选择，解除变换操作。 */
+    function clearEntitySelection() {
+        sceneEntityListPanel.clearSelection()
+        editorCanvas.selectedObjectName = ""
+        editorGizmo.detach()
+        editorCanvas.gizmoActive = false
+    }
+    /** @brief 按场景全部对象或当前选择调整相机取景。 */
+    function fitView(selectedOnly) { editorCanvas.fitScene(selectedOnly) }
+    /** @brief 使用求解面板中的当前参数启动求解。 */
+    function startSolve() { rightTool = "solver"; solverPanel.startSolve() }
+    /** @brief 打开求解结果的保存对话框。 */
+    function saveSolveResult() { solverPanel.saveResult() }
     readonly property real referenceLength:(EditorManager.sceneSettings.display||{}).reference_length||1
     readonly property real displayScale:100/referenceLength
     readonly property bool showSmallMarkers:(EditorManager.sceneSettings.display||{}).markers!==false
@@ -223,6 +252,11 @@ ColumnLayout {
     function pasteEntitiesFromClipboard() {
         if (ClipboardManager.hasContent) {
             var newIds = ClipboardManager.pasteEntities();
+            if (newIds.length > 0) {
+                sceneEntityListPanel.selectionMode = true;
+                sceneEntityListPanel.selectedEntityIds = newIds;
+                sceneEntityListPanel.selectionChanged(newIds);
+            }
             console.log("Paste:", newIds.length, "entities, IDs:", newIds);
             return newIds;
         }
@@ -237,6 +271,7 @@ ColumnLayout {
             editorCanvas.gizmoActive = false;
             editorCanvas.selectedObjectName = "";
             ClipboardManager.cutEntities(ids);
+            clearEntitySelection();
             console.log("Cut:", ids.length, "entities");
         }
     }
@@ -248,9 +283,8 @@ ColumnLayout {
             editorGizmo.detach();
             editorCanvas.gizmoActive = false;
             editorCanvas.selectedObjectName = "";
-            for (var i = 0; i < ids.length; ++i) {
-                EditorManager.removeModel(ids[i]);
-            }
+            EditorManager.removeModels(ids);
+            clearEntitySelection();
             console.log("Delete:", ids.length, "entities");
         }
     }
@@ -1237,6 +1271,7 @@ ColumnLayout {
             spacing: 8
 
             SolverPanel {
+                id: solverPanel
                 visible: editorRoot.rightTool === "solver"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -2929,7 +2964,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.preferredHeight: 190
         title: "时间轴 / 条件控制"
-        SceneControlPanel { anchors.fill: parent }
+        SceneControlPanel { id: sceneControlPanel; anchors.fill: parent }
     }
 
 }
