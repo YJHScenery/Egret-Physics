@@ -10,6 +10,8 @@
 
 一个现代化的物理模拟引擎，支持刚体动力学、碰撞检测和约束求解。
 
+可编程控制说明：[受限 C 语言控制注入完整文档](docs/restricted_c_control_injection.md)。
+
 ![program_screenshot_v1.0-Simulator](./README.assets/program_screenshot_v1.0-Simulator.png)
 
 ![program_screenshot_v1.0-Editor](./README.assets/program_screenshot_v1.0-Editor.png)
