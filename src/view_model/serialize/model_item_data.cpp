@@ -150,7 +150,9 @@ namespace egret
         data.m_initialVelo = getVector3D("initial_velocity");
         data.m_initialAnguVelo = getVector3D("initial_angular_velocity");
 
-        data.m_materials->setBaseColor(getString("material_base_color"));
+        // 颜色字符串缺失或非法时回退到默认色，避免新建/修改实体时写入无效颜色而渲染成黑色。
+        const QColor baseColor{getString("material_base_color")};
+        data.m_materials->setBaseColor(baseColor.isValid() ? baseColor : MaterialData::defaultBaseColor());
 
         data.m_materials->setMetalness(getDouble("material_metalness"));
         data.m_materials->setRoughness(getDouble("material_roughness"));
@@ -182,6 +184,12 @@ namespace egret
     // MaterialData 实现
     MaterialData::MaterialData(QObject* parent) : QObject(parent)
     {
+    }
+
+    QColor MaterialData::defaultBaseColor()
+    {
+        // 与编辑器实体属性面板的默认基础色保持一致，避免缺省材质时渲染成黑色。
+        return {QStringLiteral("#8FBCE8")};
     }
 
     QColor MaterialData::baseColor() const { return m_baseColor; }
@@ -241,6 +249,10 @@ namespace egret
             setRoughness(json["roughness"].toDouble());
         if (json.contains("alphaMode"))
             setAlphaMode(json["alphaMode"].toString());
+        // 缺省或非法的颜色必须回退到默认色：无效 QColor 会被序列化成黑色（#ff000000），
+        // 一旦保存就会把黑色固化进场景文件。
+        if (!m_baseColor.isValid())
+            setBaseColor(defaultBaseColor());
         return true;
     }
 

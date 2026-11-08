@@ -64,6 +64,15 @@ namespace egret
         void setRoughness(qreal roughness);
         void setAlphaMode(const QString &alphaMode);
 
+        /**
+         * @brief  获取实体缺失材质信息时使用的默认基础色。
+         * @details 旧版场景与外部脚本生成的归档可能不带 materials 字段，
+         *          此时若基础色保持无效状态，编辑器会以黑色渲染、求解器会另取默认色，
+         *          导致“导入的物体颜色无法正常渲染”。这里统一给出与编辑器新建实体一致的默认色。
+         * @return 默认的基础颜色。
+         */
+        [[nodiscard]] static QColor defaultBaseColor();
+
         // 序列化
         [[nodiscard]] QJsonObject toJson() const;
         bool fromJson(const QJsonObject &json);
@@ -75,7 +84,8 @@ namespace egret
         void alphaModeChanged();
 
     private:
-        QColor m_baseColor{};
+        /** 基础色，默认取 defaultBaseColor()，保证任何实体都有可渲染的颜色。 */
+        QColor m_baseColor{defaultBaseColor()};
         qreal m_metalness{};
         qreal m_roughness{};
         QString m_alphaMode{};

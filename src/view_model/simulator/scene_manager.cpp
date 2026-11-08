@@ -423,7 +423,12 @@ namespace egret
 
             BodyRecord body;
             body.name = obj["name"].toString().toStdString();
-            body.color = obj.value("materials").toObject().value("baseColor").toString().toStdString();
+            // 旧场景与外部脚本生成的归档可能不带 materials，此时回退到统一默认色，
+            // 避免求解器把所有缺色实体都渲染成同一个兜底色而看不出区别。
+            QString baseColor = obj.value("materials").toObject().value("baseColor").toString();
+            if (!QColor(baseColor).isValid())
+                baseColor = MaterialData::defaultBaseColor().name(QColor::HexArgb);
+            body.color = baseColor.toStdString();
             body.visible = obj.value("visible").toBool(true);
             body.loadTime = std::max(0.0, obj.value("load_time").toDouble(0.0));
             body.entity = std::move(rb);

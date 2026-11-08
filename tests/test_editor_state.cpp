@@ -4,6 +4,7 @@
  */
 #include "editor_manager.h"
 #include "clipboard_helper.h"
+#include "serialize/model_item_data.h"
 #include "serialize/scene_settings.h"
 #include <QCoreApplication>
 #include <QGuiApplication>
@@ -114,6 +115,13 @@ int main(int argc, char** argv)
         auto* first = editor.getModel("1");
         auto* second = editor.getModel("2");
         require(first && second && first->staticFriction() == 0.9 && second->staticFriction() == 0.5, "摩擦参数或旧场景默认值错误");
+        // 场景实体缺少 materials 时必须回退到有效默认色：无效颜色会被渲染成黑色，
+        // 并且在保存时被固化成 #ff000000，导致导入后物体颜色无法正常渲染。
+        require(second->materials() && second->materials()->baseColor().isValid()
+                && second->materials()->baseColor() == MaterialData::defaultBaseColor(), "缺省材质的基础色无效");
+        const auto defaultSaved = QJsonDocument::fromJson(editor.toJsonString(false).toUtf8()).object();
+        require(defaultSaved["models"].toArray()[1].toObject()["materials"].toObject()["baseColor"].toString()
+                == MaterialData::defaultBaseColor().name(QColor::HexArgb), "缺省材质保存后的基础色不是有效默认色");
         first->setStaticFriction(1.2);
         const auto saved = QJsonDocument::fromJson(editor.toJsonString(false).toUtf8()).object();
         const auto savedFirst = saved["models"].toArray()[0].toObject();
