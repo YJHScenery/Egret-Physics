@@ -386,7 +386,7 @@ ApplicationWindow {
                     {id: "presets", icon: "qrc:/main_icons/assets/icons/new_scene.svg", text: "添加预设", enabled: editorUnit.visible, submenu: EditorManager.availablePresets().map(function(entry) {
                         return {id: "preset_" + entry.id, text: entry.name, onTriggered: function() {EditorManager.addPreset(entry.id)}}
                     })},
-                    {id: "controlCode", icon: "qrc:/main_icons/assets/icons/edit.svg", text: "C 控制程序…(&C)", shortcut: "Ctrl+Alt+C", enabled: editorUnit.visible, onTriggered: function() {editorUnit.editControlCode()}},
+                    {id: "controlCode", icon: "qrc:/main_icons/assets/icons/edit.svg", text: "控制程序…(&C)", shortcut: "Ctrl+Alt+C", enabled: editorUnit.visible, onTriggered: function() {editorUnit.editControlCode()}},
                     {separator: true},
                     {id: "propertiesPanel", icon: "qrc:/main_icons/assets/icons/edit.svg", text: "对象属性面板", enabled: editorUnit.visible, checkable: true, actionGroup: "editorTool", checked: editorUnit.rightTool === "properties", onTriggered: function() {editorUnit.rightTool = "properties"}},
                     {id: "solverPanel", icon: "qrc:/main_icons/assets/icons/settings.svg", text: "求解设置面板", enabled: editorUnit.visible, checkable: true, actionGroup: "editorTool", checked: editorUnit.rightTool === "solver", onTriggered: function() {editorUnit.rightTool = "solver"}}

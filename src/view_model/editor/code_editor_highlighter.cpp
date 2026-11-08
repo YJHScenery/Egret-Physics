@@ -63,6 +63,23 @@ void CodeEditorHighlighter::highlightBlock(const QString& text) {
         "Vec3", "true", "false", "NULL", "size_t", "uint64_t", "int64_t"};
     static const QRegularExpression number(QStringLiteral(
         R"((?:0[xX](?:[0-9a-fA-F]+(?:\.[0-9a-fA-F]*)?|\.[0-9a-fA-F]+)(?:[pP][+-]?\d+)?|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)[uUlLfF]*)"));
+    if(m_lua) {
+        static const QSet<QString> words={"and","break","do","else","elseif","end","false","for","function","goto","if","in","local","nil","not","or","repeat","return","then","true","until","while"};
+        bool block=previousBlockState()==StateBlockComment;
+        setCurrentBlockState(StateNormal);
+        for(int i=0;i<text.size();) {
+            int start=i;
+            if(block || text.mid(i,4)=="--[[") {
+                int end=text.indexOf("]]",i+(block?0:4));i=end<0?text.size():end+2;
+                setFormat(start,i-start,m_commentFormat);block=end<0;if(block)setCurrentBlockState(StateBlockComment);
+            }else if(text.mid(i,2)=="--"){setFormat(i,text.size()-i,m_commentFormat);break;}
+            else if(text[i]=='"' || text[i]=='\'') {auto quote=text[i++];while(i<text.size()){if(text[i]=='\\'){i=qMin(i+2,int(text.size()));continue;}if(text[i++]==quote)break;}setFormat(start,i-start,m_stringFormat);}
+            else if(text[i].isLetter() || text[i]=='_'){while(i<text.size()&&(text[i].isLetterOrNumber()||text[i]=='_'))++i;auto word=text.mid(start,i-start);int next=i;while(next<text.size()&&text[next].isSpace())++next;if(words.contains(word))setFormat(start,i-start,m_keywordFormat);else if(next<text.size()&&text[next]=='(')setFormat(start,i-start,m_functionFormat);}
+            else if(text[i].isDigit()){auto match=number.match(text,i,QRegularExpression::NormalMatch,QRegularExpression::AnchorAtOffsetMatchOption);i+=match.hasMatch()?match.capturedLength():1;setFormat(start,i-start,m_numberFormat);}
+            else ++i;
+        }
+        return;
+    }
     bool comment = previousBlockState() == StateBlockComment;
     setCurrentBlockState(StateNormal);
     for (int i = 0; i < text.size();) {

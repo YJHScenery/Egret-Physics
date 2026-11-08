@@ -1,0 +1,78 @@
+{
+    "documentation": "/** @file lua_body_control.epscene @brief 受限 Lua 定时施力示例场景。 */",
+    "modelCount": 1,
+    "models": [
+        {
+            "box_size": [
+                0.5,
+                0.5,
+                0.5
+            ],
+            "category": 0,
+            "dynamic_friction": 0.5,
+            "id": "1",
+            "initial_angular_velocity": [
+                0,
+                0,
+                0
+            ],
+            "initial_velocity": [
+                0,
+                0,
+                0
+            ],
+            "load_time": 0,
+            "mass": 1,
+            "materials": {
+                "alphaMode": "",
+                "baseColor": "#ffac1919",
+                "metalness": 0.19999999999999998,
+                "roughness": 0.3833333333333333
+            },
+            "name": "可编程方块",
+            "pos": [
+                0,
+                0,
+                0
+            ],
+            "restitution": 1,
+            "rotation": [
+                1,
+                0,
+                0,
+                0
+            ],
+            "rotation_enabled": true,
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "source": "#Cube",
+            "static_friction": 0.5,
+            "type": 1,
+            "visible": true
+        }
+    ],
+    "scene_settings": {
+        "programs": [
+            {
+                "bindings": {
+                    "body": "1"
+                },
+                "enabled": true,
+                "name": "Lua 定时施力",
+                "parameters": {
+                    "force": 2
+                },
+                "period": 0.01,
+                "source": "-- 场景控制入口。\nfunction on_step()\n    local body = scene_entity(\"body\")\n    local time = simulation_time()\n    if time >= 1 and not state_bool(\"started\") then\n        entity_set_force(body, vector3(parameter_number(\"force\"), 0, 0))\n        state_set_bool(\"started\", true)\n    end\n    if time >= 3 and not state_bool(\"ended\") then\n        entity_set_force(body, vector3(0, 0, 0))\n        state_set_bool(\"ended\", true)\n    end\nend\n",
+                "version": 1,
+                "backend": "lua",
+                "fuel": 1000000
+            }
+        ]
+    },
+    "timestamp": "2026-11-07T15:50:06",
+    "version": "1.0"
+}

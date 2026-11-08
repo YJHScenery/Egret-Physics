@@ -86,9 +86,9 @@ namespace egret::control
         std::size_t m_capacity;
         std::vector<Command> m_commands;
     };
-    /** @brief 控制程序抽象，谓词后端及未来机器码适配器共享输入输出约定。
+    /** @brief 控制程序抽象，谓词、C/Wasm 与 Lua 后端共享输入输出约定。
      * @details 这里只约定逻辑边界，不承诺 C++ 虚表、标准库或结构体具有稳定的机器码 ABI。
-     * 未来后端负责校验、编译及 ABI 桥接；不得保留快照视图或直接访问求解器。
+     * 各后端负责源码准备、资源限制及领域接口桥接；不得保留快照视图或直接访问求解器。
      */
     class Program
     {

@@ -59,6 +59,8 @@ Rectangle {
 
     /** @brief 是否启用语法高亮。 */
     property bool highlighting: true
+    /** @brief 源码语言，用于词法显示和换行缩进。 */
+    property string language: "c"
 
     /** @brief 正文默认颜色。 */
     property color textColor: theme.textPrimary
@@ -329,6 +331,7 @@ Rectangle {
 
     /** @brief 语法高亮：由 C++ 侧扫描词法，颜色来自本组件属性。 */
     CodeEditorHighlighter {
+        lua: root.language === "lua"
         id: highlighter
         textDocument: root.highlighting ? codeArea.textDocument : null
         keywordColor: root.keywordColor
@@ -385,6 +388,13 @@ Rectangle {
     /** @brief 插入按 C 代码块层级计算的换行，不在普通语句后逐次增加缩进。 */
     function insertNewline() {
         if (codeArea.readOnly) return
+        if (root.language === "lua") {
+            let prefix = codeArea.text.slice(0, codeArea.selectionStart).split("\n").pop()
+            let indent = (prefix.match(/^ */) || [""])[0]
+            if (/\b(then|do|repeat)\s*$/.test(prefix) || /\bfunction\b.*\)\s*$/.test(prefix)) indent += " ".repeat(root.tabSize)
+            applyIndentEdit({start: codeArea.selectionStart, end: codeArea.selectionEnd, text: "\n" + indent, cursor: codeArea.selectionStart + 1 + indent.length})
+            return
+        }
         applyIndentEdit(CIndent.newline(codeArea.text, codeArea.selectionStart, codeArea.selectionEnd))
     }
 

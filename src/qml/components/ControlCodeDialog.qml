@@ -13,7 +13,7 @@ Basic.Dialog {
     parent: Overlay.overlay
     anchors.centerIn: parent
     modal: true
-    title: "场景 C 控制程序"
+    title: "场景控制程序"
     width: Math.min(1180, parent ? parent.width - 40 : 1180)
     height: Math.min(850, parent ? parent.height - 40 : 850)
     closePolicy: Popup.NoAutoClose
@@ -59,9 +59,10 @@ Basic.Dialog {
         objects = list; selected = programs.length ? 0 : -1; errorText = ""; revision++; open()
     }
     /** @brief 插入独立状态的新程序。 */
-    function add() {
+    function add(backend) {
         var list = clone(programs)
-        list.push({version: 1, name: "控制程序 " + (list.length + 1), enabled: true, period: 0, start: 0, fuel: 1000000, bindings: {}, source: "/** @brief 场景控制入口。 */\nvoid on_step(void)\n{\n}\n"})
+        list.push({backend: backend || "c_wasm", version: 1, name: "控制程序 " + (list.length + 1), enabled: true, period: 0, start: 0, fuel: 1000000, bindings: {}, source: "/** @brief 场景控制入口。 */\nvoid on_step(void)\n{\n}\n"})
+        if (backend === "lua") list[list.length - 1].source = "-- 场景控制入口。\nfunction on_step()\nend\n"
         programs = list; selected = list.length - 1; revision++
     }
     /** @brief 删除当前程序，至少保留一段源码。 */
@@ -86,7 +87,7 @@ Basic.Dialog {
     header: Label {text: root.title;color: theme.textPrimary;font.pixelSize: 18;padding: 18}
     contentItem: ColumnLayout {
         spacing: 10
-        Label {Layout.fillWidth: true;wrapMode: Text.Wrap;color: theme.textSecondary;text: "源码随场景文件保存；求解自动编译。各程序读取同一轮快照，按左侧顺序提交动作；后设置的力覆盖前设置。编辑只影响下一次求解。"}
+        Label {Layout.fillWidth: true;wrapMode: Text.Wrap;color: theme.textSecondary;text: "源码随场景文件保存；求解自动准备运行环境。各程序读取同一轮快照，按左侧顺序提交动作；后设置的力覆盖前设置。编辑只影响下一次求解。"}
         RowLayout {
             Layout.fillWidth: true;Layout.fillHeight: true;spacing: 14
             ColumnLayout {
@@ -97,14 +98,15 @@ Basic.Dialog {
                         required property int index
                         required property var modelData
                         width: ListView.view.width
-                        text: (modelData.enabled === false ? "○ " : "● ") + modelData.name
+                        text: (modelData.enabled === false ? "○ " : "● ") + (modelData.backend === "lua" ? "[Lua] " : "[C] ") + modelData.name
                         highlighted: root.selected === index
                         contentItem: Text {text: parent.text;color: theme.textPrimary;font.pixelSize: 13;elide: Text.ElideRight;verticalAlignment: Text.AlignVCenter}
                         background: Rectangle {radius: 6;color: parent.highlighted ? theme.accentSoft : (parent.hovered ? theme.bg2 : theme.bg0);border.color: parent.highlighted ? theme.accent : theme.border}
                         onClicked: root.selected = index
                     }
                 }
-                RowLayout {ActionButton {text: "添加";enabled: root.programs.length < 32;onClicked: root.add()} ActionButton {text: "删除";enabled: root.programs.length > 1;onClicked: root.remove()}}
+                RowLayout {ActionButton {text: "添加 C";enabled: root.programs.length < 32;onClicked: root.add("c_wasm")} ActionButton {text: "删除";enabled: root.programs.length > 1;onClicked: root.remove()}}
+                ActionButton {text: "添加 Lua";enabled: root.programs.length < 32;onClicked: root.add("lua")}
                 RowLayout {ActionButton {text: "上移";onClicked: root.move(-1)} ActionButton {text: "下移";onClicked: root.move(1)}}
             }
             ColumnLayout {
@@ -143,7 +145,7 @@ Basic.Dialog {
                 }
                 Flow {Layout.fillWidth: true;Layout.preferredHeight: Math.min(70, implicitHeight);spacing: 5;Repeater {model: root.parameterNames;delegate: ActionButton {required property string modelData;text: modelData + " = " + root.current.parameters[modelData] + " ×";onClicked: root.removeParameter(modelData)}}}
                 RowLayout {
-                    Label {text: "C 源码";color: theme.textPrimary}
+                    Label {text: root.current && root.current.backend === "lua" ? "Lua 源码" : "C 源码";color: theme.textPrimary}
                     Item {Layout.fillWidth: true}
                     Label {text: "字体";color: theme.textSecondary}
                     EgretComboBox {
@@ -162,10 +164,11 @@ Basic.Dialog {
                     id: codeEditor
                     objectName: "codeEditor"
                     Layout.fillWidth: true;Layout.fillHeight: true;Layout.minimumHeight: 130
+                    language: root.current && root.current.backend === "lua" ? "lua" : "c"
                     source: {var revision = root.revision;return root.current ? root.current.source : ""}
                     onEdited: function(value) {if (root.current) root.current.source = value}
                 }
-                Label {Layout.fillWidth: true;wrapMode: Text.Wrap;color: theme.textSecondary;text: "常用接口：scene_entity / scene_template / scene_spawn / entity_destroy / entity_position / entity_set_velocity / entity_set_force / state_number / state_entity / control_delta。仅定义 void on_step(void)，可使用变量、函数、循环和具名状态。"}
+                Label {Layout.fillWidth: true;wrapMode: Text.Wrap;color: theme.textSecondary;text: "常用接口：scene_entity / scene_template / scene_spawn / entity_destroy / entity_position / entity_set_velocity / entity_set_force / state_number / state_entity / control_delta。C 入口为 void on_step(void)，Lua 入口为 function on_step() ... end；两者共享领域 SDK。"}
             }
         }
         Label {Layout.fillWidth: true;color: theme.danger;text: root.errorText;visible: text.length > 0;wrapMode: Text.Wrap}

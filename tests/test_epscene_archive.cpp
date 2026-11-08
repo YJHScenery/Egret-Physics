@@ -34,7 +34,7 @@ int main(int argc, char** argv)
                                   QJsonObject{{"id", "legacy"}}}},
             {"scene_settings", QJsonObject{{"programs", QJsonArray{
                 QJsonObject{{"source", source}, {"name", "程序一"}, {"enabled", false}},
-                QJsonObject{{"source", source + "\n"}, {"name", "程序二"}}}},
+                QJsonObject{{"source", "-- 中文 Lua\nfunction on_step() end\n"}, {"backend", "lua"}, {"name", "程序二"}}}},
                 {"display", QJsonObject{{"reference_length", 0.01}}}}}};
         QString error;
         if (!egret::EpsceneArchive::write(path, original, error)) throw std::runtime_error(error.toStdString());
@@ -53,6 +53,8 @@ int main(int argc, char** argv)
             require(QJsonDocument::fromJson(zip.fileData("entities/general.json")).array().size() == 2, "一般实体分组错误");
             require(QJsonDocument::fromJson(zip.fileData("entities/fields.json")).array().size() == 1, "场分组错误");
             require(QJsonDocument::fromJson(zip.fileData("entities/constraints.json")).array().size() == 1, "约束分组错误");
+            require(metadata["scene"].toObject()["scene_settings"].toObject()["programs"].toArray()[1].toObject()["source"] == "control/program_2.lua", "Lua 源码扩展名错误");
+            require(zip.fileData("control/program_2.lua").contains("on_step"), "Lua 源码未归档");
             bool config = false;
             for (const auto& entry : zip.fileInfoList()) if (entry.isDir && entry.filePath == "config") config = true;
             require(config, "预留配置目录缺失");

@@ -167,6 +167,12 @@ THIRD-PARTY LIBRARY LICENSE COMPATIBILITY:
    - 用途：数据分析工作区的图表（平移 / 滚轮缩放 / 框选放大 / 自适应刻度 / 自适应采样）
 
 ---------------------------------------------------------------------------
+Lua 5.4.8 (MIT)
+   - 用途：受限解释型场景控制后端，静态链接，不打开系统标准库。
+   - 官方源码：https://www.lua.org/ftp/lua-5.4.8.tar.gz
+   - 许可证原文：dependency/control/lua-5.4.8/doc/readme.html
+   - 分发副本：control/licenses/Lua-LICENSE.html
+
 ADDITIONAL INFORMATION
 ---------------------------------------------------------------------------
 

@@ -12,6 +12,8 @@ namespace egret::control
 /** @brief 可持久化的单个控制程序，配置不包含编译产物或宿主指针。 */
 struct ControlProgramSpec
 {
+    /** @brief 源码执行后端；旧配置默认使用 C/Wasm。 */
+    std::string backend{"c_wasm"};
     std::string name{"控制程序"};
     std::string source{"/** @brief 场景控制入口。 */\nvoid on_step(void)\n{\n}\n"};
     bool enabled{true};
@@ -41,6 +43,8 @@ struct CompilerOptions
 /** @brief 创建已完成语言校验和编译的独立程序；失败抛出源码诊断。 */
 std::unique_ptr<Program> prepareProgram(const ControlProgramSpec &spec, const CompilerOptions &options,
                                         unsigned identityNamespace = 1);
+/** @brief 准备具有独立状态及资源限制的 Lua 程序。 */
+std::unique_ptr<Program> prepareLuaProgram(const ControlProgramSpec&, const CompilerOptions&, unsigned);
 /** @brief 返回部署或环境变量指定的编译环境。 */
 CompilerOptions defaultCompilerOptions();
 /** @brief 在无 Qt 核心解析版本化配置，旧场景补默认空入口。 */

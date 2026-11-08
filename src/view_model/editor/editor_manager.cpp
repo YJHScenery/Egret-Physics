@@ -209,7 +209,7 @@ namespace egret
         auto* watcher=new QFutureWatcher<QString>(this);
         connect(watcher,&QFutureWatcher<QString>::finished,this,[this,watcher]{m_controlDiagnostics=watcher->result();m_controlValidationRunning=false;watcher->deleteLater();emit controlDiagnosticsChanged();});
         watcher->setFuture(QtConcurrent::run([specs=std::move(specs)]{
-            try{unsigned index=1;for(const auto& spec:specs){if(spec.enabled)control::prepareProgram(spec,control::defaultCompilerOptions(),index);++index;}return QStringLiteral("检查通过：已完成 C 语义检查、Wasm 编译与独立实例准备。正式求解仍会重新检查源码版本。");}
+            try{unsigned index=1;for(const auto& spec:specs){if(spec.enabled)control::prepareProgram(spec,control::defaultCompilerOptions(),index);++index;}return QStringLiteral("检查通过：已完成各后端源码检查与独立实例准备。正式求解仍会重新检查源码版本。");}
             catch(const std::exception& error){return QString::fromUtf8(error.what());}
         }));
     }

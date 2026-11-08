@@ -49,7 +49,7 @@ namespace egret
     {
         using namespace control;
         ParsedSceneSettings result;
-        if(settings.contains("programs")&&!settings["programs"].isArray())throw std::invalid_argument("C 控制程序必须为数组");
+        if(settings.contains("programs")&&!settings["programs"].isArray())throw std::invalid_argument("控制程序必须为数组");
         result.programs=control::parseProgramSpecs(QJsonDocument(settings["programs"].toArray()).toJson(QJsonDocument::Compact).toStdString());
         if(settings.contains("display") && !settings["display"].isObject()) throw std::invalid_argument("显示设置必须为对象");
         const auto display=settings["display"].toObject();

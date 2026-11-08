@@ -148,7 +148,7 @@ namespace egret
             for (qsizetype i = 0; i < programs.size(); ++i) {
                 auto program = programs[i].toObject();
                 const QString source = program.value("source").toString();
-                if (!safePath(source) || !source.startsWith("control/") || !source.endsWith(".c")) {
+                if (!safePath(source) || !source.startsWith("control/") || !source.endsWith(program.value("backend").toString() == "lua" ? ".lua" : ".c")) {
                     error = QStringLiteral("控制器源码路径无效"); return false;
                 }
                 if (!readEntry(source, bytes)) return false;
@@ -194,7 +194,7 @@ namespace egret
             if (!program.value("source").isString()) {
                 error = QStringLiteral("控制器源码必须为字符串"); return false;
             }
-            const QString sourcePath = QStringLiteral("control/program_%1.c").arg(i + 1);
+            const QString sourcePath = QStringLiteral("control/program_%1.%2").arg(i + 1).arg(program.value("backend").toString() == "lua" ? "lua" : "c");
             zip.addFile(sourcePath, program.value("source").toString().toUtf8());
             program["source"] = sourcePath;
             programs[i] = program;

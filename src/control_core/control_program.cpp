@@ -787,6 +787,14 @@ std::unique_ptr<Program> prepareProgram(const ControlProgramSpec &spec, const Co
         for (const auto &[name, value] : spec.parameters)
             if (!std::regex_match(name, std::regex("[A-Za-z][A-Za-z0-9_]{0,62}")) || !std::isfinite(value))
                 throw std::runtime_error("程序参数必须为英文名称与有限数字");
+        if (spec.backend == "lua") {
+            report.digest=digest("egret-lua-5.4.8-sdk1-"+spec.source);
+            auto program=prepareLuaProgram(spec,options,identityNamespace);
+            report.instanceSeconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count();
+            if(options.onPrepared)options.onPrepared(report);
+            return program;
+        }
+        if (spec.backend != "c_wasm") throw std::runtime_error("不支持的控制后端");
         // 用户预处理仅支持公开 SDK，避免绝对路径 include、宏展开与工具链配置逃逸。
         std::istringstream lines(spec.source);
         std::string line;
@@ -963,13 +971,16 @@ std::vector<ControlProgramSpec> parseProgramSpecs(const std::string &json)
 {
     const auto root = Json::parse(json);
     if (!root.is_array() || root.size() > 32)
-        throw std::runtime_error("场景最多支持 32 个 C 控制程序");
+        throw std::runtime_error("场景最多支持 32 个控制程序");
     std::vector<ControlProgramSpec> result;
     for (const auto &item : root)
     {
         if (!item.is_object() || item.value("version", 1) != 1)
             throw std::runtime_error("不支持的控制程序版本");
         ControlProgramSpec spec;
+        spec.backend = item.value("backend", std::string("c_wasm"));
+        if (spec.backend != "c_wasm" && spec.backend != "lua") throw std::runtime_error("不支持的控制后端");
+        if (spec.backend == "lua") spec.source = "-- 场景控制入口。\nfunction on_step()\nend\n";
         spec.name = item.value("name", spec.name);
         spec.source = item.value("source", spec.source);
         spec.enabled = item.value("enabled", true);

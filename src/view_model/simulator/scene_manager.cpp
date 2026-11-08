@@ -367,7 +367,7 @@ namespace egret
             std::unordered_set<std::uint64_t> ids;
             for(const auto& value:models) if(value.toObject().value("category").toInt()==0)
                 ids.insert(value.toObject()["id"].toString().toULongLong());
-            for(const auto& spec:settings.programs)if(spec.enabled)for(const auto& [alias,id]:spec.bindings)if(!ids.contains(id))throw std::invalid_argument("C 控制程序绑定了已删除或无效的物体");
+            for(const auto& spec:settings.programs)if(spec.enabled)for(const auto& [alias,id]:spec.bindings)if(!ids.contains(id))throw std::invalid_argument("控制程序绑定了已删除或无效的物体");
             for(const auto& rule:settings.rules) {
                 for(const auto& p:rule.predicates) {
                     if(p.kind!=control::PredicateKind::Always && p.kind!=control::PredicateKind::Time &&

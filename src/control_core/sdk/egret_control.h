@@ -1,8 +1,10 @@
 /** @file egret_control.h @brief 场景控制领域接口；长度单位米，时间单位秒，力单位牛顿。 */
 #pragma once
+#ifndef __cplusplus
 typedef _Bool bool;
 #define true 1
 #define false 0
+#endif
 /** @brief 不透明实体值，禁止用户访问内部字段或转换为整数。 */
 typedef struct
 {

@@ -50,6 +50,8 @@ namespace egret
     class CodeEditorHighlighter : public QSyntaxHighlighter
     {
         Q_OBJECT
+        /** @brief 是否使用 Lua 词法规则。 */
+        Q_PROPERTY(bool lua READ isLua WRITE setLua)
 
         /** @brief 需要高亮的富文本文档，通常绑定 `TextArea.textDocument`。 */
         Q_PROPERTY(QQuickTextDocument* textDocument READ textDocument WRITE setTextDocument
@@ -80,6 +82,13 @@ namespace egret
         /** @brief 函数名颜色（标识符后紧跟左括号时判定）。 */
         Q_PROPERTY(QColor functionColor READ functionColor WRITE setFunctionColor NOTIFY functionColorChanged)
 
+    public:
+        /** @brief 查询当前语言模式。 */
+        bool isLua() const { return m_lua; }
+        /** @brief 切换语言并刷新整篇高亮。 */
+        void setLua(bool value) { if(m_lua!=value){m_lua=value;rehighlight();} }
+    private:
+        bool m_lua{};
     public:
         /**
          * @brief 构造语法高亮器。

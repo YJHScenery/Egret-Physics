@@ -537,6 +537,8 @@ add_custom_target(Egret_Control_Runtime_Deploy
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_SOURCE_DIR}/dependency/control/wasmtime-v38.0.3-x86_64-windows-c-api/LICENSE" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/control/licenses/Wasmtime-LICENSE.txt"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/dependency/control/lua-5.4.8/doc/readme.html" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/control/licenses/Lua-LICENSE.html"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_SOURCE_DIR}/dependency/control/json-LICENSE.MIT" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/control/licenses/JSON-LICENSE.txt"
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_SOURCE_DIR}/src/control_core/sdk" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/control/sdk"
@@ -739,6 +741,9 @@ add_test(NAME EgretProgrammableSceneTests COMMAND powershell -NoProfile -Executi
 add_test(NAME EgretLoadTimeTests COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File
         ${CMAKE_SOURCE_DIR}/tests/test_load_time.ps1
         -Executable $<TARGET_FILE:Egret_Physics> -WorkDir ${CMAKE_BINARY_DIR})
+add_test(NAME EgretLuaSceneTests COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File
+        ${CMAKE_SOURCE_DIR}/tests/test_lua_scene.ps1
+        -Executable $<TARGET_FILE:Egret_Physics> -WorkDir ${CMAKE_BINARY_DIR}/lua-scene-tests)
 add_test(NAME EgretSceneSettingsTests COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File
         ${CMAKE_SOURCE_DIR}/tests/test_scene_settings.ps1
         -Executable $<TARGET_FILE:Egret_Physics> -WorkDir ${CMAKE_BINARY_DIR})
@@ -877,3 +882,9 @@ set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut \"$DESKTOP\\Egret Physics.lnk\
 ]=])
 
 
+
+# Ninja 包含扫描缺失时仍保证控制结构变更触发所有项目消费者重编译。
+get_property(EGRET_CONTROL_CONSUMERS DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+foreach(EGRET_CONTROL_CONSUMER IN LISTS EGRET_CONTROL_CONSUMERS)
+    egret_apply_control_dependencies(${EGRET_CONTROL_CONSUMER})
+endforeach()

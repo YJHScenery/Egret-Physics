@@ -25,4 +25,8 @@ Copy-Item -LiteralPath (Join-Path $llvmRoot 'bin/lld.exe') -Destination (Join-Pa
 Invoke-WebRequest 'https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-21.1.8/llvm/LICENSE.TXT' -OutFile (Join-Path $llvmRoot 'LICENSE.TXT')
 Get-VerifiedFile 'https://raw.githubusercontent.com/nlohmann/json/v3.12.0/single_include/nlohmann/json.hpp' (Join-Path $deps 'json.hpp') 'AAF127C04CB31C406E5B04A63F1AE89369FCCDE6D8FA7CDDA1ED4F32DFC5DE63'
 Get-VerifiedFile 'https://raw.githubusercontent.com/nlohmann/json/v3.12.0/LICENSE.MIT' (Join-Path $deps 'json-LICENSE.MIT') '46A65CFFD1EA955132D95A8DD921640714A8D6B537D2E4E482D31145AE95B603'
+$lua=Join-Path $downloads 'lua-5.4.8.tar.gz'
+Get-VerifiedFile 'https://www.lua.org/ftp/lua-5.4.8.tar.gz' $lua '4F18DDAE154E793E46EEAB727C59EF1C0C0C2B744E7B94219710D76F530629AE'
+& tar -xzf $lua -C $deps
+if($LASTEXITCODE -ne 0){throw 'Lua 解包失败'}
 Write-Output '控制依赖准备完成。解包工具仅用于开发准备，不随产品分发。'

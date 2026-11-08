@@ -119,7 +119,7 @@ ColumnLayout {
         FormLabel {text:root.rules.length+" 条规则";color:theme.textSecondary}
         Item {Layout.fillWidth:true}
         PanelButton {text:"＋ 添加规则";onClicked:root.edit(-1)}
-        PanelButton {text:"C 代码控制";onClicked:codeDialog.begin()}
+        PanelButton {text:"代码控制";onClicked:codeDialog.begin()}
     }
     FormLabel {visible:root.rules.length===0;text:"例如：1 秒后施加拉力；接触后改变速度；越过边界后停用物体。";color:theme.textSecondary;Layout.fillWidth:true;wrapMode:Text.Wrap}
     ScrollView {
