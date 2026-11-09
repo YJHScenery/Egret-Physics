@@ -105,7 +105,9 @@ namespace egret::control
         virtual bool usesForces()const{return true;}
         /** @brief 在安全步边界读取同一快照并生成有限动作；失败由宿主中止本步。 */
         virtual void evaluate(const Frame& frame,CommandBuffer& output)=0;
-        /** @brief 重置触发历史和用户状态，使重新运行具有确定语义。 */
+        /** @brief 无调度地执行无状态采样；默认沿用普通执行语义。 */
+        virtual void evaluateSample(const Frame& frame, CommandBuffer& output) { evaluate(frame, output); }        /** @brief 重置触发历史和用户状态，使重新运行具有确定语义。 */
         virtual void reset()=0;
     };
 }
+

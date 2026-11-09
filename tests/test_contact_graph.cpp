@@ -19,6 +19,7 @@
 #include "solver.h"
 #include "gravity_field.h"
 #include "constant_force_field.h"
+#include "vector_force_field.h"
 #include "ccd_solver_adapter.h"
 #include "gravitational_field.h"
 #include "air_resistance.h"
@@ -494,9 +495,34 @@ void testSlidingBlockBoard(double thickness=0.000002, double dt=0.0001)
               << "，距离=" << distance << '\n';
 }
 
+/** @brief 验证场的作用域、旧力清理和 Verlet 子步末端时刻。 */
+void testVectorForceField()
+{
+    VectorForceField field(VectorForceModel(VectorForceModel::box({-1,-1,-1},{1,1,1}),
+        [](double t, const Eigen::Vector3d&) -> Eigen::Vector3d { return {t, 0, 0}; }), 456);
+    Particle body({0,0,0}, Eigen::Vector3d::Zero(), 1, 123);
+    field.applyToEntityAt(&body, 2);
+    require(std::abs(body.getJoinForce().x()-2)<1e-12, "时变场力与时间不符");
+    body.setPosition({2,0,0});
+    field.applyToEntityAt(&body, 3);
+    require(!body.hasForce(456), "离开作用域后旧场力未清理");
+    body.setPosition({0,0,0});
+    field.applyToEntityAt(&body, 2);
+    ContactTestScene scene;
+    scene.bodies = {handle(body)};
+    scene.fields = {&field};
+    SolverStats stats{};
+    VelocityVerletIntegratorStrategy integrator;
+    integrator.integrateAt(scene, 0.25, SolverConfig{}, stats, 2.0);
+    require(std::abs(body.getJoinForce().x()-2.25)<1e-12, "Verlet 子步末端时间错误");
+    field.setEnabled(false);
+    field.applyToEntityAt(&body, 3);
+    require(!body.hasForce(456), "停用时旧场力未清理");
+}
 /** @brief 执行全部独立回归并返回可用于 CTest 的退出码。 */
 int main()
 {
-    try { testSceneControlWorld(); testThinBoxContinuousCollision(); testSlidingBlockBoard(); testSlidingBlockBoard(2e-8,1e-5); testBvhVirtualAnchor(); testInitializedPhysicsState(); testManifolds(); testGraph(); testHighDegreeAndBoundary(); testVelocity(); testConstraintBehavior(); testRailFrictionIntegration(); testRopeConstraints(); testJointProjection(); testContactSleep(); testGravitySimulation(); std::cout<<"接触回归全部通过\n"; return 0; }
+    try { testVectorForceField(); testSceneControlWorld(); testThinBoxContinuousCollision(); testSlidingBlockBoard(); testSlidingBlockBoard(2e-8,1e-5); testBvhVirtualAnchor(); testInitializedPhysicsState(); testManifolds(); testGraph(); testHighDegreeAndBoundary(); testVelocity(); testConstraintBehavior(); testRailFrictionIntegration(); testRopeConstraints(); testJointProjection(); testContactSleep(); testGravitySimulation(); std::cout<<"接触回归全部通过\n"; return 0; }
     catch (const std::exception& error) { std::cerr<<error.what()<<'\n'; return 1; }
 }
+

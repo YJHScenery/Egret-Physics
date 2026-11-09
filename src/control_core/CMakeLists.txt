@@ -36,6 +36,7 @@ string(REPLACE "static " "" EGRET_NATIVE_RUNTIME "${EGRET_NATIVE_RUNTIME}")
 string(REPLACE "__builtin_trap();" "throw std::runtime_error(\"控制 SDK 参数、句柄或容量无效\");" EGRET_NATIVE_RUNTIME "${EGRET_NATIVE_RUNTIME}")
 string(REPLACE "__builtin_sqrt" "std::sqrt" EGRET_NATIVE_RUNTIME "${EGRET_NATIVE_RUNTIME}")
 string(REPLACE "__builtin_fabs" "std::fabs" EGRET_NATIVE_RUNTIME "${EGRET_NATIVE_RUNTIME}")
+string(REPLACE "__builtin_floor" "std::floor" EGRET_NATIVE_RUNTIME "${EGRET_NATIVE_RUNTIME}")
 string(REGEX REPLACE "\\(([A-Za-z0-9_]+)\\) *\\{" "\\1{" EGRET_NATIVE_RUNTIME "${EGRET_NATIVE_RUNTIME}")
 string(FIND "${EGRET_NATIVE_RUNTIME}" "unsigned egret_exchange(void)" EGRET_NATIVE_END)
 string(SUBSTRING "${EGRET_NATIVE_RUNTIME}" 0 ${EGRET_NATIVE_END} EGRET_NATIVE_RUNTIME)
@@ -68,4 +69,10 @@ egret_apply_control_dependencies(Egret_Control_Core)
 if(BUILD_TESTS)
     egret_apply_control_dependencies(Egret_Programmable_Control_Tests)
     egret_apply_control_dependencies(Egret_Lua_Control_Tests)
+endif()
+
+
+# 数学实现随 SDK 分发；用户代码编译阶段仅链接预编译归档。
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/sdk/libegret_math.a")
+    message(FATAL_ERROR "缺少预编译数学库，请运行 tools/setup_control_math.ps1")
 endif()

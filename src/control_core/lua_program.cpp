@@ -173,7 +173,7 @@ private:
         EGRET_BIND(entity_set_angular_velocity);EGRET_BIND(entity_set_mass);EGRET_BIND(entity_set_rotation);EGRET_BIND(entity_set_torque);EGRET_BIND(entity_set_material);
         EGRET_BIND(scene_spawn);EGRET_BIND(entity_destroy);EGRET_BIND(simulation_time);EGRET_BIND(simulation_step);EGRET_BIND(control_delta);EGRET_BIND(simulation_step_index);
         EGRET_BIND(state_number);EGRET_BIND(state_set_number);EGRET_BIND(state_bool);EGRET_BIND(state_set_bool);EGRET_BIND(state_entity);EGRET_BIND(state_set_entity);
-        EGRET_BIND(numbers_create);EGRET_BIND(numbers_destroy);EGRET_BIND(numbers_push);EGRET_BIND(numbers_pop);EGRET_BIND(numbers_count);EGRET_BIND(math_sqrt);EGRET_BIND(math_abs);
+        EGRET_BIND(numbers_create);EGRET_BIND(numbers_destroy);EGRET_BIND(numbers_push);EGRET_BIND(numbers_pop);EGRET_BIND(numbers_count);EGRET_BIND(math_sqrt);EGRET_BIND(math_abs);EGRET_BIND(math_cos);EGRET_BIND(field_inside_box);EGRET_BIND(field_inside_sphere);
 #undef EGRET_BIND
         lua_pushcfunction(state,parameter);lua_setglobal(state,"parameter_number");
         if(luaL_loadbufferx(state,p.spec_.source.data(),p.spec_.source.size(),"control.lua","t")!=LUA_OK)return lua_error(state);
@@ -190,3 +190,4 @@ std::unique_ptr<Program> prepareLuaProgram(const ControlProgramSpec& spec,const 
     return std::make_unique<LuaProgram>(spec,options,identity);
 }
 }
+

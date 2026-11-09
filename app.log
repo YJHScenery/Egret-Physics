@@ -753,3 +753,5 @@
 [2026-11-08 16:04:36.194] [I] [epsx_video_encoder.cpp:215] [bool __cdecl egret::video::EpsxVideoEncoder::start(const struct egret::video::Options &,class QString *)] 已保存首帧预览：.tmp_color_test\preview_desk1.png
 [2026-11-08 16:13:03.277] [I] [epsx_video_encoder.cpp:215] [bool __cdecl egret::video::EpsxVideoEncoder::start(const struct egret::video::Options &,class QString *)] 已保存首帧预览：.tmp_color_test\preview_mixed.png
 [2026-11-08 16:15:19.811] [I] [epsx_video_encoder.cpp:215] [bool __cdecl egret::video::EpsxVideoEncoder::start(const struct egret::video::Options &,class QString *)] 已保存首帧预览：.tmp_color_test\preview_mixed_fixed.png
+[2026-11-09 20:06:07.711] [I] [epsx_video_encoder.cpp:313] [bool __cdecl egret::video::EpsxVideoEncoder::start(const struct egret::video::Options &,class QString *)] 并行渲染通道数量：1
+[2026-11-09 20:06:07.816] [I] [ffmpeg_video_writer.cpp:151] [bool __cdecl egret::video::FfmpegVideoWriter::start(const struct egret::video::FfmpegVideoWriter::Settings &,class QString *)] 视频编码器：h264_nvenc

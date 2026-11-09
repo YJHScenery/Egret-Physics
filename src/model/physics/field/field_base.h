@@ -27,7 +27,7 @@ namespace egret
     {
         Unknown = 0,
 
-        Gravity, Gravitation,
+        Gravity, Gravitation, VectorForce,
 
         Abstract = 127,
 
@@ -75,6 +75,15 @@ namespace egret
         // 返回此位置的场向量
         virtual Eigen::Vector3d sample([[maybe_unused]] const Eigen::Vector3d& position) = 0;
 
+        /** @brief 按指定仿真时间采样，静态场默认忽略时间。 */
+        virtual Eigen::Vector3d sampleAt(double, const Eigen::Vector3d& position) { return sample(position); }
+
+        /** @brief 按指定仿真时间施力，静态场默认使用原有接口。 */
+        virtual void applyToEntityAt(PhysicalEntity* entity, double) { applyToEntity(entity); }
+
+        /** @brief 指示连续碰撞子步是否需要重算时变场。 */
+        [[nodiscard]] virtual bool isTimeDependent() const { return false; }
+
         // 返回势能或势函数值，非保守场以后可以返回空值或默认实现（不包含质量乘数）
         virtual double potential(const Eigen::Vector3d& position) = 0;
 
@@ -97,3 +106,5 @@ namespace egret
 } // egret
 
 #endif //EGRET_PHYSICS_FIELD_BASE_H
+
+

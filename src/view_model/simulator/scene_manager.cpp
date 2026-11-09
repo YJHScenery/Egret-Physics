@@ -64,6 +64,8 @@
 #include "rigid_body.h"
 #include "gravity_field.h"
 #include "constant_force_field.h"
+#include "vector_force_field.h"
+#include "wasm_vector_force_model.h"
 #include "serialize/scene_settings.h"
 #include "gravitational_field.h"
 #include "constraints/connecting_line.h"
@@ -467,7 +469,21 @@ namespace egret
                 record.fields.push_back({obj["name"].toString().toStdString(), std::move(field)});
                 record.fields.back().loadTime = std::max(0.0, obj.value("load_time").toDouble(0.0));
             }
-            else if (ftype == 2) {
+            else if (ftype == 3) {
+                try {
+                    const auto fid = obj["id"].toString().toULongLong();
+                    const auto source = fd.value("source").toString().toStdString();
+                    auto options = control::defaultCompilerOptions();
+                    options.shouldCancel = shouldCancel;
+                    options.onPrepared = onPrepared;
+                    auto field = std::make_shared<VectorForceField>(makeWasmVectorForceModel(source, options), fid);
+                    record.fields.push_back({obj["name"].toString().toStdString(), std::move(field)});
+                    record.fields.back().loadTime = std::max(0.0, obj.value("load_time").toDouble(0.0));
+                } catch (const std::exception& error) {
+                    qWarning() << "矢量力场编译失败：" << error.what();
+                    return {};
+                }
+            }            else if (ftype == 2) {
                 // Gravitation
                 const std::uint64_t fid = obj["id"].toString().toULongLong();
                 const QJsonValue fixedValue = fd.value("fixed");
@@ -525,8 +541,13 @@ namespace egret
                     anchor.enableCollision = false;
                     anchor.enableIntegration = false;
                     anchor.auxiliaryAnchor = true;
-                    std::uint64_t anchorId;
-                    do { anchorId = UniqueIDGenerator::instance().generate(); } while (!usedIds.insert(anchorId).second);
+                    std::uint64_t anchorId = obj.value("anchor_id").toString().toULongLong();
+                    if (obj.contains("anchor_id")) {
+                        if (!anchorId || !usedIds.insert(anchorId).second)
+                            throw std::runtime_error("回放锚点身份无效或重复");
+                    } else {
+                        do { anchorId = UniqueIDGenerator::instance().generate(); } while (!usedIds.insert(anchorId).second);
+                    }
                     anchor.entity = std::make_shared<Particle>(readVec3(obj.value("anchor_pos"), readVec3(cd.value("anchor_pos"))), Eigen::Vector3d::Zero(), 0.0, anchorId);
                     auto* fixed = anchor.entity.get();
                     record.bodies.push_back(std::move(anchor));
@@ -672,7 +693,8 @@ namespace egret
         return m_running;
     }
 
-    double SceneManagerViewModel::simTime() const
+
+double SceneManagerViewModel::simTime() const
     {
         return m_simTime;
     }
@@ -2245,3 +2267,9 @@ namespace egret
     //     emit dragActiveChanged();
     // }
 }
+
+
+
+
+
+

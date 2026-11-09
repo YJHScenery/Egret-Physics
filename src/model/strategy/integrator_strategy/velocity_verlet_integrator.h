@@ -87,8 +87,12 @@ namespace egret
                        [[maybe_unused]] const SolverConfig &config,
                        SolverStats &stats) const override;
 
+        /** @brief 使用子步起点时间计算末端场力。 */
+        void integrateAt(SolverSceneSnapshotBase& scene, double dt, const SolverConfig& config,
+                         SolverStats& stats, double startTime) const override;
         std::string_view name() const override;
     };
 }
 
 #endif // EGRET_PHYSICS_VELOCITY_VERLET_INTEGRATOR_H
+

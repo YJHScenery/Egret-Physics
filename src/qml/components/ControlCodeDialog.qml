@@ -144,29 +144,11 @@ Basic.Dialog {
                     Label {text: "parameter_number(\"gain\")";color: theme.textSecondary}
                 }
                 Flow {Layout.fillWidth: true;Layout.preferredHeight: Math.min(70, implicitHeight);spacing: 5;Repeater {model: root.parameterNames;delegate: ActionButton {required property string modelData;text: modelData + " = " + root.current.parameters[modelData] + " ×";onClicked: root.removeParameter(modelData)}}}
-                RowLayout {
-                    Label {text: root.current && root.current.backend === "lua" ? "Lua 源码" : "C 源码";color: theme.textPrimary}
-                    Item {Layout.fillWidth: true}
-                    Label {text: "字体";color: theme.textSecondary}
-                    EgretComboBox {
-                        Layout.preferredWidth: 200
-                        model: CodeEditorSettings.fontFamilies
-                        currentIndex: Math.max(0, model.indexOf(CodeEditorSettings.fontFamily))
-                        onActivated: CodeEditorSettings.fontFamily = currentText
-                    }
-                    Label {text: "字号";color: theme.textSecondary}
-                    ActionButton {text: "−";implicitWidth: 32;enabled: CodeEditorSettings.fontSize > CodeEditorSettings.minimumFontSize;onClicked: CodeEditorSettings.fontSize--}
-                    Label {text: CodeEditorSettings.fontSize + " px";color: theme.textPrimary}
-                    ActionButton {text: "+";implicitWidth: 32;enabled: CodeEditorSettings.fontSize < CodeEditorSettings.maximumFontSize;onClicked: CodeEditorSettings.fontSize++}
-                    ActionButton {text: "默认";onClicked: CodeEditorSettings.resetToDefaults()}
-                }
-                CodeEditor {
-                    id: codeEditor
-                    objectName: "codeEditor"
-                    Layout.fillWidth: true;Layout.fillHeight: true;Layout.minimumHeight: 130
+                CodeEditorPanel {
+                    Layout.fillWidth: true; Layout.fillHeight: true
                     language: root.current && root.current.backend === "lua" ? "lua" : "c"
-                    source: {var revision = root.revision;return root.current ? root.current.source : ""}
-                    onEdited: function(value) {if (root.current) root.current.source = value}
+                    source: { var revision = root.revision; return root.current ? root.current.source : "" }
+                    onEdited: function(value) { if (root.current) root.current.source = value }
                 }
                 Label {Layout.fillWidth: true;wrapMode: Text.Wrap;color: theme.textSecondary;text: "常用接口：scene_entity / scene_template / scene_spawn / entity_destroy / entity_position / entity_set_velocity / entity_set_force / state_number / state_entity / control_delta。C 入口为 void on_step(void)，Lua 入口为 function on_step() ... end；两者共享领域 SDK。"}
             }
@@ -182,3 +164,4 @@ Basic.Dialog {
         }
     }
 }
+

@@ -234,7 +234,7 @@ namespace egret
          * @param dt 固定步长。
          * @param stats 可变步骤统计。
          */
-        void integrate(SolverSceneSnapshotBase& scene, double dt, SolverStats& stats) const;
+        void integrate(SolverSceneSnapshotBase& scene, double dt, SolverStats& stats, double elapsed = 0.0) const;
 
         /**
          * @brief 在积分前应用速度约束和角速度约束。
@@ -281,3 +281,4 @@ namespace egret
 }
 
 #endif // EGRET_PHYSICS_SOLVER_H
+

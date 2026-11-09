@@ -213,6 +213,11 @@ namespace egret
         });
 
         
+        m_fieldSchemas.append({
+            static_cast<int>(FieldType::VectorForce), QStringLiteral("可编程矢量力场"),
+            {{QStringLiteral("source"), QStringLiteral("受限 C 场函数"), QStringLiteral("code"),
+              QStringLiteral("bool field_contains(Vector3 p) { return true; }\nVector3 field_force(double t, Vector3 p) { return vector3(0, 0, -math_cos(t)); }\n")}}, 0
+        });
         //  Constraint 类别 (ConstraintType 枚举)
 
         m_constraintSchemas.append({
@@ -959,3 +964,5 @@ namespace egret
         }
     }
 } // namespace egret
+
+

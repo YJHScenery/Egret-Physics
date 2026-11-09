@@ -21,6 +21,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 6.9
 import QtQuick3D 6.9
+import EgretPhysics 1.0
 
 import "qrc:/components/components"
 import "qrc:/components/components/viewport"
@@ -431,3 +432,5 @@ Item {
         onFitRequested:function(selectedOnly){viewportRoot.fitScene(selectedOnly);}
     }
 }
+
+

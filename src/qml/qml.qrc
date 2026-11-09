@@ -26,6 +26,8 @@
         <file>components/MenuActionButton.qml</file>
         <file>components/ShortcutHelpDialog.qml</file>
         <file>components/editor/CodeEditor.qml</file>
+        <file>components/editor/CodeEditorPanel.qml</file>
+        <file>components/editor/CodeEditorDialog.qml</file>
         <file>components/editor/CIndent.js</file>
         <file>components/presets/EgretPresetMenu.qml</file>
         <file>components/SceneScaleControls.qml</file>
@@ -55,3 +57,4 @@
     </qresource>
 
 </RCC>
+

@@ -316,7 +316,7 @@ namespace egret
 
             for (FieldBase* field : fields) {
                 if (field != nullptr) {
-                    field->applyToEntity(body.entity);
+                    field->applyToEntityAt(body.entity, scene.getSimulationTime());
                 }
 
                 // if (auto fieldEntityPtr{dynamic_cast<Particle*>(field)}) {
@@ -607,7 +607,7 @@ namespace egret
             const double timeToCollision = earliestToi - currentTime;
 
             if (timeToCollision > remainingTime + kTimeEpsilon) {
-                integrate(scene, remainingTime, stats);
+                integrate(scene, remainingTime, stats, currentTime);
                 currentTime += remainingTime;
                 // 关键：将剩余时间清零，避免循环结束后的最终积分重复推进同一段时间
                 remainingTime = 0.0;
@@ -615,7 +615,7 @@ namespace egret
             }
 
             if (timeToCollision > kTimeEpsilon) {
-                integrate(scene, timeToCollision, stats);
+                integrate(scene, timeToCollision, stats, currentTime);
                 currentTime = earliestToi;
                 remainingTime = dt - currentTime;
             }
@@ -673,7 +673,7 @@ namespace egret
         }
 
         if (remainingTime > kTimeEpsilon) {
-            integrate(scene, remainingTime, stats);
+            integrate(scene, remainingTime, stats, currentTime);
         }
     }
 
@@ -726,10 +726,18 @@ namespace egret
         }
     }
 
-    void Solver::integrate(SolverSceneSnapshotBase& scene, const double dt, SolverStats& stats) const
+    void Solver::integrate(SolverSceneSnapshotBase& scene, const double dt, SolverStats& stats, const double elapsed) const
     {
         if (m_integrator != nullptr) {
-            m_integrator->integrate(scene, dt, m_config, stats);
+            const double time = scene.getSimulationTime() + elapsed;
+            if (elapsed > 0.0 && m_config.applyFieldsEachStep) {
+                for (FieldBase* field : scene.getFields()) {
+                    if (!field || !field->isTimeDependent()) continue;
+                    for (const auto& body : scene.getBodies())
+                        if (body.entity && body.entity->isActive()) field->applyToEntityAt(body.entity, time);
+                }
+            }
+            m_integrator->integrateAt(scene, dt, m_config, stats, time);
         }
     }
 
@@ -794,3 +802,4 @@ namespace egret
         }
     }
 }
+

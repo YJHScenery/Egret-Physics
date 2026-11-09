@@ -132,5 +132,12 @@ unsigned numbers_count(NumberList list);
 double math_sqrt(double value);
 /** @brief 绝对值。 */
 double math_abs(double value);
+/** @brief 余弦函数，使用数学库进行完整范围归约。 */
+double math_cos(double value);
+/** @brief 判断点是否位于包含边界的轴对齐盒内。 */
+bool field_inside_box(Vector3 point, Vector3 minimum, Vector3 maximum);
+/** @brief 判断点是否位于包含边界的球内。 */
+bool field_inside_sphere(Vector3 point, Vector3 center, double radius);
 /** @brief 用户定义的控制回调。 */
 void on_step(void);
+

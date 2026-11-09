@@ -14,6 +14,8 @@ struct ControlProgramSpec
 {
     /** @brief 源码执行后端；旧配置默认使用 C/Wasm。 */
     std::string backend{"c_wasm"};
+    /** @brief 内部场适配器标识用户源码长度，零表示普通控制程序。 */
+    std::size_t fieldSourceLength{};
     std::string name{"控制程序"};
     std::string source{"/** @brief 场景控制入口。 */\nvoid on_step(void)\n{\n}\n"};
     bool enabled{true};
@@ -45,7 +47,9 @@ std::unique_ptr<Program> prepareProgram(const ControlProgramSpec &spec, const Co
                                         unsigned identityNamespace = 1);
 /** @brief 准备具有独立状态及资源限制的 Lua 程序。 */
 std::unique_ptr<Program> prepareLuaProgram(const ControlProgramSpec&, const CompilerOptions&, unsigned);
-/** @brief 返回部署或环境变量指定的编译环境。 */
+/** @brief 编译无状态受限 C 矢量场；源码定义 field_contains 和 field_force。 */
+std::unique_ptr<Program> prepareVectorFieldProgram(const std::string& source, const CompilerOptions& options,
+                                                   std::uint64_t fuel = 1000000);/** @brief 返回部署或环境变量指定的编译环境。 */
 CompilerOptions defaultCompilerOptions();
 /** @brief 在无 Qt 核心解析版本化配置，旧场景补默认空入口。 */
 std::vector<ControlProgramSpec> parseProgramSpecs(const std::string &json);
@@ -76,3 +80,4 @@ class CompositeProgram final : public Program
     std::vector<std::vector<ContactPair>> m_contacts;
 };
 } // namespace egret::control
+

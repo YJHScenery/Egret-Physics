@@ -333,6 +333,9 @@ set(CPP_FILES
         src/view/file_handler.h
         src/view/enum_handler.cpp
         src/view/enum_handler.h
+        src/model/physics/field/vector_force_field.h
+        src/model/physics/field/vector_force_model.h
+        src/model/physics/field/wasm_vector_force_model.h
         src/view/geometry/spring_geometry.cpp
         src/view/geometry/spring_geometry.h
         src/view/geometry/bezier_curve_geometry.cpp
@@ -888,3 +891,28 @@ get_property(EGRET_CONTROL_CONSUMERS DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
 foreach(EGRET_CONTROL_CONSUMER IN LISTS EGRET_CONTROL_CONSUMERS)
     egret_apply_control_dependencies(${EGRET_CONTROL_CONSUMER})
 endforeach()
+
+# 时变矢量力场的采样模型可独立验证，无需启动图形界面。
+if(BUILD_TESTS)
+    add_executable(Egret_Vector_Force_Model_Tests tests/test_vector_force_model.cpp)
+    target_include_directories(Egret_Vector_Force_Model_Tests PRIVATE src dependency/include/eigen_5_0_0)
+    if(MSVC)
+        target_compile_options(Egret_Vector_Force_Model_Tests PRIVATE /utf-8)
+    endif()
+    add_test(NAME EgretVectorForceModelTests COMMAND Egret_Vector_Force_Model_Tests)
+endif()
+
+
+if(BUILD_TESTS)
+    add_test(NAME EgretVectorForceSceneTests COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File
+        ${CMAKE_SOURCE_DIR}/tests/test_vector_force_scene.ps1
+        -Executable $<TARGET_FILE:Egret_Physics> -WorkDir ${CMAKE_BINARY_DIR})
+endif()
+
+if(BUILD_TESTS)
+    add_test(NAME EgretAnchorPlaybackTests COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File
+        ${CMAKE_SOURCE_DIR}/tests/test_anchor_playback.ps1
+        -Executable $<TARGET_FILE:Egret_Physics>
+        -Scene ${CMAKE_SOURCE_DIR}/demo/forced_oscillation/forced_pendulum.epscenex
+        -WorkDir ${CMAKE_BINARY_DIR})
+endif()

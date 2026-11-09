@@ -114,7 +114,7 @@ namespace egret
         Q_OBJECT
         Q_PROPERTY(QVariantMap displaySettings READ displaySettings NOTIFY displaySettingsChanged)
     public:
-        /** @brief 返回当前加载场景的纯显示配置。 */
+/** @brief 返回当前加载场景的纯显示配置。 */
         QVariantMap displaySettings() const {return m_displaySettings;}
     signals:
         /** @brief 加载了新的场景显示配置。 */
@@ -696,3 +696,7 @@ namespace egret
 }
 
 #endif // EGRET_PHYSICS_SCENE_MANAGER_VIEWMODEL_H
+
+
+
+

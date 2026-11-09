@@ -203,6 +203,24 @@ namespace egret
             QJsonObject root = QJsonDocument::fromJson(sceneJson.toUtf8()).object();
             root["scene_settings"]=normalizeSceneSettings(root["scene_settings"].toObject());
 
+            // 保存自动锚点的完整整数身份，使回放重建与 BODY 记录一致。
+            QJsonArray models = root.value("models").toArray();
+            for (qsizetype i = 0; i < models.size(); ++i) {
+                auto model = models[i].toObject();
+                const auto targets = model.value("entity_ids").toArray();
+                if (model.value("category").toInt() != 2 || targets.size() != 1) continue;
+                auto* constraint = world.getConstraint(model.value("id").toString().toULongLong());
+                if (!constraint) continue;
+                const auto target = targets[0].toString().toULongLong();
+                for (const auto* entity : constraint->getConstrainedEntities()) {
+                    if (entity && entity->getId() != target) {
+                        model["anchor_id"] = QString::number(entity->getId());
+                        models[i] = model;
+                        break;
+                    }
+                }
+            }
+            root["models"] = models;
             root[QStringLiteral("format")] = QStringLiteral("EPSX");
             root[QStringLiteral("formatVersion")] = QStringLiteral("1.1");
             root["controlAbiVersion"]=1;
@@ -454,3 +472,4 @@ namespace egret
         return baseDir + QStringLiteral("/simulations/egret_simulation.epsx");
     }
 }
+

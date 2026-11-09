@@ -179,9 +179,13 @@ void testCodeEditor() {
         import QtQuick.Controls.Basic
         import "qrc:/components/components"
         import "qrc:/components/components/presets"
+        import "qrc:/components/components/editor"
         ApplicationWindow {
-            width: 1400; height: 1000; visible: true
+            id: testWindow; width: 1400; height: 1000; visible: true
+            property string savedKey: ""
+            property string savedSource: ""
             ControlCodeDialog {objectName: "dialog"}
+            CodeEditorDialog {objectName: "fieldDialog"; onSourceSaved: function(key, value) { testWindow.savedKey = key; testWindow.savedSource = value }}
             EgretPresetMenu {objectName: "presets"}
         }
     )", QUrl("qrc:/tests/editor_smoke.qml"));
@@ -198,6 +202,19 @@ void testCodeEditor() {
     auto* quickWindow = qobject_cast<QQuickWindow*>(window.get());
     check(quickWindow && quickWindow->grabWindow().save("code_editor_preview.png"), "无法渲染控制窗口预览");
     check(QMetaObject::invokeMethod(dialog, "close"), "无法关闭控制窗口");
+    QObject* fieldDialog = window->findChild<QObject*>("fieldDialog");
+    check(fieldDialog && QMetaObject::invokeMethod(fieldDialog, "begin", Q_ARG(QVariant, "source"), Q_ARG(QVariant, "初始源码")), "场代码弹窗无法打开");
+    auto* fieldEditor = fieldDialog->findChild<QObject*>("codeEditor");
+    check(fieldEditor && fieldEditor->property("source").toString() == QString::fromUtf8("初始源码"), "场弹窗没有复用代码编辑器");
+    check(fieldEditor->property("fontFamily").toString() == CodeEditorSettings::instance()->fontFamily(), "场弹窗未同步字体设置");
+    fieldEditor->setProperty("source", QString::fromUtf8("修改的源码"));
+    check(QMetaObject::invokeMethod(fieldDialog, "close"), "无法取消场源码编辑");
+    check(window->property("savedSource").toString().isEmpty(), "取消编辑不应提交草稿");
+    check(QMetaObject::invokeMethod(fieldDialog, "begin", Q_ARG(QVariant, "source"), Q_ARG(QVariant, "原源码")), "场弹窗无法重新打开");
+    check(fieldEditor->property("source").toString() == QString::fromUtf8("原源码"), "重新打开时保留了已取消草稿");
+    fieldEditor->setProperty("source", QString::fromUtf8("保存的源码"));
+    check(QMetaObject::invokeMethod(fieldDialog, "save"), "无法保存场源码");
+    check(window->property("savedKey").toString() == "source" && window->property("savedSource").toString() == QString::fromUtf8("保存的源码"), "场源码保存结果错误");
     QObject* presets = window->findChild<QObject*>("presets");
     check(presets && QMetaObject::invokeMethod(presets, "openAt", Q_ARG(QVariant, 40), Q_ARG(QVariant, 40)), "预设菜单无法打开");
     QTimer::singleShot(150, &loop, &QEventLoop::quit);
@@ -208,3 +225,5 @@ void testCodeEditor() {
     QCoreApplication::processEvents();
     if (!warnings.isEmpty()) throw std::runtime_error(warnings.join('\n').toStdString());
 }
+
+

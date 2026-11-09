@@ -193,7 +193,7 @@ struct ValidatedSource
     std::string source;
     bool readAll{}, noOp{}, contacts{};
 };
-ValidatedSource validateAst(const Json &ast, const std::set<std::string> &sdk, const ControlProgramSpec &spec)
+ValidatedSource validateAst(const Json &ast, const std::set<std::string> &sdk, const std::set<std::string> &math, const ControlProgramSpec &spec)
 {
     ValidatedSource validated;
     std::set<std::string> functions, definitions;
@@ -290,6 +290,8 @@ ValidatedSource validateAst(const Json &ast, const std::set<std::string> &sdk, c
         if (!kind.empty() && !allowed.contains(kind) && kind != "ExprWithCleanups" &&
             kind != "MaterializeTemporaryExpr" && kind != "EmptyDecl")
             reject("语法节点未列入受限 C 白名单：" + kind);
+        if (spec.fieldSourceLength && kind == "VarDecl" && node.value("storageClass", "") == "static")
+            reject("场函数不允许静态状态");
         if (kind == "ArraySubscriptExpr" || kind == "CStyleCastExpr" || kind == "GCCAsmStmt" ||
             kind == "AddrLabelExpr" || kind == "GotoStmt" || kind == "IndirectGotoStmt" || kind == "StmtExpr" ||
             kind == "VAArgExpr" || kind == "CompoundLiteralExpr")
@@ -334,6 +336,11 @@ ValidatedSource validateAst(const Json &ast, const std::set<std::string> &sdk, c
             if (callee.value("kind", "") != "DeclRefExpr")
                 reject("仅允许直接调用函数");
             std::string name = callee.value("referencedDecl", Json::object()).value("name", "");
+            const auto callOffset = node.value("range", Json::object()).value("begin", Json::object()).value("offset", spec.source.size());
+            if (spec.fieldSourceLength && callOffset < spec.fieldSourceLength && sdk.contains(name) &&
+                name != "vector3" && name != "math_sqrt" && name != "math_abs" && name != "math_cos" &&
+                name != "field_inside_box" && name != "field_inside_sphere" && !math.contains(name))
+                reject("场函数仅允许使用无状态向量与数学接口");
             if (!sdk.contains(name) && !functions.contains(name))
                 reject("函数未列入领域接口：" + name);
             if (name == "on_step")
@@ -394,6 +401,8 @@ ValidatedSource validateAst(const Json &ast, const std::set<std::string> &sdk, c
         if (kind != "FunctionDecl" && kind != "VarDecl" && kind != "RecordDecl" && kind != "TypedefDecl" &&
             kind != "EnumDecl" && kind != "EmptyDecl")
             throw std::runtime_error("用户代码只能定义函数、数值结构与状态变量");
+        if (spec.fieldSourceLength && kind == "VarDecl" && node.value("loc", Json::object()).value("offset", spec.source.size()) < spec.fieldSourceLength)
+            throw std::runtime_error("场源码不得定义全局变量");
         auto name = node.value("name", "");
         if (name.rfind("egret_", 0) == 0 || name.rfind("__", 0) == 0 || sdk.contains(name) && name != "on_step")
             throw std::runtime_error("不得覆盖可信 SDK 名称：" + name);
@@ -564,14 +573,21 @@ class WasmProgram final : public Program
     {
         return !m_noOp;
     }
-    /** @brief 重新实例化，恢复所有用户全局变量及状态池。 */
+    /** @brief 场采样允许时刻倒序，并保持每次调用独立调度。 */
+    void evaluateSample(const Frame& frame, CommandBuffer& output) override
+    {
+        if (!m_spec.fieldSourceLength) throw std::runtime_error("普通控制程序不能作为场采样");
+        m_next = 0;
+        evaluate(frame, output);
+    }    /** @brief 重新实例化，恢复所有用户全局变量及状态池。 */
     void reset() override
     {
         if (m_store)
             wasmtime_store_delete(m_store);
         m_store = wasmtime_store_new(m_engine, nullptr, nullptr);
         auto context = wasmtime_store_context(m_store);
-        wasmtime_store_limiter(m_store, 2 * 1024 * 1024, 0, 1, 1, 1);
+        // 预编译数学对象保留一个空表槽；用户函数指针仍由 AST 禁止。
+        wasmtime_store_limiter(m_store, 2 * 1024 * 1024, 1, 1, 1, 1);
         checked(wasmtime_context_set_fuel(context, m_spec.fuel));
         wasmtime_instance_t instance;
         wasm_trap_t *trap = nullptr;
@@ -650,7 +666,7 @@ class WasmProgram final : public Program
                 }
             }
             auto &input = *m_exchange;
-            std::memset(&input, 0, sizeof(input));
+            std::memset(&input, 0, m_spec.fieldSourceLength ? offsetof(EgretExchange, bindings) : sizeof(input));
             input.version = EGRET_ABI_VERSION;
             input.bytes = sizeof(input);
             input.time = frame.time;
@@ -672,7 +688,13 @@ class WasmProgram final : public Program
             for (const auto &body : frame.templates)
                 if (std::binary_search(m_observed.begin(), m_observed.end(), body.id))
                     input.templates[input.templateCount++] = packBody(body);
-            std::memcpy(data, &input, sizeof(input));
+            if (m_spec.fieldSourceLength) {
+                std::memcpy(data, &input, offsetof(EgretExchange, bindings));
+                std::memcpy(data + offsetof(EgretExchange, bindings), input.bindings, input.bindingCount * sizeof(EgretBinding));
+                std::memcpy(data + offsetof(EgretExchange, bodies), input.bodies, input.bodyCount * sizeof(EgretBody));
+            } else {
+                std::memcpy(data, &input, sizeof(input));
+            }
             checked(wasmtime_context_set_fuel(context, m_spec.fuel));
             wasm_trap_t *trap = nullptr;
             auto error = wasmtime_func_call(context, &m_step, nullptr, 0, nullptr, 0, &trap);
@@ -764,7 +786,26 @@ CompilerOptions defaultCompilerOptions()
     overridePath(L"EGRET_CONTROL_CACHE", options.cacheDirectory);
     return options;
 }
-std::unique_ptr<Program> prepareProgram(const ControlProgramSpec &spec, const CompilerOptions &options,
+std::unique_ptr<Program> prepareVectorFieldProgram(const std::string& source, const CompilerOptions& options,
+                                                   std::uint64_t fuel)
+{
+    if (source.empty()) throw std::runtime_error("场源码不能为空");
+    ControlProgramSpec spec;
+    spec.name = "矢量力场";
+    spec.fuel = fuel;
+    spec.fieldSourceLength = source.size();
+    spec.bindings["field_sample"] = 1;
+    spec.source = source + R"(
+void on_step(void) {
+    Entity point = scene_entity("field_sample");
+    Vector3 position = entity_position(point);
+    Vector3 value = vector3(0, 0, 0);
+    if (field_contains(position)) value = field_force(simulation_time(), position);
+    entity_set_force(point, value);
+}
+)";
+    return prepareProgram(spec, options);
+}std::unique_ptr<Program> prepareProgram(const ControlProgramSpec &spec, const CompilerOptions &options,
                                         unsigned identityNamespace)
 {
     try
@@ -800,8 +841,8 @@ std::unique_ptr<Program> prepareProgram(const ControlProgramSpec &spec, const Co
         std::string line;
         while (std::getline(lines, line))
             if (std::regex_search(line, std::regex(R"(^\s*#)")) &&
-                !std::regex_match(line, std::regex(R"(^\s*#\s*include\s*"egret_control.h"\s*)")))
-                throw std::runtime_error("仅允许包含 egret_control.h，不允许自定义预处理指令");
+                !std::regex_match(line, std::regex(R"re(^\s*#\s*include\s*("egret_control\.h"|"math\.h"|<math\.h>)\s*)re")))
+                throw std::runtime_error("仅允许包含 egret_control.h 或 math.h，不允许自定义预处理指令");
         std::filesystem::create_directories(options.cacheDirectory);
         std::wstring temp = L"compile-" + std::to_wstring(GetCurrentProcessId()) + L"-" +
                             std::to_wstring(std::chrono::steady_clock::now().time_since_epoch().count());
@@ -814,6 +855,9 @@ std::unique_ptr<Program> prepareProgram(const ControlProgramSpec &spec, const Co
         process(options.clangPath, {"--version"}, version, errors, options);
         auto header = read(options.sdkDirectory / L"egret_control.h");
         auto runtime = read(options.sdkDirectory / L"egret_runtime.c");
+        auto mathHeader = read(options.sdkDirectory / L"math.h");
+        auto mathLibrary = options.sdkDirectory / L"libegret_math.a";
+        auto mathBytes = read(mathLibrary);
         auto abi = read(options.sdkDirectory.parent_path() / L"control_abi.h");
         std::vector<std::string> flags = {"--target=wasm32-unknown-unknown",
                                           "-std=c11",
@@ -845,13 +889,14 @@ std::unique_ptr<Program> prepareProgram(const ControlProgramSpec &spec, const Co
             std::error_code ec;
             auto file = std::filesystem::weakly_canonical(std::filesystem::u8path(included), ec);
             if (ec || !(std::filesystem::equivalent(file, source, ec) ||
-                        std::filesystem::equivalent(file, options.sdkDirectory / L"egret_control.h", ec)))
+                        std::filesystem::equivalent(file, options.sdkDirectory / L"egret_control.h", ec) ||
+                        std::filesystem::equivalent(file, options.sdkDirectory / L"math.h", ec)))
                 throw std::runtime_error("控制源码包含未授权头文件：" + included);
         }
         auto args = flags;
         args.insert(args.end(), {"-Xclang", "-ast-dump=json", "-fsyntax-only", utf8(source)});
         process(options.clangPath, args, ast, errors, options);
-        auto lowered = validateAst(Json::parse(read(ast)), sdkFunctions(header), spec);
+        auto lowered = validateAst(Json::parse(read(ast)), sdkFunctions(header + mathHeader), sdkFunctions(mathHeader), spec);
         write(source, lowered.source);
         std::string compilerFlags;
         for (const auto &flag : flags)
@@ -861,7 +906,7 @@ std::unique_ptr<Program> prepareProgram(const ControlProgramSpec &spec, const Co
         }
         const auto key = digest(
             "egret-control-abi1-llvm21.1.8-wasmtime38.0.3-memory32-lowering1-O2-debug-noentry-export2-stack262144" +
-            compilerFlags + read(version) + header + runtime + abi + spec.source + lowered.source);
+            compilerFlags + read(version) + header + mathHeader + mathBytes + runtime + abi + spec.source + lowered.source);
         auto cached = options.cacheDirectory / (key + ".wasm");
         std::string bytes;
         report.digest = key;
@@ -879,7 +924,7 @@ std::unique_ptr<Program> prepareProgram(const ControlProgramSpec &spec, const Co
             args.insert(args.end(), {"-O2", "-g", "-nostdlib", "-Wl,--no-entry", "-Wl,--export=egret_step",
                                      "-Wl,--export=egret_exchange", "-Wl,--initial-memory=2097152",
                                      "-Wl,--max-memory=2097152", "-Wl,-z,stack-size=262144", utf8(source),
-                                     utf8(options.sdkDirectory / L"egret_runtime.c"), "-o", utf8(wasm)});
+                                     utf8(options.sdkDirectory / L"egret_runtime.c"), utf8(mathLibrary), "-o", utf8(wasm)});
             process(options.clangPath, args, work.path / L"compile.txt", errors, options);
             bytes = read(wasm, 4 * 1024 * 1024);
             std::error_code ec;
@@ -1026,3 +1071,6 @@ std::vector<ControlProgramSpec> parseProgramSpecs(const std::string &json)
     return result;
 }
 } // namespace egret::control
+
+
+

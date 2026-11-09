@@ -68,7 +68,33 @@ int main(int argc, char **argv)
     {
         require(argc == 3, "需要 Clang 与 SDK 路径");
         CompilerOptions options{argv[1], argv[2], std::filesystem::temp_directory_path() / "egret-control-tests", {}};
-        ControlProgramSpec spec;
+        {
+            auto field = prepareVectorFieldProgram(R"(
+#include <math.h>
+bool field_contains(Vector3 p) { return field_inside_sphere(p, vector3(1,0,0), 1); }
+Vector3 field_force(double t, Vector3 p) { return vector3(t, p.x, -cos(2*pi)); }
+)", options);
+            BodyState point; point.id=1; point.active=true; point.position={1,0,0};
+            CommandBuffer values(1);
+            field->evaluateSample({3,0,std::span(&point,1),{}}, values);
+            require(values.commands().size()==1 && values.commands()[0].value[0]==3 && values.commands()[0].value[1]==1,
+                    "Wasm 场采样错误");
+            values.clear();
+            field->evaluateSample({1,0,std::span(&point,1),{}}, values);
+            require(values.commands().size()==1 && values.commands()[0].value[0]==1, "Wasm 场倒序采样失败");
+            values.clear(); point.position[0]=3;
+            field->evaluateSample({2,0,std::span(&point,1),{}}, values);
+            require(values.commands().size()==1 && values.commands()[0].value[0]==0 && values.commands()[0].value[2]==0,
+                    "Wasm 场作用域外未返回零");
+            bool rejected=false;
+            try { prepareVectorFieldProgram("int n; bool field_contains(Vector3 p){return true;} Vector3 field_force(double t,Vector3 p){return vector3(n,0,0);}",options); }
+            catch (const std::exception&) { rejected=true; }
+            require(rejected,"Wasm 场允许全局状态");
+            rejected=false;
+            try { prepareVectorFieldProgram("bool field_contains(Vector3 p){return true;} Vector3 field_force(double t,Vector3 p){state_set_number(\"x\",1);return p;}",options); }
+            catch (const std::exception&) { rejected=true; }
+            require(rejected,"Wasm 场允许控制接口");
+        }        ControlProgramSpec spec;
         spec.bindings["body"] = 1;
         spec.period = 0.1;
         spec.source = R"(
@@ -77,6 +103,34 @@ void on_step(void) { Entity body=scene_entity("body"); state_set_number("count",
 )";
         auto p = prepareProgram(spec, options);
         auto other = prepareProgram(spec, options, 2);
+        /** @brief 验证预编译数学库在动态输入、特殊函数、缓存及非有限动作上的行为。 */
+        {
+            ControlProgramSpec mathSpec;
+            mathSpec.bindings["body"]=1;
+            mathSpec.source=R"(
+#include <math.h>
+/** @brief 使用运行时输入防止常量折叠掩盖数学库链接问题。 */
+void on_step(void){
+    double x=simulation_time();
+    double a=sin(x)+cos(x)+tan(x)+sin(pi/2)-1+asin(x)+acos(x)+atan(x)+atan2(x,1);
+    double b=sinh(x)+cosh(x)+tanh(x)+asinh(x)+acosh(1+x)+atanh(x);
+    double c=exp(x)+exp2(x)+expm1(x)+log(1+x)+log2(1+x)+log10(1+x)+log1p(x);
+    double d=sqrt(1+x)+cbrt(1+x)+pow(1+x,2)+hypot(x,1)+fabs(x)+floor(x)+ceil(x)+trunc(x)+round(x);
+    double e=fmod(x,1)+remainder(x,1)+copysign(x,1)+fmin(x,1)+fmax(x,1)+fdim(x,1);
+    entity_set_force(scene_entity("body"),vector3(a+b+c+d+e,erf(x)+erfc(x),tgamma(1+x)+lgamma(1+x)));
+})";
+            auto mathProgram=prepareProgram(mathSpec,options);
+            BodyState mathBody{1}; CommandBuffer mathOutput;
+            mathProgram->evaluate({0,0.01,std::span(&mathBody,1),{}},mathOutput);
+            require(mathOutput.commands().size()==1 && std::abs(mathOutput.commands()[0].value[0]-(9+1.5707963267948966))<1e-12
+                    && mathOutput.commands()[0].value[1]==1 && mathOutput.commands()[0].value[2]==1,"数学库函数结果错误");
+            PreparationReport mathReport;
+            auto cachedOptions=options;cachedOptions.onPrepared=[&](const PreparationReport& value){mathReport=value;};
+            auto cachedMath=prepareProgram(mathSpec,cachedOptions);
+            require(mathReport.cacheHit,"数学程序未复用缓存");
+            rejects("#include <math.h>\nvoid on_step(void){entity_set_force(scene_entity(\"body\"),vector3(sqrt(-simulation_step()),0,0));}",options,true);
+            rejects("#include <stdio.h>\nvoid on_step(void){}",options);
+        }
         BodyState body{1, {3, 0, 0}};
         CommandBuffer output;
         p->evaluate({0, 0.01, std::span(&body, 1), {}, 0}, output);
@@ -196,3 +250,5 @@ void on_step(void) {
         return 1;
     }
 }
+
+

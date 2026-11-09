@@ -30,3 +30,5 @@ Get-VerifiedFile 'https://www.lua.org/ftp/lua-5.4.8.tar.gz' $lua '4F18DDAE154E79
 & tar -xzf $lua -C $deps
 if($LASTEXITCODE -ne 0){throw 'Lua 解包失败'}
 Write-Output '控制依赖准备完成。解包工具仅用于开发准备，不随产品分发。'
+
+& (Join-Path $PSScriptRoot 'setup_control_math.ps1')

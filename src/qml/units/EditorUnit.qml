@@ -34,11 +34,16 @@ import "qrc:/components/components/message_box"
 import "qrc:/components/components/theme"
 import "qrc:/components/components/basic"
 import "qrc:/components/components/viewport"
+import "qrc:/components/components/editor"
 import "qrc:/components/components/presets"
 import "qrc:/materials/materials"
 
 ColumnLayout {
     id: editorRoot
+    CodeEditorDialog {
+        id: fieldCodeDialog
+        onSourceSaved: function(key, value) { EditorParameterManager.setParameterValue(key, value) }
+    }
 
     spacing: 6
 
@@ -2062,6 +2067,12 @@ ColumnLayout {
                                     color: "#BFD8F4"
                                 }
 
+                                MenuActionButton {
+                                    width: parent.width
+                                    visible: paramColumn.paramData.type === "code"
+                                    text: "打开 C 代码编辑器"
+                                    onClicked: fieldCodeDialog.begin(paramColumn.paramData.key, paramColumn.paramData.value || "")
+                                }
                                 // float 类型参数编辑器
                                 Loader {
                                     width: parent.width
@@ -2968,3 +2979,6 @@ ColumnLayout {
     }
 
 }
+
+
+

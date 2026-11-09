@@ -1,6 +1,7 @@
 /** @file egret_runtime.c @brief 可信 SDK 实现；仅操作固定 Wasm 内存，不导入宿主能力。 */
 #include "../control_abi.h"
 #include "egret_control.h"
+#include "math.h"
 static EgretExchange exchange;
 static EgretU64 nextIdentity = 1;
 /** @brief 具名持久状态固定槽。 */
@@ -463,6 +464,25 @@ double math_abs(double v)
 {
     return __builtin_fabs(v);
 }
+/** @brief 调用成熟数学库计算余弦，保留旧接口名称。 */
+double math_cos(double value)
+{
+    return cos(value);
+}
+/** @brief 判断点是否位于闭合盒形区域。 */
+bool field_inside_box(Vector3 p, Vector3 a, Vector3 b)
+{
+    return a.x<=p.x && p.x<=b.x && a.y<=p.y && p.y<=b.y && a.z<=p.z && p.z<=b.z;
+}
+/** @brief 判断点是否位于闭合球形区域。 */
+bool field_inside_sphere(Vector3 p, Vector3 c, double radius)
+{
+    if (!(radius>=0.0)) fail();
+    double x=p.x-c.x, y=p.y-c.y, z=p.z-c.z;
+    if (radius==0.0) return x==0.0 && y==0.0 && z==0.0;
+    x/=radius; y/=radius; z/=radius;
+    return x*x+y*y+z*z<=1.0;
+}
 /** @brief 导出交换区偏移，用户不可调用。 */
 unsigned egret_exchange(void)
 {
@@ -495,3 +515,4 @@ void *memset(void *dst, int v, unsigned n)
         d[i] = (char)v;
     return dst;
 }
+

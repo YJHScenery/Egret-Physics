@@ -50,8 +50,15 @@ namespace egret
                                [[maybe_unused]] const SolverConfig &config,
                                SolverStats &stats) const = 0;
 
+        /** @brief 在指定子步起点积分；旧策略默认使用原接口。 */
+        virtual void integrateAt(SolverSceneSnapshotBase& scene, double dt, const SolverConfig& config,
+                                 SolverStats& stats, double) const
+        {
+            integrate(scene, dt, config, stats);
+        }
         [[nodiscard]] virtual std::string_view name() const = 0;
     };
 }
 
 #endif // EGRET_PHYSICS_INTEGRATOR_STRATEGY_H
+

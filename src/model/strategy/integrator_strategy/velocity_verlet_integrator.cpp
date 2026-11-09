@@ -30,6 +30,13 @@ namespace egret
                                                      [[maybe_unused]] const SolverConfig& config,
                                                      SolverStats& stats) const
     {
+        integrateAt(scene, dt, config, stats, scene.getSimulationTime());
+    }
+
+    void VelocityVerletIntegratorStrategy::integrateAt(SolverSceneSnapshotBase& scene, const double dt,
+                                                       [[maybe_unused]] const SolverConfig& config,
+                                                       SolverStats& stats, const double startTime) const
+    {
         auto bodies = scene.getBodies();
         const std::size_t bodyCount = bodies.size();
 
@@ -147,7 +154,7 @@ namespace egret
                     continue;
                 }
                 for (const BodyState& s : states) {
-                    field->applyToEntity(s.handle->entity);
+                    field->applyToEntityAt(s.handle->entity, startTime + dt);
                 }
             }
         }
@@ -200,3 +207,5 @@ namespace egret
         return name;
     }
 }
+
+
