@@ -1,0 +1,223 @@
+{
+    "modelCount": 5,
+    "models": [
+        {
+            "box_size": [
+                100,
+                100,
+                45
+            ],
+            "category": 0,
+            "dynamic_friction": 0.6,
+            "height": 0,
+            "id": "9663151710164337164",
+            "initial_angular_velocity": [
+                0,
+                0,
+                0
+            ],
+            "initial_velocity": [
+                0,
+                4,
+                0
+            ],
+            "length": 0,
+            "load_time": 0,
+            "mass": 10,
+            "materials": {
+                "alphaMode": "",
+                "baseColor": "#ff8fbce8",
+                "metalness": 0.16666666666666666,
+                "roughness": 0.4125
+            },
+            "name": "box1",
+            "pos": [
+                501.76885986328125,
+                0,
+                139.30929565429688
+            ],
+            "radius": 0,
+            "restitution": 1,
+            "rotation": [
+                0.7418823838233948,
+                0.15962496399879456,
+                0.6458491683006287,
+                0.08372176438570023
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "source": "#Cube",
+            "static_friction": 0.8,
+            "type": 1,
+            "visible": true
+        },
+        {
+            "category": 0,
+            "dynamic_friction": 0.6,
+            "height": 100,
+            "id": "9663156708365419027",
+            "initial_angular_velocity": [
+                0,
+                0,
+                0
+            ],
+            "initial_velocity": [
+                0,
+                0,
+                0
+            ],
+            "load_time": 0,
+            "mass": 10,
+            "materials": {
+                "alphaMode": "",
+                "baseColor": "#ff8fbce8",
+                "metalness": 0.16666666666666666,
+                "roughness": 0.4125
+            },
+            "name": "cylinder1",
+            "pos": [
+                386.8240966796875,
+                23,
+                246.2993621826172
+            ],
+            "radius": 100,
+            "restitution": 1,
+            "rotation": [
+                -0.4019387662410736,
+                -0.280509352684021,
+                0.05291394144296646,
+                0.8700345158576965
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "source": "#Cylinder",
+            "static_friction": 0.8,
+            "type": 2,
+            "visible": true
+        },
+        {
+            "box_size": [
+                10000,
+                10000,
+                10
+            ],
+            "category": 0,
+            "dynamic_friction": 0.6,
+            "id": "9663160689129013783",
+            "initial_angular_velocity": [
+                0,
+                0,
+                0
+            ],
+            "initial_velocity": [
+                0,
+                0,
+                0
+            ],
+            "load_time": 0,
+            "mass": 0,
+            "materials": {
+                "alphaMode": "",
+                "baseColor": "#ff8fbce8",
+                "metalness": 0.16666666666666666,
+                "roughness": 0.4125
+            },
+            "name": "ground",
+            "pos": [
+                0,
+                0,
+                -100
+            ],
+            "restitution": 1,
+            "rotation": [
+                1,
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "source": "#Cube",
+            "static_friction": 0.8,
+            "type": 1,
+            "visible": true
+        },
+        {
+            "category": 1,
+            "field_data": {
+                "gravity": [
+                    0,
+                    0,
+                    -9.8100004196167
+                ]
+            },
+            "id": "9663164194761851427",
+            "load_time": 0,
+            "name": "标准重力场",
+            "pos": [
+                0,
+                0,
+                90.75335693359375
+            ],
+            "type": 1,
+            "visible": true
+        },
+        {
+            "category": 0,
+            "dynamic_friction": 0.6,
+            "id": "9663168765882122799",
+            "initial_angular_velocity": [
+                0,
+                0,
+                0
+            ],
+            "initial_velocity": [
+                0,
+                4,
+                0
+            ],
+            "load_time": 0,
+            "mass": 10,
+            "materials": {
+                "alphaMode": "",
+                "baseColor": "#ff8fbce8",
+                "metalness": 0.16666666666666666,
+                "roughness": 0.4125
+            },
+            "name": "box1",
+            "pos": [
+                371.32244873046875,
+                21.886489868164062,
+                469.36474609375
+            ],
+            "radius": 100,
+            "restitution": 1,
+            "rotation": [
+                1,
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "source": "#Sphere",
+            "static_friction": 0.8,
+            "type": 8,
+            "visible": true
+        }
+    ],
+    "timestamp": "2026-10-29T21:18:36",
+    "version": "1.0"
+}

@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.21)
+project(VectorFieldDemo LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_AUTOMOC ON)
+find_package(Qt6 6.9 REQUIRED COMPONENTS Quick Quick3D)
+qt_add_executable(VectorFieldDemo main.cpp)
+qt_add_resources(VectorFieldDemo demo PREFIX "/" FILES Main.qml)
+target_link_libraries(VectorFieldDemo PRIVATE Qt6::Quick Qt6::Quick3D)

@@ -30,6 +30,8 @@ count.py
 
 /demo/*.epsx
 
+*/*.epsx
+
 /dependency/
 
 /backup/

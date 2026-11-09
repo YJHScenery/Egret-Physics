@@ -1,0 +1,295 @@
+{
+    "modelCount": 9,
+    "models": [
+        {
+            "category": 0,
+            "dynamic_friction": 1,
+            "id": "9667706639286473484",
+            "initial_angular_velocity": [
+                0,
+                0,
+                0
+            ],
+            "initial_velocity": [
+                10,
+                110,
+                0
+            ],
+            "load_time": 0,
+            "mass": 100,
+            "materials": {
+                "alphaMode": "",
+                "baseColor": "#ffe68fe8",
+                "metalness": 0.15,
+                "roughness": 0.5
+            },
+            "name": "摆球1",
+            "pos": [
+                0,
+                100,
+                128.3114776611328
+            ],
+            "radius": 10,
+            "restitution": 1,
+            "rotation": [
+                1,
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "source": "#Sphere",
+            "static_friction": 1,
+            "type": 8,
+            "visible": true
+        },
+        {
+            "category": 0,
+            "dynamic_friction": 0.5,
+            "id": "9667710245247062800",
+            "initial_angular_velocity": [
+                0,
+                0,
+                0
+            ],
+            "initial_velocity": [
+                0,
+                1,
+                0
+            ],
+            "load_time": 0,
+            "mass": 60,
+            "materials": {
+                "alphaMode": "",
+                "baseColor": "#ff91e88f",
+                "metalness": 0.19999999999999998,
+                "roughness": 0.3833333333333333
+            },
+            "name": "摆球2",
+            "pos": [
+                91.28469848632812,
+                130,
+                49.417327880859375
+            ],
+            "radius": 10,
+            "restitution": 1,
+            "rotation": [
+                1,
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "source": "#Sphere",
+            "static_friction": 0.5,
+            "type": 8,
+            "visible": true
+        },
+        {
+            "category": 0,
+            "dynamic_friction": 0.5,
+            "id": "9667715000379839262",
+            "initial_angular_velocity": [
+                0,
+                0,
+                0
+            ],
+            "initial_velocity": [
+                0,
+                0,
+                0
+            ],
+            "load_time": 0,
+            "mass": 10,
+            "materials": {
+                "alphaMode": "",
+                "baseColor": "#ff8fbce8",
+                "metalness": 0.19999999999999998,
+                "roughness": 0.3833333333333333
+            },
+            "name": "摆球3",
+            "pos": [
+                128.4841766357422,
+                31.862056732177734,
+                34.7486572265625
+            ],
+            "radius": 10,
+            "restitution": 1,
+            "rotation": [
+                1,
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "source": "#Sphere",
+            "static_friction": 0.5,
+            "type": 8,
+            "visible": true
+        },
+        {
+            "category": 0,
+            "dynamic_friction": 1,
+            "id": "9667715306127823649",
+            "initial_angular_velocity": [
+                0,
+                0,
+                0
+            ],
+            "initial_velocity": [
+                1,
+                0,
+                0
+            ],
+            "load_time": 0,
+            "mass": 10,
+            "materials": {
+                "alphaMode": "",
+                "baseColor": "#ffe8e68f",
+                "metalness": 0.15,
+                "roughness": 0.5
+            },
+            "name": "摆球1-1",
+            "pos": [
+                -46.17836380004883,
+                -119.49431610107422,
+                47.68293380737305
+            ],
+            "radius": 10,
+            "restitution": 1,
+            "rotation": [
+                -0.9938271045684814,
+                -0.1109398752450943,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "source": "#Sphere",
+            "static_friction": 1,
+            "type": 8,
+            "visible": true
+        },
+        {
+            "anchor_pos": {
+                "x": 0,
+                "y": 0,
+                "z": 100
+            },
+            "category": 2,
+            "constraint_data": {
+                "length": 103.93045043945312
+            },
+            "entity_ids": [
+                "9667706639286473484"
+            ],
+            "id": "9667728727229535054",
+            "load_time": 0,
+            "name": "1",
+            "pos": [
+                0,
+                0,
+                0
+            ],
+            "type": 1,
+            "visible": true
+        },
+        {
+            "category": 2,
+            "constraint_data": {
+                "length": 124.32691955566406
+            },
+            "entity_ids": [
+                "9667710245247062800",
+                "9667706639286473484"
+            ],
+            "id": "9667732353322783577",
+            "load_time": 0,
+            "name": "23",
+            "pos": [
+                0,
+                0,
+                0
+            ],
+            "type": 1,
+            "visible": true
+        },
+        {
+            "category": 2,
+            "constraint_data": {
+                "length": 105.97181701660156
+            },
+            "entity_ids": [
+                "9667710245247062800",
+                "9667715000379839262"
+            ],
+            "id": "9667733622082966368",
+            "load_time": 0,
+            "name": "123123",
+            "pos": [
+                0,
+                0,
+                0
+            ],
+            "type": 1,
+            "visible": true
+        },
+        {
+            "category": 2,
+            "constraint_data": {
+                "length": 231.48013305664062
+            },
+            "entity_ids": [
+                "9667715306127823649",
+                "9667715000379839262"
+            ],
+            "id": "9667734270153266024",
+            "load_time": 0,
+            "name": "123123123123",
+            "pos": [
+                0,
+                0,
+                0
+            ],
+            "type": 1,
+            "visible": true
+        },
+        {
+            "category": 1,
+            "field_data": {
+                "gravity": [
+                    0,
+                    0,
+                    -9.8100004196167
+                ]
+            },
+            "id": "9667734932987515761",
+            "load_time": 0,
+            "name": "123123123123",
+            "pos": [
+                0,
+                0,
+                0
+            ],
+            "type": 1,
+            "visible": true
+        }
+    ],
+    "timestamp": "2026-10-30T10:53:01",
+    "version": "1.0"
+}
