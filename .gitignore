@@ -38,3 +38,5 @@ count.py
 /.deps_download/control/
 
 /.tmp_color_test/
+
+/subprojects/vector_field_demo/build/
