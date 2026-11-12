@@ -27,6 +27,7 @@
 #include <QJsonDocument>
 #include <QDebug>
 #include <QSharedPointer>
+#include <QUuid>
 #include "physical_entity.h"
 
 #include "serialize/model_item_data.h"
@@ -83,6 +84,12 @@ namespace egret
         [[nodiscard]] int currentDocument() const { return m_currentDocument; }
         /** @brief 新建并切换到空场景。 */
         Q_INVOKABLE void newDocument();
+        /** @brief 返回当前标签的稳定身份。 */
+        QUuid currentDocumentId() const;
+        /** @brief 返回不含时间戳的当前场景快照。 */
+        QJsonObject agentSceneSnapshot() const;
+        /** @brief 原子提交 Agent 场景，或将生成场景放入新标签。 */
+        bool applyAgentScene(const QJsonObject& scene, const QUuid& target, const QJsonObject& base, QString& error);
         /** @brief 打开文件为新标签。 */
         Q_INVOKABLE bool openDocument(const QString &path);
         /** @brief 切换当前标签。 */
@@ -236,6 +243,7 @@ namespace egret
         };
         /** @brief 单个标签的场景及独立撤销历史。 */
         struct Document {
+            QUuid id = QUuid::createUuid();
             QString path;
             QByteArray savedContent;
             QList<QSharedPointer<ModelItemData>> models;

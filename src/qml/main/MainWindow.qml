@@ -93,6 +93,16 @@ ApplicationWindow {
     onClosing: function(event) {
         if (!exitApproved) {event.accepted = false;requestExit()}
     }
+    Connections {
+        target: sceneAgent
+        /** @brief 显示 Agent 刚提交的场景，并恢复文档快捷键焦点。 */
+        function onSceneApplied() {
+            mainRowLayout.currentRoute = "solver"
+            editorUnit.resetInspector()
+            editorUnit.forceActiveFocus()
+        }
+    }
+
     EditorSettingsDialog {id: editorSettingsDialog}
     ShortcutHelpDialog {id: shortcutHelpDialog}
 
@@ -386,6 +396,7 @@ ApplicationWindow {
                     {id: "presets", icon: "qrc:/main_icons/assets/icons/new_scene.svg", text: "添加预设", enabled: editorUnit.visible, submenu: EditorManager.availablePresets().map(function(entry) {
                         return {id: "preset_" + entry.id, text: entry.name, onTriggered: function() {EditorManager.addPreset(entry.id)}}
                     })},
+                    {id: "sceneAgent", text: "Agent 侧栏", onTriggered: function() {mainRowLayout.currentRoute = "solver"; editorUnit.rightTool = "agent"}},
                     {id: "controlCode", icon: "qrc:/main_icons/assets/icons/edit.svg", text: "控制程序…(&C)", shortcut: "Ctrl+Alt+C", enabled: editorUnit.visible, onTriggered: function() {editorUnit.editControlCode()}},
                     {separator: true},
                     {id: "propertiesPanel", icon: "qrc:/main_icons/assets/icons/edit.svg", text: "对象属性面板", enabled: editorUnit.visible, checkable: true, actionGroup: "editorTool", checked: editorUnit.rightTool === "properties", onTriggered: function() {editorUnit.rightTool = "properties"}},

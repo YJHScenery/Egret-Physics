@@ -4,6 +4,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 import EditorManager 1.0
+import "qrc:/components/components"
 import "qrc:/components/components/theme"
 import "qrc:/components/components/basic"
 import "qrc:/components/components/editor"
@@ -38,6 +39,9 @@ Basic.Dialog {
         contentItem: Text {text: control.text;color: theme.textPrimary;font.pixelSize: 12;horizontalAlignment: Text.AlignHCenter;verticalAlignment: Text.AlignVCenter}
         background: Rectangle {radius: 6;color: control.down ? theme.accentSoft : (control.hovered ? theme.bg2 : theme.bg1);border.color: control.visualFocus || control.hovered ? theme.accent : theme.border}
     }
+    property bool agentVisible: false
+    property int sessionId: 0
+    property int sourceEditRevision: 0
     property var programs: []
     property int selected: -1
     property var objects: []
@@ -52,6 +56,7 @@ Basic.Dialog {
     function change(key, value) { if (current) {current[key] = value; revision++} }
     /** @brief 在打开时捕获场景对象及程序草稿。 */
     function begin() {
+        sessionId++
         programs = clone(EditorManager.sceneSettings.programs || [])
         var list = [], models = EditorManager.getAllModels()
         for (var i = 0; i < models.length; i++) if (models[i].category === 0)
@@ -148,9 +153,26 @@ Basic.Dialog {
                     Layout.fillWidth: true; Layout.fillHeight: true
                     language: root.current && root.current.backend === "lua" ? "lua" : "c"
                     source: { var revision = root.revision; return root.current ? root.current.source : "" }
-                    onEdited: function(value) { if (root.current) root.current.source = value }
+                    onEdited: function(value) { if (root.current) { root.current.source = value; root.sourceEditRevision++ } }
                 }
                 Label {Layout.fillWidth: true;wrapMode: Text.Wrap;color: theme.textSecondary;text: "常用接口：scene_entity / scene_template / scene_spawn / entity_destroy / entity_position / entity_set_velocity / entity_set_force / state_number / state_entity / control_delta。C 入口为 void on_step(void)，Lua 入口为 function on_step() ... end；两者共享领域 SDK。"}
+            }
+            Loader {
+                active: root.agentVisible
+                visible: active
+                Layout.preferredWidth: 270
+                Layout.fillHeight: true
+                sourceComponent: AgentSidebar {
+                    ownerId: "control-editor:" + root.sessionId
+                    codeMode: true
+                    codeTargetAvailable: root.current !== null
+                    codeLanguage: root.current && root.current.backend === "lua" ? "Lua" : "C"
+                    context: {
+                        const revision = root.revision + root.sourceEditRevision
+                        return root.current ? JSON.stringify({selected: root.selected, program: root.current}) : ""
+                    }
+                    onApplySource: function(value) { root.change("source", value) }
+                }
             }
         }
         Label {Layout.fillWidth: true;color: theme.danger;text: root.errorText;visible: text.length > 0;wrapMode: Text.Wrap}
@@ -159,6 +181,7 @@ Basic.Dialog {
             ActionButton {text: EditorManager.controlValidationRunning ? "正在检查…" : "检查当前草稿";enabled: !EditorManager.controlValidationRunning;onClicked: EditorManager.validateControlPrograms(root.clone(root.programs))}
             BusyIndicator {running: EditorManager.controlValidationRunning;visible: running;Layout.preferredWidth: 28;Layout.preferredHeight: 28}
             Item {Layout.fillWidth: true}
+            ActionButton {text: root.agentVisible ? "隐藏 Agent" : "Agent";onClicked: root.agentVisible = !root.agentVisible}
             ActionButton {text: "取消";onClicked: root.close()}
             ActionButton {text: "保存全部程序";onClicked: root.save()}
         }

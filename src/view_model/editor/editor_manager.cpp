@@ -30,6 +30,11 @@
 #include "serialize/transform_transformer.h"
 #include "serialize/scene_settings.h"
 #include "serialize/epscene_archive.h"
+#include "physics/field/field_base.h"
+#include <QSet>
+#include <algorithm>
+#include <cmath>
+#include <limits>
 
 namespace egret
 {
@@ -77,6 +82,8 @@ namespace egret
         m_switchingDocument = true;
         m_currentDocument = index;
         const auto& document = m_documents[index];
+        // 保留上一批实体，直到视图收到列表切换通知并解绑旧委托。
+        const auto previousModels = m_modelList;
         m_modelList = document.models;
         m_sceneSettings=normalizeSceneSettings(document.settings);
         m_undoStack = document.undo;
@@ -99,6 +106,189 @@ namespace egret
         document.savedContent = QJsonDocument(QJsonObject{{"models",QJsonArray{}},{"scene_settings",document.settings}}).toJson(QJsonDocument::Compact);
         m_documents.append(document);
         restoreDocument(m_documents.size() - 1);
+    }
+
+    QUuid EditorManager::currentDocumentId() const
+    {
+        return m_documents[m_currentDocument].id;
+    }
+
+    QJsonObject EditorManager::agentSceneSnapshot() const
+    {
+        auto snapshot = QJsonDocument::fromJson(documentContent()).object();
+        snapshot["version"] = "1.0";
+        snapshot["modelCount"] = m_modelList.size();
+        return snapshot;
+    }
+
+    /** @brief 校验模型返回的有限标量及其取值范围。 */
+    static bool agentNumberInRange(const QJsonValue& value, double minimum, double maximum)
+    {
+        return value.isDouble() && std::isfinite(value.toDouble()) &&
+            value.toDouble() >= minimum && value.toDouble() <= maximum;
+    }
+
+    /** @brief 校验向量长度与每个分量的取值范围。 */
+    static bool agentVectorInRange(const QJsonArray& values, qsizetype size, double minimum, double maximum)
+    {
+        return values.size() == size && std::all_of(values.begin(), values.end(), [=](const QJsonValue& value) {
+            return agentNumberInRange(value, minimum, maximum);
+        });
+    }
+
+    /** @brief 仅允许 Agent 修改既有实体的已验证领域属性。 */
+    static bool validAgentEdit(const QJsonObject& scene, const QJsonObject& base)
+    {
+        const auto oldModels = base.value("models").toArray();
+        const auto newModels = scene.value("models").toArray();
+        if (oldModels.size() != newModels.size()) return false;
+        auto allowedModels = oldModels;
+        for (qsizetype i = 0; i < oldModels.size(); ++i) {
+            auto oldModel = oldModels.at(i).toObject();
+            const auto model = newModels.at(i).toObject();
+            const auto category = oldModel.value("category").toInt(-1);
+            if (model.value("name").isString() && model.value("name").toString().size() <= 256)
+                oldModel["name"] = model.value("name");
+            if (category == 0) {
+                if (oldModel.value("type").toInt() == static_cast<int>(ShapeType::Box)) {
+                    const auto oldSize = oldModel.contains("box_size") ? oldModel.value("box_size").toArray() : QJsonArray{1, 1, 1};
+                    const auto size = model.value("box_size").toArray();
+                    if (oldSize.size() == 3 && size.size() == 3) {
+                        for (qsizetype axis = 0; axis < size.size(); ++axis) {
+                            if (size.at(axis) == oldSize.at(axis)) continue;
+                            const double length = size.at(axis).toDouble();
+                            if (!size.at(axis).isDouble() || !std::isfinite(length) || length < 0.001 || length > 100000)
+                                return false;
+                        }
+                        oldModel["box_size"] = size;
+                    }
+                }
+                for (const auto* key : {"pos", "initial_velocity", "scale"}) {
+                    const bool scale = QLatin1String(key) == "scale";
+                    const auto value = model.value(key);
+                    if (agentVectorInRange(value.toArray(), 3, scale ? 0.001 : -1e12, scale ? 100000.0 : 1e12))
+                        oldModel[key] = value;
+                }
+                const auto rotation = model.value("rotation").toArray();
+                if (agentVectorInRange(rotation, 4, -1.0, 1.0)) {
+                    double normSquared = 0;
+                    for (const auto& component : rotation)
+                        normSquared += component.toDouble() * component.toDouble();
+                    if (std::abs(normSquared - 1.0) <= 1e-4) oldModel["rotation"] = rotation;
+                }
+                for (const auto* key : {"static_friction", "dynamic_friction", "restitution"}) {
+                    const auto value = model.value(key);
+                    if (agentNumberInRange(value, 0, QLatin1String(key) == "restitution" ? 1.0 : 10.0))
+                        oldModel[key] = value;
+                }
+                if (oldModel.value("type").toInt() == static_cast<int>(ShapeType::Sphere) &&
+                    agentNumberInRange(model.value("radius"), 0.001, 100000.0))
+                    oldModel["radius"] = model.value("radius");
+
+                const auto mass = model.value("mass");
+                if (mass.isDouble() && std::isfinite(mass.toDouble()) && mass.toDouble() >= 0)
+                    oldModel["mass"] = mass;
+                auto material = oldModel.value("materials").toObject();
+                const auto color = model.value("materials").toObject().value("baseColor");
+                if (color.isString() && QColor::isValidColorName(color.toString())) {
+                    material["baseColor"] = color;
+                    oldModel["materials"] = material;
+                }
+            }
+            if (category == 1 && oldModel.value("type").toInt() == static_cast<int>(FieldType::Gravity)) {
+                auto field = oldModel.value("field_data").toObject();
+                const auto gravity = model.value("field_data").toObject().value("gravity").toArray();
+                if (gravity.size() == 3 && std::all_of(gravity.begin(), gravity.end(), [](const QJsonValue& component) {
+                    return component.isDouble() && std::abs(component.toDouble()) <= 100000.0;
+                })) {
+                    field["gravity"] = gravity;
+                    oldModel["field_data"] = field;
+                }
+            }
+            allowedModels[i] = oldModel;
+        }
+        auto allowed = base;
+        allowed["models"] = allowedModels;
+        return allowed == scene;
+    }
+
+    bool EditorManager::applyAgentScene(const QJsonObject& scene, const QUuid& target, const QJsonObject& base, QString& error)
+    {
+        const bool create = target.isNull();
+        if (!create && (currentDocumentId() != target || agentSceneSnapshot() != base)) {
+            error = QStringLiteral("请求期间当前标签或场景内容已变化，请重新提交。");
+            return false;
+        }
+        if (scene.value("version").toString() != "1.0" || !scene.value("models").isArray()) {
+            error = QStringLiteral("场景版本或实体列表无效。");
+            return false;
+        }
+        if (!create && !validAgentEdit(scene, base)) {
+            error = QStringLiteral("变更包含未授权字段、实体类型不匹配或数值超出允许范围。旋转须为单位四元数，缩放和尺寸须为正，摩擦系数为 0～10，恢复系数为 0～1。");
+            return false;
+        }
+        const auto programs = scene.value("scene_settings").toObject().value("programs");
+        if (create && !programs.isUndefined() && programs != QJsonArray{} &&
+            programs != normalizeSceneSettings({}).value("programs")) {
+            error = QStringLiteral("新场景不能附带 Agent 生成的可执行控制器，请在控制器编辑器中单独审阅。");
+            return false;
+        }
+        try {
+            if (scene.contains("scene_settings") && !scene.value("scene_settings").isObject())
+                throw std::invalid_argument("场景设置必须为对象");
+            parseSceneSettings(scene.value("scene_settings").toObject());
+        } catch (const std::exception& exception) {
+            error = QString::fromUtf8(exception.what());
+            return false;
+        }
+
+        const auto models = scene.value("models").toArray();
+        QSet<QString> ids;
+        QList<QSharedPointer<ModelItemData>> staged;
+        for (const auto& entry : models) {
+            const auto object = entry.toObject();
+            if (create) {
+                const auto category = object.value("category").toInt(-1);
+                const auto type = object.value("type").toInt(-1);
+                const auto asset = object.value("source").toString();
+                static const QSet<QString> primitives{"", "#Cube", "#Sphere", "#Cylinder", "#Cone", "#Rectangle"};
+                if (category < 0 || category > 2 ||
+                    (category == 1 && type == static_cast<int>(FieldType::VectorForce)) ||
+                    !primitives.contains(asset)) {
+                    error = QStringLiteral("生成场景只允许内置几何、普通力场和约束。");
+                    return false;
+                }
+            }
+            auto model = QSharedPointer<ModelItemData>::create();
+            if (!entry.isObject() || !model->fromJson(object) || model->id().isEmpty() || ids.contains(model->id())) {
+                error = QStringLiteral("实体 %1 无法加载，或缺少唯一 ID。").arg(staged.size() + 1);
+                return false;
+            }
+            ids.insert(model->id());
+            staged.append(model);
+        }
+
+        if (create) {
+            storeDocument();
+            Document document;
+            document.models = staged;
+            document.settings = normalizeSceneSettings(scene.value("scene_settings").toObject());
+            m_documents.append(document);
+        } else {
+            if (scene == base) return true;
+            saveState();
+            storeDocument();
+            auto& document = m_documents[m_currentDocument];
+            document.models = staged;
+            document.settings = normalizeSceneSettings(scene.value("scene_settings").toObject());
+        }
+        for (const auto& model : staged) {
+            QQmlEngine::setObjectOwnership(model.data(), QQmlEngine::CppOwnership);
+            QQmlEngine::setObjectOwnership(model->materials(), QQmlEngine::CppOwnership);
+            watchModelPosition(model.data());
+        }
+        restoreDocument(create ? int(m_documents.size()) - 1 : m_currentDocument);
+        return true;
     }
 
     bool EditorManager::switchDocument(int index)

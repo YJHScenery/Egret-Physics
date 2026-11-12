@@ -154,7 +154,7 @@ include_directories(
 
 set(QT_MODULES_LIST
         Core Gui Widgets Quick Qml Quick3D Sql Quick3DAssetImport QuickControls2 Multimedia
-        Concurrent PrintSupport
+        Concurrent PrintSupport Network
 )
 
 find_package(Qt6 COMPONENTS
@@ -165,6 +165,7 @@ list(TRANSFORM QT_MODULES_LIST PREPEND "Qt::" OUTPUT_VARIABLE QT_MODULES_LIST_WI
 
 set(QRC_FILES
         resources/global.qrc
+        resources/agent.qrc
         resources/presets.qrc
         resources/fonts/fonts.qrc
         src/qml/qml.qrc
@@ -173,6 +174,8 @@ set(QRC_FILES
 
 set(CPP_FILES
         src/main.cpp
+        src/view_model/agent/scene_agent.cpp
+        src/view_model/agent/scene_agent.h
 
         src/view_model/video_export/encoder/epsx_video_encoder.cpp
         src/view_model/video_export/encoder/epsx_video_encoder.h
@@ -640,6 +643,9 @@ if(MSVC)
     target_compile_options(Egret_Scene_Archive PRIVATE /utf-8)
 endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE Egret_Scene_Archive)
+if (WIN32)
+    target_link_libraries(${PROJECT_NAME} PRIVATE Crypt32)
+endif()
 
 option(BUILD_TESTS "Build unit tests" ON)
 

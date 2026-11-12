@@ -916,29 +916,29 @@ ColumnLayout {
                             delegate: Model {
                                 id: delegateModel
 
-                                property var materialAlphaMode: basicNode.alphaModeMap[modelData.materials.alphaMode]
+                                property var materialAlphaMode: modelData && modelData.materials ? basicNode.alphaModeMap[modelData.materials.alphaMode] : PrincipledMaterial.Default
                                 property bool isSelected: editorCanvas.selectedObjectName === objectName
                                 property var transform: EditorManager.setQuick3DRenderTransform(index)
 
 
-                                objectName: modelData.id
-                                visible: modelData.category === 0 && modelData.visible
+                                objectName: modelData ? modelData.id : ""
+                                visible: !!modelData && modelData.category === 0 && modelData.visible
 
-                                source: modelData.source
+                                source: modelData ? modelData.source : ""
 
                                 // z-up 到 y-up 的交换
                                 // position: Qt.vector3d(modelData.pos.x, modelData.pos.z, -modelData.pos.y)
 
-                                position: transform["position"]
-                                scale: transform["scale"]
-                                rotation: transform["rotation"] // modelData.rotation
+                                position: transform["position"] || Qt.vector3d(0, 0, 0)
+                                scale: transform["scale"] || Qt.vector3d(1, 1, 1)
+                                rotation: transform["rotation"] || Qt.quaternion(1, 0, 0, 0) // modelData.rotation
 
                                 pickable: true
 
                                 materials: PrincipledMaterial {
-                                    baseColor: delegateModel.isSelected ? "#5CC8FF" : modelData.materials.baseColor
-                                    roughness: modelData.materials.roughness
-                                    metalness: modelData.materials.metalness
+                                    baseColor: delegateModel.isSelected ? "#5CC8FF" : (modelData && modelData.materials ? modelData.materials.baseColor : "#ffffff")
+                                    roughness: modelData && modelData.materials ? modelData.materials.roughness : 0.5
+                                    metalness: modelData && modelData.materials ? modelData.materials.metalness : 0
                                     emissiveFactor: delegateModel.isSelected ? "#1A6AA6" : "#000000"
                                     alphaMode: delegateModel.materialAlphaMode ? delegateModel.materialAlphaMode : PrincipledMaterial.Default
                                     cullMode: Material.NoCulling
@@ -951,23 +951,23 @@ ColumnLayout {
                         Repeater3D {
                             model: basicNode.modelList
                             delegate: ConstraintDelegate {
-                                property var payload: modelData.category === 2 ? modelData.payloadMap : ({})
+                                property var payload: modelData && modelData.category === 2 ? modelData.payloadMap : ({})
                                 property var targets: payload.entity_ids || []
                                 property var firstBody: targets.length > 0 ? EditorManager.getModel(targets[0]) : null
                                 property var secondBody: targets.length > 1 ? EditorManager.getModel(targets[1]) : null
                                 property var anchor: payload.anchor_pos || {x: 0, y: 0, z: 0}
-                                property var firstPoint: ((modelData.type === 1 || modelData.type === 3) && targets.length === 1 && payload.anchor_pos) ? Qt.vector3d(anchor.x || 0, anchor.y || 0, anchor.z || 0)
+                                property var firstPoint: ((constraintKind === 1 || constraintKind === 3) && targets.length === 1 && payload.anchor_pos) ? Qt.vector3d(anchor.x || 0, anchor.y || 0, anchor.z || 0)
                                                                                  : (firstBody ? firstBody.pos : Qt.vector3d(0, 0, 0))
-                                property var secondPoint: ((modelData.type === 1 || modelData.type === 3) && targets.length === 1 && payload.anchor_pos) ? (firstBody ? firstBody.pos : Qt.vector3d(0, 0, 0))
+                                property var secondPoint: ((constraintKind === 1 || constraintKind === 3) && targets.length === 1 && payload.anchor_pos) ? (firstBody ? firstBody.pos : Qt.vector3d(0, 0, 0))
                                                                                   : (secondBody ? secondBody.pos : Qt.vector3d(0, 0, 0))
                                 property var constraintPositionA: [firstPoint.y, firstPoint.z, firstPoint.x]
                                 property var constraintPositionB: [secondPoint.y, secondPoint.z, secondPoint.x]
-                                property int constraintKind: modelData.type
+                                property int constraintKind: modelData ? modelData.type : 0
                                 property real constraintConstraintLength: (payload.constraint_data || {}).length || (payload.constraint_data || {}).restLength || 0
                                 property real constraintCurrentDistance: secondPoint.minus(firstPoint).length()
                                 property color constraintColor: "#4FC3F7"
-                                visible: modelData.category === 2 && modelData.visible
-                                         && ((((modelData.type === 1 || modelData.type === 3) && targets.length === 1 && payload.anchor_pos) && firstBody) || (firstBody && secondBody))
+                                visible: !!modelData && modelData.category === 2 && modelData.visible
+                                         && ((((constraintKind === 1 || constraintKind === 3) && targets.length === 1 && payload.anchor_pos) && firstBody) || (firstBody && secondBody))
                             }
                         }
 
@@ -975,13 +975,13 @@ ColumnLayout {
                         Repeater3D {
                             model: basicNode.modelList
                             delegate: Model {
-                                property var payload: modelData.category === 2 ? modelData.payloadMap : ({})
+                                property var payload: modelData && modelData.category === 2 ? modelData.payloadMap : ({})
                                 property var rail: payload.constraint_data || ({})
                                 property var startPoint: rail.start || [-100, 0, 0]
                                 property var endPoint: rail.end || [100, 0, 0]
                                 property var control1: rail.control1 || [(2 * startPoint[0] + endPoint[0]) / 3, (2 * startPoint[1] + endPoint[1]) / 3, (2 * startPoint[2] + endPoint[2]) / 3]
                                 property var control2: rail.control2 || [(startPoint[0] + 2 * endPoint[0]) / 3, (startPoint[1] + 2 * endPoint[1]) / 3, (startPoint[2] + 2 * endPoint[2]) / 3]
-                                visible: modelData.category === 2 && modelData.type === 4 && modelData.visible
+                                visible: !!modelData && modelData.category === 2 && modelData.type === 4 && modelData.visible
                                 geometry: BezierCurveGeometry {
                                     controlPoints: [editorCanvas.toRenderVector(startPoint[0], startPoint[1], startPoint[2]),
                                                     editorCanvas.toRenderVector(control1[0], control1[1], control1[2]),
@@ -1001,14 +1001,14 @@ ColumnLayout {
                 Repeater {
                     model:editorRoot.showSmallMarkers?basicNode.modelList:[]
                     delegate:Rectangle {
-                        property var physicalPosition:modelData.pos
+                        property var physicalPosition:modelData ? modelData.pos : Qt.vector3d(0, 0, 0)
                         property var markerTransform:EditorManager.setQuick3DRenderTransform(index)
                         property vector3d screen:{editorCanvas.cameraRevision;return editorView.mapFrom3DScene(editorCanvas.toRenderVector(physicalPosition.x,physicalPosition.y,physicalPosition.z).minus(editorCanvas.toRenderVector(editorCanvas.orbitTargetX,editorCanvas.orbitTargetY,editorCanvas.orbitTargetZ)).times(editorRoot.displayScale));}
                         property real diameter:markerTransform.scale?markerTransform.scale.length()*100:0
-                        visible:modelData.category===0 && modelData.visible && modelData.mass>0 && screen.z>0 && diameter/Math.max(editorCanvas.orbitDistance,1e-15)*editorCanvas.height<10
+                        visible:!!modelData && modelData.category===0 && modelData.visible && modelData.mass>0 && screen.z>0 && diameter/Math.max(editorCanvas.orbitDistance,1e-15)*editorCanvas.height<10
                         x:screen.x-5;y:screen.y-5;width:10;height:10;radius:5;color:"#F4B942";border.color:"#FFFFFF";border.width:1;z:5
-                        ToolTip.visible:smallMarkerMouse.containsMouse;ToolTip.text:modelData.name+"（辅助标记，不改变物理尺寸）"
-                        MouseArea {id:smallMarkerMouse;anchors.fill:parent;hoverEnabled:true;onClicked:{editorCanvas.selectedObjectName=modelData.id;editorRoot.loadModelById(modelData.id);}}
+                        ToolTip.visible:smallMarkerMouse.containsMouse;ToolTip.text:(modelData ? modelData.name : "")+"（辅助标记，不改变物理尺寸）"
+                        MouseArea {id:smallMarkerMouse;anchors.fill:parent;hoverEnabled:true;onClicked:{if (!modelData) return;editorCanvas.selectedObjectName=modelData.id;editorRoot.loadModelById(modelData.id);}}
                     }
                 }
                 SceneScaleControls {
@@ -1274,6 +1274,13 @@ ColumnLayout {
             Layout.maximumWidth: 280
             Layout.fillHeight: true
             spacing: 8
+
+            AgentSidebar {
+                ownerId: "scene-editor"
+                visible: editorRoot.rightTool === "agent"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+            }
 
             SolverPanel {
                 id: solverPanel
@@ -2932,7 +2939,8 @@ ColumnLayout {
             Repeater {
                 model: [
                     {key: "properties", label: "编辑", icon: "qrc:/main_icons/assets/icons/edit.svg"},
-                    {key: "solver", label: "求解", icon: "qrc:/main_icons/assets/icons/simulator.svg"}
+                    {key: "solver", label: "求解", icon: "qrc:/main_icons/assets/icons/simulator.svg"},
+                    {key: "agent", label: "Agent", icon: "qrc:/main_icons/assets/icons/edit.svg"}
                 ]
                 delegate: Rectangle {
                     required property var modelData

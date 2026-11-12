@@ -21,6 +21,8 @@
         <file>components/SceneEntityListPanel.qml</file>
         <file>components/SceneControlPanel.qml</file>
         <file>components/ControlCodeDialog.qml</file>
+        <file>components/AgentSidebar.qml</file>
+        <file>components/AgentSettingsDialog.qml</file>
         <file>components/SceneCloseDialog.qml</file>
         <file>components/EditorSettingsDialog.qml</file>
         <file>components/MenuActionButton.qml</file>

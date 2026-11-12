@@ -163,11 +163,48 @@ namespace egret
         return true;
     }
 
-    bool EpsceneArchive::write(const QString& path, const QJsonObject& scene, QString& error)
+    QMap<QString, QByteArray> EpsceneArchive::buildTree( const QJsonObject& scene, QString& error)
     {
         error.clear();
-        if (!scene.value("models").isArray()) { error = QStringLiteral("场景缺少实体数组"); return false; }
-        if (!validSettings(scene, error)) return false;
+        if (!scene.value("models").isArray()) { error = QStringLiteral("场景缺少实体数组"); return {}; }
+        if (!validSettings(scene, error)) return {};
+        QMap<QString, QByteArray> files;
+        QJsonObject root = scene;
+        std::array<QJsonArray, 3> groups;
+        QJsonArray order;
+        for (const auto& value : root.take("models").toArray()) {
+            const int category = value.toObject().value("category").toInt(0);
+            if (!value.isObject() || category < 0 || category > 2) {
+                error = QStringLiteral("实体类别无效"); return {};
+            }
+            groups[category].append(value);
+            order.append(category);
+        }
+        for (int i = 0; i < 3; ++i) files.insert(entityFiles[i], QJsonDocument(groups[i]).toJson());
+        auto settings = root.value("scene_settings").toObject();
+        auto programs = settings.value("programs").toArray();
+        for (qsizetype i = 0; i < programs.size(); ++i) {
+            auto program = programs[i].toObject();
+            if (!program.value("source").isString()) {
+                error = QStringLiteral("控制器源码必须为字符串"); return {};
+            }
+            const QString sourcePath = QStringLiteral("control/program_%1.%2").arg(i + 1).arg(program.value("backend").toString() == "lua" ? "lua" : "c");
+            files.insert(sourcePath, program.value("source").toString().toUtf8());
+            program["source"] = sourcePath;
+            programs[i] = program;
+        }
+        if (settings.contains("programs")) settings["programs"] = programs;
+        if (root.contains("scene_settings")) root["scene_settings"] = settings;
+        const QJsonObject metadata{{"magic", "EPSCENE"}, {"version", "2.0"}, {"scene", root}, {"entity_order", order}};
+        files.insert("metadata.json", QJsonDocument(metadata).toJson());
+
+        return files;
+    }
+
+    bool EpsceneArchive::write(const QString& path, const QJsonObject& scene, QString& error)
+    {
+        const auto files = buildTree(scene, error);
+        if (files.isEmpty()) return false;
         QByteArray archive;
         QBuffer buffer(&archive);
         if (!buffer.open(QIODevice::WriteOnly)) { error = buffer.errorString(); return false; }
@@ -175,34 +212,8 @@ namespace egret
         zip.addDirectory("entities");
         zip.addDirectory("control");
         zip.addDirectory("config");
-        QJsonObject root = scene;
-        std::array<QJsonArray, 3> groups;
-        QJsonArray order;
-        for (const auto& value : root.take("models").toArray()) {
-            const int category = value.toObject().value("category").toInt(0);
-            if (!value.isObject() || category < 0 || category > 2) {
-                error = QStringLiteral("实体类别无效"); return false;
-            }
-            groups[category].append(value);
-            order.append(category);
-        }
-        for (int i = 0; i < 3; ++i) zip.addFile(entityFiles[i], QJsonDocument(groups[i]).toJson());
-        auto settings = root.value("scene_settings").toObject();
-        auto programs = settings.value("programs").toArray();
-        for (qsizetype i = 0; i < programs.size(); ++i) {
-            auto program = programs[i].toObject();
-            if (!program.value("source").isString()) {
-                error = QStringLiteral("控制器源码必须为字符串"); return false;
-            }
-            const QString sourcePath = QStringLiteral("control/program_%1.%2").arg(i + 1).arg(program.value("backend").toString() == "lua" ? "lua" : "c");
-            zip.addFile(sourcePath, program.value("source").toString().toUtf8());
-            program["source"] = sourcePath;
-            programs[i] = program;
-        }
-        if (settings.contains("programs")) settings["programs"] = programs;
-        if (root.contains("scene_settings")) root["scene_settings"] = settings;
-        const QJsonObject metadata{{"magic", "EPSCENE"}, {"version", "2.0"}, {"scene", root}, {"entity_order", order}};
-        zip.addFile("metadata.json", QJsonDocument(metadata).toJson());
+        for (auto it = files.cbegin(); it != files.cend(); ++it)
+            zip.addFile(it.key(), it.value());
         zip.close();
         if (zip.status() != QZipWriter::NoError) {
             error = QStringLiteral("写入 ZIP 失败"); return false;

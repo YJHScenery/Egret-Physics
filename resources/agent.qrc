@@ -1,0 +1,10 @@
+<!-- /** @file agent.qrc @brief 场景 Agent 使用的内置格式及 SDK 资料。 */ -->
+<RCC>
+    <qresource prefix="/agent">
+        <file alias="scene.epscene">../demo/lua_body_control.epscene</file>
+        <file alias="c_scene.epscene">../demo/programmable_body_control.epscene</file>
+        <file alias="sliding_block_board.epscene">../demo/sliding_block_board.epscene</file>
+        <file alias="constraints.epscene">../demo/chaotic_double_pendulum.epscene</file>
+        <file alias="egret_control.h">../src/control_core/sdk/egret_control.h</file>
+    </qresource>
+</RCC>

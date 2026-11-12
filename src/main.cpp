@@ -16,6 +16,7 @@
  */
 
 #include <QApplication>
+#include "view_model/agent/scene_agent.h"
 #include <QCoreApplication>
 #include <QQmlApplicationEngine>
 #include <QtQml/qqml.h>
@@ -173,6 +174,7 @@ int main(int argc, char* argv[])
     egret::FileHandler fileHandler;
     egret::QtMediaHelper qtMediaHelper;
 
+    egret::SceneAgent sceneAgent;
     QQmlApplicationEngine engine;
     // egret::EditorManager::instance()->addModels(egret::createDefaultModels());
     // egret::EditorManager::instance()->addModels(egret::createDefaultModels());
@@ -182,6 +184,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty("simulationExporter", &simulationExporter);
     engine.rootContext()->setContextProperty("videoExporter", &videoExporter);
     engine.rootContext()->setContextProperty("analysisSession", &analysisSession);
+    engine.rootContext()->setContextProperty("sceneAgent", &sceneAgent);
     engine.rootContext()->setContextProperty("qtHelper", &qtHelper);
     engine.rootContext()->setContextProperty("resourceHelper", &resourceHelper);
     engine.rootContext()->setContextProperty("fileHandler", &fileHandler);

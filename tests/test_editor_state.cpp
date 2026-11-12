@@ -188,6 +188,81 @@ int main(int argc, char** argv)
         require(!documentsEditor.documents()[0].toMap()["dirty"].toBool(), "撤销到保存状态后仍标记为修改");
         require(QFile::remove(documentPath), "测试文件删除失败");
         require(documentsEditor.documentNeedsSaveAs() && !documentsEditor.saveDocument(), "源文件消失后未要求选择路径");
+        EditorManager agentEditor;
+        require(agentEditor.fromJsonString(source), "Agent 编辑测试场景加载失败");
+        auto agentInput = QJsonDocument::fromJson(source.toUtf8()).object();
+        auto agentInputModels = agentInput.value("models").toArray();
+        agentInputModels.append(QJsonObject{{"id", "3"}, {"name", "重力"}, {"category", 1}, {"type", 1},
+            {"field_data", QJsonObject{{"gravity", QJsonArray{0, 0, -9.81}}}}});
+        agentInputModels.append(QJsonObject{{"id", "4"}, {"name", "球"}, {"category", 0}, {"type", 8}, {"radius", 1}});
+        agentInput["models"] = agentInputModels;
+        require(agentEditor.fromJsonString(QString::fromUtf8(QJsonDocument(agentInput).toJson())), "重力测试场景加载失败");
+        const auto agentBase = agentEditor.agentSceneSnapshot();
+        const auto agentTarget = agentEditor.currentDocumentId();
+        auto agentScene = agentBase;
+        auto agentModels = agentScene.value("models").toArray();
+        auto agentEntity = agentModels.first().toObject();
+        agentEntity["name"] = "Agent 修改后的实体";
+        agentEntity["mass"] = 4;
+        agentEntity["pos"] = QJsonArray{1, 2, 3};
+        agentEntity["rotation"] = QJsonArray{0, 0, 0, 1};
+        agentEntity["scale"] = QJsonArray{2, 1, 1};
+        agentEntity["initial_velocity"] = QJsonArray{-1, 0, 2};
+        agentEntity["static_friction"] = 0.4;
+        agentEntity["dynamic_friction"] = 0.2;
+        agentEntity["restitution"] = 0.3;
+        agentEntity["box_size"] = QJsonArray{static_cast<double>(0.6f), 1, 1};
+        auto agentMaterial = agentEntity.value("materials").toObject();
+        agentMaterial["baseColor"] = "#ff5588aa";
+        agentEntity["materials"] = agentMaterial;
+        agentModels[0] = agentEntity;
+        auto gravityField = agentModels[2].toObject();
+        auto gravityData = gravityField.value("field_data").toObject();
+        gravityData["gravity"] = QJsonArray{0, 0, -12};
+        gravityField["field_data"] = gravityData;
+        agentModels[2] = gravityField;
+        auto sphere = agentModels[3].toObject();
+        sphere["radius"] = 0.25;
+        agentModels[3] = sphere;
+        agentScene["models"] = agentModels;
+        QString agentError;
+        auto forbidden = agentScene;
+        auto forbiddenModels = agentModels;
+        agentEntity["source"] = "external.obj";
+        forbiddenModels[0] = agentEntity;
+        forbidden["models"] = forbiddenModels;
+        require(!agentEditor.applyAgentScene(forbidden, agentTarget, agentBase, agentError)
+                && agentEditor.agentSceneSnapshot() == agentBase, "Agent 越界修改未被原子拒绝");
+        require(!agentEditor.applyAgentScene(forbidden, {}, {}, agentError), "生成场景接受了外部资产");
+        auto invalidSizeScene = agentScene;
+        auto invalidSizeModels = agentModels;
+        auto invalidSizeEntity = invalidSizeModels[0].toObject();
+        invalidSizeEntity["box_size"] = QJsonArray{-0.6, 1, 1};
+        invalidSizeModels[0] = invalidSizeEntity;
+        invalidSizeScene["models"] = invalidSizeModels;
+        require(!agentEditor.applyAgentScene(invalidSizeScene, agentTarget, agentBase, agentError)
+                && agentEditor.agentSceneSnapshot() == agentBase, "负尺寸未被拒绝");
+        invalidSizeEntity = agentModels[0].toObject();
+        invalidSizeEntity["rotation"] = QJsonArray{0, 0, 0, 0};
+        invalidSizeModels[0] = invalidSizeEntity;
+        invalidSizeScene["models"] = invalidSizeModels;
+        require(!agentEditor.applyAgentScene(invalidSizeScene, agentTarget, agentBase, agentError)
+                && agentEditor.agentSceneSnapshot() == agentBase, "无效旋转未被整批拒绝");
+        EditorManager expectedAgentEditor;
+        require(expectedAgentEditor.fromJsonString(QString::fromUtf8(QJsonDocument(agentScene).toJson())), "预期场景无法加载");
+        const auto expectedAgentScene = expectedAgentEditor.agentSceneSnapshot();
+        require(agentEditor.applyAgentScene(agentScene, agentTarget, agentBase, agentError)
+                && agentEditor.agentSceneSnapshot() == expectedAgentScene, "Agent 编辑未应用到当前标签");
+        require(!agentEditor.applyAgentScene(agentScene, agentTarget, agentBase, agentError), "过期的 Agent 编辑覆盖了当前场景");
+        require(agentEditor.undo() && agentEditor.agentSceneSnapshot() == agentBase, "Agent 编辑不能一次撤销");
+        require(agentEditor.applyAgentScene(agentScene, {}, {}, agentError)
+                && agentEditor.currentDocumentId() != agentTarget && agentEditor.documents().size() == 2
+                && agentEditor.documentNeedsSaveAs() && !agentEditor.canUndo(), "Agent 生成未打开独立未保存标签");
+        const QString generatedPath = documentDir.filePath("generated.epscenex");
+        require(agentEditor.saveDocument(generatedPath), "Agent 生成场景无法保存为 EPSCENEX");
+        require(reopened.openDocument(generatedPath) && reopened.agentSceneSnapshot() == expectedAgentScene,
+                "Agent 生成归档重新打开后内容不一致");
+
         auto* sharedEditor = EditorManager::instance();
         const QString copyScene = QStringLiteral(R"({"models":[{"id":"101","name":"甲","category":0,"type":1,"mass":1},{"id":"102","name":"乙","category":0,"type":1,"mass":1},{"id":"103","name":"绳","category":2,"type":1,"entity_ids":["101","102"],"constraint_data":{"length":1}}]})");
         require(sharedEditor->fromJsonString(copyScene), "复制测试场景加载失败");
