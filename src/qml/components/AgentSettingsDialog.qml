@@ -5,6 +5,7 @@ import QtQuick.Controls.Basic as Basic
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import "qrc:/components/components/theme"
+import "qrc:/components/components/basic"
 
 Basic.Dialog {
     id: root
@@ -16,6 +17,79 @@ Basic.Dialog {
     property url skill
     property bool hasKey
     DeepBlueTheme { id: theme }
+    padding: 14
+    background: Rectangle {
+        color: theme.bg1
+        border.color: theme.border
+        radius: theme.radiusM
+    }
+    header: Basic.Label {
+        text: root.title
+        color: theme.textPrimary
+        font.bold: true
+        leftPadding: root.padding
+        topPadding: root.padding
+    }
+
+    /** @brief 为数值输入提供圆角边框和带圆角的增减按钮。 */
+    component RoundedSpinBox: Basic.SpinBox {
+        id: spin
+        editable: true
+        font.pixelSize: 13
+        background: Rectangle {
+            implicitWidth: 132
+            implicitHeight: 34
+            radius: theme.radiusS
+            color: theme.bg0
+            border.color: spin.activeFocus ? theme.accent : theme.border
+        }
+        contentItem: TextInput {
+            text: spin.displayText
+            font: spin.font
+            color: theme.textPrimary
+            selectionColor: theme.accentSoft
+            selectedTextColor: theme.textPrimary
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            validator: spin.validator
+            inputMethodHints: spin.inputMethodHints
+            clip: true
+        }
+        up.indicator: StepIndicator {
+            x: spin.mirrored ? 3 : spin.width - width - 3
+            y: 3
+            height: spin.height - 6
+            symbol: "+"
+            pressed: spin.up.pressed
+            hovered: spin.up.hovered
+        }
+        down.indicator: StepIndicator {
+            x: spin.mirrored ? spin.width - width - 3 : 3
+            y: 3
+            height: spin.height - 6
+            symbol: "−"
+            pressed: spin.down.pressed
+            hovered: spin.down.hovered
+        }
+    }
+
+    /** @brief 绘制数值控件的增减指示器。 */
+    component StepIndicator: Rectangle {
+        id: step
+        required property string symbol
+        required property bool pressed
+        required property bool hovered
+        implicitWidth: 29
+        radius: 5
+        color: pressed ? theme.accentSoft : (hovered ? theme.bg2 : theme.bg1)
+        Text {
+            anchors.centerIn: parent
+            text: step.symbol
+            color: step.enabled ? theme.textPrimary : theme.textDim
+            font.pixelSize: 15
+        }
+    }
+
     palette.window: theme.bg1
     palette.windowText: theme.textPrimary
     palette.base: theme.bg0
@@ -40,18 +114,18 @@ Basic.Dialog {
     }
     contentItem: ColumnLayout {
         Basic.Label { text: "DeepSeek V4.1 Flash（deepseek-flash）"; color: theme.textPrimary }
-        Basic.TextField {
+        EgretTextField {
             id: key
             Layout.fillWidth: true
             echoMode: TextInput.Password
             placeholderText: root.hasKey ? "已保存，留空保留" : "API Key，留空使用环境变量"
         }
-        Basic.CheckBox { id: clearKey; text: "清除已保存的 Key"; enabled: root.hasKey && key.text.length === 0 }
+        EgretCheckBox { id: clearKey; text: "清除已保存的 Key"; enabled: root.hasKey && key.text.length === 0 }
         RowLayout {
             Basic.Label { text: "超时（秒）"; color: theme.textPrimary }
-            Basic.SpinBox { id: timeout; from: 10; to: 600; editable: true }
+            RoundedSpinBox { id: timeout; from: 10; to: 600 }
             Basic.Label { text: "输出 Token 上限"; color: theme.textPrimary }
-            Basic.SpinBox { id: tokens; from: 1024; to: 65536; stepSize: 1024; editable: true }
+            RoundedSpinBox { id: tokens; from: 1024; to: 65536; stepSize: 1024 }
         }
         Basic.Label {
             Layout.fillWidth: true
